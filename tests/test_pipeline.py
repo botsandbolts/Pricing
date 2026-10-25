@@ -146,6 +146,19 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
     assert len(report['experiments'])==60
     assert all(r['retained_rows']==100-int(100*r['removed_fraction']) for r in report['experiments'])
     assert len(report['quantile_intervals'])==10
+    # Exercise auto thresholding, rather than a forced ranking percentile.
+    import shutil
+    auto_out=tmp_path/'auto-bundle'
+    shutil.copytree(out,auto_out)
+    (auto_out/'experiment-plan.json').unlink()
+    (auto_out/'validation-results.json').unlink()
+    run_experiments(Namespace(data=str(source),output=str(auto_out),trees=12,seed=42,
+        tabular_only=False,threads=1,isolation_mode='auto',losses=['huber'],huber_deltas=[.5,.9,1.5]))
+    auto_report=json.loads((auto_out/'experiments.json').read_text())
+    assert len(auto_report['experiments'])==6
+    audit_auto=pd.read_csv(auto_out/'isolation-audit.csv')
+    expected=int((audit_auto.score<auto_report['plan']['isolation_offset']).sum())
+    assert all(r['removed_rows']==expected for r in auto_report['experiments'])
     # All completed grid models must survive a restart without another fit.
     def no_refit(*args,**kwargs):raise AssertionError('Completed experiments should resume')
     monkeypatch.setattr(training.lgb.LGBMRegressor,'fit',no_refit)

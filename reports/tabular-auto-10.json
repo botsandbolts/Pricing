@@ -1,0 +1,253 @@
+{
+  "status": "evaluated",
+  "plan": {
+    "stage": "tabular-only baseline",
+    "training_candidates": 21700,
+    "validation": 4650,
+    "test": 4651,
+    "rates": [
+      "auto"
+    ],
+    "isolation_mode": "auto",
+    "isolation_offset": -0.5,
+    "targets": [
+      "dollars",
+      "log1p"
+    ],
+    "losses": [
+      [
+        "huber_d0.5",
+        "huber",
+        0.5
+      ],
+      [
+        "huber_d0.9",
+        "huber",
+        0.9
+      ],
+      [
+        "huber_d1.5",
+        "huber",
+        1.5
+      ]
+    ],
+    "configurations": 6,
+    "filter_scope": "LightGBM training rows only; shared E5 stage unchanged across sweep if enabled",
+    "filter_inputs": [
+      "year",
+      "odometer",
+      "manufacturer",
+      "model",
+      "condition",
+      "cylinders",
+      "fuel",
+      "title_status",
+      "transmission",
+      "drive",
+      "type",
+      "paint_color",
+      "state"
+    ],
+    "filter_true_prices": false,
+    "selection": "Validation USD MAE and validation USD RMSE; q10/q90 excluded from point-model selection",
+    "target_standardization": "Retained training rows only; each Huber alpha is in standardized target units",
+    "fingerprint": "ada9990b653fbcc7f63645478bc6c888145ea237ea387ed75741067d1585722c",
+    "lightgbm_estimators": 1000,
+    "seed": 42
+  },
+  "selected_on_validation": {
+    "mae_usd": "isolation_auto_log1p_huber_d0.5",
+    "rmse_usd": "isolation_auto_dollars_huber_d1.5"
+  },
+  "experiments": [
+    {
+      "id": "isolation_auto_dollars_huber_d0.5",
+      "isolation_mode": "auto",
+      "removed_fraction": 0.0,
+      "retained_rows": 21700,
+      "removed_rows": 0,
+      "target": "dollars",
+      "loss": "huber_d0.5",
+      "alpha": 0.5,
+      "best_iteration": 1000,
+      "validation": {
+        "mae_usd": 3905.025214710162,
+        "rmse_usd": 7915.362087220894,
+        "median_ape_pct": 16.73207613705895,
+        "rmsle": 0.47006605948994346,
+        "r2": 0.7166372896452535,
+        "mae_log": 0.27518636991430057
+      },
+      "target_mean": 18637.86677419355,
+      "target_std": 14674.63638278637,
+      "band80_log_radius": 0.39026664382405,
+      "test": {
+        "mae_usd": 3808.163273920206,
+        "rmse_usd": 6999.69731823369,
+        "median_ape_pct": 17.37895603801137,
+        "rmsle": 0.4421575258480024,
+        "r2": 0.7666517165671105,
+        "mae_log": 0.27537087108692293
+      },
+      "band80_test_coverage": 0.7944528058482047
+    },
+    {
+      "id": "isolation_auto_dollars_huber_d0.9",
+      "isolation_mode": "auto",
+      "removed_fraction": 0.0,
+      "retained_rows": 21700,
+      "removed_rows": 0,
+      "target": "dollars",
+      "loss": "huber_d0.9",
+      "alpha": 0.9,
+      "best_iteration": 998,
+      "validation": {
+        "mae_usd": 3896.254812374606,
+        "rmse_usd": 7739.980225554036,
+        "median_ape_pct": 16.9591572002468,
+        "rmsle": 0.5057949575916189,
+        "r2": 0.7290551956728373,
+        "mae_log": 0.28135291296990833
+      },
+      "target_mean": 18637.86677419355,
+      "target_std": 14674.63638278637,
+      "band80_log_radius": 0.40124648329175416,
+      "test": {
+        "mae_usd": 3831.851817352941,
+        "rmse_usd": 6869.092394661544,
+        "median_ape_pct": 17.9877429632891,
+        "rmsle": 0.47662764681308717,
+        "r2": 0.7752784067624867,
+        "mae_log": 0.2829768779219086
+      },
+      "band80_test_coverage": 0.7950978284239948
+    },
+    {
+      "id": "isolation_auto_dollars_huber_d1.5",
+      "isolation_mode": "auto",
+      "removed_fraction": 0.0,
+      "retained_rows": 21700,
+      "removed_rows": 0,
+      "target": "dollars",
+      "loss": "huber_d1.5",
+      "alpha": 1.5,
+      "best_iteration": 998,
+      "validation": {
+        "mae_usd": 3917.5388969692162,
+        "rmse_usd": 7648.168267021163,
+        "median_ape_pct": 17.27870524854763,
+        "rmsle": 0.5327312546392244,
+        "r2": 0.7354449880286651,
+        "mae_log": 0.28646517154977047
+      },
+      "target_mean": 18637.86677419355,
+      "target_std": 14674.63638278637,
+      "band80_log_radius": 0.4003263452315512,
+      "test": {
+        "mae_usd": 3865.0252034028044,
+        "rmse_usd": 6869.480523894732,
+        "median_ape_pct": 17.816017603517146,
+        "rmsle": 0.5265209532483304,
+        "r2": 0.7752530108356864,
+        "mae_log": 0.29086934378069845
+      },
+      "band80_test_coverage": 0.7918727155450441
+    },
+    {
+      "id": "isolation_auto_log1p_huber_d0.5",
+      "isolation_mode": "auto",
+      "removed_fraction": 0.0,
+      "retained_rows": 21700,
+      "removed_rows": 0,
+      "target": "log1p",
+      "loss": "huber_d0.5",
+      "alpha": 0.5,
+      "best_iteration": 1000,
+      "validation": {
+        "mae_usd": 3820.4265156667857,
+        "rmse_usd": 7872.002593017293,
+        "median_ape_pct": 16.232604866330608,
+        "rmsle": 0.4040244756294733,
+        "r2": 0.7197332470265358,
+        "mae_log": 0.25649944155681803
+      },
+      "target_mean": 9.52160100032053,
+      "target_std": 0.8353620549543556,
+      "band80_log_radius": 0.366172879255477,
+      "test": {
+        "mae_usd": 3749.355616343462,
+        "rmse_usd": 7022.650184931516,
+        "median_ape_pct": 17.040219720343792,
+        "rmsle": 0.4011850359455894,
+        "r2": 0.765118852127304,
+        "mae_log": 0.2612379289500956
+      },
+      "band80_test_coverage": 0.7860675123629327
+    },
+    {
+      "id": "isolation_auto_log1p_huber_d0.9",
+      "isolation_mode": "auto",
+      "removed_fraction": 0.0,
+      "retained_rows": 21700,
+      "removed_rows": 0,
+      "target": "log1p",
+      "loss": "huber_d0.9",
+      "alpha": 0.9,
+      "best_iteration": 996,
+      "validation": {
+        "mae_usd": 3833.745990947634,
+        "rmse_usd": 7825.1320527021135,
+        "median_ape_pct": 16.398408338268407,
+        "rmsle": 0.40033813780487737,
+        "r2": 0.7230607731114205,
+        "mae_log": 0.2556435442854501
+      },
+      "target_mean": 9.52160100032053,
+      "target_std": 0.8353620549543556,
+      "band80_log_radius": 0.3673262705110251,
+      "test": {
+        "mae_usd": 3791.12164581111,
+        "rmse_usd": 6979.859173517139,
+        "median_ape_pct": 17.010350024303545,
+        "rmsle": 0.40269112596114987,
+        "r2": 0.7679725271399858,
+        "mae_log": 0.2636232424226735
+      },
+      "band80_test_coverage": 0.7832724145345087
+    },
+    {
+      "id": "isolation_auto_log1p_huber_d1.5",
+      "isolation_mode": "auto",
+      "removed_fraction": 0.0,
+      "retained_rows": 21700,
+      "removed_rows": 0,
+      "target": "log1p",
+      "loss": "huber_d1.5",
+      "alpha": 1.5,
+      "best_iteration": 801,
+      "validation": {
+        "mae_usd": 3851.078371410125,
+        "rmse_usd": 7832.349259490195,
+        "median_ape_pct": 16.39645723535462,
+        "rmsle": 0.40049544641141305,
+        "r2": 0.7225496892398238,
+        "mae_log": 0.2569049968532673
+      },
+      "target_mean": 9.52160100032053,
+      "target_std": 0.8353620549543556,
+      "band80_log_radius": 0.37467442482878327,
+      "test": {
+        "mae_usd": 3830.417754124892,
+        "rmse_usd": 7039.138390650446,
+        "median_ape_pct": 17.431335388930925,
+        "rmsle": 0.4034621397011591,
+        "r2": 0.764014620834391,
+        "mae_log": 0.26576895881247276
+      },
+      "band80_test_coverage": 0.785637497312406
+    }
+  ],
+  "quantile_intervals": [],
+  "text_only_test": null,
+  "test_use": "One predeclared grid; test diagnostics must not drive model selection."
+}

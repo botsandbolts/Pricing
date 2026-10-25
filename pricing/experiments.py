@@ -64,7 +64,7 @@ def isolation_scores(x,seed,threads=4):
     z=transform.fit_transform(temp)
     detector=IsolationForest(n_estimators=300,max_samples=min(256,len(x)),
                             random_state=seed,n_jobs=threads,contamination='auto').fit(z)
-    return detector.score_samples(z)
+    return detector.score_samples(z),float(detector.offset_)
 
 
 def experiment_grid(losses=None,huber_deltas=None):
@@ -106,16 +106,24 @@ def run(a):
     xv=features(val,schema,None if tabular_only else f['validation'])
     xt=features(test,schema,None if tabular_only else f['test'])
     grid=experiment_grid(getattr(a,'losses',None),getattr(a,'huber_deltas',None))
+    auto=getattr(a,'isolation_mode','rates')=='auto'
+    if auto:grid=[(None,target,loss) for rate,target,loss in grid if rate==0]
+    rates=[None] if auto else RATES
     threads=getattr(a,'threads',4)
-    anomaly=isolation_scores(x,a.seed,threads)
+    anomaly,offset=isolation_scores(x,a.seed,threads)
+    def keep_for(rate):
+        return np.flatnonzero(anomaly>=offset) if rate is None else retained_indices(anomaly,rate)
+    def prefix_for(rate):
+        return 'isolation_auto' if rate is None else f'remove{int(rate*100):02d}'
     audit=pd.DataFrame({'row_id':train.row_id,'score':anomaly})
-    for rate in RATES:
-        keep=retained_indices(anomaly,rate)
-        audit[f'kept_{int(rate*100)}pct_removed']=np.isin(np.arange(len(train)),keep)
+    for rate in rates:
+        keep=keep_for(rate)
+        audit['kept_'+prefix_for(rate)]=np.isin(np.arange(len(train)),keep)
+    if len(keep)<2:raise ValueError('Isolation Forest retained too few training rows')
     audit.to_csv(out/'isolation-audit.csv',index=False)
     # Predeclare the sweep and selection rules before running any experiment.
     plan={'stage':'tabular-only baseline' if tabular_only else 'fine-tuned E5 + tabular stack','training_candidates':len(train),'validation':len(val),'test':len(test),
-          'rates':RATES,'targets':TARGETS,'losses':list(dict.fromkeys(x[2] for x in grid)),'configurations':len(grid),
+          'rates':['auto'] if auto else RATES,'isolation_mode':'auto' if auto else 'rates','isolation_offset':offset,'targets':TARGETS,'losses':list(dict.fromkeys(x[2] for x in grid)),'configurations':len(grid),
           'filter_scope':'LightGBM training rows only; shared E5 stage unchanged across sweep if enabled',
           'filter_inputs':list(x),'filter_true_prices':False,
           'selection':'Validation USD MAE and validation USD RMSE; q10/q90 excluded from point-model selection',
@@ -132,11 +140,11 @@ def run(a):
     records=[];pending=[];models=out/'grid-models';models.mkdir(exist_ok=True)
     # Freeze every fitted configuration and validation score before accessing test targets for scoring.
     for rate,target,(loss,objective,alpha) in grid:
-        keep=retained_indices(anomaly,rate)
+        keep=keep_for(rate)
         raw=np.log1p(train.price.to_numpy()) if target=='log1p' else train.price.to_numpy(float)
         vr=np.log1p(val.price.to_numpy()) if target=='log1p' else val.price.to_numpy(float)
         mean=float(raw[keep].mean());std=float(max(raw[keep].std(),1e-6))
-        key=f'remove{int(rate*100):02d}_{target}_{loss}'
+        key=f'{prefix_for(rate)}_{target}_{loss}'
         if key in previous and (models/f'{key}.txt').exists():
             record=previous[key]
             restored=lgb.Booster(model_file=str(models/f'{key}.txt'))
@@ -156,7 +164,7 @@ def run(a):
                 callbacks=[lgb.early_stopping(min(75,max(5,a.trees//5)),first_metric_only=True,verbose=False)])
         vp=inverse(fit.predict(xv),mean,std,target)
         q=alpha if objective=='quantile' else None
-        record={'id':key,'removed_fraction':rate,'retained_rows':len(keep),
+        record={'id':key,'isolation_mode':'auto' if auto else 'rates','removed_fraction':(len(train)-len(keep))/len(train) if auto else rate,'retained_rows':len(keep),
                 'removed_rows':len(train)-len(keep),'target':target,'loss':loss,'alpha':alpha,
                 'best_iteration':fit.best_iteration_,'validation':score(val.price,vp,q),
                 'target_mean':mean,'target_std':std,
@@ -178,8 +186,8 @@ def run(a):
         r['band80_test_coverage']=float(np.mean(abs(np.log1p(test.price)-np.log1p(p))<=r['band80_log_radius']))
         predictions[r['id']]=p
     intervals=[]
-    for rate,target in itertools.product(RATES,TARGETS):
-        prefix=f'remove{int(rate*100):02d}_{target}_'
+    for rate,target in itertools.product(rates,TARGETS):
+        prefix=f'{prefix_for(rate)}_{target}_'
         if prefix+'q10' not in predictions or prefix+'q90' not in predictions:continue
         lo,hi=predictions[prefix+'q10'],predictions[prefix+'q90']
         intervals.append({'removed_fraction':rate,'target':target,
@@ -223,11 +231,12 @@ def run(a):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--data',default='training-cache/twenty-five-percent.jsonl')
-    p.add_argument('--output',default='artifacts/e5-base-lightgbm-25')
+    p.add_argument('--data',default='training-cache/ten-percent.jsonl')
+    p.add_argument('--output',default='artifacts/e5-base-lightgbm-10')
     p.add_argument('--trees',type=int,default=1500)
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--threads',type=int,default=4)
+    p.add_argument('--isolation-mode',choices=['rates','auto'],default='auto')
     p.add_argument('--losses',nargs='+',choices=[x[0] for x in LOSSES])
     p.add_argument('--huber-deltas',nargs='+',type=float,default=[.5,.9,1.5])
     p.add_argument('--tabular-only',action='store_true',help='Run a clearly labeled CPU baseline without E5; never export an inference bundle')

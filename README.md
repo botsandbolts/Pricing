@@ -1,19 +1,23 @@
 # pricing
 
-## Current request: 25% sample, E5-base → scalar text price → Huber LightGBM
+## Current request: 10% sample, Isolation Forest auto, E5-base → Huber LightGBM
 
-The current experiment samples **106,720 raw listings (25%)**, leaving 68,846 eligible/deduplicated listings: 48,192 train / 10,327 validation / 10,327 test. It compares 30 Huber models: thresholds 0.5/0.9/1.5 × dollar/log-price targets × 0/5/10/25/50% Isolation Forest removal at the LightGBM stage. No Extra Trees is used. All text-stage training features are cross-fitted.
+Fixed 10% of the raw database: **42,688 sampled listings**, yielding **31,001** eligible/deduplicated listings: **21,700 train / 4,650 validation / 4,651 test**.
 
-The full E5 run is still pending GPU compute. The exact checkpoint passed a supervised gradient/save-load smoke test; that is not a pricing evaluation. Any completed 25% tabular baseline is explicitly labeled. The former 10% experiment below is retained for reference.
+Isolation Forest fits training predictors with **`contamination="auto"`**. We retain rows with nonnegative decision function, equivalent to `predict == 1`; the detector determines the outlier count. No removal percentage is forced. Validation/test are never filtered. The shared text stage uses all training rows; this detector filters the LightGBM training stage. Its actual removal count and offset are recorded in the report/audit.
+
+The active Huber sweep has **six** configurations: dollar/log-price targets × thresholds 0.5/0.9/1.5. E5 is trained on description text only, then generates cross-fitted scalar `predicted_text_price` for stacking with structured features. No Extra Trees is used.
+
+**The full E5 run is pending GPU compute.** The exact checkpoint passed a regression gradient/save-load smoke test; any measured tabular-only results are labeled separately. No older or baseline model supplies substitute E5 estimates.
 
 ```bash
-python -m scripts.prepare_stack /path/to/vehicles.zip --fraction .25 --output training-cache/twenty-five-percent.jsonl
-python -m pricing.train --data training-cache/twenty-five-percent.jsonl --output artifacts/e5-base-lightgbm-25 --device cuda --folds 3 --epochs 2 --text-only
-python -m pricing.experiments --data training-cache/twenty-five-percent.jsonl --output artifacts/e5-base-lightgbm-25 --losses huber --huber-deltas .5 .9 1.5 --trees 1000
+python -m scripts.prepare_stack /path/to/vehicles.zip --fraction .1 --output training-cache/ten-percent.jsonl
+python -m pricing.train --data training-cache/ten-percent.jsonl --output artifacts/e5-base-lightgbm-10 --device cuda --folds 3 --epochs 2 --text-only
+python -m pricing.experiments --data training-cache/ten-percent.jsonl --output artifacts/e5-base-lightgbm-10 --losses huber --huber-deltas .5 .9 1.5 --isolation-mode auto --trees 1000
 python -m streamlit run app.py
 ```
 
-`train_gpu.ipynb` now runs this 25% Huber experiment. The app defaults to `artifacts/e5-base-lightgbm-25`; use `PRICING_MODEL_DIR` to load an older completed bundle. The completed [25% Huber baseline report](reports/HUBER_25_RESULTS.md) contains all 30 measured configurations. Validation-MAE winner: log price + Huber 0.9 + no removal; held-out MAE **$3,614**, RMSE **$7,147**. These are tabular-only scores; the E5 stack remains untrained.
+`train_gpu.ipynb` uses these settings. The GUI defaults to `artifacts/e5-base-lightgbm-10`. The completed [auto-mode baseline report](reports/AUTO_10_RESULTS.md) records **0 of 21,700 rows flagged**, test **MAE $3,749 / RMSE $7,023** for the validation-MAE winner (log target, Huber 0.5). These are tabular-only results, not E5-stack scores; prior 10% fixed-removal and 25% results below remain archived, not current settings. To explicitly reproduce a fixed-percentage sweep, pass `--isolation-mode rates`.
 
 ## Previous 10% experiment: implementation and measured baseline
 
