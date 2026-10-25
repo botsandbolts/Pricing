@@ -8,7 +8,7 @@ from pricing.text import MODEL_ID, MAX_CHARACTERS
 st.set_page_config(page_title='pricing · E5 + LightGBM',page_icon='🚗',layout='wide')
 st.title('pricing')
 st.caption('Fine-tuned E5-base text regression + LightGBM · historical US asking prices')
-path=Path(os.environ.get('PRICING_MODEL_DIR','artifacts/e5-base-isolation-text-10'))
+path=Path(os.environ.get('PRICING_MODEL_DIR','artifacts/e5-base-two-prices-10'))
 ready=(path/'manifest.json').exists()
 if not ready:
     st.info('The new model has not been trained yet. Complete the GPU training run to enable dollar estimates. The previous model is not used.')
@@ -52,22 +52,25 @@ with value:
                 with st.spinner('Reading the description and calculating price…'):
                     p=get_pipeline(str(path)).predict(notes,fields)
                 st.metric('Estimated asking price',f"${p['price']:,.0f}")
-                st.caption(f"Text-only feature predicted_text_price: ${p['predicted_text_price']:,.0f}")
+                st.caption(f"Description-price feature: ${p['predicted_text_price']:,.0f}")
+                if p.get('predicted_make_model_price') is not None:
+                    st.caption(f"Make/model-price feature: ${p['predicted_make_model_price']:,.0f}")
                 st.write(f"Indicative 80% band: ${p['range'][0]:,.0f}–${p['range'][1]:,.0f}")
             except Exception as exc:
                 st.error(f'Model unavailable: {exc}')
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
     st.write(f'**Text model:** `{MODEL_ID}`. XLM-RoBERTa, 768 dimensions, 512 tokens per chunk. Every transformer parameter is fine-tuned with a regression head against standardized log1p(price), using descriptions only. Longer descriptions up to 8,000 characters use pooled chunk representations.')
+    st.write('**Make/model model:** a frozen all-MiniLM-L6-v2 encoder reads only the two names, with a neural regression head trained on log prices. Three-fold cross-fitting generates predicted_make_model_price for training. No year, mileage or description enters this small model. It is a broad identity price signal, not a complete car valuation.')
     st.write('**Dynamic feature:** reverse the target scaling and log transform to create one dollar-valued `predicted_text_price`. Descriptions and price-like phrases are cleaned consistently. Structured form fields enter LightGBM separately.')
-    st.write('**Final model:** LightGBM combines the text-price scalar with year, mileage and categorical vehicle fields. The active 10% experiment compares dollar and log-price targets with Huber thresholds 0.5, 0.9 and 1.5. The validation-MAE winner supplies the displayed dollar estimate. Make/model use categorical values, with no separate embedding model.')
+    st.write('**Final model:** LightGBM combines both price scalars with year, mileage and categorical vehicle fields. The active 10% experiment compares dollar and log-price targets with Huber thresholds 0.5, 0.9 and 1.5. The validation-MAE winner supplies the displayed dollar estimate. Make/model use categorical values, with no separate embedding model.')
     st.write('**Leakage control:** three-fold cross-fitting creates each training row’s predicted_text_price using an E5 model that never saw its target. Isolation Forest fits that single dollar-valued scalar only, with 300 trees and automatic contamination. It removes only LightGBM training rows labeled outliers. Validation and test remain untouched. E5 training is shared across the Huber experiments.')
     st.write('For a log-target winner, the dollar point estimate is the back-transformed log prediction, not a bias-corrected arithmetic mean. Dollar-target winners use the inverse linear scaling. The 80% band is calibrated from validation log residuals; its actual test coverage is reported.')
 with results:
     if (path/'evaluation.json').exists() and ready:
         e=json.loads((path/'evaluation.json').read_text())
         st.write(e['rows'])
-        st.dataframe([{'Model':label,**e[key]} for key,label in [('text_only','Fine-tuned text only'),('tabular_only','Tabular LightGBM'),('stacked','Stacked E5 + LightGBM')] if key in e],hide_index=True)
+        st.dataframe([{'Model':label,**e[key]} for key,label in [('text_only','Fine-tuned description only'),('make_model_only','MiniLM make/model only'),('tabular_only','Tabular LightGBM'),('stacked','Stacked E5 + LightGBM')] if key in e],hide_index=True)
         st.write(f"80% band test coverage: {e['band80_test_coverage']:.1%}")
     else:
         st.info('No evaluation exists for this architecture yet. Run training to produce held-out metrics; earlier model results do not apply.')
@@ -89,3 +92,10 @@ with results:
         st.write('Selected using validation:',report['selected_on_validation'])
         if report['quantile_intervals']:
             st.dataframe(report['quantile_intervals'],hide_index=True)
+
+    identity_report=Path('reports/make-model-evaluation.json')
+    if identity_report.exists():
+        identity=json.loads(identity_report.read_text())
+        st.subheader('Make/model transformer: measured component result')
+        st.caption('Frozen MiniLM encoder + trained neural price head. These are make/model-only scores, not full-stack scores.')
+        st.json(identity['test'])

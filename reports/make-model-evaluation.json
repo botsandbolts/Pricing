@@ -1,0 +1,26 @@
+{
+  "status": "evaluated",
+  "scope": "make/model-only frozen MiniLM + supervised neural head, not full E5 stack",
+  "rows": {
+    "train": 21700,
+    "validation": 4650,
+    "test": 4651
+  },
+  "test": {
+    "mae_usd": 7803.1712520603905,
+    "rmse_usd": 12103.100972816652,
+    "median_ape_pct": 39.331604012908706,
+    "rmsle": 0.699149456604078,
+    "r2": 0.30234710256159425
+  },
+  "config": {
+    "source": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "folds": 3,
+    "epochs": 60,
+    "seed": 42,
+    "encoder_frozen": true,
+    "max_tokens": 64,
+    "head": "384\u219264\u21921 (dimension inferred from backbone)"
+  }
+}

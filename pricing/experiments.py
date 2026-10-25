@@ -15,6 +15,7 @@ import lightgbm as lgb
 from pricing.tabular import fit_schema,features,NUMERIC,CATEGORICAL
 from pricing.train import validate_cohort
 from pricing.text import MODEL_ID
+from pricing.identity import read_features
 from scripts.common import metrics
 
 RATES=[None]
@@ -86,10 +87,11 @@ def run(a):
                 raise ValueError('Text feature row order mismatch')
     else:
         fingerprint=hashlib.sha256(Path(a.data).read_bytes()).hexdigest()
+    identity=read_features(out,a.data,phases)
     schema=fit_schema(train)
-    x=features(train,schema,None if tabular_only else f['oof'])
-    xv=features(val,schema,None if tabular_only else f['validation'])
-    xt=features(test,schema,None if tabular_only else f['test'])
+    x=features(train,schema,f['oof'],identity['oof'])
+    xv=features(val,schema,f['validation'],identity['validation'])
+    xt=features(test,schema,f['test'],identity['test'])
     grid=experiment_grid(getattr(a,'losses',None),getattr(a,'huber_deltas',None))
     rates=[None]
     threads=getattr(a,'threads',4)
@@ -107,7 +109,7 @@ def run(a):
           'filter_inputs':['predicted_text_price'],'filter_true_prices':False,
           'selection':'Validation USD MAE and validation USD RMSE; q10/q90 excluded from point-model selection',
           'target_standardization':'Retained training rows only; each Huber alpha is in standardized target units',
-          'fingerprint':fingerprint,'lightgbm_estimators':a.trees,'seed':a.seed}
+          'fingerprint':fingerprint,'identity_fingerprint':str(identity['fingerprint']),'lightgbm_estimators':a.trees,'seed':a.seed}
     plan_path=out/'experiment-plan.json'
     previous={}
     if plan_path.exists() and (out/'validation-results.json').exists():
@@ -174,7 +176,7 @@ def run(a):
             'test_crossing_fraction':float(np.mean(lo>hi)),
             'mean_signed_width_usd':float(np.mean(hi-lo))})
     report={'status':'evaluated','plan':plan,'selected_on_validation':selected,'experiments':records,
-            'quantile_intervals':intervals,'text_only_test':None if tabular_only else score(test.price,f['test']),
+            'quantile_intervals':intervals,'make_model_only_test':score(test.price,identity['test']),'text_only_test':None if tabular_only else score(test.price,f['test']),
             'test_use':'One predeclared grid; test diagnostics must not drive model selection.'}
     (out/'experiments.json').write_text(json.dumps(report,indent=2))
     flat=[]
@@ -195,12 +197,12 @@ def run(a):
     evaluation={'status':'evaluated','scope':'Fixed sampled database cohort, historical 2021 asking prices',
         'rows':{'train':champion['retained_rows'],'train_candidates':len(train),'removed':champion['removed_rows'],
                 'validation':len(val),'test':len(test)},'stacked':champion['test'],
-        'text_only':report['text_only_test'],'selected_experiment':champion['id'],
+        'make_model_only':report['make_model_only_test'],'text_only':report['text_only_test'],'selected_experiment':champion['id'],
         'selected_on_validation':selected,'validation_stacked':champion['validation'],
         'band80_test_coverage':champion['band80_test_coverage'],'experiments':len(records)}
     (out/'evaluation.json').write_text(json.dumps(evaluation,indent=2))
     manifest={'status':'ready','pipeline':'fine-tuned-e5-base+lightgbm','model_id':MODEL_ID,
-        'fingerprint':fingerprint,'feature_names':booster.feature_name(),
+        'fingerprint':fingerprint,'feature_names':booster.feature_name(),'identity_price_feature':True,
         'band80_log_radius':champion['band80_log_radius'],
         'training_filter':{'algorithm':'IsolationForest','inputs':['predicted_text_price'],'contamination':'auto','estimators':300,'seed':a.seed},
         'target_transform':champion['target'],'target_mean':champion['target_mean'],
@@ -212,7 +214,7 @@ def run(a):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--data',default='training-cache/ten-percent.jsonl')
-    p.add_argument('--output',default='artifacts/e5-base-isolation-text-10')
+    p.add_argument('--output',default='artifacts/e5-base-two-prices-10')
     p.add_argument('--trees',type=int,default=1500)
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--threads',type=int,default=4)

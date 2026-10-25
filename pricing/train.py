@@ -14,6 +14,7 @@ import lightgbm as lgb
 from pricing.text import MODEL_ID, fit_text, predict_text, save_text
 from pricing.tabular import fit_schema, features, CATEGORICAL
 from scripts.common import metrics
+from pricing.identity import read_features
 
 
 def folds(n, count, seed):
@@ -114,13 +115,14 @@ def run(a):
             train_ids=train.row_id.to_numpy(str),validation_ids=val.row_id.to_numpy(str),test_ids=test.row_id.to_numpy(str),fingerprint=fingerprint)
         print('Saved OOF, validation and test text features; no test target metrics calculated.',flush=True)
         return
+    identity=read_features(out,a.data,{'train':train,'validation':val,'test':test})
     schema=fit_schema(train)
-    x=features(train,schema,oof);xv=features(val,schema,vp)
+    x=features(train,schema,oof,identity['oof']);xv=features(val,schema,vp,identity['validation'])
     stack=fit_lgb(x,train.price,xv,val.price,a.seed)
     baseline=fit_lgb(features(train,schema),train.price,features(val,schema),val.price,a.seed)
     # Only now evaluate the untouched test set, once selection is complete.
     tp=predict_text(model,tokenizer,test.text.tolist(),a.device,a.batch_size)
-    xt=features(test,schema,tp)
+    xt=features(test,schema,tp,identity['test'])
     stack_v=np.expm1(np.clip(stack.predict(xv),0,np.log1p(1e7)))
     stack_t=np.expm1(np.clip(stack.predict(xt),0,np.log1p(1e7)))
     tab_t=np.expm1(np.clip(baseline.predict(features(test,schema)),0,np.log1p(1e7)))
@@ -137,7 +139,7 @@ def run(a):
     test[['row_id','price']].assign(predicted_text_price=tp,predicted_price=stack_t).to_csv(out/'test-predictions.csv',index=False)
     (out/'evaluation.json').write_text(json.dumps(scores,indent=2))
     (out/'manifest.json').write_text(json.dumps({'status':'ready','model_id':MODEL_ID,
-        'pipeline':'fine-tuned-e5-base+lightgbm','fingerprint':fingerprint,'band80_log_radius':band,
+        'pipeline':'fine-tuned-e5-base+lightgbm','identity_price_feature':True,'fingerprint':fingerprint,'band80_log_radius':band,
         'feature_names':stack.booster_.feature_name(),'source_revision':revision},indent=2))
     print(json.dumps(scores,indent=2),flush=True)
 
@@ -145,7 +147,7 @@ def run(a):
 def parser():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--data',default='training-cache/ten-percent.jsonl')
-    p.add_argument('--output',default='artifacts/e5-base-isolation-text-10')
+    p.add_argument('--output',default='artifacts/e5-base-two-prices-10')
     p.add_argument('--revision',help='Exact embaas source revision; resolves once if omitted')
     p.add_argument('--folds',type=int,default=3)
     p.add_argument('--epochs',type=int,default=2)

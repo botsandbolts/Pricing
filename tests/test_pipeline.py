@@ -128,6 +128,8 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
     d['phase']=['train']*100+['validation']*30+['test']*30
     source=tmp_path/'data.jsonl';d.to_json(source,orient='records',lines=True,date_format='iso')
     out=tmp_path/'bundle'
+    from pricing.identity import build_features
+    build_features(d,source,out,XLMRobertaModel(config),tok,source='tiny-test-encoder',revision='test',epochs=2,folds=2)
     training.run(Namespace(data=str(source),output=str(out),revision='synthetic-test-only',
         folds=2,epochs=1,batch_size=16,accumulation=1,lr=2e-5,seed=42,device='cpu',allow_cpu=True))
     assert len(fitted_targets)==3
@@ -168,6 +170,9 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
     pipeline=PricePipeline(out)
     prediction=pipeline.predict('maintained car',d.iloc[0].to_dict())
     assert np.isfinite(prediction['price']) and prediction['predicted_text_price']>0
+    assert prediction['predicted_make_model_price']>0
+    assert 'predicted_make_model_price' in pipeline.lgb.feature_name()
+    assert report['plan']['filter_inputs']==['predicted_text_price']
     assert prediction['range'][0]<=prediction['price']<=prediction['range'][1]
 
 
@@ -197,3 +202,17 @@ def test_isolation_forest_uses_only_scalar_price_and_rejects_sparse_tail():
     assert np.array_equal(keep,np.flatnonzero(scores>=offset))
     with pytest.raises(ValueError):isolation_text_price(np.c_[prices,prices])
     with pytest.raises(ValueError):isolation_text_price([1,np.nan,3])
+
+
+def test_make_model_only_input_and_second_scalar():
+    from pricing.identity import names,fit_head,head_prices
+    d=frame(20);before=names(d)
+    d['description']='This must never enter make/model encoder';d['year']=2026;d['odometer']=500000
+    assert names(d)==before
+    assert 'description' not in before[0].lower()
+    x=np.random.default_rng(42).normal(size=(20,8)).astype('float32')
+    head,mean,std=fit_head(x,np.linspace(2000,30000,20),epochs=3)
+    price=head_prices(head,x,mean,std)
+    assert len(price)==20 and np.isfinite(price).all() and (price>=0).all()
+    f=features(d,fit_schema(d),np.ones(20)*5000,price)
+    assert set(['predicted_text_price','predicted_make_model_price']).issubset(f.columns)
