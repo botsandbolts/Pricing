@@ -3,9 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check.mjs"
-  },
-  "dependencies": {
-    "@huggingface/tokenizers": "0.2.0"
+    "check": "python -m pytest tests -q"
   }
 }

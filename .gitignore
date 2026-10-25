@@ -6,5 +6,5 @@ training-cache/
 
 /dist/encoder/onnx/
 
-/dist/vendor/
-/dist/encoder/tokenizer.json
+artifacts/
+.pytest_cache/

@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "scope": "two synthetic examples, one optimizer step; not a pricing evaluation",
+  "source": "embaas/sentence-transformers-multilingual-e5-base",
+  "revision": "ff629add2ff80256e42173ec84299eed1c1b6393",
+  "dimensions": 768,
+  "first_attention_query_max_weight_delta": 2.008676528930664e-05,
+  "save_load_prediction_parity": true
+}
