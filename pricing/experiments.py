@@ -1,6 +1,6 @@
 """Configurable predeclared LightGBM experiments using cross-fitted fine-tuned E5 text prices.
 
-The Isolation Forest filters only the LightGBM training rows. The shared E5 stage
+LOF on out-of-fold predicted_text_price filters only the LightGBM training rows. The shared E5 stage
 is fit once on all training rows, with held-out fold predictions for stacking.
 """
 import argparse
@@ -10,18 +10,14 @@ import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import IsolationForest
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.pipeline import make_pipeline
+from sklearn.neighbors import LocalOutlierFactor
 import lightgbm as lgb
 from pricing.tabular import fit_schema,features,NUMERIC,CATEGORICAL
 from pricing.train import validate_cohort
 from pricing.text import MODEL_ID
 from scripts.common import metrics
 
-RATES=[0.,.05,.10,.25,.50]
+RATES=[None]
 LOSSES=[('rmse','regression',None),('mae','regression_l1',None),('huber','huber',.9),
         ('q10','quantile',.1),('q50','quantile',.5),('q90','quantile',.9)]
 TARGETS=['dollars','log1p']
@@ -44,27 +40,15 @@ def score(y,p,q=None):
     return result
 
 
-def retained_indices(scores,rate):
-    if rate<0 or rate>=1:raise ValueError('Removal rate must be in [0,1)')
-    n=len(scores);remove=int(np.floor(n*rate))
-    # Stable tie handling; all requested subsets are nested.
-    return np.argsort(-np.asarray(scores),kind='stable')[:n-remove]
-
-
-def isolation_scores(x,seed,threads=4):
-    # No ground-truth price, validation or test information enters this detector.
-    numeric=NUMERIC+(['predicted_text_price'] if 'predicted_text_price' in x else [])
-    categorical=x[CATEGORICAL].astype('object').where(x[CATEGORICAL].notna(),'__missing__')
-    temp=x.copy()
-    temp[CATEGORICAL]=categorical
-    transform=ColumnTransformer([
-        ('numeric',SimpleImputer(strategy='median',keep_empty_features=True),numeric),
-        ('categorical',OneHotEncoder(handle_unknown='ignore',dtype=np.float32),CATEGORICAL)],
-        sparse_threshold=1.)
-    z=transform.fit_transform(temp)
-    detector=IsolationForest(n_estimators=300,max_samples=min(256,len(x)),
-                            random_state=seed,n_jobs=threads,contamination='auto').fit(z)
-    return detector.score_samples(z),float(detector.offset_)
+def lof_text_price(prices,neighbors=20,threads=4):
+    prices=np.asarray(prices,dtype=float)
+    if prices.ndim!=1 or len(prices)<3 or not np.isfinite(prices).all() or (prices<0).any():
+        raise ValueError('LOF requires at least three finite nonnegative training text-price scalars')
+    if neighbors<2:raise ValueError('LOF neighbors must be >=2')
+    detector=LocalOutlierFactor(n_neighbors=min(neighbors,len(prices)-1),
+        contamination='auto',novelty=False,algorithm='kd_tree',n_jobs=threads)
+    labels=detector.fit_predict(prices.reshape(-1,1))
+    return np.flatnonzero(labels==1),detector.negative_outlier_factor_,float(detector.offset_)
 
 
 def experiment_grid(losses=None,huber_deltas=None):
@@ -83,7 +67,9 @@ def run(a):
     out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
     cache=out/'text-features.npz'
     tabular_only=getattr(a,'tabular_only',False)
-    if not tabular_only and not cache.exists():
+    if tabular_only:
+        raise ValueError('LOF must use predicted_text_price from the fine-tuned E5 model. A tabular-only substitute is not supported.')
+    if not cache.exists():
         raise RuntimeError('Fine-tuned OOF E5 feature cache missing. First run pricing.train --text-only with the same --data and --output. Frozen embeddings or in-sample predictions are not accepted.')
     d=pd.read_json(a.data,lines=True);validate_cohort(d)
     phases={p:d[d.phase==p].reset_index(drop=True) for p in ['train','validation','test']}
@@ -106,26 +92,21 @@ def run(a):
     xv=features(val,schema,None if tabular_only else f['validation'])
     xt=features(test,schema,None if tabular_only else f['test'])
     grid=experiment_grid(getattr(a,'losses',None),getattr(a,'huber_deltas',None))
-    auto=getattr(a,'isolation_mode','rates')=='auto'
-    if auto:grid=[(None,target,loss) for rate,target,loss in grid if rate==0]
-    rates=[None] if auto else RATES
+    rates=[None]
     threads=getattr(a,'threads',4)
-    anomaly,offset=isolation_scores(x,a.seed,threads)
-    def keep_for(rate):
-        return np.flatnonzero(anomaly>=offset) if rate is None else retained_indices(anomaly,rate)
-    def prefix_for(rate):
-        return 'isolation_auto' if rate is None else f'remove{int(rate*100):02d}'
-    audit=pd.DataFrame({'row_id':train.row_id,'score':anomaly})
-    for rate in rates:
-        keep=keep_for(rate)
-        audit['kept_'+prefix_for(rate)]=np.isin(np.arange(len(train)),keep)
-    if len(keep)<2:raise ValueError('Isolation Forest retained too few training rows')
-    audit.to_csv(out/'isolation-audit.csv',index=False)
+    neighbors=getattr(a,'lof_neighbors',20)
+    keep,anomaly,offset=lof_text_price(f['oof'],neighbors,threads)
+    def keep_for(rate):return keep
+    def prefix_for(rate):return 'lof_text_price'
+    audit=pd.DataFrame({'row_id':train.row_id,'predicted_text_price':f['oof'],
+                        'negative_outlier_factor':anomaly,'kept':np.isin(np.arange(len(train)),keep)})
+    if len(keep)<2:raise ValueError('LOF retained too few training rows')
+    audit.to_csv(out/'lof-audit.csv',index=False)
     # Predeclare the sweep and selection rules before running any experiment.
     plan={'stage':'tabular-only baseline' if tabular_only else 'fine-tuned E5 + tabular stack','training_candidates':len(train),'validation':len(val),'test':len(test),
-          'rates':['auto'] if auto else RATES,'isolation_mode':'auto' if auto else 'rates','isolation_offset':offset,'targets':TARGETS,'losses':list(dict.fromkeys(x[2] for x in grid)),'configurations':len(grid),
+          'filter':'LocalOutlierFactor','contamination':'auto','lof_neighbors':min(neighbors,len(train)-1),'lof_offset':offset,'targets':TARGETS,'losses':list(dict.fromkeys(x[2] for x in grid)),'configurations':len(grid),
           'filter_scope':'LightGBM training rows only; shared E5 stage unchanged across sweep if enabled',
-          'filter_inputs':list(x),'filter_true_prices':False,
+          'filter_inputs':['predicted_text_price'],'filter_true_prices':False,
           'selection':'Validation USD MAE and validation USD RMSE; q10/q90 excluded from point-model selection',
           'target_standardization':'Retained training rows only; each Huber alpha is in standardized target units',
           'fingerprint':fingerprint,'lightgbm_estimators':a.trees,'seed':a.seed}
@@ -164,7 +145,7 @@ def run(a):
                 callbacks=[lgb.early_stopping(min(75,max(5,a.trees//5)),first_metric_only=True,verbose=False)])
         vp=inverse(fit.predict(xv),mean,std,target)
         q=alpha if objective=='quantile' else None
-        record={'id':key,'isolation_mode':'auto' if auto else 'rates','removed_fraction':(len(train)-len(keep))/len(train) if auto else rate,'retained_rows':len(keep),
+        record={'id':key,'filter':'LocalOutlierFactor','removed_fraction':(len(train)-len(keep))/len(train),'retained_rows':len(keep),
                 'removed_rows':len(train)-len(keep),'target':target,'loss':loss,'alpha':alpha,
                 'best_iteration':fit.best_iteration_,'validation':score(val.price,vp,q),
                 'target_mean':mean,'target_std':std,
@@ -223,6 +204,7 @@ def run(a):
     manifest={'status':'ready','pipeline':'fine-tuned-e5-base+lightgbm','model_id':MODEL_ID,
         'fingerprint':fingerprint,'feature_names':booster.feature_name(),
         'band80_log_radius':champion['band80_log_radius'],
+        'training_filter':{'algorithm':'LocalOutlierFactor','inputs':['predicted_text_price'],'contamination':'auto','neighbors':min(neighbors,len(train)-1)},
         'target_transform':champion['target'],'target_mean':champion['target_mean'],
         'target_std':champion['target_std'],'selected_experiment':champion['id']}
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
@@ -232,11 +214,11 @@ def run(a):
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--data',default='training-cache/ten-percent.jsonl')
-    p.add_argument('--output',default='artifacts/e5-base-lightgbm-10')
+    p.add_argument('--output',default='artifacts/e5-base-lof-10')
     p.add_argument('--trees',type=int,default=1500)
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--threads',type=int,default=4)
-    p.add_argument('--isolation-mode',choices=['rates','auto'],default='auto')
+    p.add_argument('--lof-neighbors',type=int,default=20)
     p.add_argument('--losses',nargs='+',choices=[x[0] for x in LOSSES])
     p.add_argument('--huber-deltas',nargs='+',type=float,default=[.5,.9,1.5])
     p.add_argument('--tabular-only',action='store_true',help='Run a clearly labeled CPU baseline without E5; never export an inference bundle')

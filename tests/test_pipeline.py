@@ -143,9 +143,9 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
     from pricing.experiments import run as run_experiments
     run_experiments(Namespace(data=str(source),output=str(out),trees=12,seed=42,tabular_only=False,threads=1))
     report=json.loads((out/'experiments.json').read_text())
-    assert len(report['experiments'])==60
+    assert len(report['experiments'])==12
     assert all(r['retained_rows']==100-int(100*r['removed_fraction']) for r in report['experiments'])
-    assert len(report['quantile_intervals'])==10
+    assert len(report['quantile_intervals'])==2
     # Exercise auto thresholding, rather than a forced ranking percentile.
     import shutil
     auto_out=tmp_path/'auto-bundle'
@@ -153,11 +153,11 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
     (auto_out/'experiment-plan.json').unlink()
     (auto_out/'validation-results.json').unlink()
     run_experiments(Namespace(data=str(source),output=str(auto_out),trees=12,seed=42,
-        tabular_only=False,threads=1,isolation_mode='auto',losses=['huber'],huber_deltas=[.5,.9,1.5]))
+        tabular_only=False,threads=1,lof_neighbors=20,losses=['huber'],huber_deltas=[.5,.9,1.5]))
     auto_report=json.loads((auto_out/'experiments.json').read_text())
     assert len(auto_report['experiments'])==6
-    audit_auto=pd.read_csv(auto_out/'isolation-audit.csv')
-    expected=int((audit_auto.score<auto_report['plan']['isolation_offset']).sum())
+    audit_auto=pd.read_csv(auto_out/'lof-audit.csv')
+    expected=int((audit_auto.negative_outlier_factor<auto_report['plan']['lof_offset']).sum())
     assert all(r['removed_rows']==expected for r in auto_report['experiments'])
     # All completed grid models must survive a restart without another fit.
     def no_refit(*args,**kwargs):raise AssertionError('Completed experiments should resume')
@@ -172,13 +172,8 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
 
 
 def test_experiment_rates_losses_and_transforms():
-    from pricing.experiments import retained_indices,experiment_grid,inverse,pinball
-    scores=np.ones(101)
-    for fraction in [0,.05,.1,.25,.5]:
-        keep=retained_indices(scores,fraction)
-        assert len(keep)==101-int(101*fraction)
-        assert keep[0]==0
-    assert len(experiment_grid())==60
+    from pricing.experiments import experiment_grid,inverse,pinball
+    assert len(experiment_grid())==12
     np.testing.assert_allclose(inverse([0,1],10000,1000,'dollars'),[10000,11000])
     np.testing.assert_allclose(inverse([0],np.log1p(10000),1,'log1p'),[10000])
     assert pinball([10],[8],.9)==pytest.approx(1.8)
@@ -187,7 +182,18 @@ def test_experiment_rates_losses_and_transforms():
 def test_huber_only_grid():
     from pricing.experiments import experiment_grid
     grid=experiment_grid(['huber'],[.5,.9,1.5])
-    assert len(grid)==30
+    assert len(grid)==6
     assert all(objective=='huber' for _,_,(_,objective,_) in grid)
     assert {delta for _,_,(_,_,delta) in grid}=={.5,.9,1.5}
     with pytest.raises(ValueError):experiment_grid(['huber'],[-1])
+
+
+def test_lof_uses_only_scalar_price_and_rejects_sparse_tail():
+    from pricing.experiments import lof_text_price
+    rng=np.random.default_rng(42)
+    prices=np.r_[rng.normal(10000,100,100),1000000.]
+    keep,scores,offset=lof_text_price(prices,20,1)
+    assert 100 not in keep
+    assert np.array_equal(keep,np.flatnonzero(scores>=offset))
+    with pytest.raises(ValueError):lof_text_price(np.c_[prices,prices])
+    with pytest.raises(ValueError):lof_text_price([1,np.nan,3])
