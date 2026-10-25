@@ -1,15 +1,12 @@
+import { Tokenizer } from './vendor/tokenizers.mjs';
 export function clean(text) {
  return String(text).replace(/<[^>]+>/g,' ').replace(/https?:\/\/\S+|\b\S+@\S+\b/g,' ')
  .replace(/(?:[$€£]\s*\d[\d,.]*|\b\d[\d,.]*\s*(?:usd|dollars?|euros?|per month|\/mo|monthly)\b|\b(?:price|asking|payment|down payment)\s*[:=]?\s*\$?\d[\d,.]*)/gi,' price_removed ').replace(/\s+/g,' ').trim().toLowerCase();
 }
-export function wordpieces(text,vocab){
- let normalized='';
- for(const c of text){const n=c.codePointAt(0);if(n===0||n===0xfffd)continue;if(/\s/u.test(c)){normalized+=' ';continue;}if(/[\p{Cc}\p{Cf}]/u.test(c))continue;if(/\p{Script=Han}/u.test(c))normalized+=' '+c+' ';else normalized+=c;}
- normalized=normalized.toLowerCase().normalize('NFD').replace(/\p{Mn}/gu,'');
- let separated='';for(const c of normalized){const n=c.codePointAt(0);const punct=(n>=33&&n<=47)||(n>=58&&n<=64)||(n>=91&&n<=96)||(n>=123&&n<=126)||/\p{P}/u.test(c);separated+=punct?' '+c+' ':c;}
- const ids=[];for(const token of separated.trim().split(/\s+/)){if(!token)continue;const chars=Array.from(token);if(chars.length>100){ids.push(100);continue;}let start=0,parts=[],bad=false;while(start<chars.length){let end=chars.length,found;while(start<end){const piece=(start?'##':'')+chars.slice(start,end).join('');if(Object.hasOwn(vocab,piece)){found=vocab[piece];break;}end--;}if(found===undefined){bad=true;break;}parts.push(found);start=end;}ids.push(...(bad?[100]:parts));}return ids;
-}
+export function createTokenizer(data,config){return new Tokenizer(data,config);}
+export function tokenIds(text,tokenizer){return tokenizer.encode(text,{add_special_tokens:false}).ids;}
 export function sparseText(text,model){
+ text=text.toLowerCase();
  if(!model.termIndex)model.termIndex=new Map(model.terms.map((t,i)=>[t,i]));
  const tokens=text.match(/[\p{L}\p{N}_]{2,}/gu)||[];const counts=new Map();
  const add=t=>{const i=model.termIndex.get(t);if(i!==undefined)counts.set(i,(counts.get(i)||0)+1);};
@@ -18,13 +15,13 @@ export function sparseText(text,model){
 }
 export function textScore(features,coeff){return features.reduce((s,[i,v])=>s+v*coeff[i],0);}
 export function normalise(v){const n=Math.hypot(...v)||1;return v.map(x=>x/n);}
-export async function embed(text,model,session,ort,onProgress=()=>{}){
- const ids=wordpieces(text.slice(0,model.meta.max_characters),model.vocab),vector=Array(384).fill(0);let chunks=0;
- for(let start=0;start<Math.max(1,ids.length);start+=254){
-  const seq=[101,...ids.slice(start,start+254),102],n=seq.length;const tensor=x=>new ort.Tensor('int64',BigInt64Array.from(x,BigInt),[1,n]);
-  const outputs=await session.run({input_ids:tensor(seq),attention_mask:tensor(seq.map(()=>1)),token_type_ids:tensor(seq.map(()=>0))});const out=outputs[session.outputNames[0]];const pooled=Array(384).fill(0);
-  for(let j=0;j<n;j++)for(let k=0;k<384;k++)pooled[k]+=out.data[j*384+k]/n;
-  const unit=normalise(pooled);for(let k=0;k<384;k++)vector[k]+=unit[k];chunks++;onProgress(chunks,Math.max(1,Math.ceil(ids.length/254)));
+export async function embed(text,model,session,ort,tokenizer,onProgress=()=>{}){
+ const ids=tokenIds(text.slice(0,model.meta.max_characters),tokenizer),dim=model.meta.embedding_dimensions,chunkSize=model.meta.chunk_tokens,vector=Array(dim).fill(0);let chunks=0;
+ for(let start=0;start<Math.max(1,ids.length);start+=chunkSize){
+  const seq=[0,...ids.slice(start,start+chunkSize),2],n=seq.length;const tensor=x=>new ort.Tensor('int64',BigInt64Array.from(x,BigInt),[1,n]);
+  const outputs=await session.run({input_ids:tensor(seq),attention_mask:tensor(seq.map(()=>1))});const out=outputs[session.outputNames[0]];const pooled=Array(dim).fill(0);
+  for(let j=0;j<n;j++)for(let k=0;k<dim;k++)pooled[k]+=out.data[j*dim+k]/n;
+  const unit=normalise(pooled);for(let k=0;k<dim;k++)vector[k]+=unit[k];chunks++;onProgress(chunks,Math.max(1,Math.ceil(ids.length/chunkSize)));
  }return {vector:normalise(vector),chunks,tokens:ids.length,characters:text.length};
 }
 export function predict(text,model,embedding){

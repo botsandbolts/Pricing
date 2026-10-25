@@ -4,5 +4,8 @@ node_modules/
 training-cache/
 *.log
 
-/dist/vendor/
 /dist/encoder/onnx/
+
+/dist/vendor/
+/dist/encoder/tokenizer.json
+/dist/encoder/sentencepiece.bpe.model
