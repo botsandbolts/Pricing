@@ -1,0 +1,8 @@
+node_modules/
+**/__pycache__/
+**/.cache/
+training-cache/
+*.log
+
+/dist/vendor/
+/dist/encoder/onnx/
