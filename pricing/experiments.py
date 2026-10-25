@@ -1,4 +1,4 @@
-"""60 predeclared LightGBM experiments using cross-fitted fine-tuned E5 text prices.
+"""Configurable predeclared LightGBM experiments using cross-fitted fine-tuned E5 text prices.
 
 The Isolation Forest filters only the LightGBM training rows. The shared E5 stage
 is fit once on all training rows, with held-out fold predictions for stacking.
@@ -67,8 +67,16 @@ def isolation_scores(x,seed,threads=4):
     return detector.score_samples(z)
 
 
-def experiment_grid():
-    return list(itertools.product(RATES,TARGETS,LOSSES))
+def experiment_grid(losses=None,huber_deltas=None):
+    if losses is None:return list(itertools.product(RATES,TARGETS,LOSSES))
+    names=set(losses)
+    if not names or not names.issubset({x[0] for x in LOSSES}):raise ValueError('Unknown or empty loss list')
+    selected=[x for x in LOSSES if x[0] in names and x[0]!='huber']
+    if 'huber' in names:
+        for delta in huber_deltas or [.9]:
+            if delta<=0:raise ValueError('Huber deltas must be positive')
+            selected.append((f'huber_d{delta:g}','huber',delta))
+    return list(itertools.product(RATES,TARGETS,selected))
 
 
 def run(a):
@@ -97,6 +105,7 @@ def run(a):
     x=features(train,schema,None if tabular_only else f['oof'])
     xv=features(val,schema,None if tabular_only else f['validation'])
     xt=features(test,schema,None if tabular_only else f['test'])
+    grid=experiment_grid(getattr(a,'losses',None),getattr(a,'huber_deltas',None))
     threads=getattr(a,'threads',4)
     anomaly=isolation_scores(x,a.seed,threads)
     audit=pd.DataFrame({'row_id':train.row_id,'score':anomaly})
@@ -106,11 +115,11 @@ def run(a):
     audit.to_csv(out/'isolation-audit.csv',index=False)
     # Predeclare the sweep and selection rules before running any experiment.
     plan={'stage':'tabular-only baseline' if tabular_only else 'fine-tuned E5 + tabular stack','training_candidates':len(train),'validation':len(val),'test':len(test),
-          'rates':RATES,'targets':TARGETS,'losses':LOSSES,'configurations':len(experiment_grid()),
+          'rates':RATES,'targets':TARGETS,'losses':list(dict.fromkeys(x[2] for x in grid)),'configurations':len(grid),
           'filter_scope':'LightGBM training rows only; shared E5 stage unchanged across sweep if enabled',
           'filter_inputs':list(x),'filter_true_prices':False,
           'selection':'Validation USD MAE and validation USD RMSE; q10/q90 excluded from point-model selection',
-          'target_standardization':'Training retained rows only; Huber alpha=.9 in standardized target units',
+          'target_standardization':'Retained training rows only; each Huber alpha is in standardized target units',
           'fingerprint':fingerprint,'lightgbm_estimators':a.trees,'seed':a.seed}
     plan_path=out/'experiment-plan.json'
     previous={}
@@ -122,7 +131,7 @@ def run(a):
     plan_path.write_text(json.dumps(plan,indent=2))
     records=[];pending=[];models=out/'grid-models';models.mkdir(exist_ok=True)
     # Freeze every fitted configuration and validation score before accessing test targets for scoring.
-    for rate,target,(loss,objective,alpha) in experiment_grid():
+    for rate,target,(loss,objective,alpha) in grid:
         keep=retained_indices(anomaly,rate)
         raw=np.log1p(train.price.to_numpy()) if target=='log1p' else train.price.to_numpy(float)
         vr=np.log1p(val.price.to_numpy()) if target=='log1p' else val.price.to_numpy(float)
@@ -140,7 +149,7 @@ def run(a):
                     random_state=a.seed,n_jobs=threads,verbosity=-1,metric='None')
         if alpha is not None:params['alpha']=alpha
         fit=lgb.LGBMRegressor(**params)
-        metric={'rmse':'rmse','mae':'l1','huber':'l1','q10':'quantile','q50':'quantile','q90':'quantile'}[loss]
+        metric='l1' if objective=='huber' else {'rmse':'rmse','mae':'l1','huber':'l1','q10':'quantile','q50':'quantile','q90':'quantile'}[loss]
         fit.fit(x.iloc[keep],(raw[keep]-mean)/std,
                 eval_set=[(xv,(vr-mean)/std)],eval_metric=metric,
                 categorical_feature=CATEGORICAL,
@@ -171,6 +180,7 @@ def run(a):
     intervals=[]
     for rate,target in itertools.product(RATES,TARGETS):
         prefix=f'remove{int(rate*100):02d}_{target}_'
+        if prefix+'q10' not in predictions or prefix+'q90' not in predictions:continue
         lo,hi=predictions[prefix+'q10'],predictions[prefix+'q90']
         intervals.append({'removed_fraction':rate,'target':target,
             'test_coverage_raw_q10_q90':float(np.mean((test.price>=lo)&(test.price<=hi))),
@@ -195,7 +205,7 @@ def run(a):
     (out/'lightgbm.txt').write_bytes((models/(champion['id']+'.txt')).read_bytes())
     booster=lgb.Booster(model_file=str(out/'lightgbm.txt'))
     (out/'schema.json').write_text(json.dumps(schema,indent=2))
-    evaluation={'status':'evaluated','scope':'Fixed 10% raw database sample, historical 2021 asking prices',
+    evaluation={'status':'evaluated','scope':'Fixed sampled database cohort, historical 2021 asking prices',
         'rows':{'train':champion['retained_rows'],'train_candidates':len(train),'removed':champion['removed_rows'],
                 'validation':len(val),'test':len(test)},'stacked':champion['test'],
         'text_only':report['text_only_test'],'selected_experiment':champion['id'],
@@ -213,10 +223,12 @@ def run(a):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--data',default='training-cache/ten-percent.jsonl')
-    p.add_argument('--output',default='artifacts/e5-base-lightgbm')
+    p.add_argument('--data',default='training-cache/twenty-five-percent.jsonl')
+    p.add_argument('--output',default='artifacts/e5-base-lightgbm-25')
     p.add_argument('--trees',type=int,default=1500)
     p.add_argument('--seed',type=int,default=42)
     p.add_argument('--threads',type=int,default=4)
+    p.add_argument('--losses',nargs='+',choices=[x[0] for x in LOSSES])
+    p.add_argument('--huber-deltas',nargs='+',type=float,default=[.5,.9,1.5])
     p.add_argument('--tabular-only',action='store_true',help='Run a clearly labeled CPU baseline without E5; never export an inference bundle')
     run(p.parse_args())

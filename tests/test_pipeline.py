@@ -169,3 +169,12 @@ def test_experiment_rates_losses_and_transforms():
     np.testing.assert_allclose(inverse([0,1],10000,1000,'dollars'),[10000,11000])
     np.testing.assert_allclose(inverse([0],np.log1p(10000),1,'log1p'),[10000])
     assert pinball([10],[8],.9)==pytest.approx(1.8)
+
+
+def test_huber_only_grid():
+    from pricing.experiments import experiment_grid
+    grid=experiment_grid(['huber'],[.5,.9,1.5])
+    assert len(grid)==30
+    assert all(objective=='huber' for _,_,(_,objective,_) in grid)
+    assert {delta for _,_,(_,_,delta) in grid}=={.5,.9,1.5}
+    with pytest.raises(ValueError):experiment_grid(['huber'],[-1])

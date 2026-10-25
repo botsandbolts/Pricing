@@ -1,0 +1,12 @@
+{
+  "canonical_rows": 68846,
+  "pilot": false,
+  "raw_rows": 426880,
+  "fraction": 0.25,
+  "sampled_raw_rows": 106720,
+  "counts": {
+    "train": 48192,
+    "validation": 10327,
+    "test": 10327
+  }
+}

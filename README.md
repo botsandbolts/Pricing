@@ -1,5 +1,22 @@
 # pricing
 
+## Current request: 25% sample, E5-base → scalar text price → Huber LightGBM
+
+The current experiment samples **106,720 raw listings (25%)**, leaving 68,846 eligible/deduplicated listings: 48,192 train / 10,327 validation / 10,327 test. It compares 30 Huber models: thresholds 0.5/0.9/1.5 × dollar/log-price targets × 0/5/10/25/50% Isolation Forest removal at the LightGBM stage. No Extra Trees is used. All text-stage training features are cross-fitted.
+
+The full E5 run is still pending GPU compute. The exact checkpoint passed a supervised gradient/save-load smoke test; that is not a pricing evaluation. Any completed 25% tabular baseline is explicitly labeled. The former 10% experiment below is retained for reference.
+
+```bash
+python -m scripts.prepare_stack /path/to/vehicles.zip --fraction .25 --output training-cache/twenty-five-percent.jsonl
+python -m pricing.train --data training-cache/twenty-five-percent.jsonl --output artifacts/e5-base-lightgbm-25 --device cuda --folds 3 --epochs 2 --text-only
+python -m pricing.experiments --data training-cache/twenty-five-percent.jsonl --output artifacts/e5-base-lightgbm-25 --losses huber --huber-deltas .5 .9 1.5 --trees 1000
+python -m streamlit run app.py
+```
+
+`train_gpu.ipynb` now runs this 25% Huber experiment. The app defaults to `artifacts/e5-base-lightgbm-25`; use `PRICING_MODEL_DIR` to load an older completed bundle. The completed [25% Huber baseline report](reports/HUBER_25_RESULTS.md) contains all 30 measured configurations. Validation-MAE winner: log price + Huber 0.9 + no removal; held-out MAE **$3,614**, RMSE **$7,147**. These are tabular-only scores; the E5 stack remains untrained.
+
+## Previous 10% experiment: implementation and measured baseline
+
 A used-car asking-price experiment: **fine-tune E5-base on descriptions and pricing targets**, calculate a dynamic dollar-valued `predicted_text_price`, and pass it with structured vehicle characteristics to **LightGBM**.
 
 ## Status

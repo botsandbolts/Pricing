@@ -144,8 +144,8 @@ def run(a):
 
 def parser():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--data',default='training-cache/stack-cohort.jsonl')
-    p.add_argument('--output',default='artifacts/e5-base-lightgbm')
+    p.add_argument('--data',default='training-cache/twenty-five-percent.jsonl')
+    p.add_argument('--output',default='artifacts/e5-base-lightgbm-25')
     p.add_argument('--revision',help='Exact embaas source revision; resolves once if omitted')
     p.add_argument('--folds',type=int,default=3)
     p.add_argument('--epochs',type=int,default=2)
