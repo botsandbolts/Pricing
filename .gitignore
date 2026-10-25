@@ -8,4 +8,3 @@ training-cache/
 
 /dist/vendor/
 /dist/encoder/tokenizer.json
-/dist/encoder/sentencepiece.bpe.model

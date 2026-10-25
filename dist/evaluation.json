@@ -1,56 +1,85 @@
 {
-  "trained_rows": 7624,
-  "validation_rows": 1634,
-  "test_rows": 1634,
-  "usable_rows": 10892,
-  "encoder": "XLM-RoBERTa sentence transformer (paraphrase-multilingual-mpnet-base-v2, int8 ONNX)",
-  "max_characters": 8000,
-  "chunk_tokens": 126,
-  "embedding_dimensions": 768,
-  "encoder_model_id": "Xenova/paraphrase-multilingual-mpnet-base-v2",
-  "encoder_revision": "e5d116277351513fd260955ece953ecddde7046e",
-  "encoder_sha256": "280b5fe103cc79d891d672f47826067835b7feed8b0b1865e34ed38f21719b49",
-  "encoder_bytes": 278647663,
-  "evaluation": {
-    "tfidf": {
-      "validation_mae_usd": 5091.395481142304,
-      "alpha": 0.1,
-      "test": {
-        "mae_usd": 5141.543911545192,
-        "rmse_usd": 8801.388797134534,
-        "median_ape_pct": 25.608420994052928,
-        "rmsle": 0.49669823448919403,
-        "r2": 0.6360728005308494
-      }
-    },
-    "sentence": {
-      "validation_mae_usd": 6665.643661741819,
-      "alpha": 0.1,
-      "test": {
-        "mae_usd": 6916.527665062371,
-        "rmse_usd": 11194.049442655381,
-        "median_ape_pct": 34.80196503102886,
-        "rmsle": 0.6001512333531073,
-        "r2": 0.41131015436273033
-      }
-    },
-    "combined": {
-      "validation_mae_usd": 4981.47912164359,
-      "alpha": 0.1,
-      "test": {
-        "mae_usd": 5084.120075949549,
-        "rmse_usd": 8668.493475130781,
-        "median_ape_pct": 24.360197959856027,
-        "rmsle": 0.4871673588200773,
-        "r2": 0.6469799628224524
-      }
-    }
+  "description_encoder": {
+    "dimensions": 1024,
+    "max_sequence_length": 512,
+    "chunk_text_tokens": 507,
+    "prefix": "query: ",
+    "prefix_ids": [
+      41,
+      1294,
+      12
+    ],
+    "bos": 0,
+    "eos": 2,
+    "pad": 1,
+    "onnx_model_id": "Xenova/multilingual-e5-large",
+    "source_model_id": "embaas/sentence-transformers-multilingual-e5-large",
+    "revision": "00fc3aeb3dbb95842de2ac1961d33c6319acf57b",
+    "sha256": "0a8d65db9a36f810ba5da15249f13145fcdc7890e6656f1fd38cd8b7c4db1fca",
+    "bytes": 561768762
   },
-  "band80_log_residual": 0.5165694210431155,
-  "band80_test_coverage": 0.7741738066095472,
+  "max_characters": 8000,
+  "canonical_cohort_rows": 10892,
   "period": "April\u2013May 2021",
   "price_min": 1000,
   "price_max": 150000,
   "target": "log1p USD asking price",
-  "form_validation": "Held-out metrics evaluate original seller descriptions, not generated form summaries."
+  "date_ranges": {
+    "train": [
+      "2021-04-04 10:10:59+00:00",
+      "2021-04-30 16:45:40+00:00"
+    ],
+    "validation": [
+      "2021-04-30 17:26:48+00:00",
+      "2021-05-03 13:02:57+00:00"
+    ],
+    "test": [
+      "2021-05-03 13:13:15+00:00",
+      "2021-05-05 03:22:58+00:00"
+    ]
+  },
+  "form_validation": "Held-out metrics evaluate original listings and their manufacturer/model fields; generated form descriptions are not separately validated.",
+  "architecture": "E5-large description only \u2192 Isolation Forest training filter \u2192 Extra Trees regression",
+  "encoder": "embaas/sentence-transformers-multilingual-e5-large",
+  "total_dimensions": 1024,
+  "usable_rows": 1800,
+  "pilot": true,
+  "trained_rows": 600,
+  "training_candidates": 1200,
+  "training_removed": 600,
+  "removed_fraction": 0.5,
+  "validation_rows": 300,
+  "test_rows": 300,
+  "outlier_filter": {
+    "algorithm": "IsolationForest",
+    "contamination": 0.5,
+    "training_only": true,
+    "exact_half_by_score_ranking": true,
+    "price_used_in_filter": false,
+    "estimators": 300
+  },
+  "regressor": {
+    "algorithm": "ExtraTreesRegressor",
+    "estimators": 200,
+    "min_samples_leaf": 2,
+    "max_features": 1.0,
+    "target": "log1p price",
+    "selection": "validation USD MAE"
+  },
+  "evaluation": {
+    "description_forest": {
+      "validation_mae_usd": 8263.616102876973,
+      "test": {
+        "mae_usd": 8981.188775319135,
+        "rmse_usd": 13652.96516610948,
+        "median_ape_pct": 45.13971955405969,
+        "rmsle": 0.7782077047356555,
+        "r2": 0.3069860270237562
+      }
+    }
+  },
+  "band80_log_residual": 0.902838616655746,
+  "band80_test_coverage": 0.78,
+  "evaluation_scope": "Pilot evaluation; remove half of training candidates only. Validation/test are unfiltered. Not directly comparable to previous full-cohort runs.",
+  "filter_warning": "Semantic anomaly is not evidence that a listing is incorrect. Removing 50% can discard valid rare vehicles and bias coverage."
 }

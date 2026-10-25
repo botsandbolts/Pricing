@@ -1,0 +1,15 @@
+{
+  "requested_model": "embaas/sentence-transformers-multilingual-e5-large",
+  "reference_model": "intfloat/multilingual-e5-large",
+  "tensors_compared": 391,
+  "different_tensors": [],
+  "shared_tensors_bit_identical": true,
+  "additional_reference_buffer_is_deterministic_position_ids": true,
+  "learned_weights_match": true,
+  "additional_reference_buffers": [
+    "embeddings.position_ids"
+  ],
+  "requested_revision": "f5ce37891bfe42176585f3e74b256456ca1119a3",
+  "reference_revision": "3d7cfbdacd47fdda877c5cd8a79fbcc4f2a574f3",
+  "onnx_revision": "00fc3aeb3dbb95842de2ac1961d33c6319acf57b"
+}
