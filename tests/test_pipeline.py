@@ -121,7 +121,7 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
         return original(texts,prices,**kwargs)
     monkeypatch.setattr(training,'fit_text',tiny_fit)
     d=frame(160)
-    d['text']=['maintained car '+str(i) for i in range(len(d))]
+    d['text']=['maintained car '+('maintained '*(1 if i%5 else i%19+2))+str(i) for i in range(len(d))]
     d['row_id']=[str(i) for i in range(len(d))]
     d['price']=np.arange(len(d))*100.+2000.
     d['date']=pd.date_range('2021-04-01',periods=len(d),freq='h',tz='UTC')
@@ -144,7 +144,7 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
     run_experiments(Namespace(data=str(source),output=str(out),trees=12,seed=42,tabular_only=False,threads=1))
     report=json.loads((out/'experiments.json').read_text())
     assert len(report['experiments'])==12
-    assert all(r['retained_rows']==100-int(100*r['removed_fraction']) for r in report['experiments'])
+    assert all(r['retained_rows']+r['removed_rows']==100 for r in report['experiments'])
     assert len(report['quantile_intervals'])==2
     # Exercise auto thresholding, rather than a forced ranking percentile.
     import shutil
@@ -153,11 +153,11 @@ def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
     (auto_out/'experiment-plan.json').unlink()
     (auto_out/'validation-results.json').unlink()
     run_experiments(Namespace(data=str(source),output=str(auto_out),trees=12,seed=42,
-        tabular_only=False,threads=1,lof_neighbors=20,losses=['huber'],huber_deltas=[.5,.9,1.5]))
+        tabular_only=False,threads=1,losses=['huber'],huber_deltas=[.5,.9,1.5]))
     auto_report=json.loads((auto_out/'experiments.json').read_text())
     assert len(auto_report['experiments'])==6
-    audit_auto=pd.read_csv(auto_out/'lof-audit.csv')
-    expected=int((audit_auto.negative_outlier_factor<auto_report['plan']['lof_offset']).sum())
+    audit_auto=pd.read_csv(auto_out/'isolation-text-price-audit.csv')
+    expected=int((audit_auto.isolation_score<auto_report['plan']['isolation_offset']).sum())
     assert all(r['removed_rows']==expected for r in auto_report['experiments'])
     # All completed grid models must survive a restart without another fit.
     def no_refit(*args,**kwargs):raise AssertionError('Completed experiments should resume')
@@ -188,12 +188,12 @@ def test_huber_only_grid():
     with pytest.raises(ValueError):experiment_grid(['huber'],[-1])
 
 
-def test_lof_uses_only_scalar_price_and_rejects_sparse_tail():
-    from pricing.experiments import lof_text_price
+def test_isolation_forest_uses_only_scalar_price_and_rejects_sparse_tail():
+    from pricing.experiments import isolation_text_price
     rng=np.random.default_rng(42)
     prices=np.r_[rng.normal(10000,100,100),1000000.]
-    keep,scores,offset=lof_text_price(prices,20,1)
+    keep,scores,offset=isolation_text_price(prices,42,1)
     assert 100 not in keep
     assert np.array_equal(keep,np.flatnonzero(scores>=offset))
-    with pytest.raises(ValueError):lof_text_price(np.c_[prices,prices])
-    with pytest.raises(ValueError):lof_text_price([1,np.nan,3])
+    with pytest.raises(ValueError):isolation_text_price(np.c_[prices,prices])
+    with pytest.raises(ValueError):isolation_text_price([1,np.nan,3])

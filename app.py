@@ -8,7 +8,7 @@ from pricing.text import MODEL_ID, MAX_CHARACTERS
 st.set_page_config(page_title='pricing · E5 + LightGBM',page_icon='🚗',layout='wide')
 st.title('pricing')
 st.caption('Fine-tuned E5-base text regression + LightGBM · historical US asking prices')
-path=Path(os.environ.get('PRICING_MODEL_DIR','artifacts/e5-base-lof-10'))
+path=Path(os.environ.get('PRICING_MODEL_DIR','artifacts/e5-base-isolation-text-10'))
 ready=(path/'manifest.json').exists()
 if not ready:
     st.info('The new model has not been trained yet. Complete the GPU training run to enable dollar estimates. The previous model is not used.')
@@ -61,7 +61,7 @@ with how:
     st.write(f'**Text model:** `{MODEL_ID}`. XLM-RoBERTa, 768 dimensions, 512 tokens per chunk. Every transformer parameter is fine-tuned with a regression head against standardized log1p(price), using descriptions only. Longer descriptions up to 8,000 characters use pooled chunk representations.')
     st.write('**Dynamic feature:** reverse the target scaling and log transform to create one dollar-valued `predicted_text_price`. Descriptions and price-like phrases are cleaned consistently. Structured form fields enter LightGBM separately.')
     st.write('**Final model:** LightGBM combines the text-price scalar with year, mileage and categorical vehicle fields. The active 10% experiment compares dollar and log-price targets with Huber thresholds 0.5, 0.9 and 1.5. The validation-MAE winner supplies the displayed dollar estimate. Make/model use categorical values, with no separate embedding model.')
-    st.write('**Leakage control:** three-fold cross-fitting creates each training row’s predicted_text_price using an E5 model that never saw its target. Local Outlier Factor fits that single dollar-valued scalar only, with 20 neighbours and automatic contamination. It removes only LightGBM training rows labeled outliers. Validation and test remain untouched. E5 training is shared across the Huber experiments.')
+    st.write('**Leakage control:** three-fold cross-fitting creates each training row’s predicted_text_price using an E5 model that never saw its target. Isolation Forest fits that single dollar-valued scalar only, with 300 trees and automatic contamination. It removes only LightGBM training rows labeled outliers. Validation and test remain untouched. E5 training is shared across the Huber experiments.')
     st.write('For a log-target winner, the dollar point estimate is the back-transformed log prediction, not a bias-corrected arithmetic mean. Dollar-target winners use the inverse linear scaling. The 80% band is calibrated from validation log residuals; its actual test coverage is reported.')
 with results:
     if (path/'evaluation.json').exists() and ready:
@@ -73,7 +73,7 @@ with results:
         st.info('No evaluation exists for this architecture yet. Run training to produce held-out metrics; earlier model results do not apply.')
 
     grid=path/'experiments.json'
-    baseline=Path('reports/lof-10.json')
+    baseline=Path('reports/isolation-text-10.json')
     result_path=grid if grid.exists() else baseline
     if result_path.exists():
         report=json.loads(result_path.read_text())
@@ -81,7 +81,7 @@ with results:
         st.write(report['plan']['stage'])
         if result_path==baseline:
             st.warning('These measured results are tabular-only baselines. The fine-tuned E5 stack has not been evaluated yet.')
-        st.caption('LOF on out-of-fold text-price scalars × two target transforms × three Huber thresholds. Selection uses validation only. q10 and q90 estimate interval endpoints, not the central price.')
+        st.caption('Isolation Forest on out-of-fold text-price scalars × two target transforms × three Huber thresholds. Selection uses validation only. q10 and q90 estimate interval endpoints, not the central price.')
         records=report['experiments']
         st.dataframe([{'Experiment':r['id'],'Training rows':r['retained_rows'],
             'Validation MAE $':r['validation']['mae_usd'],'Validation RMSE $':r['validation']['rmse_usd'],
