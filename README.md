@@ -77,3 +77,9 @@ The GUI error band is indicative, based on validation log residuals. It is not a
 Dataset: https://www.kaggle.com/datasets/austinreese/craigslist-carstrucks-data
 Snapshot: https://zenodo.org/records/10457828
 Model: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+
+## Explainable pricing GUI
+
+After an estimate, the Python GUI offers a plain-English view, native LightGBM TreeSHAP contributions, and a technical view with target scaling, additivity checks, encoded inputs and global split gains. Log-target contributions add in log1p(price) space; they are not additive dollar adjustments. A separate mileage scenario recalculates the fitted model with other submitted fields fixed. These explain model behaviour, not causal effects or MiniLM word-level decisions.
+
+The hosted browser GUI adds an **Explain the price** page, lay explanations, expandable technical notes and actual-tree scenarios for mileage, year and condition. Browser scenarios are sensitivity calculations, explicitly distinct from Python TreeSHAP.

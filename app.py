@@ -7,7 +7,7 @@ from pricing.text import MODEL_ID, MAX_CHARACTERS
 
 st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
 st.title('Car Price Studio')
-st.caption('100% database · historical US asking prices · transparent model status')
+st.caption('Serious maths. Zero tyre-kicking. Historical US asking prices, explained.')
 mode=st.selectbox('Pricing mode',['Trained tabular baseline','MiniLM + Isolation Forest (training required)'])
 path=Path(os.environ.get('PRICING_MODEL_DIR','models/studio-baseline' if mode=='Trained tabular baseline' else 'artifacts/car-price-studio-full'))
 ready=(path/'manifest.json').exists()
@@ -51,15 +51,25 @@ with value:
                 cylinders=cylinders,paint_color=color,state=state)
             try:
                 with st.spinner('Reading the description and calculating price…'):
-                    p=get_pipeline(str(path)).predict(notes,fields)
-                st.metric('Estimated asking price',f"${p['price']:,.0f}")
-                if p.get('predicted_text_price') is not None:
-                    st.caption(f"Description-price feature: ${p['predicted_text_price']:,.0f}")
-                st.write(f"Indicative 80% band: ${p['range'][0]:,.0f}–${p['range'][1]:,.0f}")
+                    p=get_pipeline(str(path)).predict(notes,fields,explain=True)
+                st.session_state['last_explained_price']=(str(path),p,fields,notes)
             except Exception as exc:
                 st.error(f'Model unavailable: {exc}')
+    saved=st.session_state.get('last_explained_price')
+    if saved and saved[0]==str(path):
+        from pricing.explanations import render_explanation
+        st.divider()
+        result=saved[1];car=saved[2]
+        st.caption(f"Explaining submitted car: {car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
+        st.metric('Estimated asking price',f"${result['price']:,.0f}")
+        st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
+        if result.get('predicted_text_price') is not None:
+            st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
+        render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
+    st.subheader('A pricing committee with 1,000 small opinions')
+    st.write('LightGBM learns lots of small decision trees, each correcting earlier mistakes. Huber loss softens the influence of large errors: one wildly ambitious seller does not get to chair the committee. The fitted tree count and exact drivers appear after an estimate.')
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
     st.write('The active baseline uses structured car fields only. Its scores are measured on a chronological test set. It does not use descriptions or the MiniLM-price filter.')
     st.write('The MiniLM workflow fine-tunes sentence-transformers/all-MiniLM-L6-v2 on descriptions and log prices. Three-fold predictions create predicted_text_price without using each predicted row’s target in its fitting model.')

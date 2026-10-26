@@ -231,3 +231,20 @@ def test_optimizer_checkpoint_resume_matches_uninterrupted(tmp_path,monkeypatch)
     restored=text.fit_text(texts,prices,checkpoint_dir=tmp_path,**kwargs)
     for key,value in reference.state_dict().items():
         torch.testing.assert_close(value,restored.state_dict()[key],rtol=0,atol=0)
+
+
+@pytest.mark.parametrize('target',['log1p','dollars'])
+def test_shipped_model_explanations_reconstruct_prediction(target):
+    from pricing.inference import PricePipeline
+    pipeline=PricePipeline(Path(__file__).resolve().parents[1]/'models/studio-baseline')
+    pipeline.manifest['target_transform']=target
+    fields={'year':2015,'odometer':95000,'manufacturer':'toyota','model':'corolla'}
+    plain=pipeline.predict('',fields)
+    explained=pipeline.predict('',fields,explain=True)
+    assert plain['price']==explained['price']
+    e=explained['explanation']
+    assert e['additivity_error']<1e-7
+    assert abs(e['base']+sum(r['contribution'] for r in e['features'])-e['raw_prediction'])<1e-7
+    assert [r['feature'] for r in e['features']]==pipeline.lgb.feature_name()
+    assert all(np.isfinite(r['contribution']) for r in e['features'])
+    assert sum(r['gain_pct'] for r in e['features'])==pytest.approx(100)

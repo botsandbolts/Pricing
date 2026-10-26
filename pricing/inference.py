@@ -28,7 +28,7 @@ class PricePipeline:
         if self.lgb.feature_name()!=self.manifest['feature_names']:
             raise ValueError('LightGBM feature schema mismatch')
 
-    def predict(self,text,fields):
+    def predict(self,text,fields,explain=False):
         # Description enters MiniLM alone; no serialization of form fields into its input.
         text_price=float(predict_text(self.text_model,self.tokenizer,[text],self.device)[0]) if self.text_model else None
         frame=pd.DataFrame([fields])
@@ -43,6 +43,24 @@ class PricePipeline:
         log_price=np.log1p(final)
         b=self.manifest['band80_log_radius']
         invert=lambda z:float(np.expm1(np.clip(z,0,np.log1p(1e7))))
-        return {'predicted_text_price':text_price,'price':final,
+        result = {'predicted_text_price':text_price,'price':final,
                 'range':[invert(log_price-b),invert(log_price+b)]}
+        if explain:
+            # Native LightGBM TreeSHAP, in the fitted model's raw output space.
+            values=np.asarray(self.lgb.predict(x,pred_contrib=True),dtype=float)[0]
+            scale=float(self.manifest.get('target_std',1.))
+            base=float(values[-1]*scale+self.manifest.get('target_mean',0.))
+            contributions=values[:-1]*scale
+            gain=np.asarray(self.lgb.feature_importance(importance_type='gain'),float)
+            result['explanation']={
+                'method':'LightGBM native TreeSHAP (tree-path-dependent)',
+                'target':transform,'base':base,'raw_prediction':scaled,
+                'reconstructed':float(base+contributions.sum()),
+                'additivity_error':float(abs(base+contributions.sum()-scaled)),
+                'clipped':bool(scaled<0 or scaled>(np.log1p(1e7) if transform=='log1p' else 1e7)),
+                'trees':self.lgb.num_trees(),
+                'features':[{'feature':name,'value':None if pd.isna(x.iloc[0][name]) else (int(x[name].cat.codes.iloc[0]) if name in self.schema else float(x.iloc[0][name])),
+                    'contribution':float(contributions[i]),'gain_pct':float(100*gain[i]/max(gain.sum(),1e-12))}
+                    for i,name in enumerate(self.lgb.feature_name())]}
+        return result
 
