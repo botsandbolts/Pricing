@@ -9,12 +9,12 @@ from pricing.text import MODEL_ID,fit_text,predict_text,save_text,load_text
 
 
 def main():
-    torch.set_num_threads(8)
-    revision='ff629add2ff80256e42173ec84299eed1c1b6393'
+    torch.set_num_threads(2)
+    revision='1110a243fdf4706b3f48f1d95db1a4f5529b4d41'
     source=MODEL_ID
     tokenizer=AutoTokenizer.from_pretrained(source,revision=revision)
     initial=AutoModel.from_pretrained(source,revision=revision)
-    assert initial.config.hidden_size==768
+    assert initial.config.hidden_size==384
     before=initial.encoder.layer[0].attention.self.query.weight.detach().clone()
     del initial;gc.collect()
     texts=['Reliable sedan with maintenance records, clean interior, good tires and no known mechanical problems.',
@@ -32,7 +32,7 @@ def main():
     restored,tok=load_text(path)
     np.testing.assert_allclose(predict_text(restored,tok,texts,'cpu'),predictions,rtol=1e-5)
     report={'status':'passed','scope':'two synthetic examples, one optimizer step; not a pricing evaluation',
-            'source':MODEL_ID,'revision':revision,'dimensions':768,
+            'source':MODEL_ID,'revision':revision,'dimensions':384,
             'first_attention_query_max_weight_delta':delta,'save_load_prediction_parity':True}
     (path/'smoke-report.json').write_text(json.dumps(report,indent=2))
     print(json.dumps(report,indent=2))
