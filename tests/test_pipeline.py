@@ -193,3 +193,18 @@ def test_full_preparation_streams_all_rows_and_deduplicates(tmp_path):
     assert len(rows)==18 and rows.row_id.is_unique
     assert sum(metadata['counts'].values())==18
     assert not output.with_suffix('.preparation.sqlite').exists()
+
+
+def test_minilm_windows_use_cls_sep_and_preserve_long_descriptions():
+    from transformers import BertTokenizer
+    from tempfile import TemporaryDirectory
+    from pricing.text import windows, MAX_TOKENS, MODEL_ID
+    with TemporaryDirectory() as directory:
+        vocab=Path(directory)/'vocab.txt'
+        vocab.write_text('[PAD]\n[UNK]\n[CLS]\n[SEP]\n[MASK]\ncar\n')
+        tokenizer=BertTokenizer(vocab_file=str(vocab))
+        chunks=windows(tokenizer,'car ' * 700)
+        assert MODEL_ID == 'sentence-transformers/all-MiniLM-L6-v2'
+        assert len(chunks)>1
+        assert all(len(c)<=MAX_TOKENS and c[0]==tokenizer.cls_token_id and c[-1]==tokenizer.sep_token_id for c in chunks)
+        assert sum(len(c)-2 for c in chunks)==len(tokenizer.encode('car ' * 700,add_special_tokens=False))

@@ -1,4 +1,4 @@
-"""Train a clearly labeled tabular-only studio baseline; E5 mode trains separately."""
+"""Train a clearly labeled tabular-only studio baseline; MiniLM mode trains separately."""
 import argparse,json
 from pathlib import Path
 import numpy as np
@@ -38,9 +38,9 @@ def run(a):
     pred=inverse(m.predict(xt),row['mean'],row['std'],row['target'])
     band=float(np.quantile(abs(np.log1p(va.price)-np.log1p(vp)),.8))
     metadata=json.loads(Path(a.data).with_suffix('.meta.json').read_text()) if Path(a.data).with_suffix('.meta.json').exists() else {}
-    report={'status':'evaluated','mode':'tabular_baseline','label':'Trained tabular-only baseline; not E5 enhanced',
+    report={'status':'evaluated','mode':'tabular_baseline','label':'Trained tabular-only baseline; not MiniLM enhanced',
         'sample_fraction':metadata.get('fraction',1.),'raw_sample_rows':metadata.get('sampled_raw_rows',len(d)),'eligible_rows':len(d),'train_rows':len(tr),'validation_rows':len(va),'test_rows':len(te),
-        'filter':None,'filter_note':'No predicted_text_price exists in the baseline, so the E5-price filter does not apply.',
+        'filter':None,'filter_note':'No predicted_text_price exists in the baseline, so the MiniLM-price filter does not apply.',
         'test':metrics(te.price,pred),'selected':row,'grid':[v[0] for v in fits],
         'band80_test_coverage':float(np.mean(abs(np.log1p(te.price)-np.log1p(pred))<=band)),
         'deployment_refit_rows':len(d),'assessment_note':'Metrics evaluate the chronological assessment model before deployment refit on all eligible rows.',

@@ -2,7 +2,7 @@
 
 Car Price Studio is a used-car asking-price GUI with custom make/model fields, vehicle dropdowns, mileage/year inputs, a dollar estimate, an indicative error band and measured test results.
 
-**Current choices:** no make/model transformer; the **full 100% raw database**; E5 description-price regression plus **Isolation Forest in auto mode** for the enhanced workflow; Huber LightGBM as the final regressor.
+**Current choices:** no make/model transformer; the **full 100% raw database**; MiniLM description-price regression plus **Isolation Forest in auto mode** for the enhanced workflow; Huber LightGBM as the final regressor.
 
 ## What works now
 
@@ -10,7 +10,7 @@ The deployed studio provides **real estimates from a trained tabular-only LightG
 
 Measured baseline test results: **MAE $3,329, RMSE $6,839, median APE 15.6%, R² 0.774**. The validation-calibrated 80% band covered 78.7% of test listing prices. Selection used validation USD MAE across dollar/log targets and Huber thresholds 0.5/0.9/1.5. The winner used log price and Huber 0.9.
 
-**E5-enhanced training is not complete.** The current workspace has no CUDA GPU. The UI labels that mode as pending and disables it; seller descriptions do not affect baseline estimates. Because the baseline has no `predicted_text_price`, it does not apply the E5-price Isolation Forest filter. Baseline scores must not be presented as results for the enhanced pipeline.
+**MiniLM-enhanced training is not complete.** The current workspace has no CUDA GPU. The UI labels that mode as pending and disables it; seller descriptions do not affect baseline estimates. Because the baseline has no `predicted_text_price`, it does not apply the MiniLM-price Isolation Forest filter. Baseline scores must not be presented as results for the enhanced pipeline.
 
 ## Full 100% database
 
@@ -28,14 +28,14 @@ Source: Craigslist US asking prices from April–May **2021**. These are not ver
 
 ## Requested enhanced pipeline
 
-1. Fine-tune `embaas/sentence-transformers-multilingual-e5-base` on **seller descriptions only**, predicting standardized log1p(price). The pinned XLM-RoBERTa checkpoint is `ff629add2ff80256e42173ec84299eed1c1b6393`, with a 768-dimensional representation and 512-token windows. Up to 8,000 cleaned characters use consecutive windows and pooled representations.
+1. Fine-tune `sentence-transformers/all-MiniLM-L6-v2` on **seller descriptions only**, predicting standardized log1p(price). The pinned MiniLM checkpoint is `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, with a 384-dimensional representation and 256-token windows. Up to 8,000 cleaned characters use consecutive windows and pooled representations.
 2. Three-fold cross-fitting creates **`predicted_text_price`** in dollars. Every training row is predicted by a model that did not see its target or use it in target scaling.
 3. `IsolationForest(n_estimators=300, contamination="auto", random_state=42)` fits **only those training OOF dollar prices**. Keep inliers and remove flagged rows from LightGBM training. No removal percentage is forced. Actual prices, tabular features, validation and test do not enter this detector.
 4. Huber LightGBM combines the text-price scalar with year, odometer, make, model, condition, cylinders, fuel, title status, transmission, drive, body type, paint color and state. **Make/model have no transformer, embedding or separate price regressor.**
 
-Isolation Forest can flag valid rare vehicles. Its actual removal count and held-out effects must be measured after E5 training. A collapsed text-price signal can leave too few inliers; the run stops rather than silently forcing retention.
+Isolation Forest can flag valid rare vehicles. Its actual removal count and held-out effects must be measured after MiniLM training. A collapsed text-price signal can leave too few inliers; the run stops rather than silently forcing retention.
 
-Assessment fits OOF models within the chronological training partition and uses train-only regressors for validation/test. After test scoring, a fresh OOF pass covers the entire eligible database, the detector filters that fitting pool, and the deployable model is refitted. All-row refit means every eligible candidate in the complete database, subject to the configured E5-price Isolation Forest filter in enhanced mode. Assessment scores describe the assessment model, not an independent evaluation of the refit.
+Assessment fits OOF models within the chronological training partition and uses train-only regressors for validation/test. After test scoring, a fresh OOF pass covers the entire eligible database, the detector filters that fitting pool, and the deployable model is refitted. All-row refit means every eligible candidate in the complete database, subject to the configured MiniLM-price Isolation Forest filter in enhanced mode. Assessment scores describe the assessment model, not an independent evaluation of the refit.
 
 ## Run Car Price Studio
 
@@ -48,7 +48,7 @@ python -m streamlit run app.py
 
 The Python GUI defaults to `models/studio-baseline/`. Its mode selector can load an enhanced bundle from `artifacts/car-price-studio-full/` after training. Override with `PRICING_MODEL_DIR` if needed. No API key is required. Baseline browser inputs are processed locally.
 
-For E5 training, open `train_gpu.ipynb` in a CUDA runtime or run:
+For MiniLM training, open `train_gpu.ipynb` in a CUDA runtime or run:
 
 ```bash
 python -m pricing.train --data training-cache/full-cohort.jsonl --output artifacts/car-price-studio-full --device cuda --folds 3 --epochs 2
@@ -70,10 +70,10 @@ node tests/check-browser.mjs
 python -m compileall -q pricing scripts app.py
 ```
 
-Tests cover target exclusion, cache validity, transformer gradients, the complete E5 + scalar-only Isolation Forest + LightGBM flow on synthetic fixtures, make/model-transformer removal, and feature/inference schemas. Synthetic scores are not pricing-quality evidence. The browser check verifies exported-tree prices against native LightGBM on 30 exported-model rows (maximum difference below $0.000001). Browser QA covered estimates, custom unseen names, examples, results and training-status labeling.
+Tests cover target exclusion, cache validity, transformer gradients, the complete MiniLM + scalar-only Isolation Forest + LightGBM flow on synthetic fixtures, make/model-transformer removal, and feature/inference schemas. Synthetic scores are not pricing-quality evidence. The browser check verifies exported-tree prices against native LightGBM on 30 exported-model rows (maximum difference below $0.000001). Browser QA covered estimates, custom unseen names, examples, results and training-status labeling.
 
 The GUI error band is indicative, based on validation log residuals. It is not a guaranteed per-car sale range. Back-transformed log predictions are not bias-corrected arithmetic means.
 
 Dataset: https://www.kaggle.com/datasets/austinreese/craigslist-carstrucks-data
 Snapshot: https://zenodo.org/records/10457828
-Model: https://huggingface.co/embaas/sentence-transformers-multilingual-e5-base
+Model: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2

@@ -13,11 +13,11 @@ class PricePipeline:
     def __init__(self,path,device='cpu'):
         path=Path(path)
         self.manifest=json.loads((path/'manifest.json').read_text())
-        if self.manifest.get('status')!='ready' or self.manifest.get('pipeline') not in ['fine-tuned-e5-base+lightgbm','tabular-lightgbm']:
-            raise ValueError('A completed E5-base + LightGBM bundle is required')
+        if self.manifest.get('status')!='ready' or self.manifest.get('pipeline') not in ['fine-tuned-minilm-l6+lightgbm','tabular-lightgbm']:
+            raise ValueError('A completed MiniLM-L6 + LightGBM bundle is required')
         self.device=device
         self.text_model=self.tokenizer=None
-        if self.manifest['pipeline']=='fine-tuned-e5-base+lightgbm':
+        if self.manifest['pipeline']=='fine-tuned-minilm-l6+lightgbm':
             self.text_model,self.tokenizer=load_text(path/'text-model',device)
         self.schema=json.loads((path/'schema.json').read_text())
         if (path/'lightgbm.txt').exists():
@@ -29,7 +29,7 @@ class PricePipeline:
             raise ValueError('LightGBM feature schema mismatch')
 
     def predict(self,text,fields):
-        # Description enters E5 alone; no serialization of form fields into its input.
+        # Description enters MiniLM alone; no serialization of form fields into its input.
         text_price=float(predict_text(self.text_model,self.tokenizer,[text],self.device)[0]) if self.text_model else None
         frame=pd.DataFrame([fields])
         for col in ['year','odometer']+list(self.schema):

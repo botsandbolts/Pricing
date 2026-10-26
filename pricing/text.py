@@ -1,4 +1,4 @@
-"""Fine-tune the actual E5 transformer, not a frozen embedding regressor."""
+"""Fine-tune the actual MiniLM transformer, not a frozen embedding regressor."""
 from pathlib import Path
 import json
 import numpy as np
@@ -7,18 +7,21 @@ from torch import nn
 from transformers import AutoModel, AutoTokenizer
 from scripts.common import clean
 
-MODEL_ID = 'embaas/sentence-transformers-multilingual-e5-base'
-MAX_TOKENS = 512
+MODEL_ID = 'sentence-transformers/all-MiniLM-L6-v2'
+MAX_TOKENS = 256
 MAX_CHARACTERS = 8000
 
 
 def windows(tokenizer, text):
-    # Prefix and special tokens count towards the native 512-token limit.
+    # Use the checkpoint's standard 256-token sentence-transformer window.
+    # Build special tokens through the tokenizer: MiniLM uses CLS/SEP, not BOS/EOS.
     ids = tokenizer.encode(clean(text)[:MAX_CHARACTERS], add_special_tokens=False)
-    prefix = tokenizer.encode('query: ', add_special_tokens=False)
-    budget = MAX_TOKENS - len(prefix) - tokenizer.num_special_tokens_to_add(False)
-    assert tokenizer.num_special_tokens_to_add(False) == 2
-    return [[tokenizer.bos_token_id] + prefix + ids[i:i+budget] + [tokenizer.eos_token_id]
+    budget = MAX_TOKENS - tokenizer.num_special_tokens_to_add(False)
+    start = tokenizer.cls_token_id if tokenizer.cls_token_id is not None else tokenizer.bos_token_id
+    end = tokenizer.sep_token_id if tokenizer.sep_token_id is not None else tokenizer.eos_token_id
+    if start is None or end is None or tokenizer.num_special_tokens_to_add(False) != 2:
+        raise ValueError("A CLS/SEP or BOS/EOS tokenizer with two special tokens is required")
+    return [[start] + ids[i:i+budget] + [end]
             for i in range(0, max(1, len(ids)), budget)]
 
 

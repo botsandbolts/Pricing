@@ -1,4 +1,4 @@
-"""100% E5 description OOF + Isolation Forest + categorical/tabular Huber LightGBM."""
+"""100% MiniLM description OOF + Isolation Forest + categorical/tabular Huber LightGBM."""
 import argparse,gc,hashlib,json
 from pathlib import Path
 import numpy as np
@@ -54,8 +54,8 @@ def filter_prices(prices,path,row_ids,seed=42,threads=4):
 
 
 def run(a):
-    if a.device.startswith('cuda') and not torch.cuda.is_available():raise RuntimeError('CUDA is unavailable. Run on a GPU, or explicitly use --device cpu --allow-cpu for slow E5 fine-tuning.')
-    if a.device=='cpu' and not a.allow_cpu:raise RuntimeError('Explicit --allow-cpu required for slow full E5 training')
+    if a.device.startswith('cuda') and not torch.cuda.is_available():raise RuntimeError('CUDA is unavailable. Run on a GPU, or explicitly use --device cpu --allow-cpu for slow MiniLM fine-tuning.')
+    if a.device=='cpu' and not a.allow_cpu:raise RuntimeError('Explicit --allow-cpu required for slow full MiniLM training')
     torch.set_num_threads(a.threads)
     d=pd.concat(pd.read_json(a.data,lines=True,chunksize=5000),ignore_index=True)
     if 'text' not in d and 'description' in d:d['text']=d.description
@@ -121,15 +121,15 @@ def run(a):
     schema=fit_schema(d);x=features(d,schema,tprice)
     model,mean,std=lgb_fit(x.iloc[keep],d.price.iloc[keep],(choice['target'],choice['alpha'],max(1,choice['best_iteration'])),a)
     model.booster_.save_model(str(out/'lightgbm.txt'));(out/'schema.json').write_text(json.dumps(schema,indent=2))
-    manifest={'status':'ready','pipeline':'fine-tuned-e5-base+lightgbm','trained_rows':len(keep),'training_candidates':len(d),'outlier_filter':{'algorithm':'IsolationForest','contamination':'auto','input':'predicted_text_price','removed':len(d)-len(keep)},
+    manifest={'status':'ready','pipeline':'fine-tuned-minilm-l6+lightgbm','trained_rows':len(keep),'training_candidates':len(d),'outlier_filter':{'algorithm':'IsolationForest','contamination':'auto','input':'predicted_text_price','removed':len(d)-len(keep)},
         'feature_names':model.booster_.feature_name(),'target_transform':choice['target'],'target_mean':mean,'target_std':std,
         'band80_log_radius':band,'fingerprint':fingerprint,'assessment_note':evaluation['note']}
-    (out/'manifest.json').write_text(json.dumps(manifest,indent=2));print('100% E5 + Isolation Forest stack ready',flush=True)
+    (out/'manifest.json').write_text(json.dumps(manifest,indent=2));print('100% MiniLM + Isolation Forest stack ready',flush=True)
 
 
 def parser():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--data',default='training-cache/full-cohort.jsonl');p.add_argument('--output',default='artifacts/car-price-studio-full')
-    p.add_argument('--device',default='cuda');p.add_argument('--allow-cpu',action='store_true');p.add_argument('--revision',default='ff629add2ff80256e42173ec84299eed1c1b6393')
+    p.add_argument('--device',default='cuda');p.add_argument('--allow-cpu',action='store_true');p.add_argument('--revision',default='1110a243fdf4706b3f48f1d95db1a4f5529b4d41')
     p.add_argument('--folds',type=int,default=3);p.add_argument('--epochs',type=int,default=2)
     p.add_argument('--batch-size',type=int,default=1);p.add_argument('--accumulation',type=int,default=8);p.add_argument('--lr',type=float,default=2e-5)
     p.add_argument('--trees',type=int,default=1000);p.add_argument('--threads',type=int,default=4);p.add_argument('--seed',type=int,default=42)
