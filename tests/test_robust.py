@@ -66,3 +66,21 @@ def test_shared_engine_uses_promotion_flag_and_keeps_baseline(model):
     else:
         assert out.asking_model_kind=='original_tabular_baseline'
         assert out.asking_price_usd==out.baseline_asking_price_usd
+
+
+def test_isolation_filter_excludes_labels_and_is_reproducible():
+    from marketbridge.robust import isolation_inliers
+    rng=np.random.default_rng(5)
+    frame=pd.DataFrame({'year':rng.normal(2015,2,300),
+                        'odometer':rng.normal(60000,5000,300),
+                        'transported_auction_price_usd':rng.normal(15000,1000,300)})
+    frame.loc[299,['year','odometer']]=[1900,9000000]
+    keep,report=isolation_inliers(frame)
+    altered=frame.assign(price=np.arange(300)*1000000, sale_price=-1, text='outcome')
+    again,other=isolation_inliers(altered)
+    pd.testing.assert_series_equal(keep,again)
+    assert report==other
+    assert not keep.loc[299]
+    assert 0<report['removed_rows']<len(frame)
+    assert 'transported_auction_price_usd' in report['features']
+    assert 'price' not in report['features']

@@ -50,3 +50,34 @@ The compressed deployed bundle is approximately **145.6 MiB**. This is intention
 ## Lossless model storage
 
 The GitHub connector limits requests to 16 MiB. The gzip weights are therefore split into verified binary parts of at most 8 MiB, with SHA-256 checksums in each member's manifest entry. The loader rejoins the exact bytes before decompression. This changes neither trees nor numeric predictions; it is not pruning or quantization. To pack a newly trained whole-file bundle, run `python -m marketbridge.model_storage models/robust-asking`. The original training module bytes for the recorded training fingerprint are archived in `reports/robust-training-source.txt`; the later multipart loader is an inference/storage extension.
+
+
+## Optional asking-price Isolation Forest experiment
+
+Run from the repository root with the original prepared cohort:
+
+```bash
+python -m marketbridge.robust --cohort training-cache/full-cohort.jsonl --structural models/structural-transfer --output models/robust-asking-isolation --isolation auto
+```
+
+The default remains `--isolation off`. Use a new output directory; existing
+bundles cannot be overwritten by an Isolation Forest run. The shipped model has
+**not** been retrained with this option. The standalone CLI supports it; the
+self-contained Kaggle notebook still contains the original unfiltered trainer.
+
+The detector uses numeric vehicle predictors and the frozen CarBids structural
+signals, never asking-price labels, residuals, descriptions or category ID codes.
+It fits 300 trees on training predictors, with training-median imputation and a
+fixed seed. `auto` uses sklearn's automatic score cutoff, not a chosen removal
+percentage. Rare legitimate vehicles can also be flagged: unusual does not mean
+incorrect. All validation and test cars remain in evaluation. Vocabularies and
+frequency features are refitted on retained training rows. MAE and RMSE are
+reported in dollars on the full holdouts; compare to the shipped nine-member
+ensemble, not just the older single-model baseline.
+
+Only after evaluation does a fresh detector filter the full deployment cohort
+for refitting. Both assessment and refit removal counts are recorded. No car is
+rejected at inference. Creating an experiment does not switch the GUI model;
+review the evaluation before deploying its bundle. Historical test reuse remains
+a limitation. The published ensemble stays active until a filtered replacement
+has actually been trained and assessed.

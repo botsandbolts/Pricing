@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import lightgbm as lgb
 from pricing.tabular import CATEGORICAL,fit_schema
-from marketbridge.asking import inputs
+from marketbridge.asking import inputs,AUX
 from marketbridge.structural import StructuralTransfer,dates
 
 COMPOSITES=['make_model','make_body']
@@ -81,9 +81,35 @@ class RobustAsking:
         x,_=engineer(frame,self.schema,self.structural,self.feature_schema)
         return np.column_stack([invert(model.predict(x,num_threads=4),m['mean'],m['std'],m['target']) for m,model in self.members])
 
-def train(cohort,structural_path,output):
+def isolation_inliers(frame, contamination='auto', seed=42):
+    """Training-only predictor filter: no labels, text, or held-out statistics."""
+    from sklearn.ensemble import IsolationForest
+    # Explicit allowlist avoids accidentally including price or supervised residuals.
+    columns = ['year', 'odometer', 'log_odometer', 'miles_per_year',
+               'odometer_missing', 'year_missing']
+    columns += AUX
+    columns = [c for c in columns if c in frame and pd.api.types.is_numeric_dtype(frame[c])]
+    if not columns:
+        raise ValueError('No numeric vehicle predictors available for Isolation Forest')
+    values = frame[columns].replace([np.inf, -np.inf], np.nan)
+    medians = values.median().fillna(0)
+    forest = IsolationForest(n_estimators=300, max_samples='auto',
+                             contamination=contamination, random_state=seed, n_jobs=4)
+    keep = pd.Series(forest.fit_predict(values.fillna(medians)) == 1, index=frame.index)
+    if keep.sum() < 2:
+        raise ValueError('Isolation Forest retained too few training rows')
+    return keep, {'method': 'IsolationForest', 'contamination': contamination,
+                  'seed': seed, 'features': columns, 'input_rows': len(frame),
+                  'retained_rows': int(keep.sum()), 'removed_rows': int((~keep).sum()),
+                  'removed_fraction': float((~keep).mean()),
+                  'scope': 'Training predictors only; labels excluded; evaluation rows untouched'}
+
+def train(cohort,structural_path,output,isolation=None):
     from carbids.common import metrics
-    out=Path(output);out.mkdir(parents=True,exist_ok=True);cache=out/'search-cache';cache.mkdir(exist_ok=True)
+    out=Path(output)
+    if isolation is not None and (out/'manifest.json').exists():
+        raise ValueError('Use a new output directory for Isolation Forest experiments')
+    out.mkdir(parents=True,exist_ok=True);cache=out/'search-cache';cache.mkdir(exist_ok=True)
     d=pd.concat([c.drop(columns=['text','description'],errors='ignore') for c in pd.read_json(cohort,lines=True,chunksize=5000)],ignore_index=True)
     if d.row_id.duplicated().any() or not d.price.between(1000,150000).all():raise ValueError('Invalid cohort')
     tr=d.phase.eq('train');va=d.phase.eq('validation');te=d.phase.eq('test');time=pd.to_datetime(d.date,utc=True)
@@ -91,7 +117,14 @@ def train(cohort,structural_path,output):
     structural=StructuralTransfer(structural_path)
     if pd.to_datetime(structural.manifest['sale_dates'][1],utc=True)>=time.min():raise ValueError('Upstream labels must predate target cohort')
     signals=structural.predict_frame(d);schema=fit_schema(d.loc[tr]);xt,fs=engineer(d.loc[tr],schema,structural,signals=signals.loc[tr]);x,_=engineer(d,schema,structural,fs,signals=signals)
-    fingerprint=hashlib.sha256(Path(cohort).read_bytes()+Path(__file__).read_bytes()+structural.model_id.encode()).hexdigest()
+    filter_report = {'method': 'none', 'input_rows': int(tr.sum()), 'retained_rows': int(tr.sum()), 'removed_rows': 0}
+    if isolation is not None:
+        keep, filter_report = isolation_inliers(x.loc[tr], isolation)
+        tr.loc[keep.index] = keep
+        # Refit vocabularies and counts on retained training rows only.
+        schema=fit_schema(d.loc[tr]);_,fs=engineer(d.loc[tr],schema,structural,signals=signals.loc[tr])
+        x,_=engineer(d,schema,structural,fs,signals=signals)
+    fingerprint=hashlib.sha256(Path(cohort).read_bytes()+Path(__file__).read_bytes()+structural.model_id.encode()+str(isolation).encode()).hexdigest()
     cfgfile=cache/'fingerprint.txt'
     if cfgfile.exists() and cfgfile.read_text()!=fingerprint:raise ValueError('Search cache belongs to different source/cohort')
     cfgfile.write_text(fingerprint);candidates=[];vp=[]
@@ -125,10 +158,16 @@ def train(cohort,structural_path,output):
             pte.append((w/3)*invert(model.predict(x.loc[te],num_threads=4),mean,std,row['config']['target']))
     pv=sum(pva);pt=sum(pte);test=metrics(d.loc[te,'price'].to_numpy(),pt);validation=metrics(yv,pv)
     baseline=json.loads((Path(structural_path).parent/'transfer-asking/evaluation.json').read_text())['models']['tabular_only']
+    if isolation is not None:
+        incumbent = Path(structural_path).parent/'robust-asking/evaluation.json'
+        if not incumbent.exists():
+            raise ValueError('Isolation experiment requires the current robust asking benchmark')
+        previous = json.loads(incumbent.read_text())
+        baseline = {'validation': previous['validation'], 'test': previous['test']}
     # Eligibility fixed on validation; test comparison is disclosed as a reused benchmark, not fresh discovery.
     promoted=validation['mae_usd']<baseline['validation']['mae_usd'] and test['mae_usd']<baseline['test']['mae_usd'] and test['rmse_usd']<=baseline['test']['rmse_usd']
     e={'status':'evaluated','target_kind':'asking_price','rows':len(d),'train_rows':int(tr.sum()),'validation_rows':int(va.sum()),'test_rows':int(te.sum()),
-        'baseline':baseline,'validation':validation,'test':test,'grid':candidates,
+        'outlier_filter':filter_report,'baseline':baseline,'validation':validation,'test':test,'grid':candidates,
         'selected_configs':[{'config':candidates[i]['config'],'rounds':candidates[i]['best_iteration'],'weight':w} for i,w in selected],
         'seed_repetitions':[42,137,777],'ensemble_members':len(assessment),'promoted':bool(promoted),
         'test_note':'The historical test benchmark has been inspected in earlier project experiments. This comparison is not a fresh untouched external replication. No hyperparameters or weights are chosen from its losses.',
@@ -136,19 +175,25 @@ def train(cohort,structural_path,output):
         'structural_model_id':structural.model_id,'training_fingerprint':fingerprint}
     (out/'evaluation.json').write_text(json.dumps(e,indent=2));print('Assessment',test,'promoted',promoted,flush=True)
     # All eligible rows are refitted only after assessment. Fixed selected tree counts and weights.
-    schema=fit_schema(d);full,fs=engineer(d,schema,structural,signals=signals);members=[]
+    refit=d
+    refit_report={'method': 'none', 'retained_rows': len(d)}
+    if isolation is not None:
+        all_schema=fit_schema(d);all_x,_=engineer(d,all_schema,structural,signals=signals)
+        keep,refit_report=isolation_inliers(all_x,isolation)
+        refit=d.loc[keep]
+    schema=fit_schema(refit);full,fs=engineer(refit,schema,structural,signals=signals.loc[refit.index]);members=[]
     for j,(row,seed,weight,_,_,_) in enumerate(assessment):
-        model,mean,std=fit_one(full,d.price,row['config'],rounds=row['best_iteration'],seed=seed)
+        model,mean,std=fit_one(full,refit.price,row['config'],rounds=row['best_iteration'],seed=seed)
         filename=f'member-{j}.txt.gz'
         with gzip.open(out/filename,'wt') as f:f.write(model.model_to_string())
         members.append({'file':filename,'weight':weight,'seed':seed,'target':row['config']['target'],'mean':mean,'std':std,'trees':model.num_trees(),'config':row['config']})
     (out/'schema.json').write_text(json.dumps(schema));(out/'feature-schema.json').write_text(json.dumps(fs))
-    manifest={'status':'ready','pipeline':'regularized-lightgbm-ensemble','target_kind':'asking_price','trained_rows':len(d),'promoted':bool(promoted),
+    manifest={'status':'ready','pipeline':'regularized-lightgbm-ensemble','target_kind':'asking_price','trained_rows':len(refit),'outlier_filter':refit_report,'promoted':bool(promoted),
         'structural_model_id':structural.model_id,'feature_names':list(full.columns),'members':members,
         'band80_log_radius':float(np.quantile(abs(np.log1p(yv)-np.log1p(pv)),.8)),
         'scope':'Historical April–May 2021 asking prices, not verified sales or current valuations','training_fingerprint':fingerprint}
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2));return e
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--cohort',required=True);p.add_argument('--structural',required=True);p.add_argument('--output',required=True);a=p.parse_args()
-    print(json.dumps(train(a.cohort,a.structural,a.output),indent=2))
+    p=argparse.ArgumentParser();p.add_argument('--cohort',required=True);p.add_argument('--structural',required=True);p.add_argument('--output',required=True);p.add_argument('--isolation', choices=['off','auto'], default='off');a=p.parse_args()
+    print(json.dumps(train(a.cohort,a.structural,a.output,isolation=None if a.isolation=='off' else a.isolation),indent=2))
