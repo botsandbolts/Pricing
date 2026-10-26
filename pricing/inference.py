@@ -12,6 +12,11 @@ class PricePipeline:
     def __init__(self,path,device='cpu'):
         path=Path(path)
         self.manifest=json.loads((path/'manifest.json').read_text())
+        if self.manifest.get('status')=='ready' and self.manifest.get('pipeline')=='regularized-lightgbm-ensemble':
+            from pricing.robust_pipeline import RobustPricePipeline
+            self._ensemble=RobustPricePipeline(path);self.schema=self._ensemble.schema
+            self.text_model=self.tokenizer=None;self.lgb=None;self.device=device
+            return
         if self.manifest.get('status')!='ready' or self.manifest.get('pipeline') not in ['fine-tuned-minilm-l6+lightgbm','tabular-lightgbm']:
             raise ValueError('A completed MiniLM-L6 + LightGBM bundle is required')
         self.device=device
@@ -29,6 +34,7 @@ class PricePipeline:
             raise ValueError('LightGBM feature schema mismatch')
 
     def predict(self,text,fields,explain=False):
+        if hasattr(self,'_ensemble'):return self._ensemble.predict(text,fields,explain=explain)
         # Description enters MiniLM alone; no serialization of form fields into its input.
         if self.text_model:
             from pricing.text import predict_text

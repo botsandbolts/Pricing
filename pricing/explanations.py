@@ -9,6 +9,9 @@ LABELS={'year':'Model year','odometer':'Mileage','manufacturer':'Make','model':'
 def label(name):return LABELS.get(name,name.replace('_',' ').title())
 
 def render_explanation(p,fields,notes,pipeline):
+    if p.get('ensemble'):
+        from pricing.robust_pipeline import render_ensemble_explanation
+        return render_ensemble_explanation(p,fields,notes,pipeline)
     e=p['explanation'];rows=sorted(e['features'],key=lambda r:abs(r['contribution']),reverse=True)
     simple,technical,whatif=st.tabs(['Explain it like I buy cars','Under the bonnet · technical','What if?'])
     with simple:

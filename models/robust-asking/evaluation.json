@@ -1,0 +1,280 @@
+{
+  "status": "evaluated",
+  "target_kind": "asking_price",
+  "rows": 211844,
+  "train_rows": 148290,
+  "validation_rows": 31777,
+  "test_rows": 31777,
+  "baseline": {
+    "rounds": 1000,
+    "validation": {
+      "mae_usd": 3140.082763608452,
+      "rmse_usd": 6592.488218398286,
+      "median_ape_pct": 15.148976487577267,
+      "rmsle": 0.3863243836175172,
+      "r2": 0.7701282765467798
+    },
+    "test": {
+      "mae_usd": 3328.66304230003,
+      "rmse_usd": 6839.352136420336,
+      "median_ape_pct": 15.588662049076497,
+      "rmsle": 0.3944630065015105,
+      "r2": 0.7743389296430128
+    }
+  },
+  "validation": {
+    "mae_usd": 3084.650273304981,
+    "rmse_usd": 6440.1688285903365,
+    "median_ape_pct": 14.834922160496422,
+    "rmsle": 0.380968727378389,
+    "r2": 0.7806279304922031
+  },
+  "test": {
+    "mae_usd": 3288.054235066122,
+    "rmse_usd": 6664.987391904136,
+    "median_ape_pct": 15.515710411920894,
+    "rmsle": 0.3906855006874743,
+    "r2": 0.7856984172108846
+  },
+  "grid": [
+    {
+      "config": {
+        "name": "huber_log_63",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 63,
+        "max_depth": 10,
+        "min_data_in_leaf": 50,
+        "lambda_l2": 8.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
+      "best_iteration": 3237,
+      "validation": {
+        "mae_usd": 3124.953865109804,
+        "rmse_usd": 6488.28822091239,
+        "median_ape_pct": 15.10276262093441,
+        "rmsle": 0.38351724593542896,
+        "r2": 0.7773374928981375
+      }
+    },
+    {
+      "config": {
+        "name": "huber_log_127",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 70,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
+      "best_iteration": 2304,
+      "validation": {
+        "mae_usd": 3104.7790157065533,
+        "rmse_usd": 6452.944218722398,
+        "median_ape_pct": 14.968556742952371,
+        "rmsle": 0.382296108483,
+        "r2": 0.7797567286415972
+      }
+    },
+    {
+      "config": {
+        "name": "huber_log_255",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 255,
+        "max_depth": 14,
+        "min_data_in_leaf": 100,
+        "lambda_l2": 20.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
+      "best_iteration": 1711,
+      "validation": {
+        "mae_usd": 3097.3161657298547,
+        "rmse_usd": 6454.076523006033,
+        "median_ape_pct": 14.91628522482966,
+        "rmsle": 0.3817811849127371,
+        "r2": 0.7796794292660466
+      }
+    },
+    {
+      "config": {
+        "name": "huber_log_127_strong",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.7,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 140,
+        "lambda_l2": 30.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
+      "best_iteration": 2093,
+      "validation": {
+        "mae_usd": 3111.613125661119,
+        "rmse_usd": 6498.3771396284255,
+        "median_ape_pct": 14.945778483706077,
+        "rmsle": 0.3834917199473124,
+        "r2": 0.7766444994954513
+      }
+    },
+    {
+      "config": {
+        "name": "mae_dollars_63",
+        "target": "dollars",
+        "objective": "regression_l1",
+        "num_leaves": 63,
+        "max_depth": 10,
+        "min_data_in_leaf": 50,
+        "lambda_l2": 8.0,
+        "learning_rate": 0.03
+      },
+      "mean": 16513.95589048486,
+      "std": 13754.20596658523,
+      "best_iteration": 3500,
+      "validation": {
+        "mae_usd": 3199.700501512914,
+        "rmse_usd": 6732.982345305289,
+        "median_ape_pct": 15.282428624775005,
+        "rmsle": 0.4053418930743359,
+        "r2": 0.760226170997234
+      }
+    },
+    {
+      "config": {
+        "name": "mae_dollars_127",
+        "target": "dollars",
+        "objective": "regression_l1",
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 80,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.03
+      },
+      "mean": 16513.95589048486,
+      "std": 13754.20596658523,
+      "best_iteration": 3500,
+      "validation": {
+        "mae_usd": 3162.6909774364976,
+        "rmse_usd": 6686.786845090385,
+        "median_ape_pct": 14.922895737167616,
+        "rmsle": 0.4040896255398256,
+        "r2": 0.7635050964860828
+      }
+    },
+    {
+      "config": {
+        "name": "huber_dollars_127",
+        "target": "dollars",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 80,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.03
+      },
+      "mean": 16513.95589048486,
+      "std": 13754.20596658523,
+      "best_iteration": 1460,
+      "validation": {
+        "mae_usd": 3135.6402222720576,
+        "rmse_usd": 6326.0523314818565,
+        "median_ape_pct": 15.335243320297195,
+        "rmsle": 0.4257474991950636,
+        "r2": 0.788333373689775
+      }
+    },
+    {
+      "config": {
+        "name": "mae_log_127",
+        "target": "log1p",
+        "objective": "regression_l1",
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 80,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.03
+      },
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
+      "best_iteration": 3500,
+      "validation": {
+        "mae_usd": 3135.730190704194,
+        "rmse_usd": 6634.825792823219,
+        "median_ape_pct": 14.977578188670455,
+        "rmsle": 0.39127046643677255,
+        "r2": 0.7671662805717803
+      }
+    }
+  ],
+  "selected_configs": [
+    {
+      "config": {
+        "name": "huber_log_255",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 255,
+        "max_depth": 14,
+        "min_data_in_leaf": 100,
+        "lambda_l2": 20.0,
+        "learning_rate": 0.025
+      },
+      "rounds": 1711,
+      "weight": 0.5
+    },
+    {
+      "config": {
+        "name": "huber_log_127",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 70,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.025
+      },
+      "rounds": 2304,
+      "weight": 0.3
+    },
+    {
+      "config": {
+        "name": "huber_log_127_strong",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.7,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 140,
+        "lambda_l2": 30.0,
+        "learning_rate": 0.025
+      },
+      "rounds": 2093,
+      "weight": 0.2
+    }
+  ],
+  "seed_repetitions": [
+    42,
+    137,
+    777
+  ],
+  "ensemble_members": 9,
+  "promoted": true,
+  "test_note": "The historical test benchmark has been inspected in earlier project experiments. This comparison is not a fresh untouched external replication. No hyperparameters or weights are chosen from its losses.",
+  "robustness_note": "Robust losses, bagging, regularized categories, early stopping and seed averaging reduce sensitivity; they do not guarantee performance under market drift.",
+  "structural_model_id": "67d3abbe84988073295da60d446cb555a018a45ce6e7315798e7b1501a09444e",
+  "training_fingerprint": "e65a893ca68400e1b91b58fb132a471d76aae6144c232f246c9e2baf41c591ac"
+}

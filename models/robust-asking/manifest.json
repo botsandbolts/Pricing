@@ -1,0 +1,273 @@
+{
+  "status": "ready",
+  "pipeline": "regularized-lightgbm-ensemble",
+  "target_kind": "asking_price",
+  "trained_rows": 211844,
+  "promoted": true,
+  "structural_model_id": "67d3abbe84988073295da60d446cb555a018a45ce6e7315798e7b1501a09444e",
+  "feature_names": [
+    "year",
+    "odometer",
+    "manufacturer",
+    "model",
+    "condition",
+    "cylinders",
+    "fuel",
+    "title_status",
+    "transmission",
+    "drive",
+    "type",
+    "paint_color",
+    "state",
+    "vehicle_age_years",
+    "auction_reference_2015_usd",
+    "transported_auction_price_usd",
+    "relative_model_value_factor",
+    "model_training_count",
+    "mileage_vs_age_typical",
+    "one_year_age_effect_pct",
+    "market_index_factor",
+    "log_odometer",
+    "miles_per_year",
+    "odometer_missing",
+    "year_missing",
+    "make_model",
+    "make_model_log_count",
+    "make_body",
+    "make_body_log_count"
+  ],
+  "members": [
+    {
+      "file": "member-0.txt.gz",
+      "weight": 0.16666666666666666,
+      "seed": 42,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 1711,
+      "config": {
+        "name": "huber_log_255",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 255,
+        "max_depth": 14,
+        "min_data_in_leaf": 100,
+        "lambda_l2": 20.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-0.txt.gz.part00",
+        "member-0.txt.gz.part01",
+        "member-0.txt.gz.part02"
+      ],
+      "compressed_sha256": "56ed6e0bf8b998b966f5f0fb3054a755d214519faa61dfa7a3942d38777c2bf3"
+    },
+    {
+      "file": "member-1.txt.gz",
+      "weight": 0.16666666666666666,
+      "seed": 137,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 1711,
+      "config": {
+        "name": "huber_log_255",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 255,
+        "max_depth": 14,
+        "min_data_in_leaf": 100,
+        "lambda_l2": 20.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-1.txt.gz.part00",
+        "member-1.txt.gz.part01",
+        "member-1.txt.gz.part02"
+      ],
+      "compressed_sha256": "bc0ee4d151fca7a9cccc6abefe908afef289d3eb26e47a068e38cb7b8244ecba"
+    },
+    {
+      "file": "member-2.txt.gz",
+      "weight": 0.16666666666666666,
+      "seed": 777,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 1711,
+      "config": {
+        "name": "huber_log_255",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 255,
+        "max_depth": 14,
+        "min_data_in_leaf": 100,
+        "lambda_l2": 20.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-2.txt.gz.part00",
+        "member-2.txt.gz.part01",
+        "member-2.txt.gz.part02"
+      ],
+      "compressed_sha256": "7b20f7e4861410071141a5174851922404d05d83ce3af6fa6f524acafe441d0e"
+    },
+    {
+      "file": "member-3.txt.gz",
+      "weight": 0.09999999999999999,
+      "seed": 42,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 2304,
+      "config": {
+        "name": "huber_log_127",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 70,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-3.txt.gz.part00",
+        "member-3.txt.gz.part01"
+      ],
+      "compressed_sha256": "fa3849c5adddb79bdb20f7db3513b956b0d53d0ddbfac93b525e82dd78a76001"
+    },
+    {
+      "file": "member-4.txt.gz",
+      "weight": 0.09999999999999999,
+      "seed": 137,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 2304,
+      "config": {
+        "name": "huber_log_127",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 70,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-4.txt.gz.part00",
+        "member-4.txt.gz.part01"
+      ],
+      "compressed_sha256": "bd67933b1d3014c1e2a8069d76e0cfd44ad329ca1f96e436ae989448ad3673c7"
+    },
+    {
+      "file": "member-5.txt.gz",
+      "weight": 0.09999999999999999,
+      "seed": 777,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 2304,
+      "config": {
+        "name": "huber_log_127",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 70,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-5.txt.gz.part00",
+        "member-5.txt.gz.part01"
+      ],
+      "compressed_sha256": "65ecaba5b252b58be81a3c7537732cf25ed62382462d5d81219edb99a02462e4"
+    },
+    {
+      "file": "member-6.txt.gz",
+      "weight": 0.06666666666666667,
+      "seed": 42,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 2093,
+      "config": {
+        "name": "huber_log_127_strong",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.7,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 140,
+        "lambda_l2": 30.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-6.txt.gz.part00",
+        "member-6.txt.gz.part01"
+      ],
+      "compressed_sha256": "ea09b009a53124a53e5d1804cf0fa1ca7c009c59b007fb62b471adbf115da5d1"
+    },
+    {
+      "file": "member-7.txt.gz",
+      "weight": 0.06666666666666667,
+      "seed": 137,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 2093,
+      "config": {
+        "name": "huber_log_127_strong",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.7,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 140,
+        "lambda_l2": 30.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-7.txt.gz.part00",
+        "member-7.txt.gz.part01"
+      ],
+      "compressed_sha256": "929edeb57234e1b717fc2533ad27eae340fcc9254d5fa8e5beacd35bd9bce95e"
+    },
+    {
+      "file": "member-8.txt.gz",
+      "weight": 0.06666666666666667,
+      "seed": 777,
+      "target": "log1p",
+      "mean": 9.360166470002937,
+      "std": 0.8512348853806211,
+      "trees": 2093,
+      "config": {
+        "name": "huber_log_127_strong",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.7,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 140,
+        "lambda_l2": 30.0,
+        "learning_rate": 0.025
+      },
+      "parts": [
+        "member-8.txt.gz.part00",
+        "member-8.txt.gz.part01"
+      ],
+      "compressed_sha256": "ef006867b6ee67392ca6f74b3ec2d1e1b32ca15a71f819fac2dc2db985c65fd0"
+    }
+  ],
+  "band80_log_radius": 0.3430564641491625,
+  "scope": "Historical April\u2013May 2021 asking prices, not verified sales or current valuations",
+  "training_fingerprint": "e65a893ca68400e1b91b58fb132a471d76aae6144c232f246c9e2baf41c591ac",
+  "storage": "lossless gzip payloads split into verified parts of at most 8 MiB"
+}

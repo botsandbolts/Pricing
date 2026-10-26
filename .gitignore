@@ -18,3 +18,5 @@ reports/pricing-with-carbids.csv
 reports/*.partial
 
 reports/pricing-with-carbids.csv.gz
+
+models/robust-asking/search-cache/

@@ -30,7 +30,15 @@ class MarketComparison:
         root=Path(root);self.structural=StructuralTransfer(root/'models/structural-transfer')
         self.asking=PricePipeline(locate(root,'asking'))
         self.enhanced=TransferredAsking(root/'models/transfer-asking',self.structural) if (root/'models/transfer-asking/manifest.json').exists() else None
+        from marketbridge.robust import RobustAsking
+        self.robust=RobustAsking(root/'models/robust-asking',self.structural) if (root/'models/robust-asking/manifest.json').exists() else None
         self.ids={'structural':self.structural.model_id,'asking':hashlib.sha256((locate(root,'asking')/'lightgbm.txt.gz').read_bytes()).hexdigest()}
+        if self.robust:
+            digest=hashlib.sha256((root/'models/robust-asking/manifest.json').read_bytes())
+            from marketbridge.model_storage import payload_files
+            for member,_ in self.robust.members:
+                for filename in payload_files(member):digest.update((root/'models/robust-asking'/filename).read_bytes())
+            self.ids['robust_asking']=digest.hexdigest()
     def predict_frame(self,frame):
         from pricing.tabular import features
         output=self.structural.predict_frame(frame)
@@ -38,11 +46,22 @@ class MarketComparison:
         raw=self.asking.lgb.predict(x,num_threads=4)*self.asking.manifest.get('target_std',1)+self.asking.manifest.get('target_mean',0)
         price=np.expm1(np.clip(raw,0,np.log1p(1e7)))
         output['asking_price_usd']=price
+        output['baseline_asking_price_usd']=price
+        output['asking_model_kind']='original_tabular_baseline'
+        output['asking_model_id']=self.ids['asking']
         output['asking_reference_date']='2021-05-01'
         if self.enhanced:
             # The asking model remains anchored to its 2021 market, even for a 2022+ auction scenario.
             reference=fields.copy();reference['as_of']='2021-05-01'
             output['asking_with_auction_structure_usd']=self.enhanced.predict_frame(reference)
+        if self.robust:
+            reference=fields.copy();reference['as_of']='2021-05-01'
+            robust_price=self.robust.predict_frame(reference)
+            output['robust_asking_price_usd']=robust_price
+            if self.robust.manifest['promoted']:
+                output['asking_price_usd']=robust_price
+                output['asking_model_kind']='regularized_lightgbm_ensemble'
+                output['asking_model_id']=self.ids['robust_asking']
         output['feature_use']='independent_older_auction_structure; no current retail-sale calibration'
         return output
     def explain(self,fields,role):

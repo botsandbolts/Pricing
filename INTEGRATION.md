@@ -84,3 +84,7 @@ The auction cohort and Pricing cohort come from their original audited preparati
 ## What is deliberately not fitted
 
 There is no matched contemporary retail sale dataset here. Therefore no learned retail-channel premium, negotiation discount, retail-sale error metric or target-sale conformal coverage is claimed. The GUI makes this boundary explicit. Census context remains available in CarBids, but was not used to manufacture unavailable historical retail labels or future context.
+
+## Later promoted ensemble upgrade
+
+The transfer-only experiment above was superseded as the default by a larger regularized asking ensemble. The shared `asking_price_usd` now denotes the active promoted ensemble; `baseline_asking_price_usd` preserves the original model, and `asking_model_kind` / `asking_model_id` distinguish the versions. The age-adjusted auction equivalent is unchanged. See [ROBUST_MODEL.md](ROBUST_MODEL.md) for actual held-out benchmark results and the approximate 146 MiB bundle tradeoff. Existing saved per-car exports retain their earlier model versions; regenerate for current asking estimates.

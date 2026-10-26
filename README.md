@@ -89,3 +89,9 @@ The hosted browser GUI adds an **Explain the price** page, lay explanations, exp
 The default **Pricing + CarBids** tab transfers auction depreciation/relative-value structure using the vehicle's **age at valuation**, actual mileage and a lagged official BLS used-car price index. It shows the 2021 asking estimate separately, an age/market-adjusted auction equivalent, an experimental asking LightGBM with auction features, decompositions, support warnings and per-car batch export. Both engines and trained weights are bundled; no second service or GPU is required.
 
 The transfer experiment slightly worsened test MAE ($3,329 → $3,338) while improving RMSE ($6,839 → $6,807); the original asking model remains the default. The full 211,844-row Pricing cohort was processed, with 717 unavailable auction equivalents explicitly flagged. Retail-channel premiums remain assumptions, not fitted sale calibration. See [INTEGRATION.md](INTEGRATION.md) for equations/specification, actual assessments, index provenance, leakage controls and reproduction commands.
+
+## Best trained LightGBM ensemble
+
+The promoted regularized ensemble uses **9 members and 18,324 trees**, with CarBids structural features, bagging, categorical smoothing and three fixed seed repetitions. Historical test MAE improved **$3,328.66 → $3,288.05**, and RMSE **$6,839.35 → $6,664.99**. Pricing's normal model selector defaults to it; both shared GUIs use it. The original baseline is preserved.
+
+See [ROBUST_MODEL.md](ROBUST_MODEL.md) for the complete design, capacity/latency tradeoff and reused-benchmark limits. [train_robust_kaggle.ipynb](train_robust_kaggle.ipynb) reproduces the CPU-only robust search without transformer epochs. The earlier transfer-only experiment and its reports are retained as historical comparisons.
