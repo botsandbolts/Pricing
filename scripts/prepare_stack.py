@@ -33,12 +33,17 @@ def prepare(source, output, full=False, fraction=None):
     sampled_raw = None
     if fraction is not None:
         sampled_raw = int(raw_rows*fraction)
-        sample = pd.concat(raw_parts).nsmallest(sampled_raw,'_priority')
+        combined = pd.concat(raw_parts,ignore_index=True)
+        raw_parts.clear()
+        sample = combined.nsmallest(sampled_raw,'_priority')
+        del combined
         sample.price = pd.to_numeric(sample.price,errors='coerce')
         sample = sample[sample.price.between(1000,150000)&sample.description.notna()].copy()
         sample = sample[sample.description.astype(str).str.len()>=80]
     d = sample.sort_values('_priority')
-    d['canonical'] = d.description.map(lambda s:clean(s,lower=True)[:8000])
+    del sample
+    d['text'] = d.description.map(lambda s:clean(s)[:8000])
+    d['canonical'] = d.text.str.lower()
     d = d[d.canonical.str.len()>=80].drop_duplicates('canonical')
     v = d.VIN.fillna('').astype(str).str.upper().str.strip()
     # Only drop repeated valid VINs (missing values are not entity IDs).
@@ -52,12 +57,15 @@ def prepare(source, output, full=False, fraction=None):
             frame=frame.sample(n=min(count,len(frame)),random_state=217).sort_values('date')
         frame=frame.copy();frame['phase']=phase;groups.append(frame)
     result=pd.concat(groups).reset_index(drop=True)
-    result['text']=result.description.map(lambda t:clean(t)[:8000])
+    # Reuse the cleaned effective model input; do not clean descriptions twice.
     # Canonical text/VIN hashes protect against accidental split leakage without publishing seller text.
     import hashlib
     result['row_id']=result.canonical.map(lambda t:hashlib.sha256(t.encode()).hexdigest())
     output=Path(output);output.parent.mkdir(parents=True,exist_ok=True)
-    result[['row_id','price','text','date','phase']+NUMERIC+CATEGORICAL].to_json(output,orient='records',lines=True,date_format='iso')
+    output.unlink(missing_ok=True)
+    columns=['row_id','price','text','date','phase']+NUMERIC+CATEGORICAL
+    for at in range(0,len(result),5000):
+        result.iloc[at:at+5000][columns].to_json(output,orient='records',lines=True,date_format='iso',mode='a')
     report={'canonical_rows':n,'pilot':not full and fraction is None,'raw_rows':raw_rows,'fraction':fraction,'sampled_raw_rows':sampled_raw,'counts':result.phase.value_counts().to_dict()}
     output.with_suffix('.meta.json').write_text(json.dumps(report,indent=2))
     print(json.dumps(report))

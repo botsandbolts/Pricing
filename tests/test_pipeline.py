@@ -154,3 +154,42 @@ def test_isolation_filter_uses_price_scalar(tmp_path):
     assert 100 not in keep
     audit=pd.read_csv(tmp_path/'isolation-audit.csv')
     assert list(audit)==['row_id','predicted_text_price','score','kept']
+
+
+def test_baseline_evaluates_before_refitting_every_row(tmp_path):
+    from pricing.baseline import run
+    from pricing.inference import PricePipeline
+    d=frame(60);source=tmp_path/'data.jsonl';d.to_json(source,orient='records',lines=True,date_format='iso')
+    source.with_suffix('.meta.json').write_text(json.dumps({'fraction':1.,'sampled_raw_rows':60}))
+    output=tmp_path/'model';public=tmp_path/'public'
+    run(Namespace(data=str(source),output=str(output),public=str(public),trees=8,threads=1,seed=42))
+    report=json.loads((output/'evaluation.json').read_text());manifest=json.loads((output/'manifest.json').read_text())
+    assert report['train_rows']==42 and report['test_rows']==9
+    assert report['deployment_refit_rows']==60 and manifest['trained_rows']==60
+    assert report['sample_fraction']==1.
+    raw=np.log1p(d.price) if manifest['target_transform']=='log1p' else d.price
+    assert manifest['target_mean']==pytest.approx(raw.mean())
+    assert (output/'assessment/lightgbm.txt').exists()
+    prediction=PricePipeline(output).predict('',d.iloc[0].to_dict())
+    assert np.isfinite(prediction['price']) and prediction['price']>=0
+    import gzip
+    raw_model=output/'lightgbm.txt'
+    with gzip.open(output/'lightgbm.txt.gz','wb') as f:f.write(raw_model.read_bytes())
+    raw_model.unlink()
+    compressed=PricePipeline(output).predict('',d.iloc[0].to_dict())
+    assert compressed['price']==pytest.approx(prediction['price'])
+
+
+def test_full_preparation_streams_all_rows_and_deduplicates(tmp_path):
+    import zipfile
+    from scripts.prepare_full import prepare
+    d=frame(20);d['description']=[('Well maintained car '+chr(97+i)+' ')*6 for i in range(20)]
+    d.loc[2,'description']=d.loc[0,'description'];d['VIN']='';d['posting_date']=d.date.astype(str);d.loc[19,'price']=0
+    source=tmp_path/'source.zip'
+    with zipfile.ZipFile(source,'w') as z:z.writestr('vehicles.csv',d.to_csv(index=False))
+    output=tmp_path/'full.jsonl';prepare(source,output,workers=1)
+    metadata=json.loads(output.with_suffix('.meta.json').read_text());rows=pd.read_json(output,lines=True)
+    assert metadata['raw_rows']==20 and metadata['fraction']==1.
+    assert len(rows)==18 and rows.row_id.is_unique
+    assert sum(metadata['counts'].values())==18
+    assert not output.with_suffix('.preparation.sqlite').exists()

@@ -1,12 +1,13 @@
 {
-  "canonical_rows": 31001,
-  "pilot": false,
   "raw_rows": 426880,
-  "fraction": 0.1,
-  "sampled_raw_rows": 42688,
+  "fraction": 1.0,
+  "sampled_raw_rows": 426880,
+  "canonical_rows": 211844,
+  "pilot": false,
   "counts": {
-    "train": 21700,
-    "test": 4651,
-    "validation": 4650
-  }
+    "train": 148290,
+    "validation": 31777,
+    "test": 31777
+  },
+  "preparation": "memory-bounded SQLite; deterministic random-priority text/VIN deduplication"
 }

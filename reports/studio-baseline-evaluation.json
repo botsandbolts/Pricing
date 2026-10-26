@@ -2,121 +2,123 @@
   "status": "evaluated",
   "mode": "tabular_baseline",
   "label": "Trained tabular-only baseline; not E5 enhanced",
-  "sample_fraction": 0.1,
-  "raw_sample_rows": 42688,
-  "eligible_rows": 31001,
-  "train_rows": 21700,
-  "validation_rows": 4650,
-  "test_rows": 4651,
+  "sample_fraction": 1.0,
+  "raw_sample_rows": 426880,
+  "eligible_rows": 211844,
+  "train_rows": 148290,
+  "validation_rows": 31777,
+  "test_rows": 31777,
   "filter": null,
   "filter_note": "No predicted_text_price exists in the baseline, so the E5-price filter does not apply.",
   "test": {
-    "mae_usd": 3749.355616343462,
-    "rmse_usd": 7022.650184931516,
-    "median_ape_pct": 17.040219720343792,
-    "rmsle": 0.4011850359455894,
-    "r2": 0.765118852127304
+    "mae_usd": 3328.66304230003,
+    "rmse_usd": 6839.352136420336,
+    "median_ape_pct": 15.588662049076497,
+    "rmsle": 0.3944630065015105,
+    "r2": 0.7743389296430128
   },
   "selected": {
     "target": "log1p",
-    "alpha": 0.5,
-    "mean": 9.52160100032053,
-    "std": 0.8353620549543556,
+    "alpha": 0.9,
+    "mean": 9.38927078441278,
+    "std": 0.8387103980642273,
     "best_iteration": 1000,
     "validation": {
-      "mae_usd": 3820.4265156667857,
-      "rmse_usd": 7872.002593017293,
-      "median_ape_pct": 16.232604866330608,
-      "rmsle": 0.4040244756294733,
-      "r2": 0.7197332470265358
+      "mae_usd": 3140.082763608452,
+      "rmse_usd": 6592.488218398286,
+      "median_ape_pct": 15.148976487577267,
+      "rmsle": 0.3863243836175172,
+      "r2": 0.7701282765467798
     }
   },
   "grid": [
     {
       "target": "dollars",
       "alpha": 0.5,
-      "mean": 18637.86677419355,
-      "std": 14674.63638278637,
+      "mean": 16513.95589048486,
+      "std": 13754.20596658523,
       "best_iteration": 1000,
       "validation": {
-        "mae_usd": 3905.025214710162,
-        "rmse_usd": 7915.362087220894,
-        "median_ape_pct": 16.73207613705895,
-        "rmsle": 0.47006605948994346,
-        "r2": 0.7166372896452535
+        "mae_usd": 3206.197093076865,
+        "rmse_usd": 6627.882699734455,
+        "median_ape_pct": 15.745957822549295,
+        "rmsle": 0.44551129507404563,
+        "r2": 0.7676533288803977
       }
     },
     {
       "target": "dollars",
       "alpha": 0.9,
-      "mean": 18637.86677419355,
-      "std": 14674.63638278637,
-      "best_iteration": 998,
+      "mean": 16513.95589048486,
+      "std": 13754.20596658523,
+      "best_iteration": 1000,
       "validation": {
-        "mae_usd": 3896.254812374606,
-        "rmse_usd": 7739.980225554036,
-        "median_ape_pct": 16.9591572002468,
-        "rmsle": 0.5057949575916189,
-        "r2": 0.7290551956728373
+        "mae_usd": 3178.133492935149,
+        "rmse_usd": 6485.398030681059,
+        "median_ape_pct": 15.603122450722315,
+        "rmsle": 0.446247953098164,
+        "r2": 0.77753581752556
       }
     },
     {
       "target": "dollars",
       "alpha": 1.5,
-      "mean": 18637.86677419355,
-      "std": 14674.63638278637,
-      "best_iteration": 998,
+      "mean": 16513.95589048486,
+      "std": 13754.20596658523,
+      "best_iteration": 999,
       "validation": {
-        "mae_usd": 3917.5388969692162,
-        "rmse_usd": 7648.168267021163,
-        "median_ape_pct": 17.27870524854763,
-        "rmsle": 0.5327312546392244,
-        "r2": 0.7354449880286651
+        "mae_usd": 3203.8429971911532,
+        "rmse_usd": 6429.857381383839,
+        "median_ape_pct": 15.86426218309525,
+        "rmsle": 0.4640291561502957,
+        "r2": 0.78132984768668
       }
     },
     {
       "target": "log1p",
       "alpha": 0.5,
-      "mean": 9.52160100032053,
-      "std": 0.8353620549543556,
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
       "best_iteration": 1000,
       "validation": {
-        "mae_usd": 3820.4265156667857,
-        "rmse_usd": 7872.002593017293,
-        "median_ape_pct": 16.232604866330608,
-        "rmsle": 0.4040244756294733,
-        "r2": 0.7197332470265358
+        "mae_usd": 3146.964307119463,
+        "rmse_usd": 6621.562213237734,
+        "median_ape_pct": 15.160323936076361,
+        "rmsle": 0.3895652684701734,
+        "r2": 0.7680962588014151
       }
     },
     {
       "target": "log1p",
       "alpha": 0.9,
-      "mean": 9.52160100032053,
-      "std": 0.8353620549543556,
-      "best_iteration": 996,
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
+      "best_iteration": 1000,
       "validation": {
-        "mae_usd": 3833.745990947634,
-        "rmse_usd": 7825.1320527021135,
-        "median_ape_pct": 16.398408338268407,
-        "rmsle": 0.40033813780487737,
-        "r2": 0.7230607731114205
+        "mae_usd": 3140.082763608452,
+        "rmse_usd": 6592.488218398286,
+        "median_ape_pct": 15.148976487577267,
+        "rmsle": 0.3863243836175172,
+        "r2": 0.7701282765467798
       }
     },
     {
       "target": "log1p",
       "alpha": 1.5,
-      "mean": 9.52160100032053,
-      "std": 0.8353620549543556,
-      "best_iteration": 801,
+      "mean": 9.38927078441278,
+      "std": 0.8387103980642273,
+      "best_iteration": 1000,
       "validation": {
-        "mae_usd": 3851.078371410125,
-        "rmse_usd": 7832.349259490195,
-        "median_ape_pct": 16.39645723535462,
-        "rmsle": 0.40049544641141305,
-        "r2": 0.7225496892398238
+        "mae_usd": 3157.4218408703377,
+        "rmse_usd": 6585.270044420264,
+        "median_ape_pct": 15.35147446495379,
+        "rmsle": 0.3853349536494044,
+        "r2": 0.7706313781592649
       }
     }
   ],
-  "band80_test_coverage": 0.7860675123629327,
+  "band80_test_coverage": 0.7873304591371117,
+  "deployment_refit_rows": 211844,
+  "assessment_note": "Metrics evaluate the chronological assessment model before deployment refit on all eligible rows.",
   "scope": "Historical April\u2013May 2021 US asking prices, not transaction prices or current valuations."
 }

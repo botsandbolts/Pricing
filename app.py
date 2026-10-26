@@ -7,9 +7,9 @@ from pricing.text import MODEL_ID, MAX_CHARACTERS
 
 st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
 st.title('Car Price Studio')
-st.caption('10% sample · historical US asking prices · transparent model status')
+st.caption('100% database · historical US asking prices · transparent model status')
 mode=st.selectbox('Pricing mode',['Trained tabular baseline','E5 + Isolation Forest (training required)'])
-path=Path(os.environ.get('PRICING_MODEL_DIR','models/studio-baseline' if mode=='Trained tabular baseline' else 'artifacts/car-price-studio'))
+path=Path(os.environ.get('PRICING_MODEL_DIR','models/studio-baseline' if mode=='Trained tabular baseline' else 'artifacts/car-price-studio-full'))
 ready=(path/'manifest.json').exists()
 if not ready:
     st.info('The new model has not been trained yet. Complete the GPU training run to enable dollar estimates. The previous model is not used.')
@@ -64,13 +64,15 @@ with how:
     st.write('The active baseline uses structured car fields only. Its scores are measured on a chronological test set. It does not use descriptions or the E5-price filter.')
     st.write('The E5 workflow fine-tunes embaas/sentence-transformers-multilingual-e5-base on descriptions and log prices. Three-fold predictions create predicted_text_price without using each predicted row’s target in its fitting model.')
     st.write('Isolation Forest uses contamination="auto" on training OOF description prices only. No fixed percentage is removed; validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. This enhanced mode still requires GPU training.')
-    st.write('A fixed 10% sample of raw database rows is drawn before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
+    st.write('The complete raw database is scanned before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
 with results:
     if (path/'evaluation.json').exists() and ready:
         e=json.loads((path/'evaluation.json').read_text())
         if e.get('mode')=='tabular_baseline':
             st.info(e['label']);st.json(e['test'])
             st.write({k:e[k] for k in ['train_rows','validation_rows','test_rows','eligible_rows']})
+            st.write('Final deployment refit rows:',e.get('deployment_refit_rows',e['train_rows']))
+            st.caption(e.get('assessment_note','Chronological held-out assessment.'))
         else:
             st.write(e['rows']);st.json(e['stacked'])
         st.write(f"Indicative 80% band test coverage: {e['band80_test_coverage']:.1%}")

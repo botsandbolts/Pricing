@@ -1,5 +1,6 @@
 """Load one completed bundle; calculate the text feature dynamically on every request."""
 import json
+import gzip
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -19,7 +20,11 @@ class PricePipeline:
         if self.manifest['pipeline']=='fine-tuned-e5-base+lightgbm':
             self.text_model,self.tokenizer=load_text(path/'text-model',device)
         self.schema=json.loads((path/'schema.json').read_text())
-        self.lgb=lgb.Booster(model_file=str(path/'lightgbm.txt'))
+        if (path/'lightgbm.txt').exists():
+            self.lgb=lgb.Booster(model_file=str(path/'lightgbm.txt'))
+        else:
+            with gzip.open(path/'lightgbm.txt.gz','rt') as f:
+                self.lgb=lgb.Booster(model_str=f.read())
         if self.lgb.feature_name()!=self.manifest['feature_names']:
             raise ValueError('LightGBM feature schema mismatch')
 
