@@ -58,7 +58,7 @@ def render_visual_explanations(result,fields,notes,pipeline):
         st.write('Start at the average prediction for eight reference cars. Each step allocates credit to a group of car facts until we reach your estimate. Red raises it; blue lowers it. Your paintwork has a vote, not a casting vote.')
         st.plotly_chart(plots.waterfall(local),width='stretch',key='shap_dollar_waterfall')
         st.caption('Units are dollars for the complete model, including all ensemble members. Make/model/body stay together, and CarBids, age and mileage-derived features are recalculated after each change. Contributions describe model behaviour, not fair-value adjustments or causal effects.')
-        st.write(f"Reference prediction **${local['base']:,.0f}** → submitted estimate **${local['prediction']:,.0f}**.")
+        st.text(f"Reference prediction ${local['base']:,.0f} → submitted estimate ${local['prediction']:,.0f}.")
     with swarm:
         st.write('Each dot is one reference car. A wide horizontal spread means this feature often changes the selected member’s score. The chart is a crowd portrait, not a universal league table of car facts.')
         st.plotly_chart(plots.beeswarm(native),width='stretch',key='shap_beeswarm')
