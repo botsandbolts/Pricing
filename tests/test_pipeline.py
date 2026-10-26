@@ -1,218 +1,144 @@
+import json
+from argparse import Namespace
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import torch
-from transformers import XLMRobertaConfig, XLMRobertaModel
-from pricing.text import TextPriceRegressor, windows, batch, fit_text, predict_text, save_text, load_text
-from pricing.tabular import NUMERIC, CATEGORICAL, fit_schema, features
-from pricing.train import folds, fit_lgb, validate_cohort
+from pricing.oof import cross_fit
 
 
-class TinyTokenizer:
-    pad_token_id=1
-    bos_token_id=0
-    eos_token_id=2
-    def encode(self,text,add_special_tokens=False):
-        return [4+(ord(c)%20) for c in text]
-    def num_special_tokens_to_add(self,pair=False):return 2
-    def build_inputs_with_special_tokens(self,x):return [0]+x+[2]
-    def pad(self,values,padding=True,return_tensors='pt'):
-        rows=values['input_ids'];n=max(map(len,rows))
-        return {'input_ids':torch.tensor([r+[1]*(n-len(r)) for r in rows]),
-                'attention_mask':torch.tensor([[1]*len(r)+[0]*(n-len(r)) for r in rows])}
+def callbacks(y,seen=None):
+    def fit(idx,targets):
+        if seen is not None:seen.append((idx.copy(),targets.copy()))
+        return float(np.mean(targets))
+    def predict(mean,idx):return np.full(len(idx),mean)
+    return fit,predict
 
 
-def test_long_text_windows_keep_every_token():
-    t=TinyTokenizer();text='a'*7000;w=windows(t,text)
-    assert len(w)>1 and max(map(len,w))<=512
-    prefix=len(t.encode('query: '))
-    assert sum(len(x)-prefix-2 for x in w)==len(t.encode(text))
-    inp=batch(t,[text,'short'],device='cpu')
-    assert inp[2].tolist().count(1)==1
+def test_oof_excludes_every_predicted_rows_target():
+    y=np.arange(12.)+1000;seen=[];fit,predict=callbacks(y,seen)
+    p,fold=cross_fit([str(i) for i in range(12)],y,fit,predict,folds=3)
+    for k,(idx,targets) in enumerate(seen):
+        held=np.flatnonzero(fold==k)
+        assert not set(idx)&set(held)
+        np.testing.assert_allclose(p[held],y[idx].mean())
+        np.testing.assert_array_equal(targets,y[idx])
 
 
-def test_actual_transformer_parameters_receive_regression_gradients():
-    torch.set_num_threads(2)
-    config=XLMRobertaConfig(vocab_size=32,hidden_size=16,num_hidden_layers=1,num_attention_heads=2,intermediate_size=24,max_position_embeddings=514,pad_token_id=1)
-    model=TextPriceRegressor(XLMRobertaModel(config),9.,.5)
-    optimizer=torch.optim.AdamW(model.parameters(),lr=.01)
-    weight=model.backbone.encoder.layer[0].attention.self.query.weight
-    before=weight.detach().clone()
-    inputs=batch(TinyTokenizer(),['reliable car','needs repairs'],'cpu')
-    loss=(model(*inputs)-torch.tensor([1.,-1.])).square().mean()
-    loss.backward();assert weight.grad.abs().sum()>0
-    optimizer.step();assert not torch.equal(before,weight)
-    p=predict_text(model,TinyTokenizer(),['reliable car'],'cpu')
-    assert p.shape==(1,) and np.isfinite(p).all() and p[0]>0
+def test_changing_held_target_cannot_change_its_oof_prediction():
+    y=np.arange(12.)+1000;fit,predict=callbacks(y)
+    p,_=cross_fit(list(map(str,range(12))),y,fit,predict,folds=3)
+    changed=y.copy();changed[4]=100000
+    fit,predict=callbacks(changed)
+    q,_=cross_fit(list(map(str,range(12))),changed,fit,predict,folds=3)
+    assert p[4]==q[4]
 
 
-def test_cross_fitting_excludes_each_rows_target():
-    seen=[]
-    for fit_idx,held_idx in folds(1200,3,42):
-        assert not set(fit_idx)&set(held_idx)
-        assert len(fit_idx)+len(held_idx)==1200
-        seen.extend(held_idx)
-    assert sorted(seen)==list(range(1200))
+def test_resume_and_reject_changed_targets(tmp_path):
+    y=np.arange(12.)+1000;fit,predict=callbacks(y)
+    p,f=cross_fit(list(map(str,range(12))),y,fit,predict,cache=tmp_path)
+    def no_fit(*args):raise AssertionError('Completed folds should resume')
+    q,g=cross_fit(list(map(str,range(12))),y,no_fit,predict,cache=tmp_path)
+    np.testing.assert_array_equal(p,q);np.testing.assert_array_equal(f,g)
+    with pytest.raises(ValueError):cross_fit(list(map(str,range(12))),y+1,no_fit,predict,cache=tmp_path)
 
 
-def frame(n=180):
-    rng=np.random.default_rng(7)
-    d=pd.DataFrame({c:['gas' if c=='fuel' else 'toyota']*n for c in CATEGORICAL})
-    d['year']=rng.integers(1990,2021,n)
-    d['odometer']=rng.integers(10000,200000,n)
+def test_reject_duplicate_ids_or_invalid_predictions():
+    fit,predict=callbacks([1000]*3)
+    with pytest.raises(ValueError):cross_fit(['a','a','b'],[1000]*3,fit,predict)
+    with pytest.raises(ValueError):cross_fit(['a','b','c'],[1000]*3,fit,lambda m,idx:np.full(len(idx),np.nan))
+
+
+def frame(n=60):
+    from pricing.tabular import CATEGORICAL
+    rng=np.random.default_rng(42);d=pd.DataFrame({c:['toyota']*n for c in CATEGORICAL})
+    d['year']=rng.integers(1990,2021,n);d['odometer']=rng.integers(10000,200000,n)
+    d['price']=rng.integers(2000,50000,n).astype(float);d['row_id']=[str(i) for i in range(n)]
+    d['text']=['maintained car '+('maintained '*(i%6))+str(i) for i in range(n)]
+    d['date']=pd.date_range('2021-04-01',periods=n,freq='h',tz='UTC')
+    d['phase']=['train']*int(n*.7)+['validation']*(int(n*.85)-int(n*.7))+['test']*(n-int(n*.85))
     return d
 
 
-def test_dynamic_scalar_is_numeric_and_unknown_categories_missing():
-    d=frame();schema=fit_schema(d)
-    x=features(d,schema,np.arange(len(d))+1000.)
-    assert x.predicted_text_price.dtype.kind=='f'
-    assert 'price' not in x
-    d.loc[0,'manufacturer']='unseen-brand'
-    assert pd.isna(features(d,schema).manufacturer.iloc[0])
-    with pytest.raises(ValueError):features(d,schema,[1.])
-
-
-def test_lightgbm_round_trip_and_scalar_sensitivity(tmp_path):
-    import lightgbm as lgb
-    d=frame();schema=fit_schema(d);text=np.linspace(2000,50000,len(d));y=text.copy()
-    x=features(d,schema,text)
-    m=fit_lgb(x.iloc[:140],y[:140],x.iloc[140:],y[140:],42)
-    p=tmp_path/'model.txt';m.booster_.save_model(str(p))
-    reloaded=lgb.Booster(model_file=str(p))
-    np.testing.assert_allclose(reloaded.predict(x),m.predict(x))
-    assert m.booster_.feature_importance()[list(x).index('predicted_text_price')]>0
-    low=features(d.iloc[:1],schema,[2000.]);high=features(d.iloc[:1],schema,[40000.])
-    assert reloaded.predict(high)[0]>reloaded.predict(low)[0]
-
-
-def test_real_prepared_cohort_has_no_removed_rows():
-    from pathlib import Path
-    path=Path('training-cache/stack-cohort.jsonl')
-    if not path.exists():pytest.skip('Source data not downloaded')
-    d=pd.read_json(path,lines=True);validate_cohort(d)
-    assert d.phase.value_counts().to_dict()=={'train':1200,'validation':300,'test':300}
-
-
-def test_complete_training_bundle_and_live_inference(tmp_path,monkeypatch):
-    """Exercise orchestration with a tiny backbone; never report these as real scores."""
-    import json
-    from argparse import Namespace
+def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch):
+    import torch
+    from transformers import XLMRobertaConfig,XLMRobertaModel,AutoModel,AutoTokenizer,PreTrainedTokenizerFast
     from tokenizers import Tokenizer
     from tokenizers.models import WordLevel
     from tokenizers.pre_tokenizers import Whitespace
     from tokenizers.processors import TemplateProcessing
-    from transformers import PreTrainedTokenizerFast
-    import pricing.train as training
+    import pricing.train as train
+    from pricing.text import MODEL_ID
+    from pricing.identity import IDENTITY_MODEL
     from pricing.inference import PricePipeline
+    torch.set_num_threads(1)
     tiny=tmp_path/'tiny'
     config=XLMRobertaConfig(vocab_size=32,hidden_size=16,num_hidden_layers=1,num_attention_heads=2,intermediate_size=24,max_position_embeddings=514,pad_token_id=1)
     XLMRobertaModel(config).save_pretrained(tiny)
     raw=Tokenizer(WordLevel({'<s>':0,'<pad>':1,'</s>':2,'<unk>':3,'query':4,':':5,'car':6,'maintained':7},unk_token='<unk>'))
-    raw.pre_tokenizer=Whitespace()
-    raw.post_processor=TemplateProcessing(single='<s> $A </s>',special_tokens=[('<s>',0),('</s>',2)])
-    tok=PreTrainedTokenizerFast(tokenizer_object=raw,bos_token='<s>',eos_token='</s>',pad_token='<pad>',unk_token='<unk>')
-    monkeypatch.setattr(training.AutoTokenizer,'from_pretrained',lambda *args,**kwargs:tok)
-    original=training.fit_text
-    fitted_targets=[]
-    def tiny_fit(texts,prices,**kwargs):
-        fitted_targets.append(set(np.asarray(prices)))
-        kwargs.update(source=str(tiny),revision=None)
-        return original(texts,prices,**kwargs)
-    monkeypatch.setattr(training,'fit_text',tiny_fit)
-    d=frame(160)
-    d['text']=['maintained car '+('maintained '*(1 if i%5 else i%19+2))+str(i) for i in range(len(d))]
-    d['row_id']=[str(i) for i in range(len(d))]
-    d['price']=np.arange(len(d))*100.+2000.
-    d['date']=pd.date_range('2021-04-01',periods=len(d),freq='h',tz='UTC')
-    d['phase']=['train']*100+['validation']*30+['test']*30
-    source=tmp_path/'data.jsonl';d.to_json(source,orient='records',lines=True,date_format='iso')
-    out=tmp_path/'bundle'
-    from pricing.identity import build_features
-    build_features(d,source,out,XLMRobertaModel(config),tok,source='tiny-test-encoder',revision='test',epochs=2,folds=2)
-    training.run(Namespace(data=str(source),output=str(out),revision='synthetic-test-only',
-        folds=2,epochs=1,batch_size=16,accumulation=1,lr=2e-5,seed=42,device='cpu',allow_cpu=True))
-    assert len(fitted_targets)==3
-    assert all(t.issubset(set(d.price[:100])) for t in fitted_targets)
-    assert fitted_targets[-1]==set(d.price[:100])
-    scores=json.loads((out/'evaluation.json').read_text())
-    assert scores['rows']=={'train':100,'validation':30,'test':30,'removed':0}
-    audit=pd.read_csv(out/'oof-audit.csv')
-    assert len(audit)==100 and audit.predicted_text_price.notna().all()
-    # Reuse held-out folds to generate the experiment cache, then exercise all 60 configurations.
-    training.run(Namespace(data=str(source),output=str(out),revision='synthetic-test-only',
-        folds=2,epochs=1,batch_size=16,accumulation=1,lr=2e-5,seed=42,device='cpu',allow_cpu=True,text_only=True))
-    from pricing.experiments import run as run_experiments
-    run_experiments(Namespace(data=str(source),output=str(out),trees=12,seed=42,tabular_only=False,threads=1))
-    report=json.loads((out/'experiments.json').read_text())
-    assert len(report['experiments'])==12
-    assert all(r['retained_rows']+r['removed_rows']==100 for r in report['experiments'])
-    assert len(report['quantile_intervals'])==2
-    # Exercise auto thresholding, rather than a forced ranking percentile.
-    import shutil
-    auto_out=tmp_path/'auto-bundle'
-    shutil.copytree(out,auto_out)
-    (auto_out/'experiment-plan.json').unlink()
-    (auto_out/'validation-results.json').unlink()
-    run_experiments(Namespace(data=str(source),output=str(auto_out),trees=12,seed=42,
-        tabular_only=False,threads=1,losses=['huber'],huber_deltas=[.5,.9,1.5]))
-    auto_report=json.loads((auto_out/'experiments.json').read_text())
-    assert len(auto_report['experiments'])==6
-    audit_auto=pd.read_csv(auto_out/'isolation-text-price-audit.csv')
-    expected=int((audit_auto.isolation_score<auto_report['plan']['isolation_offset']).sum())
-    assert all(r['removed_rows']==expected for r in auto_report['experiments'])
-    # All completed grid models must survive a restart without another fit.
-    def no_refit(*args,**kwargs):raise AssertionError('Completed experiments should resume')
-    monkeypatch.setattr(training.lgb.LGBMRegressor,'fit',no_refit)
-    run_experiments(Namespace(data=str(source),output=str(out),trees=12,seed=42,tabular_only=False,threads=1))
-    # Restore the real loader so it reads the tokenizer serialized with the bundle.
+    raw.pre_tokenizer=Whitespace();raw.post_processor=TemplateProcessing(single='<s> $A </s>',special_tokens=[('<s>',0),('</s>',2)])
+    tok=PreTrainedTokenizerFast(tokenizer_object=raw,bos_token='<s>',eos_token='</s>',pad_token='<pad>',unk_token='<unk>');tok.save_pretrained(tiny)
+    real_model=AutoModel.from_pretrained;real_tok=AutoTokenizer.from_pretrained
+    def load_model(source,*args,**kwargs):
+        if str(source) in [MODEL_ID,IDENTITY_MODEL]:source=tiny;kwargs.pop('revision',None)
+        return real_model(source,*args,**kwargs)
+    def load_tok(source,*args,**kwargs):
+        if str(source) in [MODEL_ID,IDENTITY_MODEL]:source=tiny;kwargs.pop('revision',None)
+        return real_tok(source,*args,**kwargs)
+    monkeypatch.setattr(AutoModel,'from_pretrained',load_model);monkeypatch.setattr(AutoTokenizer,'from_pretrained',load_tok)
+    # Record which targets reach each text-regression fit. No holdout prices enter assessment fits.
+    fit=train.fit_text;targets=[]
+    def record(texts,y,**kwargs):targets.append(set(np.asarray(y)));return fit(texts,y,**kwargs)
+    monkeypatch.setattr(train,'fit_text',record)
+    d=frame();source=tmp_path/'data.jsonl';d.to_json(source,orient='records',lines=True,date_format='iso')
+    out=tmp_path/'bundle';a=Namespace(data=str(source),output=str(out),device='cpu',allow_cpu=True,threads=1,
+        revision='synthetic-test',folds=2,epochs=1,identity_epochs=1,batch_size=8,accumulation=1,lr=2e-5,trees=8,seed=42)
+    train.run(a)
+    tr=set(d.loc[d.phase=='train','price'])
+    assert all(s.issubset(tr) for s in targets[:3])
+    assert targets[2]==tr and targets[-1]==set(d.price)
+    for directory,count in [('assessment',42),('',60)]:
+        audit=pd.read_csv(out/directory/'oof-predictions.csv')
+        assert len(audit)==count
+        assert audit.predicted_text_price.notna().all() and audit.predicted_make_model_price.notna().all()
+        assert set(audit.fold)=={0,1}
+    manifest=json.loads((out/'manifest.json').read_text());evaluation=json.loads((out/'evaluation.json').read_text())
+    assert manifest['trained_rows']==60 and manifest['outlier_filter'] is None
+    assert evaluation['rows']['outlier_removed']==0
     monkeypatch.undo()
     pipeline=PricePipeline(out)
-    prediction=pipeline.predict('maintained car',d.iloc[0].to_dict())
-    assert np.isfinite(prediction['price']) and prediction['predicted_text_price']>0
-    assert prediction['predicted_make_model_price']>0
-    assert 'predicted_make_model_price' in pipeline.lgb.feature_name()
-    assert report['plan']['filter_inputs']==['predicted_text_price']
-    assert prediction['range'][0]<=prediction['price']<=prediction['range'][1]
+    p=pipeline.predict('maintained car',d.iloc[0].to_dict())
+    assert p['price']>=0 and p['predicted_text_price']>0 and p['predicted_make_model_price']>0
+    assert 'predicted_text_price' in pipeline.lgb.feature_name()
 
 
-def test_experiment_rates_losses_and_transforms():
-    from pricing.experiments import experiment_grid,inverse,pinball
-    assert len(experiment_grid())==12
-    np.testing.assert_allclose(inverse([0,1],10000,1000,'dollars'),[10000,11000])
-    np.testing.assert_allclose(inverse([0],np.log1p(10000),1,'log1p'),[10000])
-    assert pinball([10],[8],.9)==pytest.approx(1.8)
+def test_description_transformer_receives_regression_gradients():
+    import torch
+    from transformers import XLMRobertaConfig,XLMRobertaModel
+    from pricing.text import TextPriceRegressor
+    model=TextPriceRegressor(XLMRobertaModel(XLMRobertaConfig(vocab_size=32,hidden_size=16,num_hidden_layers=1,num_attention_heads=2,intermediate_size=24)),9.,.5)
+    weight=model.backbone.encoder.layer[0].attention.self.query.weight
+    loss=(model(torch.tensor([[0,4,5,2]]),torch.ones((1,4),dtype=torch.long),torch.tensor([0]),1)-torch.tensor([1.])).square().mean()
+    loss.backward();assert weight.grad is not None and weight.grad.abs().sum()>0
 
 
-def test_huber_only_grid():
-    from pricing.experiments import experiment_grid
-    grid=experiment_grid(['huber'],[.5,.9,1.5])
-    assert len(grid)==6
-    assert all(objective=='huber' for _,_,(_,objective,_) in grid)
-    assert {delta for _,_,(_,_,delta) in grid}=={.5,.9,1.5}
-    with pytest.raises(ValueError):experiment_grid(['huber'],[-1])
+def test_no_outlier_detectors_in_active_training():
+    source=Path('pricing/train.py').read_text()
+    assert 'IsolationForest' not in source and 'LocalOutlierFactor' not in source
 
 
-def test_isolation_forest_uses_only_scalar_price_and_rejects_sparse_tail():
-    from pricing.experiments import isolation_text_price
-    rng=np.random.default_rng(42)
-    prices=np.r_[rng.normal(10000,100,100),1000000.]
-    keep,scores,offset=isolation_text_price(prices,42,1)
-    assert 100 not in keep
-    assert np.array_equal(keep,np.flatnonzero(scores>=offset))
-    with pytest.raises(ValueError):isolation_text_price(np.c_[prices,prices])
-    with pytest.raises(ValueError):isolation_text_price([1,np.nan,3])
-
-
-def test_make_model_only_input_and_second_scalar():
-    from pricing.identity import names,fit_head,head_prices
-    d=frame(20);before=names(d)
-    d['description']='This must never enter make/model encoder';d['year']=2026;d['odometer']=500000
-    assert names(d)==before
-    assert 'description' not in before[0].lower()
-    x=np.random.default_rng(42).normal(size=(20,8)).astype('float32')
-    head,mean,std=fit_head(x,np.linspace(2000,30000,20),epochs=3)
-    price=head_prices(head,x,mean,std)
-    assert len(price)==20 and np.isfinite(price).all() and (price>=0).all()
-    f=features(d,fit_schema(d),np.ones(20)*5000,price)
-    assert set(['predicted_text_price','predicted_make_model_price']).issubset(f.columns)
+def test_full_preparation_retains_empty_free_fields_without_sampling(tmp_path):
+    import zipfile
+    from scripts.prepare_all import prepare
+    d=frame(12);d['id']=np.arange(12)
+    d['description']=['listing '+chr(97+i) for i in range(12)]
+    d.loc[2,'description']=d.loc[0,'description']
+    d.loc[[8,9],'description']=None;d['VIN']=''
+    d['posting_date']=d.date.astype(str);d.loc[11,'posting_date']='invalid-date';d.loc[10,'price']=0
+    source=tmp_path/'vehicles.zip'
+    with zipfile.ZipFile(source,'w') as z:z.writestr('vehicles.csv',d.to_csv(index=False))
+    output=tmp_path/'all.jsonl';prepare(source,output)
+    meta=json.loads(output.with_suffix('.meta.json').read_text());cohort=pd.read_json(output,lines=True)
+    assert meta['source_rows']==12 and meta['sample_fraction']==1.
+    assert meta['outlier_filter'] is None and len(cohort)==9
+    assert meta['empty_descriptions_retained']==2

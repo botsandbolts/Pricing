@@ -1,86 +1,87 @@
 # pricing
 
-Current pipeline: **fine-tuned E5-base text regression → scalar `predicted_text_price` → Isolation Forest training filter → Huber LightGBM with tabular features and a second MiniLM make/model-price scalar**. LOF and Extra Trees are not used.
+Current pipeline: **free-text E5 description-price regression + compact make/model price regression + structured vehicle fields → Huber LightGBM**. Both price scalars are generated **out of fold** for LightGBM training. There is **no outlier filtering** and no 10% sampling in the current workflow.
 
-The fixed 10% sample contains 42,688 of 426,880 raw database listings. Eligibility checks and description/VIN deduplication leave 31,001 rows: 21,700 training, 4,650 validation and 4,651 test, split chronologically. Source prices are historical US asking prices from April–May 2021, not verified sales or current valuations.
+## Current execution status
 
-## Status
+OOF generation and the complete stacking/refit/inference flow passed an end-to-end check with a tiny randomly initialized transformer. This is a software check, not a pricing evaluation. **Real full-database E5 fine-tuning and OOF prediction generation have not completed: the current assistant runtime has no CUDA GPU.** The prior transient training process/checkpoints are no longer available, so its completion cannot be verified. The saved make/model head and earlier reports remain historical component artifacts; they do not supply substitute predictions for this pipeline.
 
-The implementation and synthetic end-to-end tests pass. **The full E5 fine-tuning run and real Isolation Forest evaluation have not run: no CUDA GPU is available here.** The exact requested checkpoint passed a supervised-gradient and save/load smoke test on two synthetic examples, which is not a pricing evaluation. No actual Isolation Forest removal count, held-out score or price estimate is claimed yet. Previous reports under `reports/` are explicitly historical configurations and are not results for this scalar-only Isolation Forest pipeline.
+## Free-field E5 branch
 
-## Text regression and scalar feature
+`embaas/sentence-transformers-multilingual-e5-base` reads only seller-description text. Its source revision is pinned to `ff629add2ff80256e42173ec84299eed1c1b6393`. The XLM-RoBERTa backbone has 768 hidden dimensions and a 512-token window. All transformer layers and a scalar regression head learn standardized `log1p(price)`; inverse scaling and `expm1` produce dollar-valued **`predicted_text_price`**.
 
-Use `embaas/sentence-transformers-multilingual-e5-base`, pinned to revision `ff629add2ff80256e42173ec84299eed1c1b6393`. It uses XLM-RoBERTa, a 512-token window and 768-dimensional hidden vectors. All transformer layers and a scalar regression head are fine-tuned on standardized `log1p(price)` with MSE. **Only cleaned seller descriptions enter the transformer.** Make/model also enter a separate compact transformer price model, described below; their categorical values remain LightGBM inputs.
+Price-like phrases, email addresses and URLs are cleaned consistently. Redaction is imperfect. The `query: ` prefix and special tokens count within the 512-token limit. Up to 8,000 characters are split into consecutive windows, pooled, averaged and normalized. This is chunk pooling, not one 8,000-character attention window. Blank descriptions are retained and receive a prediction from the prefix-only input.
 
-The `query: ` prefix and special tokens fit within 512 tokens. Up to 8,000 characters are processed through consecutive windows with mean pooling and normalization. This is chunk pooling, not attention over the entire document. Price phrases, URLs and email addresses are redacted consistently; unmarked prices can remain.
+## What out-of-fold means here
 
-Three-fold cross-fitting creates every training row’s text-price feature from a model that did not see its target, including its target-scaling statistics. Inverse scaling and `expm1` produce one dollar-valued `predicted_text_price`. A final text regressor learns from all training rows for validation, test and inference. Deployment can have a feature-distribution shift because it uses more training data than each fold model.
+`pricing/oof.py` splits the fitting rows into three folds. For each fold:
 
-## Compact make/model price model
+1. Fit a fresh regression model on the other two folds, including their target-normalization statistics.
+2. Predict only the excluded fold without passing its targets to the predictor.
+3. Place those dollar predictions back in the original row positions.
 
-A frozen `sentence-transformers/all-MiniLM-L6-v2` encoder (revision `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`) reads **make and model names only**. It uses at most 64 tokens and mean-pooled, normalized 384-dimensional vectors. A neural 384→64→1 regression head learns standardized log1p(price), with 60 fixed training epochs, AdamW and dropout. The encoder is not fine-tuned on prices; its regression head is. The main E5 description model still receives full supervised fine-tuning.
+Every row is predicted exactly once. The audit CSV contains `row_id`, `fold`, `predicted_text_price` and `predicted_make_model_price`. Each branch has resumable per-fold NPZ files tied to row IDs, targets, split configuration, source revisions and training-code fingerprints. Mismatched checkpoints are rejected. An interruption inside a fold restarts that fold. Final all-fitting-row text checkpoints are saved separately.
 
-Three-fold cross-fitting on the same training partition generates **`predicted_make_model_price`**, a dollar-valued scalar. The final head learns all training rows for inference. LightGBM receives both price scalars and the structured fields, not the MiniLM vector. Isolation Forest remains restricted to `predicted_text_price`.
+Two distinct passes prevent evaluation leakage:
 
-This component has been **trained and evaluated** on the real 10% cohort: 21,700 train / 4,650 validation / 4,651 test; 7,760 unique make/model strings across the cohort. Test **MAE $7,803 / RMSE $12,103**, R² 0.302. These are make/model-only component scores, not full-stack results. The feature cannot distinguish years or mileage within a make/model. See `reports/make-model-evaluation.json`.
+| Stage | LightGBM fitting prices | Validation/test prices |
+|---|---|---|
+| Chronological assessment | OOF predictions within training rows only | Predictions from a fresh model fitted on training rows only |
+| Deployment refit, after assessment | Fresh OOF predictions across all eligible rows | No independent holdout remains |
 
-The checkpoint saves the frozen encoder/tokenizer, learned head and scaling under `identity-model/`. `identity-features.npz` and `identity-oof-audit.csv` preserve fold-generated scalars and row IDs. Fingerprints and data hashes reject mismatched caches. Run identity training before the E5/LightGBM stages.
+The deployment description and make/model regressors are then fitted on all eligible rows for incoming requests. The inference regressors see more fitting rows than each OOF model; this standard stacking arrangement can introduce a feature-distribution shift. Shuffled folds are used inside each fitting partition; the outer assessment split remains chronological.
 
-## Isolation Forest: only predicted_text_price
+## Make/model branch and LightGBM
 
-`IsolationForest(n_estimators=300, max_samples=256, contamination="auto", random_state=42)` fits **one column**, the out-of-fold `predicted_text_price` in dollars. The sample size is capped at the number of training rows. `fit_predict` labels inliers `1` and outliers `-1`; only inliers train LightGBM. The learned score threshold determines the removal count; no fixed percentage or rank-based removal is applied.
+The compact frozen `sentence-transformers/all-MiniLM-L6-v2` encoder reads make/model names only. Its supervised neural regression head also learns standardized log price and generates the separately cross-fitted **`predicted_make_model_price`** scalar. No year, mileage or description enters that component.
 
-The detector does not read actual prices, residuals, descriptions, embeddings or tabular characteristics. Validation/test stay untouched, and GUI submissions are not rejected by the detector. The shared E5 model trains on all training rows before this filtering stage.
+LightGBM receives both scalar prices plus year, odometer, make, model, condition, cylinders, fuel, title status, transmission, drive, body type, paint color and state. Raw embedding dimensions are not fed to LightGBM. Categorical vocabularies use fitting rows only; unknown categories become missing.
 
-`isolation-text-price-audit.csv` records row ID, out-of-fold predicted text price, isolation score and keep/remove flag. The report records the offset, actual removal count and detector configuration. The detector now uses predicted text price alone; historical multivariate Isolation Forest results do not evaluate this configuration.
+Six configurations compare dollar/log targets and Huber thresholds 0.5/0.9/1.5. Targets are standardized on fitting rows. Early stopping uses validation MAE in the fitted target scale. Validation USD MAE selects the final configuration before test scoring. Test metrics include dollar MAE/RMSE, median APE, RMSLE and R². The final all-row refit uses the selected configuration and boosting-round count. Test scores describe the assessment model, not the later refitted model. An indicative band reuses assessment validation log residuals; deployment coverage is not guaranteed.
 
-Unusual predicted prices can belong to valid rare or expensive cars. An outlier label does not establish that a listing is wrong. Judge the filter by unfiltered held-out performance. The real removal count remains unknown until full E5 predictions have been generated.
+## Full database run
 
-## Huber LightGBM and evaluation
-
-Six configurations compare **dollar / log1p targets × Huber thresholds 0.5 / 0.9 / 1.5**. Targets are standardized on retained training rows so thresholds are meaningful. Early stopping uses validation MAE in the fitted target scale. Model selection uses validation USD MAE or validation USD RMSE; test results do not choose the winner. The GUI uses the validation-MAE champion.
-
-Predictors are both dynamic price scalars, year, odometer, make, model, condition, cylinders, fuel, title status, transmission, drive, body type, paint color and state. Categorical vocabularies use training rows; unseen values become missing. Test metrics include USD MAE/RMSE, median APE, RMSLE, log MAE and R². The indicative GUI band uses validation absolute log residuals and reports actual test coverage. Back-transforming log predictions does not guarantee an arithmetic-mean dollar price.
-
-## Run on a GPU
-
-Use [train_gpu.ipynb](train_gpu.ipynb), selecting a CUDA runtime, or:
+Use [train_gpu.ipynb](train_gpu.ipynb) on a CUDA runtime, or:
 
 ```bash
 python -m pip install -r requirements-training.txt
-python -m scripts.prepare_stack /path/to/vehicles.zip --fraction .1 --output training-cache/ten-percent.jsonl
-python -m pricing.identity --data training-cache/ten-percent.jsonl --output artifacts/e5-base-two-prices-10 --device cpu
-python -m pricing.train --data training-cache/ten-percent.jsonl --output artifacts/e5-base-two-prices-10 --device cuda --folds 3 --epochs 2 --text-only
-python -m pricing.experiments --data training-cache/ten-percent.jsonl --output artifacts/e5-base-two-prices-10 --losses huber --huber-deltas .5 .9 1.5 --trees 1000
+python -m scripts.prepare_all /path/to/vehicles.zip
+python -m pricing.train --data training-cache/all-cohort.jsonl --output artifacts/e5-oof-all --device cuda --folds 3 --epochs 2 --identity-epochs 20
 python -m streamlit run app.py
 ```
 
-This substantial full-transformer run uses activation checkpointing, batch size 1 and gradient accumulation. Completed OOF folds resume only with matching data/config/code fingerprints. An interrupted final text model restarts that stage. Slow CPU fine-tuning requires explicit `--device cpu --allow-cpu`.
+This is a substantial full-transformer fine-tuning run. Batch size 1, activation checkpointing and gradient accumulation control memory. Explicit `--device cpu --allow-cpu` permits slow CPU execution; it is never silently substituted.
 
-The experiment runner requires the fine-tuned out-of-fold text-price cache. A tabular-only substitute is rejected because it cannot supply the requested Isolation Forest input. The fresh bundle directory prevents an older filter’s model from appearing as the new result.
+Preparation scans the entire original database. It retains every listing with a $1,000–$150,000 target and valid posting date, after duplicate matching by effective cleaned description and valid VIN. There is no description-length filter; empty descriptions stay. Chronological splits are 70% training / 15% validation / 15% test. These data-quality exclusions are reported in the preparation metadata; no learned anomaly detector removes rows.
 
-## GUI and verification
+Key outputs:
 
-The Python GUI defaults to `artifacts/e5-base-two-prices-10`, or `PRICING_MODEL_DIR`. It combines dropdowns/numeric fields/custom make-model fields with long description text. Each request generates its text price dynamically before LightGBM returns dollars. Estimates remain disabled without a completed bundle. The hosted static page explains the current architecture and status; it does not run PyTorch inference.
+```text
+assessment/oof-predictions.csv   # Training-only OOF prices for honest assessment
+assessment/description-oof/     # Per-fold E5 checkpoints and audit
+assessment/identity-oof/        # Per-fold make/model predictions and audit
+evaluation.json                # Chronological held-out metrics, before deployment refit
+oof-predictions.csv             # Fresh full-cohort deployment OOF prices
+text-model/                    # All-row fine-tuned E5 model + scalar head
+identity-model/                # All-row make/model regressor
+lightgbm.txt
+schema.json
+manifest.json                  # Written only after the full run finishes
+```
+
+The GUI has a free-text seller-description field alongside structured fields. Every request computes both price signals dynamically before LightGBM predicts dollars. `PRICING_MODEL_DIR` can point to another completed bundle. Estimates stay disabled without a completed bundle. The static hosted preview does not run PyTorch inference.
+
+## Checks
 
 ```bash
 python -m pytest tests -q
 python -m compileall -q pricing scripts app.py
 ```
 
-Tests include transformer regression gradients, token windows, OOF boundaries, Isolation Forest on a single scalar with an isolated-tail example, full train/filter/LightGBM orchestration on synthetic fixtures, resume and bundle inference. Synthetic scores are not pricing-quality results.
+Tests verify per-row target exclusion, invariance to changing a held-out target, checkpoint resumption and mismatch rejection, real transformer regression gradients, both OOF stages, no-filter LightGBM fitting, full-cohort refitting and bundle inference. Synthetic fixture scores are not model-quality evidence.
 
 Dataset: https://www.kaggle.com/datasets/austinreese/craigslist-carstrucks-data
 Snapshot: https://zenodo.org/records/10457828
 Model: https://huggingface.co/embaas/sentence-transformers-multilingual-e5-base
-Isolation Forest: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html
 
-## Use the trained make/model component without retraining
-
-The learned price head is committed as `models/make-model-price/head.json`. Its public frozen MiniLM encoder is downloaded at the pinned revision on first use; no API key is required.
-
-```bash
-python -m scripts.predict_make_model Toyota Corolla
-```
-
-This returns the trained `predicted_make_model_price` signal (about $7,506 for Toyota Corolla), with no year or mileage adjustment. This is a 2021 make/model-only signal, not a current individual-car valuation. Full-stack inference still requires a completed E5 bundle. The GPU notebook reproduces all component training and the final LightGBM experiment.
+The source contains historical April–May 2021 US asking prices, not verified completed-sale prices or current valuations. No inflation adjustment or multilingual-market validation is included.

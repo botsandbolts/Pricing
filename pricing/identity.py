@@ -127,10 +127,11 @@ class IdentityPrice:
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--data',default='training-cache/ten-percent.jsonl');p.add_argument('--output',default='artifacts/e5-base-two-prices-10')
+    p.add_argument('--data',default='training-cache/all-cohort.jsonl');p.add_argument('--output',default='artifacts/e5-oof-all')
     p.add_argument('--device',default='cpu');p.add_argument('--epochs',type=int,default=60);p.add_argument('--folds',type=int,default=3)
     a=p.parse_args();torch.set_num_threads(4)
     encoder=AutoModel.from_pretrained(IDENTITY_MODEL,revision=IDENTITY_REVISION).to(a.device).eval()
     encoder.requires_grad_(False)
     tokenizer=AutoTokenizer.from_pretrained(IDENTITY_MODEL,revision=IDENTITY_REVISION)
     build_features(pd.read_json(a.data,lines=True),a.data,a.output,encoder,tokenizer,device=a.device,folds=a.folds,epochs=a.epochs)
+
