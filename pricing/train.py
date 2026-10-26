@@ -70,7 +70,8 @@ def run(a):
     cfg.write_text(json.dumps({'fingerprint':fingerprint,**config},indent=2));(out/'manifest.json').unlink(missing_ok=True)
     tok=AutoTokenizer.from_pretrained(MODEL_ID,revision=a.revision)
     text_kwargs=dict(tokenizer=tok,source=MODEL_ID,revision=a.revision,epochs=a.epochs,
-        batch_size=a.batch_size,accumulation=a.accumulation,lr=a.lr,device=a.device)
+        batch_size=a.batch_size,accumulation=a.accumulation,lr=a.lr,device=a.device,
+        checkpoint_dir=out/'optimizer-checkpoints',checkpoint_steps=10)
     def release(model):
         gc.collect()
         if torch.cuda.is_available():torch.cuda.empty_cache()

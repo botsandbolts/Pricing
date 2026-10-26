@@ -1,6 +1,7 @@
 """Fine-tune the actual MiniLM transformer, not a frozen embedding regressor."""
 from pathlib import Path
 import json
+import hashlib
 import numpy as np
 import torch
 from torch import nn
@@ -58,7 +59,8 @@ def batch(tokenizer, texts, device):
 
 
 def fit_text(texts, prices, *, tokenizer, source, revision=None, epochs=2, batch_size=1,
-             accumulation=8, lr=2e-5, device='cuda', seed=42, log=print):
+             accumulation=8, lr=2e-5, device='cuda', seed=42, log=print,
+             checkpoint_dir=None, checkpoint_steps=100):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
@@ -71,14 +73,41 @@ def fit_text(texts, prices, *, tokenizer, source, revision=None, epochs=2, batch
     optimizer = torch.optim.AdamW([
         {'params': model.backbone.parameters(), 'lr': lr},
         {'params': model.head.parameters(), 'lr': 1e-3}], weight_decay=.01)
-    rng = np.random.default_rng(seed)
     texts = list(texts)
-    for epoch in range(epochs):
+    checkpoint = None
+    resume_epoch, resume_group, updates = 0, 0, 0
+    if checkpoint_dir is not None:
+        identity = hashlib.sha256(Path(__file__).read_bytes())
+        identity.update(json.dumps(dict(source=str(source),revision=revision,epochs=epochs,
+            batch_size=batch_size,accumulation=accumulation,lr=lr,seed=seed),sort_keys=True).encode())
+        identity.update(y.tobytes())
+        for text in texts:
+            encoded = str(text).encode();identity.update(len(encoded).to_bytes(8,'little'));identity.update(encoded)
+        checkpoint = Path(checkpoint_dir)/f'{identity.hexdigest()}.pt'
+        checkpoint.parent.mkdir(parents=True,exist_ok=True)
+        if checkpoint.exists():
+            state = torch.load(checkpoint,map_location=device,weights_only=True)
+            model.load_state_dict(state['model']);optimizer.load_state_dict(state['optimizer'])
+            resume_epoch,resume_group,updates = state['epoch'],state['group'],state['updates']
+            torch.set_rng_state(state['rng'].cpu())
+            if torch.cuda.is_available() and state['cuda_rng'] is not None:
+                torch.cuda.set_rng_state_all([r.cpu() for r in state['cuda_rng']])
+            log(f'Resuming optimizer checkpoint: epoch={resume_epoch+1} group={resume_group} updates={updates}',flush=True)
+    def save_progress(epoch, group):
+        if checkpoint is None:return
+        temporary=checkpoint.with_suffix('.tmp')
+        torch.save(dict(model=model.state_dict(),optimizer=optimizer.state_dict(),
+            epoch=epoch,group=group,updates=updates,rng=torch.get_rng_state(),
+            cuda_rng=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None),temporary)
+        temporary.replace(checkpoint)
+    for epoch in range(resume_epoch,epochs):
         model.train()
-        order = rng.permutation(len(texts))
+        order = np.random.default_rng(seed+epoch).permutation(len(texts))
         batches = [order[i:i+batch_size] for i in range(0, len(order), batch_size)]
         total = 0.
-        for group_start in range(0, len(batches), accumulation):
+        first_group = resume_group if epoch == resume_epoch else 0
+        seen_loss = 0
+        for group_start in range(first_group, len(batches), accumulation):
             group = batches[group_start:group_start+accumulation]
             group_size = sum(len(idx) for idx in group)
             optimizer.zero_grad(set_to_none=True)
@@ -88,10 +117,15 @@ def fit_text(texts, prices, *, tokenizer, source, revision=None, epochs=2, batch
                 loss = nn.functional.mse_loss(model(*inputs), target)
                 (loss * len(idx)/group_size).backward()
                 total += loss.item()*len(idx)
+                seen_loss += len(idx)
             nn.utils.clip_grad_norm_(model.parameters(), 1.)
             optimizer.step()
+            updates += 1
+            if updates % checkpoint_steps == 0:
+                save_progress(epoch,group_start+len(group))
             log(f'epoch={epoch+1} seen={min((group_start+len(group))*batch_size,len(texts))}/{len(texts)}', flush=True)
-        log(f'epoch={epoch+1} standardized_log_mse={total/len(texts):.6f}', flush=True)
+        save_progress(epoch+1,0)
+        log(f'epoch={epoch+1} standardized_log_mse_remaining={total/max(1,seen_loss):.6f}', flush=True)
     model.eval()
     return model
 

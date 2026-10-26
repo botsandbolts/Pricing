@@ -54,7 +54,7 @@ For MiniLM training, open `train_gpu.ipynb` in a CUDA runtime or run:
 python -m pricing.train --data training-cache/full-cohort.jsonl --output artifacts/car-price-studio-full --device cuda --folds 3 --epochs 2
 ```
 
-This is substantial transformer fine-tuning. It uses activation checkpointing, batch size 1 and gradient accumulation. Completed OOF folds resume with matching row IDs, targets, configuration, source revision and code fingerprints. Explicit `--device cpu --allow-cpu` permits slow CPU execution; it is not substituted silently.
+This is substantial transformer fine-tuning. It uses activation checkpointing, batch size 1 and gradient accumulation. Completed OOF folds resume with matching row IDs, targets, configuration, source revision and code fingerprints. Within each text-model fit, atomic optimizer checkpoints save weights, optimizer state, random state and batch position every ten updates; an interrupted fit resumes without repeating completed updates. Keep the same output directory and arguments to resume. Explicit `--device cpu --allow-cpu` permits slow CPU execution; it is not substituted silently.
 
 To reproduce the baseline:
 

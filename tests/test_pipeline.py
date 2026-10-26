@@ -208,3 +208,26 @@ def test_minilm_windows_use_cls_sep_and_preserve_long_descriptions():
         assert len(chunks)>1
         assert all(len(c)<=MAX_TOKENS and c[0]==tokenizer.cls_token_id and c[-1]==tokenizer.sep_token_id for c in chunks)
         assert sum(len(c)-2 for c in chunks)==len(tokenizer.encode('car ' * 700,add_special_tokens=False))
+
+
+def test_optimizer_checkpoint_resume_matches_uninterrupted(tmp_path,monkeypatch):
+    import torch
+    from transformers import BertConfig,BertModel
+    import pricing.text as text
+    torch.set_num_threads(1)
+    config=BertConfig(vocab_size=16,hidden_size=8,num_hidden_layers=1,num_attention_heads=2,intermediate_size=16)
+    monkeypatch.setattr(text.AutoModel,'from_pretrained',lambda *a,**k:BertModel(config))
+    def inputs(tokenizer,texts,device):
+        ids=torch.tensor([[1,int(t)+2,3] for t in texts],device=device)
+        return ids,torch.ones_like(ids),torch.arange(len(texts),device=device),len(texts)
+    monkeypatch.setattr(text,'batch',inputs)
+    kwargs=dict(tokenizer=None,source='tiny-bert',epochs=2,batch_size=2,accumulation=1,device='cpu',checkpoint_steps=1)
+    texts=['0','1','2','3'];prices=[2000,4000,8000,16000]
+    reference=text.fit_text(texts,prices,**kwargs)
+    def interrupt(message,**kwargs):
+        if 'seen=2/' in message:raise InterruptedError('simulated interruption after checkpoint')
+    with pytest.raises(InterruptedError):
+        text.fit_text(texts,prices,checkpoint_dir=tmp_path,log=interrupt,**kwargs)
+    restored=text.fit_text(texts,prices,checkpoint_dir=tmp_path,**kwargs)
+    for key,value in reference.state_dict().items():
+        torch.testing.assert_close(value,restored.state_dict()[key],rtol=0,atol=0)
