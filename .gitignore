@@ -13,3 +13,8 @@ artifacts/
 artifacts/
 .pytest_cache/
 *.zip
+
+reports/pricing-with-carbids.csv
+reports/*.partial
+
+reports/pricing-with-carbids.csv.gz

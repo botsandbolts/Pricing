@@ -1,0 +1,55 @@
+{
+  "source": "Reported wholesale auction sales, 2014\u20132015",
+  "test": {
+    "mae_usd": 2299.7976235243314,
+    "rmse_usd": 4288.156196826929,
+    "median_ape_pct": 11.941379177793598,
+    "rmsle": 0.2632207899321653,
+    "r2": 0.8312205397796344
+  },
+  "grid": [
+    {
+      "rounds": 250,
+      "alpha": 0.9,
+      "validation": {
+        "mae_usd": 2206.271255239661,
+        "rmse_usd": 4137.70069090297,
+        "median_ape_pct": 12.254315292552869,
+        "rmsle": 0.29678686431261714,
+        "r2": 0.8337755304315828
+      }
+    },
+    {
+      "rounds": 450,
+      "alpha": 0.9,
+      "validation": {
+        "mae_usd": 2199.7323103580225,
+        "rmse_usd": 4110.353053270612,
+        "median_ape_pct": 12.248152629744661,
+        "rmsle": 0.2954715240905185,
+        "r2": 0.8359655505820939
+      }
+    }
+  ],
+  "selected": {
+    "rounds": 450,
+    "alpha": 0.9,
+    "validation": {
+      "mae_usd": 2199.7323103580225,
+      "rmse_usd": 4110.353053270612,
+      "median_ape_pct": 12.248152629744661,
+      "rmsle": 0.2954715240905185,
+      "r2": 0.8359655505820939
+    }
+  },
+  "train_rows": 384198,
+  "validation_rows": 82380,
+  "test_rows": 83603,
+  "eligible_rows": 550181,
+  "source_rows": 550291,
+  "known_pricing_vins": 51741,
+  "known_target_vin_overlaps_excluded": 110,
+  "unknown_target_vins_note": "Unobserved VINs cannot establish vehicle disjointness; upstream auction labels predate 2021 Pricing outcomes.",
+  "source_band80_test_coverage": 0.8299343325000299,
+  "evaluation_scope": "Source-domain chronological assessment before deployment refit; no retail-sale or 2021 target-sale accuracy established. Current-vintage lagged CPI snapshot, not a real-time vintage replay."
+}

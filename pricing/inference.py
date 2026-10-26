@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
-from pricing.text import load_text, predict_text
 from pricing.tabular import features
 
 
@@ -18,6 +17,7 @@ class PricePipeline:
         self.device=device
         self.text_model=self.tokenizer=None
         if self.manifest['pipeline']=='fine-tuned-minilm-l6+lightgbm':
+            from pricing.text import load_text
             self.text_model,self.tokenizer=load_text(path/'text-model',device)
         self.schema=json.loads((path/'schema.json').read_text())
         if (path/'lightgbm.txt').exists():
@@ -30,6 +30,8 @@ class PricePipeline:
 
     def predict(self,text,fields,explain=False):
         # Description enters MiniLM alone; no serialization of form fields into its input.
+        if self.text_model:
+            from pricing.text import predict_text
         text_price=float(predict_text(self.text_model,self.tokenizer,[text],self.device)[0]) if self.text_model else None
         frame=pd.DataFrame([fields])
         for col in ['year','odometer']+list(self.schema):

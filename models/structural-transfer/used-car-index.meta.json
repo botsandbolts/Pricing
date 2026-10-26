@@ -1,0 +1,12 @@
+{
+  "series": "CUUR0000SETA02",
+  "source_urls": [
+    "https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SETA02?startyear=2013&endyear=2022",
+    "https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SETA02?startyear=2023&endyear=2026"
+  ],
+  "retrieved_on": "2026-10-26",
+  "rows": 165,
+  "sha256": "36c1c64415d51cf405d1de2673523a1ecd2689eb87dd1b9f9f755984c5c35061",
+  "vintage": "Current BLS snapshot, not a real-time vintage replay",
+  "lag_months": 2
+}

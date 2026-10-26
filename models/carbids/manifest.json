@@ -1,0 +1,42 @@
+{
+  "status": "ready",
+  "pipeline": "tabular-lightgbm",
+  "target_kind": "platform_reported_sale_price",
+  "currency": "USD",
+  "target_transform": "log1p",
+  "target_mean": 9.206016996207989,
+  "target_std": 0.9220744546184872,
+  "feature_names": [
+    "year",
+    "odometer",
+    "manufacturer",
+    "model",
+    "condition",
+    "cylinders",
+    "fuel",
+    "title_status",
+    "transmission",
+    "drive",
+    "type",
+    "paint_color",
+    "state",
+    "source"
+  ],
+  "trained_rows": 550291,
+  "training_candidates": 550291,
+  "band80_log_radius": 0.2148649051364558,
+  "sources": [
+    "wholesale_2015"
+  ],
+  "sale_dates": [
+    "2014-01-01 17:15:00+00:00",
+    "2015-07-21 09:30:00+00:00"
+  ],
+  "model_year_range": [
+    1982,
+    2015
+  ],
+  "assessment_note": "Chronological vehicle-disjoint assessment before all-row deployment refit. The final refit has no independent holdout. Public provider-reported sale prices; payment settlement is not verified. No text model or Isolation Forest in baseline.",
+  "outlier_filter": null,
+  "training_cohort_sha256": "2ad9d92d26808e7754527258879f698670f426a475d870f9ad1ea2792dd88950"
+}

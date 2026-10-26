@@ -1,0 +1,7 @@
+{
+  "bits": 13206984,
+  "k": 12,
+  "rows": 550291,
+  "cohort_sha256": "2ad9d92d26808e7754527258879f698670f426a475d870f9ad1ea2792dd88950",
+  "purpose": "Conservative training-VIN overlap exclusion for auxiliary feature export. False positives cause exclusions; no false negatives for indexed VINs."
+}

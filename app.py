@@ -3,11 +3,12 @@ import json
 import os
 from pathlib import Path
 import streamlit as st
-from pricing.text import MODEL_ID, MAX_CHARACTERS
+MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
+MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
-st.title('Car Price Studio')
-st.caption('Serious maths. Zero tyre-kicking. Historical US asking prices, explained.')
+st.title('Car Price Studio + CarBids')
+st.caption('Age-aware auction transfer and historical asking prices. Serious maths. Zero tyre-kicking.')
 mode=st.selectbox('Pricing mode',['Trained tabular baseline','MiniLM + Isolation Forest (training required)'])
 path=Path(os.environ.get('PRICING_MODEL_DIR','models/studio-baseline' if mode=='Trained tabular baseline' else 'artifacts/car-price-studio-full'))
 ready=(path/'manifest.json').exists()
@@ -19,7 +20,10 @@ def get_pipeline(location):
     from pricing.inference import PricePipeline
     return PricePipeline(location)
 
-value,how,results=st.tabs(['Value a car','How it works','Evaluation'])
+compare,value,how,results=st.tabs(['Pricing + CarBids','Historical asking model','How it works','Evaluation'])
+with compare:
+    from marketbridge.ui import render_comparison
+    render_comparison(Path(__file__).parent)
 with value:
     with st.form('vehicle'):
         a,b,c=st.columns(3)
@@ -65,6 +69,8 @@ with value:
         st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
         if result.get('predicted_text_price') is not None:
             st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
+        from marketbridge.ui import render_auction_companion
+        render_auction_companion(Path(__file__).parent,car)
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:

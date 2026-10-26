@@ -1,0 +1,101 @@
+{
+  "target_kind": "asking_price",
+  "rows": 211844,
+  "train_rows": 148290,
+  "validation_rows": 31777,
+  "test_rows": 31777,
+  "models": {
+    "tabular_only": {
+      "rounds": 1000,
+      "validation": {
+        "mae_usd": 3140.082763608452,
+        "rmse_usd": 6592.488218398286,
+        "median_ape_pct": 15.148976487577267,
+        "rmsle": 0.3863243836175172,
+        "r2": 0.7701282765467798
+      },
+      "test": {
+        "mae_usd": 3328.66304230003,
+        "rmse_usd": 6839.352136420336,
+        "median_ape_pct": 15.588662049076497,
+        "rmsle": 0.3944630065015105,
+        "r2": 0.7743389296430128
+      }
+    },
+    "with_auction_structure": {
+      "rounds": 1000,
+      "validation": {
+        "mae_usd": 3160.080940342684,
+        "rmse_usd": 6577.52886510663,
+        "median_ape_pct": 15.36554749522971,
+        "rmsle": 0.3879612358589412,
+        "r2": 0.771170320372154
+      },
+      "test": {
+        "mae_usd": 3338.1155848424387,
+        "rmse_usd": 6807.2207801877175,
+        "median_ape_pct": 15.674060689954358,
+        "rmsle": 0.3943440036237684,
+        "r2": 0.7764542656960391
+      }
+    }
+  },
+  "grid": {
+    "tabular_only": [
+      {
+        "rounds": 500,
+        "validation": {
+          "mae_usd": 3218.671777688108,
+          "rmse_usd": 6737.070946412826,
+          "median_ape_pct": 15.671961167720431,
+          "rmsle": 0.3920178922482742,
+          "r2": 0.7599348774372797
+        }
+      },
+      {
+        "rounds": 1000,
+        "validation": {
+          "mae_usd": 3140.082763608452,
+          "rmse_usd": 6592.488218398286,
+          "median_ape_pct": 15.148976487577267,
+          "rmsle": 0.3863243836175172,
+          "r2": 0.7701282765467798
+        }
+      }
+    ],
+    "with_auction_structure": [
+      {
+        "rounds": 500,
+        "validation": {
+          "mae_usd": 3226.5784392675855,
+          "rmse_usd": 6725.118761172821,
+          "median_ape_pct": 15.66826996489292,
+          "rmsle": 0.3927943778654149,
+          "r2": 0.760785917194295
+        }
+      },
+      {
+        "rounds": 1000,
+        "validation": {
+          "mae_usd": 3160.080940342684,
+          "rmse_usd": 6577.52886510663,
+          "median_ape_pct": 15.36554749522971,
+          "rmsle": 0.3879612358589412,
+          "r2": 0.771170320372154
+        }
+      }
+    ]
+  },
+  "paired_test_mae_delta_usd": 9.452542542408358,
+  "paired_day_cluster_bootstrap_95pct": [
+    -29.371331437906704,
+    13.352704701242878
+  ],
+  "bootstrap_day_clusters": 3,
+  "uncertainty_note": "Few test days constrain the bootstrap; this is not a retail-sale evaluation.",
+  "structural_model_id": "67d3abbe84988073295da60d446cb555a018a45ce6e7315798e7b1501a09444e",
+  "upstream_target_labels": "2014\u20132015 reported auction sales, never 2021 asking targets",
+  "known_upstream_vin_exclusions": 110,
+  "source_to_target_scope": "2021 asking-price enhancement only. No target retail sale prices or validated transported interval coverage.",
+  "deployment_choice": "Auction-structure variant is available as an experiment; original baseline remains unchanged."
+}

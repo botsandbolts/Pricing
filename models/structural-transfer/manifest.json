@@ -1,0 +1,81 @@
+{
+  "status": "ready",
+  "pipeline": "partial-pooled-monotone-huber-age-transfer",
+  "target_kind": "auction_equivalent_under_transfer_assumptions",
+  "trained_rows": 550181,
+  "feature_names": [
+    "age",
+    "log_miles",
+    "auction_grade",
+    "segment",
+    "transmission",
+    "state"
+  ],
+  "raw_model_year_feature": false,
+  "reference_index_month": "2015-01",
+  "index_lag_months": 2,
+  "index_series": "CUUR0000SETA02",
+  "index_source": "https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SETA02",
+  "index_snapshot_note": "Retrieved 2026-10-26; current vintage. Aggregate retail index applied to wholesale is an explicit transfer assumption.",
+  "age_range": [
+    0.0,
+    33.44079397672817
+  ],
+  "model_year_range": [
+    1982,
+    2015
+  ],
+  "mileage_range": [
+    1.0,
+    999999.0
+  ],
+  "typical_miles_by_age": {
+    "0": 12677.0,
+    "1": 20261.0,
+    "2": 35357.0,
+    "3": 37918.0,
+    "4": 54711.0,
+    "5": 77909.0,
+    "6": 90190.0,
+    "7": 98463.0,
+    "8": 108304.0,
+    "9": 115704.5,
+    "10": 124075.0,
+    "11": 131452.0,
+    "12": 137940.0,
+    "13": 145168.0,
+    "14": 149306.0,
+    "15": 155515.0,
+    "16": 160829.0,
+    "17": 164919.0,
+    "18": 166216.0,
+    "19": 165695.0,
+    "20": 164980.5,
+    "21": 162449.5,
+    "22": 166328.0,
+    "23": 159986.0,
+    "24": 154886.5,
+    "25": 138728.0,
+    "26": 118479.5,
+    "27": 104207.0,
+    "28": 161023.5,
+    "29": 95965.0,
+    "30": 79739.0,
+    "31": 122136.0,
+    "32": 42697.0,
+    "33": 52071.0
+  },
+  "typical_miles_global": 52081.0,
+  "source_residual_log_radius80": 0.2816986648946977,
+  "sale_dates": [
+    "2014-01-01 17:15:00+00:00",
+    "2015-07-21 09:30:00+00:00"
+  ],
+  "cohort_sha256": "2ad9d92d26808e7754527258879f698670f426a475d870f9ad1ea2792dd88950",
+  "limitations": [
+    "Age curves are cross-sectional associations, not identified causal ageing trajectories.",
+    "Generation and quality changes after 2015 are unobserved.",
+    "No calibrated retail-sale outcome labels.",
+    "No target-domain interval coverage guarantee."
+  ]
+}

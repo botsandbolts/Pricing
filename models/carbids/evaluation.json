@@ -1,0 +1,108 @@
+{
+  "mode": "tabular_sale_baseline",
+  "target_kind": "platform_reported_sale_price",
+  "settlement_verified": false,
+  "currency": "USD",
+  "selected": {
+    "target": "log1p",
+    "alpha": 0.9,
+    "rounds": 700,
+    "validation": {
+      "mae_usd": 1665.1344742014157,
+      "rmse_usd": 3255.53185835289,
+      "median_ape_pct": 9.479611177031252,
+      "rmsle": 0.25320380818245297,
+      "r2": 0.8971690851888325
+    }
+  },
+  "grid": [
+    {
+      "target": "dollars",
+      "alpha": 0.5,
+      "rounds": 700,
+      "validation": {
+        "mae_usd": 1690.7745986696252,
+        "rmse_usd": 3399.1458841831036,
+        "median_ape_pct": 9.516571136650485,
+        "rmsle": 0.3351148359551955,
+        "r2": 0.8878964390628946
+      }
+    },
+    {
+      "target": "dollars",
+      "alpha": 0.9,
+      "rounds": 700,
+      "validation": {
+        "mae_usd": 1677.797361950312,
+        "rmse_usd": 3256.834685326857,
+        "median_ape_pct": 9.522396396914006,
+        "rmsle": 0.34328777937305166,
+        "r2": 0.8970867651856993
+      }
+    },
+    {
+      "target": "dollars",
+      "alpha": 1.5,
+      "rounds": 700,
+      "validation": {
+        "mae_usd": 1675.1962892651056,
+        "rmse_usd": 3180.420953600673,
+        "median_ape_pct": 9.59038930107058,
+        "rmsle": 0.34260699207501005,
+        "r2": 0.9018593314359066
+      }
+    },
+    {
+      "target": "log1p",
+      "alpha": 0.5,
+      "rounds": 700,
+      "validation": {
+        "mae_usd": 1672.0979272811749,
+        "rmse_usd": 3325.884742623387,
+        "median_ape_pct": 9.448837377409465,
+        "rmsle": 0.25751178246430373,
+        "r2": 0.8926766575613703
+      }
+    },
+    {
+      "target": "log1p",
+      "alpha": 0.9,
+      "rounds": 700,
+      "validation": {
+        "mae_usd": 1665.1344742014157,
+        "rmse_usd": 3255.53185835289,
+        "median_ape_pct": 9.479611177031252,
+        "rmsle": 0.25320380818245297,
+        "r2": 0.8971690851888325
+      }
+    },
+    {
+      "target": "log1p",
+      "alpha": 1.5,
+      "rounds": 700,
+      "validation": {
+        "mae_usd": 1673.1439192261696,
+        "rmse_usd": 3257.263878167409,
+        "median_ape_pct": 9.486563751732733,
+        "rmsle": 0.2533547071760542,
+        "r2": 0.8970596391334226
+      }
+    }
+  ],
+  "test": {
+    "mae_usd": 1767.140796003639,
+    "rmse_usd": 3454.517771090978,
+    "median_ape_pct": 9.338371923243061,
+    "rmsle": 0.22283493852962208,
+    "r2": 0.8904670384112895
+  },
+  "rows": {
+    "train": 384271,
+    "validation": 82393,
+    "test": 83627,
+    "eligible": 550291
+  },
+  "deployment_refit_rows": 550291,
+  "band80_test_coverage": 0.8254391524268477,
+  "note": "Chronological vehicle-disjoint assessment before all-row deployment refit. The final refit has no independent holdout. Public provider-reported sale prices; payment settlement is not verified. No text model or Isolation Forest in baseline."
+}

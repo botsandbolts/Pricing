@@ -1,0 +1,13 @@
+{
+  "rows": 211844,
+  "transported_auction_estimates": 211127,
+  "unavailable_rows": 717,
+  "model_ids": {
+    "structural": "67d3abbe84988073295da60d446cb555a018a45ce6e7315798e7b1501a09444e",
+    "asking": "58bdb56e212ed0b5aef1506376faeaac8dbdc6efaf23cbf03bcb241374d334df"
+  },
+  "output_sha256": "a6a446ab9cee7bfc094aacdc1089318d2983a4e27612ea14f2e82ddca6de5daf",
+  "role": "Age/mileage/CPI-adjusted auction equivalents; 2021 asking estimates remain a separate target. Retail sales uncalibrated.",
+  "compressed_download_sha256": "2f7c0ff7ba935abdfbbf68a0693009bc9b1049f75b49aa4ff263c18f909c08a1",
+  "download_rounding": "Numeric fields rounded to 4 decimal places; precision does not imply pricing accuracy."
+}

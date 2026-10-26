@@ -1,0 +1,1 @@
+{"segment": ["convertible", "coupe", "hatchback", "sedan", "suv", "truck", "unknown", "van", "wagon"], "transmission": ["automatic", "manual"], "state": ["ab", "al", "az", "ca", "co", "fl", "ga", "hi", "il", "in", "la", "ma", "md", "mi", "mn", "mo", "ms", "nc", "ne", "nj", "nm", "ns", "nv", "ny", "oh", "ok", "on", "or", "pa", "pr", "qc", "sc", "tn", "tx", "ut", "va", "wa", "wi"]}

@@ -83,3 +83,9 @@ Model: https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
 After an estimate, the Python GUI offers a plain-English view, native LightGBM TreeSHAP contributions, and a technical view with target scaling, additivity checks, encoded inputs and global split gains. Log-target contributions add in log1p(price) space; they are not additive dollar adjustments. A separate mileage scenario recalculates the fitted model with other submitted fields fixed. These explain model behaviour, not causal effects or MiniLM word-level decisions.
 
 The hosted browser GUI adds an **Explain the price** page, lay explanations, expandable technical notes and actual-tree scenarios for mileage, year and condition. Browser scenarios are sensitivity calculations, explicitly distinct from Python TreeSHAP.
+
+## Integrated structural Pricing + CarBids GUI
+
+The default **Pricing + CarBids** tab transfers auction depreciation/relative-value structure using the vehicle's **age at valuation**, actual mileage and a lagged official BLS used-car price index. It shows the 2021 asking estimate separately, an age/market-adjusted auction equivalent, an experimental asking LightGBM with auction features, decompositions, support warnings and per-car batch export. Both engines and trained weights are bundled; no second service or GPU is required.
+
+The transfer experiment slightly worsened test MAE ($3,329 → $3,338) while improving RMSE ($6,839 → $6,807); the original asking model remains the default. The full 211,844-row Pricing cohort was processed, with 717 unavailable auction equivalents explicitly flagged. Retail-channel premiums remain assumptions, not fitted sale calibration. See [INTEGRATION.md](INTEGRATION.md) for equations/specification, actual assessments, index provenance, leakage controls and reproduction commands.
