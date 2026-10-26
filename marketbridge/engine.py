@@ -8,6 +8,17 @@ from marketbridge.asking import TransferredAsking
 
 FIELDS=['year','odometer','manufacturer','model','condition','cylinders','fuel','title_status','transmission','drive','type','paint_color','state']
 
+def best_asking_bundle(root):
+    """Choose a completed filtered bundle only after its assessment passed."""
+    root=Path(root)
+    filtered=root/'models/robust-asking-isolation'
+    manifest=filtered/'manifest.json'
+    if manifest.exists():
+        record=json.loads(manifest.read_text())
+        if record.get('status')=='ready' and record.get('promoted'):
+            return filtered
+    return root/'models/robust-asking'
+
 def locate(root,role):
     choices=['models/pricing','models/studio-baseline'] if role=='asking' else ['models/carbids','models/tabular']
     for name in choices:
@@ -31,13 +42,14 @@ class MarketComparison:
         self.asking=PricePipeline(locate(root,'asking'))
         self.enhanced=TransferredAsking(root/'models/transfer-asking',self.structural) if (root/'models/transfer-asking/manifest.json').exists() else None
         from marketbridge.robust import RobustAsking
-        self.robust=RobustAsking(root/'models/robust-asking',self.structural) if (root/'models/robust-asking/manifest.json').exists() else None
+        robust_path=best_asking_bundle(root)
+        self.robust=RobustAsking(robust_path,self.structural) if (robust_path/'manifest.json').exists() else None
         self.ids={'structural':self.structural.model_id,'asking':hashlib.sha256((locate(root,'asking')/'lightgbm.txt.gz').read_bytes()).hexdigest()}
         if self.robust:
-            digest=hashlib.sha256((root/'models/robust-asking/manifest.json').read_bytes())
+            digest=hashlib.sha256((robust_path/'manifest.json').read_bytes())
             from marketbridge.model_storage import payload_files
             for member,_ in self.robust.members:
-                for filename in payload_files(member):digest.update((root/'models/robust-asking'/filename).read_bytes())
+                for filename in payload_files(member):digest.update((robust_path/filename).read_bytes())
             self.ids['robust_asking']=digest.hexdigest()
     def predict_frame(self,frame):
         from pricing.tabular import features

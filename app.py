@@ -9,8 +9,17 @@ MAX_CHARACTERS = 8000
 st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
 st.title('Car Price Studio + CarBids')
 st.caption('Age-aware auction transfer and historical asking prices. Serious maths. Zero tyre-kicking.')
-mode=st.selectbox('Pricing model',['Best trained ensemble','Trained tabular baseline','MiniLM + Isolation Forest (training required)'])
-path=Path(os.environ.get('PRICING_MODEL_DIR','models/robust-asking' if mode=='Best trained ensemble' else ('models/studio-baseline' if mode=='Trained tabular baseline' else 'artifacts/car-price-studio-full')))
+from marketbridge.engine import best_asking_bundle
+choices=['Best trained ensemble','Unfiltered trained ensemble','Trained tabular baseline','MiniLM + Isolation Forest (training required)']
+filtered=Path('models/robust-asking-isolation')
+if (filtered/'manifest.json').exists():choices.insert(1,'Isolation Forest trained ensemble')
+mode=st.selectbox('Pricing model',choices)
+locations={'Best trained ensemble':best_asking_bundle(Path('.')),
+           'Isolation Forest trained ensemble':filtered,
+           'Unfiltered trained ensemble':Path('models/robust-asking'),
+           'Trained tabular baseline':Path('models/studio-baseline'),
+           'MiniLM + Isolation Forest (training required)':Path('artifacts/car-price-studio-full')}
+path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 if not ready:
     st.info('This historical MiniLM mode has not been trained. The integrated Pricing + CarBids tab uses its own completed models and remains available.')
@@ -81,7 +90,7 @@ with how:
     st.subheader('A pricing committee with thousands of small opinions')
     st.write('LightGBM learns lots of small decision trees, each correcting earlier mistakes. Huber loss softens the influence of large errors: one wildly ambitious seller does not get to chair the committee. The fitted tree count and exact drivers appear after an estimate.')
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
-    st.write('The best trained ensemble uses nine regularized LightGBM models with age-adjusted CarBids features. The original baseline remains selectable. Both use structured fields, without descriptions or the MiniLM-price filter. Benchmark results are in Evaluation.')
+    st.write('The trained ensembles average regularized LightGBM models with age-adjusted CarBids features. The filtered experiment uses Isolation Forest with an automatic cutoff on training vehicle facts and frozen CarBids signals; asking-price labels are excluded. Validation and test cars are never filtered. The original unfiltered ensemble remains selectable. The best-model choice uses the filtered model only if its recorded assessment passed. Benchmark results are in Evaluation.')
     st.write('The MiniLM workflow fine-tunes sentence-transformers/all-MiniLM-L6-v2 on descriptions and log prices. Three-fold predictions create predicted_text_price without using each predicted row’s target in its fitting model.')
     st.write('Isolation Forest uses contamination="auto" on training OOF description prices only. No fixed percentage is removed; validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. This enhanced mode still requires GPU training.')
     st.write('The complete raw database is scanned before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
@@ -92,6 +101,15 @@ with results:
             st.info(f"Regularized ensemble: {e['ensemble_members']} members; promoted: {e['promoted']}");st.json(e['test'])
             st.write({k:e[k] for k in ['train_rows','validation_rows','test_rows']})
             st.caption(e['test_note'])
+            if e.get('outlier_filter',{}).get('method')=='IsolationForest':
+                f=e['outlier_filter']
+                st.write(f"Isolation Forest retained {f['retained_rows']:,} of {f['input_rows']:,} training cars; removed {f['removed_fraction']:.1%}.")
+                st.caption('The bouncer checked vehicle facts, not price tags. Unusual can still mean legitimate. Every validation and test car stayed in the queue.')
+                st.dataframe([{'model':'Unfiltered reference',**e['baseline']['test']},{'model':'Isolation Forest ensemble',**e['test']}],hide_index=True)
+                st.json(f,expanded=False)
+                if not e['promoted']:st.info('This is the completed filtered experiment. The unfiltered ensemble remains the default because its benchmark errors are lower.')
+            st.download_button('Download selected ensemble assessment',json.dumps(e,indent=2),'asking-ensemble-evaluation.json','application/json')
+            with st.expander('All training candidates · technical details'):st.json(e['grid'])
         elif e.get('mode')=='tabular_baseline':
             st.info(e['label']);st.json(e['test'])
             st.write({k:e[k] for k in ['train_rows','validation_rows','test_rows','eligible_rows']})

@@ -95,3 +95,7 @@ The transfer experiment slightly worsened test MAE ($3,329 → $3,338) while imp
 The promoted regularized ensemble uses **9 members and 18,324 trees**, with CarBids structural features, bagging, categorical smoothing and three fixed seed repetitions. Historical test MAE improved **$3,328.66 → $3,288.05**, and RMSE **$6,839.35 → $6,664.99**. Pricing's normal model selector defaults to it; both shared GUIs use it. The original baseline is preserved.
 
 See [ROBUST_MODEL.md](ROBUST_MODEL.md) for the complete design, capacity/latency tradeoff and reused-benchmark limits. [train_robust_kaggle.ipynb](train_robust_kaggle.ipynb) reproduces the CPU-only robust search without transformer epochs. The earlier transfer-only experiment and its reports are retained as historical comparisons.
+
+### Trained Isolation Forest asking experiment
+
+The separate filtered ensemble is trained on the full original cohort with automatic predictor-only filtering. Test MAE: **$3,368**, compared with **$3,288** for the unfiltered ensemble. The unfiltered ensemble remains the default. Select **Isolation Forest trained ensemble** in the GUI to try the completed filtered model. Full counts, metrics and reproducibility details are in [ROBUST_MODEL.md](ROBUST_MODEL.md); Kaggle reproduction is in [train_filtered_kaggle.ipynb](train_filtered_kaggle.ipynb).

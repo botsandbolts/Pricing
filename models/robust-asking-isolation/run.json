@@ -1,0 +1,68 @@
+{
+  "cohort_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "cohort_rows": 211844,
+  "dataset_url": "https://zenodo.org/records/10457828",
+  "trainer_sha256": "3c032eb156d11b1d8b8a5e98f7b9ccfdf38440956c5e18470eb83c35673cb59e",
+  "training_fingerprint": "9f01fce819956f3487032a7f0d3cdb4828093b84a04312857d275b3237c7125a",
+  "python": "3.12.14",
+  "packages": {
+    "lightgbm": "4.7.0",
+    "pandas": "2.3.3",
+    "scikit-learn": "1.9.1",
+    "numpy": "2.5.4"
+  },
+  "assessment_filter": {
+    "method": "IsolationForest",
+    "contamination": "auto",
+    "seed": 42,
+    "features": [
+      "year",
+      "odometer",
+      "log_odometer",
+      "miles_per_year",
+      "odometer_missing",
+      "year_missing",
+      "vehicle_age_years",
+      "auction_reference_2015_usd",
+      "transported_auction_price_usd",
+      "relative_model_value_factor",
+      "model_training_count",
+      "mileage_vs_age_typical",
+      "one_year_age_effect_pct",
+      "market_index_factor"
+    ],
+    "input_rows": 148290,
+    "retained_rows": 139279,
+    "removed_rows": 9011,
+    "removed_fraction": 0.06076606649133455,
+    "scope": "Training predictors only; labels excluded; evaluation rows untouched"
+  },
+  "deployment_refit_filter": {
+    "method": "IsolationForest",
+    "contamination": "auto",
+    "seed": 42,
+    "features": [
+      "year",
+      "odometer",
+      "log_odometer",
+      "miles_per_year",
+      "odometer_missing",
+      "year_missing",
+      "vehicle_age_years",
+      "auction_reference_2015_usd",
+      "transported_auction_price_usd",
+      "relative_model_value_factor",
+      "model_training_count",
+      "mileage_vs_age_typical",
+      "one_year_age_effect_pct",
+      "market_index_factor"
+    ],
+    "input_rows": 211844,
+    "retained_rows": 194155,
+    "removed_rows": 17689,
+    "removed_fraction": 0.08350012273182153,
+    "scope": "Training predictors only; labels excluded; evaluation rows untouched"
+  },
+  "assessment_note": "Full chronological validation/test retained. Historical reused benchmark. Different package versions can change results.",
+  "reproduce": "python -m marketbridge.robust --cohort training-cache/full-cohort.jsonl --structural models/structural-transfer --output models/robust-asking-isolation --isolation auto"
+}

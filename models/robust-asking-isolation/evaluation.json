@@ -1,0 +1,305 @@
+{
+  "status": "evaluated",
+  "target_kind": "asking_price",
+  "rows": 211844,
+  "train_rows": 139279,
+  "validation_rows": 31777,
+  "test_rows": 31777,
+  "outlier_filter": {
+    "method": "IsolationForest",
+    "contamination": "auto",
+    "seed": 42,
+    "features": [
+      "year",
+      "odometer",
+      "log_odometer",
+      "miles_per_year",
+      "odometer_missing",
+      "year_missing",
+      "vehicle_age_years",
+      "auction_reference_2015_usd",
+      "transported_auction_price_usd",
+      "relative_model_value_factor",
+      "model_training_count",
+      "mileage_vs_age_typical",
+      "one_year_age_effect_pct",
+      "market_index_factor"
+    ],
+    "input_rows": 148290,
+    "retained_rows": 139279,
+    "removed_rows": 9011,
+    "removed_fraction": 0.06076606649133455,
+    "scope": "Training predictors only; labels excluded; evaluation rows untouched"
+  },
+  "baseline": {
+    "validation": {
+      "mae_usd": 3084.650273304981,
+      "rmse_usd": 6440.1688285903365,
+      "median_ape_pct": 14.834922160496422,
+      "rmsle": 0.380968727378389,
+      "r2": 0.7806279304922031
+    },
+    "test": {
+      "mae_usd": 3288.054235066122,
+      "rmse_usd": 6664.987391904136,
+      "median_ape_pct": 15.515710411920894,
+      "rmsle": 0.3906855006874743,
+      "r2": 0.7856984172108846
+    }
+  },
+  "validation": {
+    "mae_usd": 3191.2876622776103,
+    "rmse_usd": 6813.001052632552,
+    "median_ape_pct": 15.001670320838349,
+    "rmsle": 0.3920986160377267,
+    "r2": 0.7544930791757232
+  },
+  "test": {
+    "mae_usd": 3368.1975725324965,
+    "rmse_usd": 6946.920356256295,
+    "median_ape_pct": 15.55706539662565,
+    "rmsle": 0.4001150345307673,
+    "r2": 0.7671847876762613
+  },
+  "grid": [
+    {
+      "config": {
+        "name": "huber_log_63",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 63,
+        "max_depth": 10,
+        "min_data_in_leaf": 50,
+        "lambda_l2": 8.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.369987132713145,
+      "std": 0.8187687382887945,
+      "best_iteration": 2591,
+      "validation": {
+        "mae_usd": 3228.699114649196,
+        "rmse_usd": 6820.663781488082,
+        "median_ape_pct": 15.334241647248756,
+        "rmsle": 0.3937074356246362,
+        "r2": 0.7539405147787026
+      }
+    },
+    {
+      "config": {
+        "name": "huber_log_127",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 70,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.369987132713145,
+      "std": 0.8187687382887945,
+      "best_iteration": 1777,
+      "validation": {
+        "mae_usd": 3212.634987004092,
+        "rmse_usd": 6824.2279538249995,
+        "median_ape_pct": 15.16650299873693,
+        "rmsle": 0.39285075921613466,
+        "r2": 0.7536832883331419
+      }
+    },
+    {
+      "config": {
+        "name": "huber_log_255",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 255,
+        "max_depth": 14,
+        "min_data_in_leaf": 100,
+        "lambda_l2": 20.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.369987132713145,
+      "std": 0.8187687382887945,
+      "best_iteration": 1310,
+      "validation": {
+        "mae_usd": 3205.6653495371716,
+        "rmse_usd": 6837.886536655344,
+        "median_ape_pct": 15.15769139852235,
+        "rmsle": 0.39272437302446117,
+        "r2": 0.7526963037057008
+      }
+    },
+    {
+      "config": {
+        "name": "huber_log_127_strong",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.7,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 140,
+        "lambda_l2": 30.0,
+        "learning_rate": 0.025
+      },
+      "mean": 9.369987132713145,
+      "std": 0.8187687382887945,
+      "best_iteration": 2317,
+      "validation": {
+        "mae_usd": 3207.5124279424303,
+        "rmse_usd": 6836.620660329074,
+        "median_ape_pct": 15.102727889847484,
+        "rmsle": 0.39378014920422794,
+        "r2": 0.7527878603337133
+      }
+    },
+    {
+      "config": {
+        "name": "mae_dollars_63",
+        "target": "dollars",
+        "objective": "regression_l1",
+        "num_leaves": 63,
+        "max_depth": 10,
+        "min_data_in_leaf": 50,
+        "lambda_l2": 8.0,
+        "learning_rate": 0.03
+      },
+      "mean": 15939.469180565628,
+      "std": 12808.46303328522,
+      "best_iteration": 3497,
+      "validation": {
+        "mae_usd": 3306.061148635289,
+        "rmse_usd": 7090.544372906235,
+        "median_ape_pct": 15.425945766450887,
+        "rmsle": 0.40923700533735424,
+        "r2": 0.7340830715532237
+      }
+    },
+    {
+      "config": {
+        "name": "mae_dollars_127",
+        "target": "dollars",
+        "objective": "regression_l1",
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 80,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.03
+      },
+      "mean": 15939.469180565628,
+      "std": 12808.46303328522,
+      "best_iteration": 3500,
+      "validation": {
+        "mae_usd": 3277.3386663343017,
+        "rmse_usd": 7065.455478075185,
+        "median_ape_pct": 15.229159674014165,
+        "rmsle": 0.40722727675566217,
+        "r2": 0.7359615616406747
+      }
+    },
+    {
+      "config": {
+        "name": "huber_dollars_127",
+        "target": "dollars",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 80,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.03
+      },
+      "mean": 15939.469180565628,
+      "std": 12808.46303328522,
+      "best_iteration": 1554,
+      "validation": {
+        "mae_usd": 3237.4841932087356,
+        "rmse_usd": 6679.807645821911,
+        "median_ape_pct": 15.536060468300475,
+        "rmsle": 0.464145190512828,
+        "r2": 0.7639985124522912
+      }
+    },
+    {
+      "config": {
+        "name": "mae_log_127",
+        "target": "log1p",
+        "objective": "regression_l1",
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 80,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.03
+      },
+      "mean": 9.369987132713145,
+      "std": 0.8187687382887945,
+      "best_iteration": 3500,
+      "validation": {
+        "mae_usd": 3235.0465264818536,
+        "rmse_usd": 7006.668265105002,
+        "median_ape_pct": 15.075579140733392,
+        "rmsle": 0.400620419802736,
+        "r2": 0.7403370783233258
+      }
+    }
+  ],
+  "selected_configs": [
+    {
+      "config": {
+        "name": "huber_log_255",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 255,
+        "max_depth": 14,
+        "min_data_in_leaf": 100,
+        "lambda_l2": 20.0,
+        "learning_rate": 0.025
+      },
+      "rounds": 1310,
+      "weight": 0.4
+    },
+    {
+      "config": {
+        "name": "huber_log_127_strong",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.7,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 140,
+        "lambda_l2": 30.0,
+        "learning_rate": 0.025
+      },
+      "rounds": 2317,
+      "weight": 0.4
+    },
+    {
+      "config": {
+        "name": "huber_log_127",
+        "target": "log1p",
+        "objective": "huber",
+        "alpha": 0.9,
+        "num_leaves": 127,
+        "max_depth": 12,
+        "min_data_in_leaf": 70,
+        "lambda_l2": 12.0,
+        "learning_rate": 0.025
+      },
+      "rounds": 1777,
+      "weight": 0.2
+    }
+  ],
+  "seed_repetitions": [
+    42,
+    137,
+    777
+  ],
+  "ensemble_members": 9,
+  "promoted": false,
+  "test_note": "The historical test benchmark has been inspected in earlier project experiments. This comparison is not a fresh untouched external replication. No hyperparameters or weights are chosen from its losses.",
+  "robustness_note": "Robust losses, bagging, regularized categories, early stopping and seed averaging reduce sensitivity; they do not guarantee performance under market drift.",
+  "structural_model_id": "67d3abbe84988073295da60d446cb555a018a45ce6e7315798e7b1501a09444e",
+  "training_fingerprint": "9f01fce819956f3487032a7f0d3cdb4828093b84a04312857d275b3237c7125a"
+}

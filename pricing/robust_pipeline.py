@@ -24,8 +24,11 @@ def render_ensemble_explanation(result,fields,notes,pipeline):
     ensemble=pipeline.ensemble if hasattr(pipeline,'ensemble') else pipeline._ensemble.ensemble
     simple,technical,whatif=st.tabs(['Explain the committee','Under the bonnet · ensemble','What if?'])
     with simple:
-        st.subheader('Nine committees, one asking-price estimate')
-        st.write('The larger model averages nine regularized LightGBM predictions. Each committee uses structured car facts plus age-adjusted auction signals. They agree on a price without letting one enthusiastic tree sell you a castle with wheels.')
+        st.subheader(f'{len(ensemble.members)} committees, one asking-price estimate')
+        st.write(f'The model averages {len(ensemble.members)} regularized LightGBM predictions. Each committee uses structured car facts plus age-adjusted auction signals. They agree on a price without letting one enthusiastic tree sell you a castle with wheels.')
+        filtering=ensemble.manifest.get('outlier_filter',{})
+        if filtering.get('method')=='IsolationForest':
+            st.write(f"Isolation Forest screened the deployment training data: {filtering['removed_rows']:,} unusual listings were left out ({filtering['removed_fraction']:.1%}). It never rejects the car you enter here.")
         st.write('This is a historical 2021 asking estimate. Free text is not used in this trained ensemble, and an auction-equivalent input is not a verified retail-sale target.')
         st.caption('The residual band is a historical validation guide, not an individual or future-market coverage guarantee.')
     with technical:

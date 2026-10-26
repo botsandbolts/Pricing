@@ -5,7 +5,7 @@ from datetime import date
 import numpy as np
 import pandas as pd
 import streamlit as st
-from marketbridge.engine import MarketComparison
+from marketbridge.engine import MarketComparison,best_asking_bundle
 
 @st.cache_resource
 def _cached_comparison(root,version):return MarketComparison(root)
@@ -132,10 +132,10 @@ def render_comparison(root):
             st.write('Paired test MAE change (negative is better):',round(e['paired_test_mae_delta_usd'],2))
             st.write('Day-cluster bootstrap 95% range:',e['paired_day_cluster_bootstrap_95pct'])
             st.caption(e['uncertainty_note']);st.json(e,expanded=False)
-        robust_file=Path(root)/'models/robust-asking/evaluation.json'
+        robust_file=best_asking_bundle(root)/'evaluation.json'
         if robust_file.exists():
             r=json.loads(robust_file.read_text());st.write('**Larger regularized LightGBM ensemble**')
-            st.dataframe(pd.DataFrame([{'model':'Original baseline',**r['baseline']['test']},{'model':'Robust ensemble',**r['test']}]),hide_index=True)
+            st.dataframe(pd.DataFrame([{'model':'Unfiltered reference' if r.get('outlier_filter',{}).get('method')=='IsolationForest' else 'Original baseline',**r['baseline']['test']},{'model':'Robust ensemble',**r['test']}]),hide_index=True)
             st.write('Active model:', 'Robust ensemble' if r['promoted'] else 'Original baseline')
             st.write('Ensemble members:',r['ensemble_members'])
             if engine.robust:st.write('Total deployed trees:',sum(m['trees'] for m,_ in engine.robust.members))

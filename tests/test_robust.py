@@ -59,7 +59,7 @@ def test_member_explanations_reconstruct_on_their_own_scales(model):
 def test_shared_engine_uses_promotion_flag_and_keeps_baseline(model):
     from marketbridge.engine import MarketComparison
     engine=MarketComparison(ROOT);out=engine.predict_frame(pd.DataFrame([car()])).iloc[0]
-    if model.manifest['promoted']:
+    if engine.robust.manifest['promoted']:
         assert out.asking_model_kind=='regularized_lightgbm_ensemble'
         assert out.asking_price_usd==pytest.approx(out.robust_asking_price_usd)
         assert out.asking_model_id==engine.ids['robust_asking']
@@ -84,3 +84,35 @@ def test_isolation_filter_excludes_labels_and_is_reproducible():
     assert 0<report['removed_rows']<len(frame)
     assert 'transported_auction_price_usd' in report['features']
     assert 'price' not in report['features']
+
+
+def test_filtered_bundle_requires_completed_passing_assessment(tmp_path):
+    from marketbridge.engine import best_asking_bundle
+    original=tmp_path/'models/robust-asking'
+    filtered=tmp_path/'models/robust-asking-isolation'
+    assert best_asking_bundle(tmp_path)==original
+    filtered.mkdir(parents=True)
+    for status,promoted,expected in [('pending',True,original),('ready',False,original),('ready',True,filtered)]:
+        (filtered/'manifest.json').write_text(json.dumps({'status':status,'promoted':promoted}))
+        assert best_asking_bundle(tmp_path)==expected
+
+
+def test_trained_isolation_bundle_is_consistent():
+    path=ROOT/'models/robust-asking-isolation'
+    if not (path/'manifest.json').exists():pytest.skip('Filtered bundle not installed')
+    manifest=json.loads((path/'manifest.json').read_text())
+    report=json.loads((path/'evaluation.json').read_text())
+    assert manifest['training_fingerprint']==report['training_fingerprint']
+    assert manifest['trained_rows']==manifest['outlier_filter']['retained_rows']
+    assert report['outlier_filter']['input_rows']+report['validation_rows']+report['test_rows']==report['rows']
+    assert report['outlier_filter']['retained_rows']==report['train_rows']
+    assert report['outlier_filter']['removed_rows']>0
+    assert 'price' not in report['outlier_filter']['features']
+    filtered=RobustAsking(path,StructuralTransfer(ROOT/'models/structural-transfer'))
+    assert len(filtered.members)==report['ensemble_members']
+    frame=pd.DataFrame([car(),{**car(),'price':999999,'description':'asking for $999999'}])
+    predictions=filtered.predict_frame(frame)
+    assert np.isfinite(predictions).all() and (predictions>0).all()
+    assert predictions[0]==predictions[1]
+    from marketbridge.robust_explanations import explain_member
+    assert explain_member(filtered,frame.iloc[:1],0)['additivity_error']<1e-6

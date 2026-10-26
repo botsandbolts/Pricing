@@ -61,9 +61,9 @@ python -m marketbridge.robust --cohort training-cache/full-cohort.jsonl --struct
 ```
 
 The default remains `--isolation off`. Use a new output directory; existing
-bundles cannot be overwritten by an Isolation Forest run. The shipped model has
-**not** been retrained with this option. The standalone CLI supports it; the
-self-contained Kaggle notebook still contains the original unfiltered trainer.
+bundles cannot be overwritten by an Isolation Forest run. A separate filtered bundle has now been trained; see the results below. The
+original `train_robust_kaggle.ipynb` reproduces the unfiltered trainer; use
+`train_filtered_kaggle.ipynb` for the filtered experiment.
 
 The detector uses numeric vehicle predictors and the frozen CarBids structural
 signals, never asking-price labels, residuals, descriptions or category ID codes.
@@ -79,5 +79,20 @@ Only after evaluation does a fresh detector filter the full deployment cohort
 for refitting. Both assessment and refit removal counts are recorded. No car is
 rejected at inference. Creating an experiment does not switch the GUI model;
 review the evaluation before deploying its bundle. Historical test reuse remains
-a limitation. The published ensemble stays active until a filtered replacement
-has actually been trained and assessed.
+a limitation. The default changes only when the completed filtered bundle passes its recorded
+comparison criteria.
+
+## Trained Isolation Forest experiment · 26 October 2026
+
+The original cohort was recovered and its SHA256 matched exactly: `746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12`. All 211,844 eligible records were used before automatic filtering. The assessment detector retained 139,279 of 148,290 training cars and removed 9,011 (6.08%). Validation and test each retain all 31,777 cars.
+
+| Model | Validation MAE | Test MAE | Test RMSE |
+|---|---:|---:|---:|
+| Unfiltered ensemble | $3,084.65 | $3,288.05 | $6,664.99 |
+| Isolation Forest ensemble | $3,191.29 | $3,368.20 | $6,946.92 |
+
+The completed filtered ensemble has 9 members and 16,212 trees. Deployment refitting retained 194,155 of 211,844 rows after fitting a fresh detector to the complete cohort. This later refit does not alter the earlier holdout evaluation.
+
+Filtering did not improve the benchmark. The unfiltered ensemble remains the best-model default. The completed filtered model is available through the **Isolation Forest trained ensemble** GUI choice for comparison.
+
+`models/robust-asking-isolation/` contains the trained bundle, evaluation and `run.json` provenance. `reports/filtered-training-source.txt` archives the actual trainer. `train_filtered_kaggle.ipynb` is a self-contained CPU reproduction notebook with the matching frozen upstream signals and benchmark. Its output ZIP preserves the separate filtered directory. No transformer training was performed.
