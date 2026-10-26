@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "python -m pytest tests -q"
+    "check": "python -m pytest tests -q",
+    "check:model": "node tests/check-browser.mjs"
   }
 }

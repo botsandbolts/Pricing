@@ -1,0 +1,122 @@
+{
+  "status": "evaluated",
+  "mode": "tabular_baseline",
+  "label": "Trained tabular-only baseline; not E5 enhanced",
+  "sample_fraction": 0.1,
+  "raw_sample_rows": 42688,
+  "eligible_rows": 31001,
+  "train_rows": 21700,
+  "validation_rows": 4650,
+  "test_rows": 4651,
+  "filter": null,
+  "filter_note": "No predicted_text_price exists in the baseline, so the E5-price filter does not apply.",
+  "test": {
+    "mae_usd": 3749.355616343462,
+    "rmse_usd": 7022.650184931516,
+    "median_ape_pct": 17.040219720343792,
+    "rmsle": 0.4011850359455894,
+    "r2": 0.765118852127304
+  },
+  "selected": {
+    "target": "log1p",
+    "alpha": 0.5,
+    "mean": 9.52160100032053,
+    "std": 0.8353620549543556,
+    "best_iteration": 1000,
+    "validation": {
+      "mae_usd": 3820.4265156667857,
+      "rmse_usd": 7872.002593017293,
+      "median_ape_pct": 16.232604866330608,
+      "rmsle": 0.4040244756294733,
+      "r2": 0.7197332470265358
+    }
+  },
+  "grid": [
+    {
+      "target": "dollars",
+      "alpha": 0.5,
+      "mean": 18637.86677419355,
+      "std": 14674.63638278637,
+      "best_iteration": 1000,
+      "validation": {
+        "mae_usd": 3905.025214710162,
+        "rmse_usd": 7915.362087220894,
+        "median_ape_pct": 16.73207613705895,
+        "rmsle": 0.47006605948994346,
+        "r2": 0.7166372896452535
+      }
+    },
+    {
+      "target": "dollars",
+      "alpha": 0.9,
+      "mean": 18637.86677419355,
+      "std": 14674.63638278637,
+      "best_iteration": 998,
+      "validation": {
+        "mae_usd": 3896.254812374606,
+        "rmse_usd": 7739.980225554036,
+        "median_ape_pct": 16.9591572002468,
+        "rmsle": 0.5057949575916189,
+        "r2": 0.7290551956728373
+      }
+    },
+    {
+      "target": "dollars",
+      "alpha": 1.5,
+      "mean": 18637.86677419355,
+      "std": 14674.63638278637,
+      "best_iteration": 998,
+      "validation": {
+        "mae_usd": 3917.5388969692162,
+        "rmse_usd": 7648.168267021163,
+        "median_ape_pct": 17.27870524854763,
+        "rmsle": 0.5327312546392244,
+        "r2": 0.7354449880286651
+      }
+    },
+    {
+      "target": "log1p",
+      "alpha": 0.5,
+      "mean": 9.52160100032053,
+      "std": 0.8353620549543556,
+      "best_iteration": 1000,
+      "validation": {
+        "mae_usd": 3820.4265156667857,
+        "rmse_usd": 7872.002593017293,
+        "median_ape_pct": 16.232604866330608,
+        "rmsle": 0.4040244756294733,
+        "r2": 0.7197332470265358
+      }
+    },
+    {
+      "target": "log1p",
+      "alpha": 0.9,
+      "mean": 9.52160100032053,
+      "std": 0.8353620549543556,
+      "best_iteration": 996,
+      "validation": {
+        "mae_usd": 3833.745990947634,
+        "rmse_usd": 7825.1320527021135,
+        "median_ape_pct": 16.398408338268407,
+        "rmsle": 0.40033813780487737,
+        "r2": 0.7230607731114205
+      }
+    },
+    {
+      "target": "log1p",
+      "alpha": 1.5,
+      "mean": 9.52160100032053,
+      "std": 0.8353620549543556,
+      "best_iteration": 801,
+      "validation": {
+        "mae_usd": 3851.078371410125,
+        "rmse_usd": 7832.349259490195,
+        "median_ape_pct": 16.39645723535462,
+        "rmsle": 0.40049544641141305,
+        "r2": 0.7225496892398238
+      }
+    }
+  ],
+  "band80_test_coverage": 0.7860675123629327,
+  "scope": "Historical April\u2013May 2021 US asking prices, not transaction prices or current valuations."
+}

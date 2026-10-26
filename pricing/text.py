@@ -119,3 +119,4 @@ def load_text(path, device='cpu'):
     model = TextPriceRegressor(AutoModel.from_pretrained(path/'backbone'), state['mean'], state['std'])
     model.head.load_state_dict(state['head'])
     return model.to(device).eval(), AutoTokenizer.from_pretrained(path/'tokenizer')
+

@@ -8,3 +8,8 @@ training-cache/
 
 artifacts/
 .pytest_cache/
+
+
+artifacts/
+.pytest_cache/
+*.zip

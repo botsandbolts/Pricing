@@ -65,3 +65,4 @@ def prepare(source, output, full=False, fraction=None):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('--output',default='training-cache/stack-cohort.jsonl');p.add_argument('--full',action='store_true');p.add_argument('--fraction',type=float,help='Fraction of all raw database rows, before eligibility filtering');a=p.parse_args();prepare(a.source,a.output,a.full,a.fraction)
+

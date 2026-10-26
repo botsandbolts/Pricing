@@ -54,7 +54,7 @@ def frame(n=60):
     rng=np.random.default_rng(42);d=pd.DataFrame({c:['toyota']*n for c in CATEGORICAL})
     d['year']=rng.integers(1990,2021,n);d['odometer']=rng.integers(10000,200000,n)
     d['price']=rng.integers(2000,50000,n).astype(float);d['row_id']=[str(i) for i in range(n)]
-    d['text']=['maintained car '+('maintained '*(i%6))+str(i) for i in range(n)]
+    d['text']=['maintained car '+('maintained '*(1 if i%5 else i%19+2))+str(i) for i in range(n)]
     d['date']=pd.date_range('2021-04-01',periods=n,freq='h',tz='UTC')
     d['phase']=['train']*int(n*.7)+['validation']*(int(n*.85)-int(n*.7))+['test']*(n-int(n*.85))
     return d
@@ -69,7 +69,6 @@ def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch)
     from tokenizers.processors import TemplateProcessing
     import pricing.train as train
     from pricing.text import MODEL_ID
-    from pricing.identity import IDENTITY_MODEL
     from pricing.inference import PricePipeline
     torch.set_num_threads(1)
     tiny=tmp_path/'tiny'
@@ -80,10 +79,10 @@ def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch)
     tok=PreTrainedTokenizerFast(tokenizer_object=raw,bos_token='<s>',eos_token='</s>',pad_token='<pad>',unk_token='<unk>');tok.save_pretrained(tiny)
     real_model=AutoModel.from_pretrained;real_tok=AutoTokenizer.from_pretrained
     def load_model(source,*args,**kwargs):
-        if str(source) in [MODEL_ID,IDENTITY_MODEL]:source=tiny;kwargs.pop('revision',None)
+        if str(source) in [MODEL_ID]:source=tiny;kwargs.pop('revision',None)
         return real_model(source,*args,**kwargs)
     def load_tok(source,*args,**kwargs):
-        if str(source) in [MODEL_ID,IDENTITY_MODEL]:source=tiny;kwargs.pop('revision',None)
+        if str(source) in [MODEL_ID]:source=tiny;kwargs.pop('revision',None)
         return real_tok(source,*args,**kwargs)
     monkeypatch.setattr(AutoModel,'from_pretrained',load_model);monkeypatch.setattr(AutoTokenizer,'from_pretrained',load_tok)
     # Record which targets reach each text-regression fit. No holdout prices enter assessment fits.
@@ -92,7 +91,7 @@ def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch)
     monkeypatch.setattr(train,'fit_text',record)
     d=frame();source=tmp_path/'data.jsonl';d.to_json(source,orient='records',lines=True,date_format='iso')
     out=tmp_path/'bundle';a=Namespace(data=str(source),output=str(out),device='cpu',allow_cpu=True,threads=1,
-        revision='synthetic-test',folds=2,epochs=1,identity_epochs=1,batch_size=8,accumulation=1,lr=2e-5,trees=8,seed=42)
+        revision='synthetic-test',folds=2,epochs=1,batch_size=8,accumulation=1,lr=2e-5,trees=8,seed=42)
     train.run(a)
     tr=set(d.loc[d.phase=='train','price'])
     assert all(s.issubset(tr) for s in targets[:3])
@@ -100,15 +99,17 @@ def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch)
     for directory,count in [('assessment',42),('',60)]:
         audit=pd.read_csv(out/directory/'oof-predictions.csv')
         assert len(audit)==count
-        assert audit.predicted_text_price.notna().all() and audit.predicted_make_model_price.notna().all()
+        assert audit.predicted_text_price.notna().all()
         assert set(audit.fold)=={0,1}
     manifest=json.loads((out/'manifest.json').read_text());evaluation=json.loads((out/'evaluation.json').read_text())
-    assert manifest['trained_rows']==60 and manifest['outlier_filter'] is None
-    assert evaluation['rows']['outlier_removed']==0
+    assert manifest['training_candidates']==60 and manifest['trained_rows']<=60
+    assert manifest['outlier_filter']['algorithm']=='IsolationForest'
+    assert manifest['outlier_filter']['input']=='predicted_text_price'
+    assert evaluation['rows']['outlier_removed']+evaluation['rows']['retained_train']==42
     monkeypatch.undo()
     pipeline=PricePipeline(out)
     p=pipeline.predict('maintained car',d.iloc[0].to_dict())
-    assert p['price']>=0 and p['predicted_text_price']>0 and p['predicted_make_model_price']>0
+    assert p['price']>=0 and p['predicted_text_price']>0
     assert 'predicted_text_price' in pipeline.lgb.feature_name()
 
 
@@ -122,9 +123,11 @@ def test_description_transformer_receives_regression_gradients():
     loss.backward();assert weight.grad is not None and weight.grad.abs().sum()>0
 
 
-def test_no_outlier_detectors_in_active_training():
+def test_scalar_filter_and_no_make_model_transformer():
     source=Path('pricing/train.py').read_text()
-    assert 'IsolationForest' not in source and 'LocalOutlierFactor' not in source
+    assert 'IsolationForest' in source and 'LocalOutlierFactor' not in source
+    assert 'pricing.identity' not in source
+    assert not Path('pricing/identity.py').exists()
 
 
 def test_full_preparation_retains_empty_free_fields_without_sampling(tmp_path):
@@ -142,3 +145,12 @@ def test_full_preparation_retains_empty_free_fields_without_sampling(tmp_path):
     assert meta['source_rows']==12 and meta['sample_fraction']==1.
     assert meta['outlier_filter'] is None and len(cohort)==9
     assert meta['empty_descriptions_retained']==2
+
+
+def test_isolation_filter_uses_price_scalar(tmp_path):
+    from pricing.train import filter_prices
+    prices=np.r_[np.random.default_rng(42).normal(10000,100,100),1e6]
+    keep=filter_prices(prices,tmp_path,np.arange(len(prices)),42,1)
+    assert 100 not in keep
+    audit=pd.read_csv(tmp_path/'isolation-audit.csv')
+    assert list(audit)==['row_id','predicted_text_price','score','kept']

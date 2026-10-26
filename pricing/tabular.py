@@ -15,7 +15,7 @@ def fit_schema(frame):
     return {c: sorted(normal(frame[c]).dropna().unique().tolist()) for c in CATEGORICAL}
 
 
-def features(frame, schema, text_prices=None, make_model_prices=None):
+def features(frame, schema, text_prices=None):
     x = pd.DataFrame(index=frame.index)
     for c in NUMERIC:
         x[c] = pd.to_numeric(frame[c], errors='coerce').replace([np.inf,-np.inf],np.nan)
@@ -26,9 +26,4 @@ def features(frame, schema, text_prices=None, make_model_prices=None):
         if len(prices) != len(frame) or not np.isfinite(prices).all() or (prices < 0).any():
             raise ValueError('One finite nonnegative out-of-fold/inference text price required per row')
         x['predicted_text_price'] = prices
-    if make_model_prices is not None:
-        identity=np.asarray(make_model_prices,dtype=float)
-        if len(identity)!=len(frame) or not np.isfinite(identity).all() or (identity<0).any():
-            raise ValueError('One finite nonnegative make/model price required per row')
-        x['predicted_make_model_price']=identity
     return x

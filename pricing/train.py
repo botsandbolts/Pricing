@@ -1,14 +1,14 @@
-"""Full-data E5 description OOF + MiniLM identity OOF + Huber LightGBM; no filters."""
+"""10% E5 description OOF + Isolation Forest + categorical/tabular Huber LightGBM."""
 import argparse,gc,hashlib,json
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
 import lightgbm as lgb
-from transformers import AutoModel,AutoTokenizer
+from transformers import AutoTokenizer
+from sklearn.ensemble import IsolationForest
 from pricing.oof import cross_fit
 from pricing.text import MODEL_ID,fit_text,predict_text,save_text,load_text
-from pricing.identity import IDENTITY_MODEL,IDENTITY_REVISION,names,encode,fit_head,head_prices
 from pricing.tabular import features,fit_schema,CATEGORICAL
 from scripts.common import clean,metrics
 
@@ -41,6 +41,17 @@ def lgb_fit(x,y,settings,a,xv=None,yv=None):
     m.fit(x,(raw-mean)/std,**kwargs);return m,mean,std
 
 
+def filter_prices(prices,path,row_ids,seed=42,threads=4):
+    prices=np.asarray(prices,float)
+    if prices.ndim!=1 or not np.isfinite(prices).all() or len(prices)<3:raise ValueError('Finite OOF description prices required')
+    detector=IsolationForest(n_estimators=300,max_samples=min(256,len(prices)),contamination='auto',random_state=seed,n_jobs=threads)
+    labels=detector.fit_predict(prices.reshape(-1,1));keep=np.flatnonzero(labels==1)
+    path=Path(path);path.mkdir(parents=True,exist_ok=True)
+    pd.DataFrame({'row_id':np.asarray(row_ids),'predicted_text_price':prices,'score':detector.score_samples(prices.reshape(-1,1)),'kept':labels==1}).to_csv(path/'isolation-audit.csv',index=False)
+    if len(keep)<2:raise ValueError('Isolation Forest retained too few rows; no forced fallback is applied')
+    return keep
+
+
 def run(a):
     if a.device.startswith('cuda') and not torch.cuda.is_available():raise RuntimeError('CUDA is unavailable. Run on a GPU, or explicitly use --device cpu --allow-cpu for slow E5 fine-tuning.')
     if a.device=='cpu' and not a.allow_cpu:raise RuntimeError('Explicit --allow-cpu required for slow full E5 training')
@@ -50,21 +61,13 @@ def run(a):
     d['text']=d.text.fillna('').map(clean);validate_cohort(d)
     out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
     config=vars(a).copy();config.pop('output',None)
-    config.update(description_model=MODEL_ID,description_revision=a.revision,identity_model=IDENTITY_MODEL,identity_revision=IDENTITY_REVISION)
-    source=b''.join(Path(__file__).with_name(p).read_bytes() for p in ['train.py','oof.py','text.py','identity.py','tabular.py'])
+    config.update(description_model=MODEL_ID,description_revision=a.revision)
+    source=b''.join(Path(__file__).with_name(p).read_bytes() for p in ['train.py','oof.py','text.py','tabular.py'])
     fingerprint=hashlib.sha256(Path(a.data).read_bytes()+json.dumps(config,sort_keys=True).encode()+source).hexdigest()
     cfg=out/'training-config.json'
     if cfg.exists() and json.loads(cfg.read_text())['fingerprint']!=fingerprint:raise ValueError('Output contains a different run; choose a new output directory')
     cfg.write_text(json.dumps({'fingerprint':fingerprint,**config},indent=2));(out/'manifest.json').unlink(missing_ok=True)
     tok=AutoTokenizer.from_pretrained(MODEL_ID,revision=a.revision)
-    identity_encoder=AutoModel.from_pretrained(IDENTITY_MODEL,revision=IDENTITY_REVISION).eval()
-    identity_encoder.requires_grad_(False)
-    identity_tok=AutoTokenizer.from_pretrained(IDENTITY_MODEL,revision=IDENTITY_REVISION)
-    vectors_file=out/'make-model-vectors.npy'
-    if vectors_file.exists():vectors=np.load(vectors_file)
-    else:
-        unique,indices=np.unique(names(d),return_inverse=True)
-        vectors=encode(identity_encoder,identity_tok,unique.tolist(),'cpu')[indices];np.save(vectors_file,vectors)
     text_kwargs=dict(tokenizer=tok,source=MODEL_ID,revision=a.revision,epochs=a.epochs,
         batch_size=a.batch_size,accumulation=a.accumulation,lr=a.lr,device=a.device)
     def release(model):
@@ -76,65 +79,57 @@ def run(a):
             lambda fit_idx,y:fit_text(local.text.iloc[fit_idx],y,seed=a.seed,**text_kwargs),
             lambda model,idx:predict_text(model,tok,local.text.iloc[idx].tolist(),a.device,a.batch_size),
             folds=a.folds,seed=a.seed,cache=path/'description-oof',fingerprint=fingerprint,release=release)
-        identity_oof,_=cross_fit(local.row_id,local.price,
-            lambda fit_idx,y:fit_head(vectors[indices[fit_idx]],y,a.identity_epochs,a.seed),
-            lambda state,idx:head_prices(*[state[0],vectors[indices[idx]],state[1],state[2]]),
-            folds=a.folds,seed=a.seed,cache=path/'identity-oof',fingerprint=fingerprint)
         # Fresh all-fitting-row regressors predict validation/test and future requests.
         desc_dir=path/'text-model'
         if (desc_dir/'provenance.json').exists():desc,_=load_text(desc_dir,a.device)
         else:
             desc=fit_text(local.text,local.price,seed=a.seed,**text_kwargs)
             save_text(desc,tok,desc_dir,{'source':MODEL_ID,'revision':a.revision,'fitting_rows':len(indices),'fingerprint':fingerprint})
-        identity=fit_head(vectors[indices],local.price,a.identity_epochs,a.seed)
-        pd.DataFrame({'row_id':local.row_id,'fold':fold_ids,'predicted_text_price':text_oof,
-            'predicted_make_model_price':identity_oof}).to_csv(path/'oof-predictions.csv',index=False)
-        held_text=held_identity=None
+        pd.DataFrame({'row_id':local.row_id,'fold':fold_ids,'predicted_text_price':text_oof}).to_csv(path/'oof-predictions.csv',index=False)
+        held_text=None
         if held is not None:
             held_text=predict_text(desc,tok,d.text.iloc[held].tolist(),a.device,a.batch_size)
-            held_identity=head_prices(identity[0],vectors[held],identity[1],identity[2])
         del desc;release(None)
-        return text_oof,identity_oof,held_text,held_identity,identity
+        return text_oof,held_text
     tr=np.flatnonzero(d.phase=='train');va=np.flatnonzero(d.phase=='validation');te=np.flatnonzero(d.phase=='test')
     held=np.r_[va,te]
-    tprice,iprice,ht,hi,_=stage(tr,out/'assessment',held)
-    schema=fit_schema(d.iloc[tr]);x=features(d.iloc[tr],schema,tprice,iprice)
-    xv=features(d.iloc[va],schema,ht[:len(va)],hi[:len(va)]);xt=features(d.iloc[te],schema,ht[len(va):],hi[len(va):])
+    tprice,ht=stage(tr,out/'assessment',held)
+    keep=filter_prices(tprice,out/'assessment',d.row_id.iloc[tr],a.seed,a.threads)
+    schema=fit_schema(d.iloc[tr]);x=features(d.iloc[tr],schema,tprice)
+    xv=features(d.iloc[va],schema,ht[:len(va)]);xt=features(d.iloc[te],schema,ht[len(va):])
     choices=[]
     for target in ['dollars','log1p']:
         for alpha in [.5,.9,1.5]:
-            m,mean,std=lgb_fit(x,d.price.iloc[tr],(target,alpha,a.trees),a,xv,d.price.iloc[va])
+            m,mean,std=lgb_fit(x.iloc[keep],d.price.iloc[tr[keep]],(target,alpha,a.trees),a,xv,d.price.iloc[va])
             vp=inverse(m.predict(xv),mean,std,target)
             row={'target':target,'alpha':alpha,'best_iteration':m.best_iteration_,'validation':metrics(d.price.iloc[va],vp),'mean':mean,'std':std}
             choices.append((row,m,vp))
     choice,model,vp=min(choices,key=lambda v:v[0]['validation']['mae_usd'])
     tp=inverse(model.predict(xt),choice['mean'],choice['std'],choice['target'])
     band=float(np.quantile(abs(np.log1p(d.price.iloc[va])-np.log1p(vp)),.8))
-    evaluation={'status':'evaluated','rows':{'train':len(tr),'validation':len(va),'test':len(te),'eligible':len(d),'outlier_removed':0},
+    evaluation={'status':'evaluated','rows':{'train':len(tr),'validation':len(va),'test':len(te),'eligible':len(d),'outlier_removed':len(tr)-len(keep),'retained_train':len(keep)},
         'selected':choice,'grid':[c[0] for c in choices],'stacked':metrics(d.price.iloc[te],tp),
-        'description_only':metrics(d.price.iloc[te],ht[len(va):]),'make_model_only':metrics(d.price.iloc[te],hi[len(va):]),
+        'description_only':metrics(d.price.iloc[te],ht[len(va):]),
         'band80_test_coverage':float(np.mean(abs(np.log1p(d.price.iloc[te])-np.log1p(tp))<=band)),
         'note':'Chronological assessment, completed before the all-row deployment refit.'}
     (out/'evaluation.json').write_text(json.dumps(evaluation,indent=2));model.booster_.save_model(str(out/'assessment/lightgbm.txt'))
     print(json.dumps(evaluation,indent=2),flush=True)
     del choices,model;gc.collect()
-    all_idx=np.arange(len(d));tprice,iprice,_,_,identity=stage(all_idx,out)
-    schema=fit_schema(d);x=features(d,schema,tprice,iprice)
-    model,mean,std=lgb_fit(x,d.price,(choice['target'],choice['alpha'],max(1,choice['best_iteration'])),a)
+    all_idx=np.arange(len(d));tprice,_=stage(all_idx,out)
+    keep=filter_prices(tprice,out,d.row_id,a.seed,a.threads)
+    schema=fit_schema(d);x=features(d,schema,tprice)
+    model,mean,std=lgb_fit(x.iloc[keep],d.price.iloc[keep],(choice['target'],choice['alpha'],max(1,choice['best_iteration'])),a)
     model.booster_.save_model(str(out/'lightgbm.txt'));(out/'schema.json').write_text(json.dumps(schema,indent=2))
-    id_dir=out/'identity-model';id_dir.mkdir(exist_ok=True)
-    identity_encoder.save_pretrained(id_dir/'encoder',safe_serialization=True);identity_tok.save_pretrained(id_dir/'tokenizer')
-    torch.save({'head':identity[0].state_dict(),'mean':identity[1],'std':identity[2],'dimensions':vectors.shape[1]},id_dir/'regression.pt')
-    manifest={'status':'ready','pipeline':'fine-tuned-e5-base+lightgbm','identity_price_feature':True,'trained_rows':len(d),'outlier_filter':None,
+    manifest={'status':'ready','pipeline':'fine-tuned-e5-base+lightgbm','trained_rows':len(keep),'training_candidates':len(d),'outlier_filter':{'algorithm':'IsolationForest','contamination':'auto','input':'predicted_text_price','removed':len(d)-len(keep)},
         'feature_names':model.booster_.feature_name(),'target_transform':choice['target'],'target_mean':mean,'target_std':std,
         'band80_log_radius':band,'fingerprint':fingerprint,'assessment_note':evaluation['note']}
-    (out/'manifest.json').write_text(json.dumps(manifest,indent=2));print('Full-data OOF stack ready',flush=True)
+    (out/'manifest.json').write_text(json.dumps(manifest,indent=2));print('10% E5 + Isolation Forest stack ready',flush=True)
 
 
 def parser():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--data',default='training-cache/all-cohort.jsonl');p.add_argument('--output',default='artifacts/e5-oof-all')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--data',default='training-cache/ten-percent.jsonl');p.add_argument('--output',default='artifacts/car-price-studio')
     p.add_argument('--device',default='cuda');p.add_argument('--allow-cpu',action='store_true');p.add_argument('--revision',default='ff629add2ff80256e42173ec84299eed1c1b6393')
-    p.add_argument('--folds',type=int,default=3);p.add_argument('--epochs',type=int,default=2);p.add_argument('--identity-epochs',type=int,default=20)
+    p.add_argument('--folds',type=int,default=3);p.add_argument('--epochs',type=int,default=2)
     p.add_argument('--batch-size',type=int,default=1);p.add_argument('--accumulation',type=int,default=8);p.add_argument('--lr',type=float,default=2e-5)
     p.add_argument('--trees',type=int,default=1000);p.add_argument('--threads',type=int,default=4);p.add_argument('--seed',type=int,default=42)
     return p

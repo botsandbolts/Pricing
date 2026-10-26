@@ -5,10 +5,11 @@ from pathlib import Path
 import streamlit as st
 from pricing.text import MODEL_ID, MAX_CHARACTERS
 
-st.set_page_config(page_title='pricing · E5 + LightGBM',page_icon='🚗',layout='wide')
-st.title('pricing')
-st.caption('Fine-tuned E5-base text regression + LightGBM · historical US asking prices')
-path=Path(os.environ.get('PRICING_MODEL_DIR','artifacts/e5-oof-all'))
+st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
+st.title('Car Price Studio')
+st.caption('10% sample · historical US asking prices · transparent model status')
+mode=st.selectbox('Pricing mode',['Trained tabular baseline','E5 + Isolation Forest (training required)'])
+path=Path(os.environ.get('PRICING_MODEL_DIR','models/studio-baseline' if mode=='Trained tabular baseline' else 'artifacts/car-price-studio'))
 ready=(path/'manifest.json').exists()
 if not ready:
     st.info('The new model has not been trained yet. Complete the GPU training run to enable dollar estimates. The previous model is not used.')
@@ -38,8 +39,8 @@ with value:
         cylinders=b.selectbox('Cylinders',['unknown','3 cylinders','4 cylinders','5 cylinders','6 cylinders','8 cylinders','10 cylinders','12 cylinders','other'])
         color=c.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'])
         state=st.text_input('US state abbreviation',value='ca',max_chars=2)
-        notes=st.text_area('Seller description — free text',height=250,max_chars=MAX_CHARACTERS,
-            placeholder='Describe maintenance, condition, equipment, defects and vehicle history. Long descriptions are processed in 512-token chunks.')
+        notes=st.text_area('Seller description — free text',height=250,max_chars=MAX_CHARACTERS,disabled=mode=='Trained tabular baseline',
+            placeholder='The trained baseline does not use descriptions. Free text is used only after E5 training.')
         submitted=st.form_submit_button('Estimate asking price',disabled=not ready)
     if submitted:
         if len(notes)>8000:
@@ -52,34 +53,25 @@ with value:
                 with st.spinner('Reading the description and calculating price…'):
                     p=get_pipeline(str(path)).predict(notes,fields)
                 st.metric('Estimated asking price',f"${p['price']:,.0f}")
-                st.caption(f"Description-price feature: ${p['predicted_text_price']:,.0f}")
-                if p.get('predicted_make_model_price') is not None:
-                    st.caption(f"Make/model-price feature: ${p['predicted_make_model_price']:,.0f}")
+                if p.get('predicted_text_price') is not None:
+                    st.caption(f"Description-price feature: ${p['predicted_text_price']:,.0f}")
                 st.write(f"Indicative 80% band: ${p['range'][0]:,.0f}–${p['range'][1]:,.0f}")
             except Exception as exc:
                 st.error(f'Model unavailable: {exc}')
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
-    st.write(f'**Text model:** `{MODEL_ID}`. XLM-RoBERTa, 768 dimensions, 512 tokens per chunk. Every transformer parameter is fine-tuned with a regression head against standardized log1p(price), using descriptions only. Longer descriptions up to 8,000 characters use pooled chunk representations.')
-    st.write('**Make/model model:** a frozen all-MiniLM-L6-v2 encoder reads only the two names, with a neural regression head trained on log prices. Three-fold cross-fitting generates predicted_make_model_price for training. No year, mileage or description enters this small model. It is a broad identity price signal, not a complete car valuation.')
-    st.write('**Dynamic feature:** reverse the target scaling and log transform to create one dollar-valued `predicted_text_price`. Descriptions and price-like phrases are cleaned consistently. Structured form fields enter LightGBM separately.')
-    st.write('**Final model:** LightGBM combines both price scalars with year, mileage and categorical vehicle fields. The full-database experiment compares dollar and log-price targets with Huber thresholds 0.5, 0.9 and 1.5. The validation-MAE winner supplies the displayed dollar estimate. The compact make/model model supplies a second price scalar alongside categorical values.')
-    st.write('**Leakage control:** three-fold cross-fitting fits each description model without the predicted row or its target. Target scaling uses fitting rows only. The make/model feature is also cross-fitted. There is no outlier filter. After chronological evaluation, both branches generate fresh OOF prices across the complete eligible database and the deployable models are refitted on all rows.')
-    st.write('For a log-target winner, the dollar point estimate is the back-transformed log prediction, not a bias-corrected arithmetic mean. Dollar-target winners use the inverse linear scaling. The 80% band is calibrated from validation log residuals; its actual test coverage is reported.')
+    st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
+    st.write('The active baseline uses structured car fields only. Its scores are measured on a chronological test set. It does not use descriptions or the E5-price filter.')
+    st.write('The E5 workflow fine-tunes embaas/sentence-transformers-multilingual-e5-base on descriptions and log prices. Three-fold predictions create predicted_text_price without using each predicted row’s target in its fitting model.')
+    st.write('Isolation Forest uses contamination="auto" on training OOF description prices only. No fixed percentage is removed; validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. This enhanced mode still requires GPU training.')
+    st.write('A fixed 10% sample of raw database rows is drawn before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
 with results:
     if (path/'evaluation.json').exists() and ready:
         e=json.loads((path/'evaluation.json').read_text())
-        st.write(e['rows'])
-        st.caption('Scores evaluate the chronological assessment model before the final all-row deployment refit.')
-        st.dataframe([{'Model':label,**e[key]} for key,label in [('description_only','Fine-tuned description only'),('make_model_only','MiniLM make/model only'),('tabular_only','Tabular LightGBM'),('stacked','Stacked E5 + LightGBM')] if key in e],hide_index=True)
-        st.write(f"80% band test coverage: {e['band80_test_coverage']:.1%}")
-    else:
-        st.info('No evaluation exists for this architecture yet. Run training to produce held-out metrics; earlier model results do not apply.')
-
-    identity_report=Path('reports/archived-make-model-evaluation.json')
-    if identity_report.exists():
-        identity=json.loads(identity_report.read_text())
-        st.subheader('Make/model transformer: measured component result')
-        st.caption('Frozen MiniLM encoder + trained neural price head. These are make/model-only scores, not full-stack scores.')
-        st.json(identity['test'])
-
+        if e.get('mode')=='tabular_baseline':
+            st.info(e['label']);st.json(e['test'])
+            st.write({k:e[k] for k in ['train_rows','validation_rows','test_rows','eligible_rows']})
+        else:
+            st.write(e['rows']);st.json(e['stacked'])
+        st.write(f"Indicative 80% band test coverage: {e['band80_test_coverage']:.1%}")
+    else:st.info('This mode has no completed evaluation. Train E5 to enable it; baseline scores do not apply.')
