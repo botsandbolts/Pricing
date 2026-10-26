@@ -85,6 +85,8 @@ with value:
         from marketbridge.ui import render_auction_companion
         render_auction_companion(Path(__file__).parent,car)
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
+        from pricing.explanation_ui import render_visual_explanations
+        render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
     st.subheader('A pricing committee with thousands of small opinions')

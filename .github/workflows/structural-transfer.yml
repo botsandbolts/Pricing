@@ -10,4 +10,4 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt pytest
       - run: python -m compileall -q marketbridge pricing carbids app.py
-      - run: OMP_NUM_THREADS=4 pytest -q tests/test_marketbridge.py tests/test_robust.py
+      - run: OMP_NUM_THREADS=4 pytest -q tests/test_marketbridge.py tests/test_robust.py tests/test_visual_explanations.py

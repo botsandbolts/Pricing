@@ -99,3 +99,14 @@ See [ROBUST_MODEL.md](ROBUST_MODEL.md) for the complete design, capacity/latency
 ### Trained Isolation Forest asking experiment
 
 The separate filtered ensemble is trained on the full original cohort with automatic predictor-only filtering. Test MAE: **$3,368**, compared with **$3,288** for the unfiltered ensemble. The unfiltered ensemble remains the default. Select **Isolation Forest trained ensemble** in the GUI to try the completed filtered model. Full counts, metrics and reproducibility details are in [ROBUST_MODEL.md](ROBUST_MODEL.md); Kaggle reproduction is in [train_filtered_kaggle.ipynb](train_filtered_kaggle.ipynb).
+
+### Interactive price explanations
+
+After estimating a car, click **Build all explanation graphs**. The studio adds a
+whole-model dollar waterfall, native member SHAP beeswarm, dependence scatter,
+comparison decision plot, mileage sensitivity curve and year × mileage heatmap.
+Each includes a lay explanation, humour, hover details and explicit technical
+units. The technical receipt reports reconstruction checks and Monte Carlo
+sampling errors. Reference CSV uploads are optional; the default is a clearly
+labelled 30-car historical gallery. See [EXPLANATIONS.md](EXPLANATIONS.md) for the
+methods, target-scale handling, background limits and validation.
