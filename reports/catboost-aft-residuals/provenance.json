@@ -1,0 +1,26 @@
+{
+  "versions": {
+    "catboost": "1.2.10",
+    "pandas": "2.3.3",
+    "numpy": "2.5.4",
+    "scikit-learn": "1.9.1",
+    "xgboost": "3.4.1"
+  },
+  "script_sha256": "1cfd8500155b2f30cda165c8030caff62f98d3ab72f4c6c809ecc3c579fe80ee",
+  "weights_library_file_id": "libfile_b4a9fc8f2da48191aa979d6815f9475f",
+  "files_sha256": {
+    "README.md": "dab1666a25984fdea3d177fa4383cc62530ca11acc575c98c014defdf9200554",
+    "summary.json": "37729bdeac5bb502e12d31c12e654113e03af4510dfe168bed6ae62c50ca1746",
+    "ask/validation-residuals.csv.gz": "0821aa73929bed81b917180256319c9be8a4a074872ff34c9e59ad33fe013a97",
+    "ask/report.json": "2d1723266074c4cd84abaa71b9e77722a1a7077300afe9f759effada0d1fa08d",
+    "ask/assessment.cbm.gz": "3e2f1306c5cf2561a6d2c256c6bd4c738f7158965d0f3f3c6cc9b4c39aeb1a67",
+    "ask/residual-diagnostics.png": "37b4f5c5ea08ab3fd73963bf8b1609eae25d670108d5d08031235a9c0aa29a0a",
+    "ask/assessment.cbm": "31841ebc475b99b00b7586259cb20f2f86100963c831dc62aa8501fe8880756e",
+    "ask/test-residuals.csv.gz": "0fa5018f1fbf80159e71f43d49c0b465dca497865103fc7be7b71efb6e7290cd",
+    "bid/validation-residuals.csv.gz": "5de08e86c3a7cb794f7031696ffe7f8a6cc3635463953a12e8eba511dbfe399c",
+    "bid/report.json": "7be3c40e069096c303d8ab08e95b9a2b5fb9663ebd38810e660f79be2824545f",
+    "bid/residual-diagnostics.png": "315d05daa354fb65245d6074171337f73ce4946caaf730028fa1a5bd4cf89aa9",
+    "bid/assessment.cbm": "d4c568d8fe0207ea870c4bd05e87d3442155e2d6a9c36a72ef09763dc2624db9",
+    "bid/test-residuals.csv.gz": "ce1ebd39d137abb98d1f001de03009c5c3b591a5e574c3ef9927c7979c962dbb"
+  }
+}

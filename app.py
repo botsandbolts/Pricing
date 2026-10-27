@@ -33,8 +33,11 @@ aft_path=Path('models/price-model-suite/ask')
 aft_label='MiniLM + Cleanlab + XGBoost AFT (default)'
 aft_ready=(aft_path/'manifest.json').exists() and json.loads((aft_path/'manifest.json').read_text()).get('status')=='ready'
 if aft_ready:choices.insert(0,aft_label)
+from pricing.residual_ui import ready as robust_aft_ready
+robust_aft_label='Regularized XGBoost AFT · residual-trimmed (default)'
+if robust_aft_ready(Path('.')):choices.insert(0,robust_aft_label)
 mode=st.selectbox('Pricing model',choices,index=0)
-locations={aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
+locations={robust_aft_label:Path('models/residual-trimmed-xgb/ask'),aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
            'Unfiltered trained ensemble':Path('models/robust-asking'),
@@ -43,7 +46,10 @@ path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
 uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline')=='modest-model-suite' and selected_manifest.get('text_feature',False))
-if selected_manifest.get('pipeline')=='modest-model-suite':
+if selected_manifest.get('training_regime')=='residual-trimmed-robust-xgb':
+    st.info('Default: larger regularized XGBoost AFT. Highest-residual 25% per split plus OutlierTree flags removed; tabular vehicle facts only.')
+    st.warning('Filtered validation/test scores are optimistic because their labels select retained cars. See Evaluation for original unfiltered-test errors too.')
+elif selected_manifest.get('pipeline')=='modest-model-suite':
     st.success('AFT is the preferred default: lowest recorded test RMSE on both datasets and lowest auction MAE. Huber remains better for asking-price MAE.')
     st.caption('Normal AFT predicts the log-normal median. This trained run used exact price bounds; no interval-censoring mechanism was verified.')
 if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
@@ -163,6 +169,9 @@ with results:
                 if not e['promoted']:st.info('This is the completed filtered experiment. The Best trained ensemble option selects the unfiltered ensemble because its benchmark errors are lower.')
             st.download_button('Download selected ensemble assessment',json.dumps(e,indent=2),'asking-ensemble-evaluation.json','application/json')
             with st.expander('All training candidates · technical details'):st.json(e['grid'])
+        elif selected_manifest.get('training_regime')=='residual-trimmed-robust-xgb':
+            from pricing.residual_ui import render_assessment
+            render_assessment(Path('.'))
         elif selected_manifest.get('pipeline')=='modest-model-suite':
             st.subheader('Default asking AFT · chronological held-out assessment')
             st.json(e['models']['xgb_aft_normal']['test'])

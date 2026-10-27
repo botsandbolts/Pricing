@@ -40,3 +40,10 @@ reports/cleanlab-rerun-*/**/audit-schema.json
 
 # Reproducible full row-level Isolation Forest score exports
 reports/isolation-onehot-*/**/scores.csv.gz
+
+# Reproducible large assessment weights and per-car residual exports
+reports/catboost-aft-residuals/**/*.cbm
+reports/catboost-aft-residuals/**/*.gz
+models/residual-trimmed-xgb/**/filter-predictions/
+models/residual-trimmed-xgb/**/filter-rows.csv.gz
+models/residual-trimmed-xgb/**/original-test-predictions.csv.gz
