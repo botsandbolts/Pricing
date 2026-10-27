@@ -1,0 +1,79 @@
+{
+  "status": "evaluated",
+  "rows": {
+    "train": 148290,
+    "validation": 31777,
+    "test": 31777,
+    "eligible": 211844,
+    "retained_train": 148290,
+    "outlier_removed": 0
+  },
+  "outlier_filter": {
+    "algorithm": "Cleanlab",
+    "method": "Cleanlab",
+    "fingerprint": "e0b913cb20152628d92f07a8c13742b494711aa046b40e0cccc217de397d993d",
+    "input": "structured vehicle fields + observed training log1p price",
+    "features": [
+      "year",
+      "odometer",
+      "manufacturer",
+      "model",
+      "condition",
+      "cylinders",
+      "fuel",
+      "title_status",
+      "transmission",
+      "drive",
+      "type",
+      "paint_color",
+      "state"
+    ],
+    "input_rows": 148290,
+    "retained_rows": 148290,
+    "removed_rows": 0,
+    "removed": 0,
+    "removed_fraction": 0.0,
+    "estimated_noise_fraction": 0.0,
+    "settings": {
+      "seed": 42,
+      "threads": 4,
+      "folds": 3,
+      "n_boot": 3,
+      "trees": 200,
+      "cleanlab_version": "2.9.0",
+      "numpy_version": "2.5.4",
+      "pandas_version": "2.3.3"
+    },
+    "audit_sha256": "1be8c79d3f23f821c75245af10df6aa31ca5d0f9cf23601b2bb3d87d9c4f2114",
+    "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+    "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+  },
+  "stacked": {
+    "mae_usd": 3063.7682480684402,
+    "rmse_usd": 6450.8340242386475,
+    "median_ape_pct": 14.447838769088902,
+    "rmsle": 0.35076983497695013,
+    "r2": 0.7992486612614791
+  },
+  "validation": {
+    "mae_usd": 2868.6095349055054,
+    "rmse_usd": 5990.034837869645,
+    "median_ape_pct": 14.210501725866658,
+    "rmsle": 0.3427466982636422,
+    "r2": 0.81022214931037
+  },
+  "description_only": {
+    "mae_usd": 3688.3080312139627,
+    "rmse_usd": 7214.499274745916,
+    "median_ape_pct": 18.120406675061513,
+    "rmsle": 0.40440649714496196,
+    "r2": 0.7489044000575233
+  },
+  "selected": {
+    "objective": "huber",
+    "target": "log1p",
+    "statistical_parameters": "LightGBM defaults, 100 trees"
+  },
+  "note": "Separate original chronological held-out assessment. Train-only text head for held predictions and training-only OOF for fitting; no full-cohort text feature used in assessment.",
+  "band80_test_coverage": 0.7932152185543003
+}

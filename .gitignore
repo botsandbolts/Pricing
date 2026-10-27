@@ -24,3 +24,11 @@ models/robust-asking*/search-cache/
 # Reconstructable local audit predictions; publish compact metrics and split membership.
 reports/studio-audit/*predictions.csv
 reports/studio-audit/text-progress.csv
+
+# Large reconstructable audit rows and same-car prediction exports.
+models/price-model-suite*/**/label-audit.csv
+models/price-model-suite*/common-test-predictions.csv
+models/minilm-cleanlab/**/label-audit.csv
+
+# Preliminary structured-only weights stay reproducible locally; compact reports are committed.
+models/price-model-suite-tabular/

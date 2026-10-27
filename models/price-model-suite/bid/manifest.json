@@ -1,0 +1,77 @@
+{
+  "status": "ready",
+  "pipeline": "modest-model-suite",
+  "side": "bid",
+  "model_names": [
+    "lgb_huber",
+    "lgb_quantile_50",
+    "xgb_aft_normal",
+    "ridge_baseline"
+  ],
+  "feature_names": [
+    "age",
+    "log_miles",
+    "auction_grade",
+    "manufacturer",
+    "model",
+    "type",
+    "transmission",
+    "state",
+    "fuel",
+    "drive",
+    "title_status",
+    "cylinders",
+    "paint_color"
+  ],
+  "text_feature": false,
+  "deployment_scope": "full-eligible-data-refit-after-held-out-assessment",
+  "outlier_filter": {
+    "algorithm": "Cleanlab",
+    "method": "Cleanlab",
+    "fingerprint": "5326fdb3dcca51fb7938f87f583ba5dc5cea50eda7c3874af82ccd11b3a1c649",
+    "input": "structured vehicle fields + observed training log1p price",
+    "features": [
+      "age",
+      "log_miles",
+      "auction_grade",
+      "manufacturer",
+      "model",
+      "type",
+      "transmission",
+      "state",
+      "fuel",
+      "drive",
+      "title_status",
+      "cylinders",
+      "paint_color"
+    ],
+    "input_rows": 550181,
+    "retained_rows": 550181,
+    "removed_rows": 0,
+    "removed": 0,
+    "removed_fraction": 0.0,
+    "estimated_noise_fraction": 0.0,
+    "settings": {
+      "seed": 42,
+      "threads": 4,
+      "folds": 3,
+      "n_boot": 3,
+      "trees": 200,
+      "cleanlab_version": "2.9.0",
+      "numpy_version": "2.5.4",
+      "pandas_version": "2.3.3"
+    },
+    "audit_sha256": "d0bd9e879569f8ace7cef74965f4ce0ccfc458f1f44dd890f06b4a7667acf92a",
+    "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+    "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+  },
+  "trained_rows": 550181,
+  "training_candidates": 550181,
+  "library_versions": {
+    "lightgbm": "4.7.0",
+    "xgboost": "3.4.1",
+    "scikit-learn": "1.9.1",
+    "cleanlab": "2.9.0"
+  },
+  "training_source_sha256": "7999d03358741689e33eeb2cecd4bad882c521bfc11d3cd26d2c63359ef5ecd4"
+}

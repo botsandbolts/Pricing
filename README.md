@@ -138,3 +138,7 @@ MiniLM + Isolation Forest + LightGBM is now the default studio choice; the regul
 the assessment did not persist its interval calibration radius. All six explanation
 graphs support this model, conditional on the submitted description-price signal.
 See [model provenance and installation](models/minilm-assessment/README.md).
+
+### Modest ask and auction options
+
+The **New model laboratory** compares default-sized Huber LightGBM, median quantile LightGBM and normal XGBoost AFT, with a Ridge feature baseline. It reports dollar errors, same-car Spearman matrices, and validation-fitted Ridge slopes, intercepts and test bias. See [MODEL_SUITE.md](MODEL_SUITE.md) for training, text OOF boundaries and the censoring assumptions.

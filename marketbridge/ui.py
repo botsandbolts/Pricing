@@ -150,6 +150,12 @@ def render_comparison(root):
         st.link_button('Pricing source','https://github.com/botsandbolts/Pricing');st.link_button('CarBids source','https://github.com/botsandbolts/Carbids')
 
 def render_auction_companion(root,fields):
+    candidates=[Path(root)/'models/price-model-suite/bid/manifest.json',Path(root)/'models/price-model-suite-tabular/bid/manifest.json']
+    if any(p.exists() and json.loads(p.read_text()).get('status')=='ready' for p in candidates):
+        from pricing.suite_ui import render_bid_companion
+        try:render_bid_companion(root,fields)
+        except Exception as exc:st.warning(f'Cleanlab auction companion unavailable: {exc}')
+        return
     try:
         fields={**fields,'as_of':'2021-05-01'}
         st.subheader('CarBids structural companion · evaluated for May 2021')

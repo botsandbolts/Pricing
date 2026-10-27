@@ -1,0 +1,314 @@
+{
+  "side": "ask",
+  "rows": {
+    "eligible": 211127,
+    "train": 147777,
+    "validation": 31668,
+    "test": 31682
+  },
+  "text_feature": false,
+  "models": {
+    "lgb_huber": {
+      "validation": {
+        "mae_usd": 3561.9843799221667,
+        "rmse_usd": 7220.955367857748,
+        "median_ape_pct": 17.75521099446184,
+        "rmsle": 0.41841572252388065,
+        "r2": 0.7212789211217141
+      },
+      "test": {
+        "mae_usd": 3789.2339093657297,
+        "rmse_usd": 7544.734665530109,
+        "median_ape_pct": 18.330606175151857,
+        "rmsle": 0.4270514495780822,
+        "r2": 0.7237304878826477
+      }
+    },
+    "lgb_quantile_50": {
+      "validation": {
+        "mae_usd": 3614.524044832979,
+        "rmse_usd": 7413.336359483264,
+        "median_ape_pct": 17.406112167139575,
+        "rmsle": 0.42778696443778985,
+        "r2": 0.706229688327624
+      },
+      "test": {
+        "mae_usd": 3836.3230727708583,
+        "rmse_usd": 7747.233088043809,
+        "median_ape_pct": 18.089391176749974,
+        "rmsle": 0.43652805626995467,
+        "r2": 0.7087014895398138
+      }
+    },
+    "xgb_aft_normal": {
+      "validation": {
+        "mae_usd": 3639.3402059828977,
+        "rmse_usd": 7148.932759260649,
+        "median_ape_pct": 18.33899563233671,
+        "rmsle": 0.42789805756356425,
+        "r2": 0.7268111829656385
+      },
+      "test": {
+        "mae_usd": 3852.782636235123,
+        "rmse_usd": 7455.399061944096,
+        "median_ape_pct": 18.756438916741196,
+        "rmsle": 0.43653940597014884,
+        "r2": 0.7302342511601206
+      }
+    },
+    "ridge_baseline": {
+      "validation": {
+        "mae_usd": 5407.258899855761,
+        "rmse_usd": 9913.414989985491,
+        "median_ape_pct": 27.353908537739407,
+        "rmsle": 0.6036239800482562,
+        "r2": 0.47467621274439875
+      },
+      "test": {
+        "mae_usd": 5649.227925926785,
+        "rmse_usd": 10051.212326428766,
+        "median_ape_pct": 28.073754828667873,
+        "rmsle": 0.599436993585608,
+        "r2": 0.5096773976871352
+      }
+    }
+  },
+  "outlier_filter": {
+    "algorithm": "Cleanlab",
+    "method": "Cleanlab",
+    "fingerprint": "50df0447798afdcf71e525b2b22c45021db0a94d6366e76b716a9938bdedeee5",
+    "input": "structured vehicle fields + observed training log1p price",
+    "features": [
+      "age",
+      "log_miles",
+      "auction_grade",
+      "manufacturer",
+      "model",
+      "type",
+      "transmission",
+      "state",
+      "fuel",
+      "drive",
+      "title_status",
+      "cylinders",
+      "paint_color"
+    ],
+    "input_rows": 147777,
+    "retained_rows": 147777,
+    "removed_rows": 0,
+    "removed": 0,
+    "removed_fraction": 0.0,
+    "estimated_noise_fraction": 0.0,
+    "settings": {
+      "seed": 42,
+      "threads": 4,
+      "folds": 3,
+      "n_boot": 3,
+      "trees": 200,
+      "cleanlab_version": "2.9.0",
+      "numpy_version": "2.5.4",
+      "pandas_version": "2.3.3"
+    },
+    "audit_sha256": "0a06d188c713d80563bad1e0cb6d23c51acad507ea8d59730e9cd5bf0ed57487",
+    "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+    "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+  },
+  "comparisons": {
+    "spearman": {
+      "ask_lgb_huber": {
+        "ask_lgb_huber": 1.0,
+        "ask_lgb_quantile_50": 0.9922066027447487,
+        "ask_xgb_aft_normal": 0.9739411038378031,
+        "ask_ridge_baseline": 0.8354142498452145
+      },
+      "ask_lgb_quantile_50": {
+        "ask_lgb_huber": 0.9922066027447487,
+        "ask_lgb_quantile_50": 1.0,
+        "ask_xgb_aft_normal": 0.9699586537211701,
+        "ask_ridge_baseline": 0.8328031184107558
+      },
+      "ask_xgb_aft_normal": {
+        "ask_lgb_huber": 0.9739411038378031,
+        "ask_lgb_quantile_50": 0.9699586537211701,
+        "ask_xgb_aft_normal": 1.0,
+        "ask_ridge_baseline": 0.8368347363245864
+      },
+      "ask_ridge_baseline": {
+        "ask_lgb_huber": 0.8354142498452145,
+        "ask_lgb_quantile_50": 0.8328031184107558,
+        "ask_xgb_aft_normal": 0.8368347363245864,
+        "ask_ridge_baseline": 1.0
+      }
+    },
+    "ridge_pairs": [
+      {
+        "response": "ask_lgb_huber",
+        "predictor": "ask_lgb_quantile_50",
+        "beta": 1.0258625790532225,
+        "intercept_usd": -351.08887539239913,
+        "bias_predictor_minus_response_usd": -5.761980281146228,
+        "calibrated_test_mae_usd": 945.0304783878589,
+        "calibrated_test_bias_usd": 4.583322422958025
+      },
+      {
+        "response": "ask_lgb_huber",
+        "predictor": "ask_xgb_aft_normal",
+        "beta": 0.9151957511995576,
+        "intercept_usd": 901.2519183438926,
+        "bias_predictor_minus_response_usd": 283.813869605354,
+        "calibrated_test_mae_usd": 1735.3876770485629,
+        "calibrated_test_bias_usd": -24.64605248913651
+      },
+      {
+        "response": "ask_lgb_huber",
+        "predictor": "ask_ridge_baseline",
+        "beta": 0.7640939344492368,
+        "intercept_usd": 2847.1478599446964,
+        "bias_predictor_minus_response_usd": 424.83283037996216,
+        "calibrated_test_mae_usd": 4487.135441329445,
+        "calibrated_test_bias_usd": -126.42878917815248
+      },
+      {
+        "response": "ask_lgb_quantile_50",
+        "predictor": "ask_lgb_huber",
+        "beta": 0.9547072520753632,
+        "intercept_usd": 613.1691887555116,
+        "bias_predictor_minus_response_usd": 5.761980281146228,
+        "calibrated_test_mae_usd": 940.5177450723509,
+        "calibrated_test_bias_usd": -14.304077786319182
+      },
+      {
+        "response": "ask_lgb_quantile_50",
+        "predictor": "ask_xgb_aft_normal",
+        "beta": 0.8791196011417032,
+        "intercept_usd": 1399.6517807018045,
+        "bias_predictor_minus_response_usd": 289.5758498865003,
+        "calibrated_test_mae_usd": 1840.6237521631317,
+        "calibrated_test_bias_usd": -35.10165531692229
+      },
+      {
+        "response": "ask_lgb_quantile_50",
+        "predictor": "ask_ridge_baseline",
+        "beta": 0.7379518445254672,
+        "intercept_usd": 3213.431171676719,
+        "bias_predictor_minus_response_usd": 430.5948106611084,
+        "calibrated_test_mae_usd": 4446.916328427012,
+        "calibrated_test_bias_usd": -130.98053804028905
+      },
+      {
+        "response": "ask_xgb_aft_normal",
+        "predictor": "ask_lgb_huber",
+        "beta": 1.0036860072865519,
+        "intercept_usd": 215.6289578595879,
+        "bias_predictor_minus_response_usd": -283.813869605354,
+        "calibrated_test_mae_usd": 1737.0310083458078,
+        "calibrated_test_bias_usd": -16.65106050373645
+      },
+      {
+        "response": "ask_xgb_aft_normal",
+        "predictor": "ask_lgb_quantile_50",
+        "beta": 1.0359786473637995,
+        "intercept_usd": -222.23019257699707,
+        "bias_predictor_minus_response_usd": -289.5758498865003,
+        "calibrated_test_mae_usd": 1858.2439226832278,
+        "calibrated_test_bias_usd": -8.997996436915757
+      },
+      {
+        "response": "ask_xgb_aft_normal",
+        "predictor": "ask_ridge_baseline",
+        "beta": 0.8114292692966616,
+        "intercept_usd": 2453.1139864388842,
+        "bias_predictor_minus_response_usd": 141.01896077460813,
+        "calibrated_test_mae_usd": 4502.806624635104,
+        "calibrated_test_bias_usd": -122.3743934640137
+      },
+      {
+        "response": "ask_ridge_baseline",
+        "predictor": "ask_lgb_huber",
+        "beta": 0.7711791044441538,
+        "intercept_usd": 3526.1281544758604,
+        "bias_predictor_minus_response_usd": -424.83283037996216,
+        "calibrated_test_mae_usd": 3624.050511793155,
+        "calibrated_test_bias_usd": -97.83616858053728
+      },
+      {
+        "response": "ask_ridge_baseline",
+        "predictor": "ask_lgb_quantile_50",
+        "beta": 0.8003049270197051,
+        "intercept_usd": 3131.4922403791097,
+        "bias_predictor_minus_response_usd": -430.5948106611084,
+        "calibrated_test_mae_usd": 3643.0749582490184,
+        "calibrated_test_bias_usd": -89.87701021787053
+      },
+      {
+        "response": "ask_ridge_baseline",
+        "predictor": "ask_xgb_aft_normal",
+        "beta": 0.7467501118358821,
+        "intercept_usd": 3657.547417365331,
+        "bias_predictor_minus_response_usd": -141.01896077460813,
+        "calibrated_test_mae_usd": 3593.1774390033775,
+        "calibrated_test_bias_usd": -96.01917675652933
+      }
+    ],
+    "ridge_observed_price_calibration": [
+      {
+        "model": "ask_lgb_huber",
+        "beta": 1.1099663290152386,
+        "intercept_usd": 157.84870274229615,
+        "raw_test_bias_usd": -1869.0772991198085,
+        "calibrated_test_bias_usd": -173.7958132739766,
+        "mae_usd": 3643.593185860022,
+        "rmse_usd": 7185.099814657895,
+        "median_ape_pct": 17.54821161298264,
+        "rmsle": 0.4350341827626091,
+        "r2": 0.7494406405975691
+      },
+      {
+        "model": "ask_lgb_quantile_50",
+        "beta": 1.141987926091265,
+        "intercept_usd": -276.5783440811483,
+        "raw_test_bias_usd": -1874.8392794009549,
+        "calibrated_test_bias_usd": -167.11090523819766,
+        "mae_usd": 3692.1789597538905,
+        "rmse_usd": 7335.725384376759,
+        "median_ape_pct": 17.401749534723567,
+        "rmsle": 0.4415197239527639,
+        "r2": 0.738825273469038
+      },
+      {
+        "model": "ask_xgb_aft_normal",
+        "beta": 1.0571337499337221,
+        "intercept_usd": 590.102095291073,
+        "raw_test_bias_usd": -1585.2634295144546,
+        "calibrated_test_bias_usd": -180.16238356810658,
+        "mae_usd": 3830.7552229195285,
+        "rmse_usd": 7252.311538827541,
+        "median_ape_pct": 19.205569227706615,
+        "rmsle": 0.4494289914211315,
+        "r2": 0.7447310908829159
+      },
+      {
+        "model": "ask_ridge_baseline",
+        "beta": 0.8962894523661826,
+        "intercept_usd": 2647.055914308856,
+        "raw_test_bias_usd": -1444.2444687398468,
+        "calibrated_test_bias_usd": -291.2192711924934,
+        "mae_usd": 5995.963514201503,
+        "rmse_usd": 9962.24492528567,
+        "median_ape_pct": 32.87693718141949,
+        "rmsle": 0.6436004779786518,
+        "r2": 0.5183190749128297
+      }
+    ],
+    "ridge_alpha": 1.0,
+    "ridge_fit_partition": "validation",
+    "ridge_coefficient_scale": "original dollar per dollar",
+    "ridge_equation": "response_price = intercept_usd + beta * predictor_price",
+    "spearman_partition": "test",
+    "test_rows": 31682
+  },
+  "target": "historical asking dollars",
+  "aft": "normal AFT, scale=1; exact positive dollar bounds, no fabricated censoring; 100 rounds",
+  "lightgbm": "library default statistical parameters, objective Huber or quantile alpha=0.5, log1p target",
+  "evaluation": "Chronological original validation/test remain unfiltered; all metrics use assessment models, never full-data refits."
+}

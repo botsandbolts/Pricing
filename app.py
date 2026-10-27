@@ -59,7 +59,10 @@ def get_pipeline(location):
     file=Path(location)/'manifest.json'
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
-value,compare,how,results=st.tabs(['Value a car','Pricing + CarBids','How it works','Evaluation'])
+value,compare,how,results,laboratory=st.tabs(['Value a car','Pricing + CarBids','How it works','Evaluation','New model laboratory'])
+with laboratory:
+    from pricing.suite_ui import render
+    render(Path(__file__).parent)
 with compare:
     from marketbridge.ui import render_comparison
     render_comparison(Path(__file__).parent)
@@ -129,7 +132,10 @@ with how:
     st.write('The trained ensembles average regularized LightGBM models with age-adjusted CarBids features. New filtered training uses Cleanlab regression on vehicle facts and observed training log prices. Its internal cross-validation and uncertainty estimates identify suspected price-label errors. Historical Isolation Forest bundles keep their original names and scores. Validation and test cars are never filtered. The original unfiltered ensemble remains selectable. The best-model choice uses the filtered model only if its recorded assessment passed. Benchmark results are in Evaluation.')
     st.write('The MiniLM workflow fine-tunes sentence-transformers/all-MiniLM-L6-v2 on descriptions and log prices. Three-fold predictions create predicted_text_price without using each predicted row’s target in its fitting model.')
     st.write('Cleanlab audits training labels from structured vehicle fields, excluding the text-price stacking feature to avoid indirect target leakage. It chooses a suspected-noise fraction internally; flags are not verified errors. Validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. The installed MiniLM assessment model runs on CPU and dynamically reads your description; GPU training is not needed to use it.')
-    st.write('For the installed assessment, MiniLM learned standardized log(1 + asking price). Its inverse-transformed dollar estimate becomes predicted_text_price. Validation selected a Huber LightGBM model with a standardized dollar target, rather than a log target. Make and model remain ordinary categorical fields. No make/model transformer is used.')
+    if minilm_record.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
+        st.write('The current MiniLM + Cleanlab default uses a modest Huber LightGBM with library-default statistical parameters (100 trees) and a log1p price target. MiniLM produces a dynamic dollar-price feature. Separate training-only text predictions protect the assessment; the completed full-data text head serves deployment. Make and model remain categorical fields.')
+    else:
+        st.write('The legacy assessment used standardized dollar targets in its selected Huber LightGBM. MiniLM itself learned standardized log1p prices. Its inverse-transformed dollar estimate becomes predicted_text_price.')
     st.write('The complete raw database is scanned before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
 with results:
     from pricing.evaluation_ui import render_model_comparison

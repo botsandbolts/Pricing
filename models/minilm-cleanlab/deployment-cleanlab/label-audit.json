@@ -1,0 +1,40 @@
+{
+  "algorithm": "Cleanlab",
+  "method": "Cleanlab",
+  "fingerprint": "e4fdc0de0e401c013dca9c013743349e6f8c2f5d6aa946fe848af5ff9003f3d9",
+  "input": "structured vehicle fields + observed training log1p price",
+  "features": [
+    "year",
+    "odometer",
+    "manufacturer",
+    "model",
+    "condition",
+    "cylinders",
+    "fuel",
+    "title_status",
+    "transmission",
+    "drive",
+    "type",
+    "paint_color",
+    "state"
+  ],
+  "input_rows": 211844,
+  "retained_rows": 211844,
+  "removed_rows": 0,
+  "removed": 0,
+  "removed_fraction": 0.0,
+  "estimated_noise_fraction": 0.0,
+  "settings": {
+    "seed": 42,
+    "threads": 4,
+    "folds": 3,
+    "n_boot": 3,
+    "trees": 200,
+    "cleanlab_version": "2.9.0",
+    "numpy_version": "2.5.4",
+    "pandas_version": "2.3.3"
+  },
+  "audit_sha256": "d1b6b768d1356ceb460f14855b83ee5434b6e777fdfa0ad7d56a6ccd93b3aac5",
+  "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+  "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+}

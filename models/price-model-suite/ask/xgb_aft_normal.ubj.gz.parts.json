@@ -1,0 +1,31 @@
+{
+  "bytes": 39110478,
+  "sha256": "9870cde702cc46c3dd63e68dfa393b49bc783738bc8761f109da090a0545b4ee",
+  "parts": [
+    {
+      "file": "xgb_aft_normal.ubj.gz.000.part",
+      "bytes": 8388608,
+      "sha256": "82679afee84d3afce20b7b8da98df2c4b8f963b8e62e64faa796cbfd57b44c7a"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.001.part",
+      "bytes": 8388608,
+      "sha256": "56d8b23c3a937781eb91ae18a27fc0236c9b7009da5dd27c6fef0fc774b51f34"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.002.part",
+      "bytes": 8388608,
+      "sha256": "27936139e9bf967605ca8f335bf580428a0ec0f357698096db00c21b8971feb7"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.003.part",
+      "bytes": 8388608,
+      "sha256": "008ec2ecd4b15ca3d7c8b38993b3d7357474fe27ea32873c4f5b395ffa578271"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.004.part",
+      "bytes": 5556046,
+      "sha256": "a2e0564ecd4741e281a37de445c9cbb34ee15342c7546f8e9aa502a7b9fccb86"
+    }
+  ]
+}
