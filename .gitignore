@@ -35,3 +35,5 @@ models/price-model-suite-tabular/
 
 # Row-level rerun audits are reconstructable; compact audit metadata is committed.
 reports/cleanlab-rerun-*/**/label-audit.csv
+
+reports/cleanlab-rerun-*/**/audit-schema.json

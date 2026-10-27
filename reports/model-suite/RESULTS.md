@@ -41,3 +41,20 @@ See the committed comparison JSON and GUI for the complete 8×8 matrix and all 5
 Asking Huber = $5,939.46 + 1.344497 × transported auction Huber. This fit used asking validation cars. On test cars, raw auction-minus-asking prediction bias is $-8,538.06; the calibrated mapping has MAE $5,325.62 and bias $-353.40 relative to the asking model. This maps two model outputs, not observed retail sales.
 
 AFT used exact dollar bounds because measured censoring bounds are unavailable. It is an uncensored normal AFT on log price, not an identified latent-sale Tobit.
+
+## Bid AFT evaluated against asking labels
+
+The **deployed** auction AFT, applied to the original asking test cars with valid
+age/index support, has MAE **$9,996.88** against advertised asking prices on
+**31,682 cars** (95 unsupported rows excluded). Mean prediction-minus-ask bias is
+**−$9,851.87**; Spearman correlation with observed asking labels is **0.7386**.
+Mean asking price is $15,850.02; mean transported auction estimate is $5,998.15.
+The train-only auction assessment fit produces cross-market MAE $10,017.35.
+
+These are cross-market discrepancies, not auction-sale validation errors or a
+measured dealer margin. Channel, era/transport assumptions, model vocabulary and
+other domain differences can all contribute. These are not paired observed retail
+transactions. See [full cross-market metrics](bid-aft-on-asking-test.json).
+
+The [fresh Cleanlab rerun](../cleanlab-rerun-20261027/README.md) reproduced all four
+original audits exactly, with zero exclusions; the fitted weights remain valid.

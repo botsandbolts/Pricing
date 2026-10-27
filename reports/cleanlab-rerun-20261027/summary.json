@@ -1,0 +1,218 @@
+{
+  "status": "complete",
+  "algorithm": "Cleanlab regression 2.9.0",
+  "markets": {
+    "ask": {
+      "source_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+      "eligible_rows": 211127,
+      "auction_vin_overlap_exclusions": 0,
+      "phase_counts": {
+        "train": 147777,
+        "test": 31682,
+        "validation": 31668
+      },
+      "stages": {
+        "assessment": {
+          "algorithm": "Cleanlab",
+          "method": "Cleanlab",
+          "fingerprint": "50df0447798afdcf71e525b2b22c45021db0a94d6366e76b716a9938bdedeee5",
+          "input": "structured vehicle fields + observed training log1p price",
+          "features": [
+            "age",
+            "log_miles",
+            "auction_grade",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color"
+          ],
+          "input_rows": 147777,
+          "retained_rows": 147777,
+          "removed_rows": 0,
+          "removed": 0,
+          "removed_fraction": 0.0,
+          "estimated_noise_fraction": 0.0,
+          "settings": {
+            "seed": 42,
+            "threads": 4,
+            "folds": 3,
+            "n_boot": 3,
+            "trees": 200,
+            "cleanlab_version": "2.9.0",
+            "numpy_version": "2.5.4",
+            "pandas_version": "2.3.3"
+          },
+          "audit_sha256": "0a06d188c713d80563bad1e0cb6d23c51acad507ea8d59730e9cd5bf0ed57487",
+          "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+          "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+        },
+        "deployment": {
+          "algorithm": "Cleanlab",
+          "method": "Cleanlab",
+          "fingerprint": "fb5f2fea258ac47a9e9a1726cfecea0f180b6fb647e8b603e4d017e3de3c2d4f",
+          "input": "structured vehicle fields + observed training log1p price",
+          "features": [
+            "age",
+            "log_miles",
+            "auction_grade",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color"
+          ],
+          "input_rows": 211127,
+          "retained_rows": 211127,
+          "removed_rows": 0,
+          "removed": 0,
+          "removed_fraction": 0.0,
+          "estimated_noise_fraction": 0.0,
+          "settings": {
+            "seed": 42,
+            "threads": 4,
+            "folds": 3,
+            "n_boot": 3,
+            "trees": 200,
+            "cleanlab_version": "2.9.0",
+            "numpy_version": "2.5.4",
+            "pandas_version": "2.3.3"
+          },
+          "audit_sha256": "7c091710394588009b1e75850a428cb26e88b95b83fe59522d390ce3feb6d791",
+          "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+          "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+        }
+      }
+    },
+    "bid": {
+      "source_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601",
+      "eligible_rows": 550181,
+      "auction_vin_overlap_exclusions": 110,
+      "phase_counts": {
+        "train": 384198,
+        "test": 83603,
+        "validation": 82380
+      },
+      "stages": {
+        "assessment": {
+          "algorithm": "Cleanlab",
+          "method": "Cleanlab",
+          "fingerprint": "016edd97eec8154adefb3852f4eee5cd8f27e2c8a90dd6f18a53daf78a444545",
+          "input": "structured vehicle fields + observed training log1p price",
+          "features": [
+            "age",
+            "log_miles",
+            "auction_grade",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color"
+          ],
+          "input_rows": 384198,
+          "retained_rows": 384198,
+          "removed_rows": 0,
+          "removed": 0,
+          "removed_fraction": 0.0,
+          "estimated_noise_fraction": 0.0,
+          "settings": {
+            "seed": 42,
+            "threads": 4,
+            "folds": 3,
+            "n_boot": 3,
+            "trees": 200,
+            "cleanlab_version": "2.9.0",
+            "numpy_version": "2.5.4",
+            "pandas_version": "2.3.3"
+          },
+          "audit_sha256": "d4671786d9d54d511329926cafab18817bf8e28b6d875c871dec77e2fec8db40",
+          "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+          "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+        },
+        "deployment": {
+          "algorithm": "Cleanlab",
+          "method": "Cleanlab",
+          "fingerprint": "5326fdb3dcca51fb7938f87f583ba5dc5cea50eda7c3874af82ccd11b3a1c649",
+          "input": "structured vehicle fields + observed training log1p price",
+          "features": [
+            "age",
+            "log_miles",
+            "auction_grade",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color"
+          ],
+          "input_rows": 550181,
+          "retained_rows": 550181,
+          "removed_rows": 0,
+          "removed": 0,
+          "removed_fraction": 0.0,
+          "estimated_noise_fraction": 0.0,
+          "settings": {
+            "seed": 42,
+            "threads": 4,
+            "folds": 3,
+            "n_boot": 3,
+            "trees": 200,
+            "cleanlab_version": "2.9.0",
+            "numpy_version": "2.5.4",
+            "pandas_version": "2.3.3"
+          },
+          "audit_sha256": "d0bd9e879569f8ace7cef74965f4ce0ccfc458f1f44dd890f06b4a7667acf92a",
+          "scope": "Cleanlab internal CV and uncertainty fits use this fitting pool only. Validation/test are never filtered. Suspected errors are not verified errors.",
+          "stacking_safety": "No text-price predictions or target-trained CarBids features enter the audit."
+        }
+      }
+    }
+  },
+  "scope": "Freshly computed label audits, not a reuse of prior row-level audit caches. Assessment uses training rows only. Deployment audit uses all eligible fitting candidates after assessment. Validation/test labels do not affect assessment filtering.",
+  "features": "Vehicle facts only. No descriptions, text-price predictions, MMR, final-model predictions or source outcome fields.",
+  "targets": "log1p historical asking price; log1p CPI-reference auction sale price. Reported flags are suspected errors, not confirmed mistakes.",
+  "weights_refitted": false,
+  "weight_compatibility": "Every row was retained, and all four new audit CSV checksums and fingerprints exactly match the audits used for the fitted weights. No filter-driven retraining is necessary.",
+  "completed_at_utc": "2026-10-27T16:34:43.464653+00:00",
+  "matches_prior_fitted_audits": {
+    "ask": {
+      "assessment": {
+        "same_fingerprint": true,
+        "same_audit_sha256": true
+      },
+      "deployment": {
+        "same_fingerprint": true,
+        "same_audit_sha256": true
+      }
+    },
+    "bid": {
+      "assessment": {
+        "same_fingerprint": true,
+        "same_audit_sha256": true
+      },
+      "deployment": {
+        "same_fingerprint": true,
+        "same_audit_sha256": true
+      }
+    }
+  }
+}

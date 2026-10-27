@@ -1,0 +1,33 @@
+{
+  "model": "XGBoost normal AFT bid model",
+  "cohort": "Original chronological asking test cars with valid age and CPI support",
+  "raw_asking_test_rows": 31777,
+  "excluded_unsupported_rows": 95,
+  "results": {
+    "assessment": {
+      "rows": 31682,
+      "mae_usd": 10017.354017178248,
+      "rmse_usd": 14926.23550368605,
+      "median_ape_pct": 67.36414133115373,
+      "rmsle": 1.4485516498838753,
+      "r2": -0.08129849318332649,
+      "mean_predicted_minus_asking_usd": -9866.143638783216,
+      "mean_asking_price_usd": 15850.018527870716,
+      "mean_bid_estimate_usd": 5983.874889087501,
+      "spearman_vs_observed_asking": 0.7289037334226974
+    },
+    "deployment": {
+      "rows": 31682,
+      "mae_usd": 9996.88341487587,
+      "rmse_usd": 14931.905039007155,
+      "median_ape_pct": 66.51497551251202,
+      "rmsle": 1.414214410179395,
+      "r2": -0.0821200833673712,
+      "mean_predicted_minus_asking_usd": -9851.873226037147,
+      "mean_asking_price_usd": 15850.018527870716,
+      "mean_bid_estimate_usd": 5998.145301833568,
+      "spearman_vs_observed_asking": 0.7386272325053559
+    }
+  },
+  "meaning": "Cross-market price discrepancy: reported auction model estimates vs advertised asking labels. Not an estimate of auction-sale accuracy or calibrated retail-sale accuracy. Auction VIN overlaps were excluded during model training."
+}

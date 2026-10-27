@@ -42,6 +42,15 @@ def render(root,key_prefix="suite"):
         if doc.exists():st.markdown(doc.read_text())
     manifest=json.loads((suite/'ask/manifest.json').read_text())
     st.caption(f"Cleanlab deployment audit: {manifest['outlier_filter']['removed_rows']:,} rows flagged for exclusion. Held-out validation and test cars remain unfiltered. "+('MiniLM descriptions enabled.' if manifest['text_feature'] else 'Structured-only comparison. MiniLM text refit is separate; descriptions do not affect these prices.'))
+    rerun=root/'reports/cleanlab-rerun-20261027/summary.json'
+    if rerun.exists():
+        with st.expander('Fresh Cleanlab rerun · asking and auction data'):
+            audit=json.loads(rerun.read_text());audit_rows=[]
+            for side,record in audit['markets'].items():
+                for stage,r in record['stages'].items():
+                    audit_rows.append({'Market':side,'Stage':stage,'Candidates':r['input_rows'],'Retained':r['retained_rows'],'Flagged':r['removed_rows']})
+            st.dataframe(pd.DataFrame(audit_rows),hide_index=True)
+            st.caption(audit['weight_compatibility'])
     with st.form(f'{key_prefix}_modest-model-lab'):
         a,b,c=st.columns(3)
         year=a.number_input('Model year',1900,2027,2015,key=f'{key_prefix}_year')
