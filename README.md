@@ -6,11 +6,13 @@ Car Price Studio is a used-car asking-price GUI with custom make/model fields, v
 
 ## What works now
 
-The deployed studio provides **real estimates from a trained tabular-only LightGBM baseline**. It uses make/model as categorical fields and the other vehicle characteristics. The browser runs the actual exported trees; no hand-written pricing formula or fabricated example price is used. The final deployment model, fitted on all 211,844 eligible rows, is included under `dist/baseline-model.json`, and Python weights/schema are under `models/studio-baseline/`; the native LightGBM model is gzip-compressed and loaded automatically.
+The Python studio defaults to the **installed MiniLM + Isolation Forest + LightGBM model**. MiniLM reads seller descriptions, a training-only Isolation Forest filters unusual OOF text-price signals, and LightGBM combines the resulting scalar with the form fields. The completed assessment weights run on CPU; their recorded test MAE is **$3,559**. The full-data refit is a separate checkpoint-resumed Kaggle job.
+
+The trained tabular baseline and regularized ensembles remain selectable for comparison. The static browser app runs the actual exported baseline trees. Its deployment baseline, fitted on all 211,844 eligible rows, is included under `dist/baseline-model.json`, and Python weights/schema are under `models/studio-baseline/`; no hand-written pricing formula is substituted.
 
 Measured baseline test results: **MAE $3,329, RMSE $6,839, median APE 15.6%, R² 0.774**. The validation-calibrated 80% band covered 78.7% of test listing prices. Selection used validation USD MAE across dollar/log targets and Huber thresholds 0.5/0.9/1.5. The winner used log price and Huber 0.9.
 
-**MiniLM-enhanced training is not complete.** The current workspace has no CUDA GPU. The UI labels that mode as pending and disables it; seller descriptions do not affect baseline estimates. Because the baseline has no `predicted_text_price`, it does not apply the MiniLM-price Isolation Forest filter. Baseline scores must not be presented as results for the enhanced pipeline.
+**MiniLM assessment training is complete and the model is installed.** Its transformer was fitted on 148,290 descriptions; automatic Isolation Forest filtering retained 109,609 OOF rows for LightGBM. The separate 211,844-candidate full-data refit is not yet installed. The GUI labels the scope explicitly and serves point estimates because the saved assessment omitted its interval calibration radius. Baseline scores above describe the baseline, not MiniLM.
 
 ## Full 100% database
 
@@ -33,7 +35,7 @@ Source: Craigslist US asking prices from April–May **2021**. These are not ver
 3. `IsolationForest(n_estimators=300, contamination="auto", random_state=42)` fits **only those training OOF dollar prices**. Keep inliers and remove flagged rows from LightGBM training. No removal percentage is forced. Actual prices, tabular features, validation and test do not enter this detector.
 4. Huber LightGBM combines the text-price scalar with year, odometer, make, model, condition, cylinders, fuel, title status, transmission, drive, body type, paint color and state. **Make/model have no transformer, embedding or separate price regressor.**
 
-Isolation Forest can flag valid rare vehicles. Its actual removal count and held-out effects must be measured after MiniLM training. A collapsed text-price signal can leave too few inliers; the run stops rather than silently forcing retention.
+Isolation Forest can flag valid rare vehicles. In the installed assessment it removed 38,681 of 148,290 training rows; every validation and test row remained in evaluation. A collapsed text-price signal can leave too few inliers; the training run stops rather than silently forcing retention.
 
 Assessment fits OOF models within the chronological training partition and uses train-only regressors for validation/test. After test scoring, a fresh OOF pass covers the entire eligible database, the detector filters that fitting pool, and the deployable model is refitted. All-row refit means every eligible candidate in the complete database, subject to the configured MiniLM-price Isolation Forest filter in enhanced mode. Assessment scores describe the assessment model, not an independent evaluation of the refit.
 
@@ -42,7 +44,7 @@ Assessment fits OOF models within the chronological training partition and uses 
 The hosted static app uses `dist/` and includes the trained baseline. Python GUI:
 
 ```bash
-python -m pip install -r requirements-training.txt
+python -m pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
