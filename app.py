@@ -10,23 +10,27 @@ st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
 st.title('Car Price Studio + CarBids')
 st.caption('Age-aware auction transfer and historical asking prices. Serious maths. Zero tyre-kicking.')
 from marketbridge.engine import best_asking_bundle
-minilm_label='MiniLM + Isolation Forest + LightGBM'
 # Prefer a completed full-data deployment once installed; serve the real assessment meanwhile.
 installed_minilm=Path('models/minilm-assessment')
-for candidate in [Path('models/minilm-full'),Path('artifacts/car-price-studio-full'),installed_minilm]:
+for candidate in [Path('models/minilm-cleanlab'),Path('artifacts/car-price-studio-cleanlab'),Path('models/minilm-full'),Path('artifacts/car-price-studio-full'),installed_minilm]:
     manifest_file=candidate/'manifest.json'
     if manifest_file.exists():
         candidate_manifest=json.loads(manifest_file.read_text())
         if (candidate_manifest.get('status')=='ready' and
             candidate_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' and
-            candidate_manifest.get('outlier_filter',{}).get('algorithm')=='IsolationForest'):
+            candidate_manifest.get('outlier_filter',{}).get('algorithm') in ['Cleanlab','IsolationForest']):
             installed_minilm=candidate
             break
+minilm_record=json.loads((installed_minilm/'manifest.json').read_text()) if (installed_minilm/'manifest.json').exists() else {}
+minilm_method=minilm_record.get('outlier_filter',{}).get('algorithm','none')
+minilm_label='MiniLM + '+('Cleanlab' if minilm_method=='Cleanlab' else 'Isolation Forest (legacy)')+' + LightGBM'
 choices=[minilm_label,'Best trained ensemble','Unfiltered trained ensemble','Trained tabular baseline']
 filtered=Path('models/robust-asking-isolation')
 if (filtered/'manifest.json').exists():choices.append('Isolation Forest trained ensemble')
+cleanlab_ensemble=Path('models/robust-asking-cleanlab')
+if (cleanlab_ensemble/'manifest.json').exists() and json.loads((cleanlab_ensemble/'manifest.json').read_text()).get('status')=='ready':choices.append('Cleanlab trained ensemble')
 mode=st.selectbox('Pricing model',choices,index=0)
-locations={'Best trained ensemble':best_asking_bundle(Path('.')),
+locations={'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
            'Unfiltered trained ensemble':Path('models/robust-asking'),
@@ -38,7 +42,11 @@ uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm'
 if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
     st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
 if uses_text:
-    st.caption('MiniLM reads the description. Isolation Forest in auto mode filtered unusual training text-price signals; it does not reject your car at prediction time. LightGBM combines that signal with the form fields. The bouncer worked during training; the pricing desk is open.')
+    if selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
+        st.caption('MiniLM reads the description. Cleanlab audited suspected training price-label errors using vehicle facts, internal cross-validation and uncertainty estimation. It does not filter the car you enter. Validation and test rows remain intact.')
+    else:
+        st.info('Cleanlab has replaced Isolation Forest in the training code. This installed model still uses its original Isolation Forest weights; it will be replaced only after a Cleanlab bundle is trained and installed.')
+        st.caption('MiniLM reads the description. Isolation Forest in auto mode filtered unusual training text-price signals; it does not reject your car at prediction time. LightGBM combines that signal with the form fields. The bouncer worked during training; the pricing desk is open.')
 if not ready:
     st.info('This historical MiniLM mode has not been trained. The integrated Pricing + CarBids tab uses its own completed models and remains available.')
 
@@ -118,9 +126,9 @@ with how:
     st.subheader('A pricing committee with thousands of small opinions')
     st.write('LightGBM learns lots of small decision trees, each correcting earlier mistakes. Huber loss softens the influence of large errors: one wildly ambitious seller does not get to chair the committee. The fitted tree count and exact drivers appear after an estimate.')
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
-    st.write('The trained ensembles average regularized LightGBM models with age-adjusted CarBids features. The filtered experiment uses Isolation Forest with an automatic cutoff on training vehicle facts and frozen CarBids signals; asking-price labels are excluded. Validation and test cars are never filtered. The original unfiltered ensemble remains selectable. The best-model choice uses the filtered model only if its recorded assessment passed. Benchmark results are in Evaluation.')
+    st.write('The trained ensembles average regularized LightGBM models with age-adjusted CarBids features. New filtered training uses Cleanlab regression on vehicle facts and observed training log prices. Its internal cross-validation and uncertainty estimates identify suspected price-label errors. Historical Isolation Forest bundles keep their original names and scores. Validation and test cars are never filtered. The original unfiltered ensemble remains selectable. The best-model choice uses the filtered model only if its recorded assessment passed. Benchmark results are in Evaluation.')
     st.write('The MiniLM workflow fine-tunes sentence-transformers/all-MiniLM-L6-v2 on descriptions and log prices. Three-fold predictions create predicted_text_price without using each predicted row’s target in its fitting model.')
-    st.write('Isolation Forest uses contamination="auto" on training OOF description prices only. No fixed percentage is removed; validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. The installed MiniLM assessment model runs on CPU and dynamically reads your description; GPU training is not needed to use it.')
+    st.write('Cleanlab audits training labels from structured vehicle fields, excluding the text-price stacking feature to avoid indirect target leakage. It chooses a suspected-noise fraction internally; flags are not verified errors. Validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. The installed MiniLM assessment model runs on CPU and dynamically reads your description; GPU training is not needed to use it.')
     st.write('For the installed assessment, MiniLM learned standardized log(1 + asking price). Its inverse-transformed dollar estimate becomes predicted_text_price. Validation selected a Huber LightGBM model with a standardized dollar target, rather than a log target. Make and model remain ordinary categorical fields. No make/model transformer is used.')
     st.write('The complete raw database is scanned before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
 with results:
@@ -132,11 +140,11 @@ with results:
             st.info(f"Regularized ensemble: {e['ensemble_members']} members; promoted: {e['promoted']}");st.json(e['test'])
             st.write({k:e[k] for k in ['train_rows','validation_rows','test_rows']})
             st.caption(e['test_note'])
-            if e.get('outlier_filter',{}).get('method')=='IsolationForest':
+            if e.get('outlier_filter',{}).get('method') in ['Cleanlab','IsolationForest']:
                 f=e['outlier_filter']
-                st.write(f"Isolation Forest retained {f['retained_rows']:,} of {f['input_rows']:,} training cars; removed {f['removed_fraction']:.1%}.")
-                st.caption('The bouncer checked vehicle facts, not price tags. Unusual can still mean legitimate. Every validation and test car stayed in the queue.')
-                st.dataframe([{'model':'Unfiltered reference',**e['baseline']['test']},{'model':'Isolation Forest ensemble',**e['test']}],hide_index=True)
+                st.write(f"{f['method']} retained {f['retained_rows']:,} of {f['input_rows']:,} training cars; removed {f['removed_fraction']:.1%}.")
+                st.caption('Cleanlab uses observed training prices as labels; legacy Isolation Forest used predictors only. Suspected issues can be legitimate cars. Validation and test remain unfiltered.')
+                st.dataframe([{'model':'Unfiltered reference',**e['baseline']['test']},{'model':f["method"]+' ensemble',**e['test']}],hide_index=True)
                 st.json(f,expanded=False)
                 if not e['promoted']:st.info('This is the completed filtered experiment. The Best trained ensemble option selects the unfiltered ensemble because its benchmark errors are lower.')
             st.download_button('Download selected ensemble assessment',json.dumps(e,indent=2),'asking-ensemble-evaluation.json','application/json')
@@ -151,7 +159,7 @@ with results:
             if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
                 st.caption(selected_manifest['assessment_note'])
                 st.text(f"Description-only test MAE: ${e['description_only']['mae_usd']:,.0f} · MiniLM + LightGBM test MAE: ${e['stacked']['mae_usd']:,.0f}.")
-                st.info('MiniLM + Isolation Forest + LightGBM is the default studio model. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
+                st.info('The installed MiniLM model is the default studio model. Its filter is recorded in the model manifest. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
                 st.download_button('Download MiniLM assessment',json.dumps(e,indent=2),'minilm-assessment.json','application/json')
         if selected_manifest.get('band80_log_radius') is None and uses_text:
             st.caption('The original evaluation recorded interval coverage, but its calibration radius was not persisted. This installation serves point estimates only.')

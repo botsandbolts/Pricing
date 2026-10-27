@@ -11,3 +11,6 @@ pytest>=8,<10
 
 
 plotly>=5.24,<7
+
+# Training-only regression label auditing, not needed for inference.
+cleanlab==2.9.0

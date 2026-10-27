@@ -4,6 +4,10 @@ Car Price Studio is a used-car asking-price GUI with custom make/model fields, v
 
 **Current choices:** no make/model transformer; the **full 100% raw database**; MiniLM description-price regression plus **Isolation Forest in auto mode** for the enhanced workflow; Huber LightGBM as the final regressor.
 
+## Cleanlab training migration
+
+New asking-price and auction-sale training uses **Cleanlab regression auditing** instead of Isolation Forest. It examines vehicle facts and observed training log prices using internal CV and uncertainty estimation; validation/test cars remain unfiltered. The structural auction trainer now also supports Cleanlab. **Installed weights retain their actual legacy filter until retrained**; the GUI makes that status explicit. See [training commands, audit records and deployment safeguards](CLEANLAB.md).
+
 ## What works now
 
 The Python studio defaults to the **installed MiniLM + Isolation Forest + LightGBM model**. MiniLM reads seller descriptions, a training-only Isolation Forest filters unusual OOF text-price signals, and LightGBM combines the resulting scalar with the form fields. The completed assessment weights run on CPU; their recorded test MAE is **$3,559**. The full-data refit is a separate checkpoint-resumed Kaggle job.

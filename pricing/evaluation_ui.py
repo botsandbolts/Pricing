@@ -6,7 +6,7 @@ from pathlib import Path
 def render_model_comparison():
     import streamlit as st
     rows=[]
-    for folder,label in [('minilm-assessment','MiniLM + Isolation Forest + LightGBM'),('robust-asking','Unfiltered robust ensemble'),('robust-asking-isolation','Isolation Forest robust ensemble'),('studio-baseline','Tabular baseline')]:
+    for folder,label in [('minilm-assessment','MiniLM + Isolation Forest + LightGBM'),('robust-asking','Unfiltered robust ensemble'),('robust-asking-isolation','Isolation Forest robust ensemble'),('studio-baseline','Tabular baseline'),('minilm-cleanlab','MiniLM + Cleanlab + LightGBM'),('robust-asking-cleanlab','Cleanlab robust ensemble')]:
         file=Path('models')/folder/'evaluation.json'
         if not file.exists():continue
         e=json.loads(file.read_text());score=e.get('stacked',e.get('test'))

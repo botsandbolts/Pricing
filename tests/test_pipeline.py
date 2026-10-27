@@ -60,16 +60,18 @@ def frame(n=60):
     return d
 
 
-def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch):
+@pytest.mark.parametrize('namespace',['pricing','carbids'])
+def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch,namespace):
     import torch
     from transformers import XLMRobertaConfig,XLMRobertaModel,AutoModel,AutoTokenizer,PreTrainedTokenizerFast
     from tokenizers import Tokenizer
     from tokenizers.models import WordLevel
     from tokenizers.pre_tokenizers import Whitespace
     from tokenizers.processors import TemplateProcessing
-    import pricing.train as train
-    from pricing.text import MODEL_ID
-    from pricing.inference import PricePipeline
+    import importlib
+    train=importlib.import_module(namespace+'.train')
+    MODEL_ID=importlib.import_module(namespace+'.text').MODEL_ID
+    PricePipeline=importlib.import_module(namespace+'.inference').PricePipeline
     torch.set_num_threads(1)
     tiny=tmp_path/'tiny'
     config=XLMRobertaConfig(vocab_size=32,hidden_size=16,num_hidden_layers=1,num_attention_heads=2,intermediate_size=24,max_position_embeddings=514,pad_token_id=1)
@@ -90,6 +92,9 @@ def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch)
     def record(texts,y,**kwargs):targets.append(set(np.asarray(y)));return fit(texts,y,**kwargs)
     monkeypatch.setattr(train,'fit_text',record)
     d=frame();source=tmp_path/'data.jsonl';d.to_json(source,orient='records',lines=True,date_format='iso')
+    if namespace=='carbids':
+        d['source']='synthetic-test';d.to_json(source,orient='records',lines=True,date_format='iso')
+        monkeypatch.setattr('carbids.data.load_cohort',lambda *args,**kwargs:d.copy())
     out=tmp_path/'bundle';a=Namespace(data=str(source),output=str(out),device='cpu',allow_cpu=True,threads=1,
         revision='synthetic-test',folds=2,epochs=1,batch_size=8,accumulation=1,lr=2e-5,trees=8,seed=42)
     train.run(a)
@@ -103,8 +108,8 @@ def test_real_transformer_oof_full_stack_and_all_row_refit(tmp_path,monkeypatch)
         assert set(audit.fold)=={0,1}
     manifest=json.loads((out/'manifest.json').read_text());evaluation=json.loads((out/'evaluation.json').read_text())
     assert manifest['training_candidates']==60 and manifest['trained_rows']<=60
-    assert manifest['outlier_filter']['algorithm']=='IsolationForest'
-    assert manifest['outlier_filter']['input']=='predicted_text_price'
+    assert manifest['outlier_filter']['algorithm']=='Cleanlab'
+    assert 'predicted_text_price' not in manifest['outlier_filter']['features']
     assert evaluation['rows']['outlier_removed']+evaluation['rows']['retained_train']==42
     monkeypatch.undo()
     pipeline=PricePipeline(out)
@@ -125,7 +130,7 @@ def test_description_transformer_receives_regression_gradients():
 
 def test_scalar_filter_and_no_make_model_transformer():
     source=Path('pricing/train.py').read_text()
-    assert 'IsolationForest' in source and 'LocalOutlierFactor' not in source
+    assert 'cleanlab_inliers' in source and 'IsolationForest' not in source
     assert 'pricing.identity' not in source
     assert not Path('pricing/identity.py').exists()
 
@@ -145,15 +150,6 @@ def test_full_preparation_retains_empty_free_fields_without_sampling(tmp_path):
     assert meta['source_rows']==12 and meta['sample_fraction']==1.
     assert meta['outlier_filter'] is None and len(cohort)==9
     assert meta['empty_descriptions_retained']==2
-
-
-def test_isolation_filter_uses_price_scalar(tmp_path):
-    from pricing.train import filter_prices
-    prices=np.r_[np.random.default_rng(42).normal(10000,100,100),1e6]
-    keep=filter_prices(prices,tmp_path,np.arange(len(prices)),42,1)
-    assert 100 not in keep
-    audit=pd.read_csv(tmp_path/'isolation-audit.csv')
-    assert list(audit)==['row_id','predicted_text_price','score','kept']
 
 
 def test_baseline_evaluates_before_refitting_every_row(tmp_path):

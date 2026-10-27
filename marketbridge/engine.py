@@ -11,12 +11,13 @@ FIELDS=['year','odometer','manufacturer','model','condition','cylinders','fuel',
 def best_asking_bundle(root):
     """Choose a completed filtered bundle only after its assessment passed."""
     root=Path(root)
-    filtered=root/'models/robust-asking-isolation'
-    manifest=filtered/'manifest.json'
-    if manifest.exists():
-        record=json.loads(manifest.read_text())
-        if record.get('status')=='ready' and record.get('promoted'):
-            return filtered
+    for name in ['robust-asking-cleanlab','robust-asking-isolation']:
+        filtered=root/'models'/name
+        manifest=filtered/'manifest.json'
+        if manifest.exists():
+            record=json.loads(manifest.read_text())
+            if record.get('status')=='ready' and record.get('promoted'):
+                return filtered
     return root/'models/robust-asking'
 
 def locate(root,role):

@@ -81,34 +81,11 @@ class RobustAsking:
         x,_=engineer(frame,self.schema,self.structural,self.feature_schema)
         return np.column_stack([invert(model.predict(x,num_threads=4),m['mean'],m['std'],m['target']) for m,model in self.members])
 
-def isolation_inliers(frame, contamination='auto', seed=42):
-    """Training-only predictor filter: no labels, text, or held-out statistics."""
-    from sklearn.ensemble import IsolationForest
-    # Explicit allowlist avoids accidentally including price or supervised residuals.
-    columns = ['year', 'odometer', 'log_odometer', 'miles_per_year',
-               'odometer_missing', 'year_missing']
-    columns += AUX
-    columns = [c for c in columns if c in frame and pd.api.types.is_numeric_dtype(frame[c])]
-    if not columns:
-        raise ValueError('No numeric vehicle predictors available for Isolation Forest')
-    values = frame[columns].replace([np.inf, -np.inf], np.nan)
-    medians = values.median().fillna(0)
-    forest = IsolationForest(n_estimators=300, max_samples='auto',
-                             contamination=contamination, random_state=seed, n_jobs=4)
-    keep = pd.Series(forest.fit_predict(values.fillna(medians)) == 1, index=frame.index)
-    if keep.sum() < 2:
-        raise ValueError('Isolation Forest retained too few training rows')
-    return keep, {'method': 'IsolationForest', 'contamination': contamination,
-                  'seed': seed, 'features': columns, 'input_rows': len(frame),
-                  'retained_rows': int(keep.sum()), 'removed_rows': int((~keep).sum()),
-                  'removed_fraction': float((~keep).mean()),
-                  'scope': 'Training predictors only; labels excluded; evaluation rows untouched'}
-
-def train(cohort,structural_path,output,isolation=None):
+def train(cohort,structural_path,output,cleanlab=True):
     from carbids.common import metrics
     out=Path(output)
-    if isolation is not None and (out/'manifest.json').exists():
-        raise ValueError('Use a new output directory for Isolation Forest experiments')
+    if cleanlab and (out/'manifest.json').exists():
+        raise ValueError('Use a new output directory for Cleanlab experiments')
     out.mkdir(parents=True,exist_ok=True);cache=out/'search-cache';cache.mkdir(exist_ok=True)
     d=pd.concat([c.drop(columns=['text','description'],errors='ignore') for c in pd.read_json(cohort,lines=True,chunksize=5000)],ignore_index=True)
     if d.row_id.duplicated().any() or not d.price.between(1000,150000).all():raise ValueError('Invalid cohort')
@@ -118,13 +95,15 @@ def train(cohort,structural_path,output,isolation=None):
     if pd.to_datetime(structural.manifest['sale_dates'][1],utc=True)>=time.min():raise ValueError('Upstream labels must predate target cohort')
     signals=structural.predict_frame(d);schema=fit_schema(d.loc[tr]);xt,fs=engineer(d.loc[tr],schema,structural,signals=signals.loc[tr]);x,_=engineer(d,schema,structural,fs,signals=signals)
     filter_report = {'method': 'none', 'input_rows': int(tr.sum()), 'retained_rows': int(tr.sum()), 'removed_rows': 0}
-    if isolation is not None:
-        keep, filter_report = isolation_inliers(x.loc[tr], isolation)
+    if cleanlab:
+        from pricing.label_quality import cleanlab_inliers
+        positions,filter_report=cleanlab_inliers(d.loc[tr,['year','odometer']+CATEGORICAL],d.loc[tr,'price'],out/'assessment-cleanlab',d.loc[tr,'row_id'])
+        keep=pd.Series(False,index=d.index[tr]);keep.iloc[positions]=True
         tr.loc[keep.index] = keep
         # Refit vocabularies and counts on retained training rows only.
         schema=fit_schema(d.loc[tr]);_,fs=engineer(d.loc[tr],schema,structural,signals=signals.loc[tr])
         x,_=engineer(d,schema,structural,fs,signals=signals)
-    fingerprint=hashlib.sha256(Path(cohort).read_bytes()+Path(__file__).read_bytes()+structural.model_id.encode()+str(isolation).encode()).hexdigest()
+    fingerprint=hashlib.sha256(Path(cohort).read_bytes()+Path(__file__).read_bytes()+structural.model_id.encode()+str(cleanlab).encode()+Path('pricing/label_quality.py').read_bytes()).hexdigest()
     cfgfile=cache/'fingerprint.txt'
     if cfgfile.exists() and cfgfile.read_text()!=fingerprint:raise ValueError('Search cache belongs to different source/cohort')
     cfgfile.write_text(fingerprint);candidates=[];vp=[]
@@ -158,10 +137,10 @@ def train(cohort,structural_path,output,isolation=None):
             pte.append((w/3)*invert(model.predict(x.loc[te],num_threads=4),mean,std,row['config']['target']))
     pv=sum(pva);pt=sum(pte);test=metrics(d.loc[te,'price'].to_numpy(),pt);validation=metrics(yv,pv)
     baseline=json.loads((Path(structural_path).parent/'transfer-asking/evaluation.json').read_text())['models']['tabular_only']
-    if isolation is not None:
+    if cleanlab:
         incumbent = Path(structural_path).parent/'robust-asking/evaluation.json'
         if not incumbent.exists():
-            raise ValueError('Isolation experiment requires the current robust asking benchmark')
+            raise ValueError('Cleanlab experiment requires the current robust asking benchmark')
         previous = json.loads(incumbent.read_text())
         baseline = {'validation': previous['validation'], 'test': previous['test']}
     # Eligibility fixed on validation; test comparison is disclosed as a reused benchmark, not fresh discovery.
@@ -177,9 +156,10 @@ def train(cohort,structural_path,output,isolation=None):
     # All eligible rows are refitted only after assessment. Fixed selected tree counts and weights.
     refit=d
     refit_report={'method': 'none', 'retained_rows': len(d)}
-    if isolation is not None:
-        all_schema=fit_schema(d);all_x,_=engineer(d,all_schema,structural,signals=signals)
-        keep,refit_report=isolation_inliers(all_x,isolation)
+    if cleanlab:
+        from pricing.label_quality import cleanlab_inliers
+        positions,refit_report=cleanlab_inliers(d[['year','odometer']+CATEGORICAL],d.price,out/'refit-cleanlab',d.row_id)
+        keep=pd.Series(False,index=d.index);keep.iloc[positions]=True
         refit=d.loc[keep]
     schema=fit_schema(refit);full,fs=engineer(refit,schema,structural,signals=signals.loc[refit.index]);members=[]
     for j,(row,seed,weight,_,_,_) in enumerate(assessment):
@@ -195,5 +175,5 @@ def train(cohort,structural_path,output,isolation=None):
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2));return e
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--cohort',required=True);p.add_argument('--structural',required=True);p.add_argument('--output',required=True);p.add_argument('--isolation', choices=['off','auto'], default='off');a=p.parse_args()
-    print(json.dumps(train(a.cohort,a.structural,a.output,isolation=None if a.isolation=='off' else a.isolation),indent=2))
+    p=argparse.ArgumentParser();p.add_argument('--cohort',required=True);p.add_argument('--structural',required=True);p.add_argument('--output',required=True);p.add_argument('--cleanlab',choices=['off','on'],default='on');a=p.parse_args()
+    print(json.dumps(train(a.cohort,a.structural,a.output,cleanlab=a.cleanlab=='on'),indent=2))

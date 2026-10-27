@@ -1,4 +1,4 @@
-"""100% MiniLM description OOF + Isolation Forest + categorical/tabular Huber LightGBM."""
+"""100% MiniLM description OOF + Cleanlab + categorical/tabular Huber LightGBM."""
 import argparse,gc,hashlib,json
 from pathlib import Path
 import numpy as np
@@ -6,10 +6,10 @@ import pandas as pd
 import torch
 import lightgbm as lgb
 from transformers import AutoTokenizer
-from sklearn.ensemble import IsolationForest
+from pricing.label_quality import cleanlab_inliers
 from pricing.oof import cross_fit
 from pricing.text import MODEL_ID,fit_text,predict_text,save_text,load_text
-from pricing.tabular import features,fit_schema,CATEGORICAL
+from pricing.tabular import features,fit_schema,CATEGORICAL,NUMERIC
 from scripts.common import clean,metrics
 
 
@@ -42,17 +42,6 @@ def lgb_fit(x,y,settings,a,xv=None,yv=None):
     m.fit(x,(raw-mean)/std,**kwargs);return m,mean,std
 
 
-def filter_prices(prices,path,row_ids,seed=42,threads=4):
-    prices=np.asarray(prices,float)
-    if prices.ndim!=1 or not np.isfinite(prices).all() or len(prices)<3:raise ValueError('Finite OOF description prices required')
-    detector=IsolationForest(n_estimators=300,max_samples=min(256,len(prices)),contamination='auto',random_state=seed,n_jobs=threads)
-    labels=detector.fit_predict(prices.reshape(-1,1));keep=np.flatnonzero(labels==1)
-    path=Path(path);path.mkdir(parents=True,exist_ok=True)
-    pd.DataFrame({'row_id':np.asarray(row_ids),'predicted_text_price':prices,'score':detector.score_samples(prices.reshape(-1,1)),'kept':labels==1}).to_csv(path/'isolation-audit.csv',index=False)
-    if len(keep)<2:raise ValueError('Isolation Forest retained too few rows; no forced fallback is applied')
-    return keep
-
-
 def run(a):
     if a.device.startswith('cuda') and not torch.cuda.is_available():raise RuntimeError('CUDA is unavailable. Run on a GPU, or explicitly use --device cpu --allow-cpu for slow MiniLM fine-tuning.')
     if a.device=='cpu' and not a.allow_cpu:raise RuntimeError('Explicit --allow-cpu required for slow full MiniLM training')
@@ -63,7 +52,7 @@ def run(a):
     out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
     config=vars(a).copy();config.pop('output',None)
     config.update(description_model=MODEL_ID,description_revision=a.revision)
-    source=b''.join(Path(__file__).with_name(p).read_bytes() for p in ['train.py','oof.py','text.py','tabular.py'])
+    source=(Path(__file__).resolve().parents[1]/'pricing/label_quality.py').read_bytes()+b''.join(Path(__file__).with_name(p).read_bytes() for p in ['train.py','oof.py','text.py','tabular.py'])
     fingerprint=hashlib.sha256(Path(a.data).read_bytes()+json.dumps(config,sort_keys=True).encode()+source).hexdigest()
     cfg=out/'training-config.json'
     if cfg.exists() and json.loads(cfg.read_text())['fingerprint']!=fingerprint:raise ValueError('Output contains a different run; choose a new output directory')
@@ -96,7 +85,7 @@ def run(a):
     tr=np.flatnonzero(d.phase=='train');va=np.flatnonzero(d.phase=='validation');te=np.flatnonzero(d.phase=='test')
     held=np.r_[va,te]
     tprice,ht=stage(tr,out/'assessment',held)
-    keep=filter_prices(tprice,out/'assessment',d.row_id.iloc[tr],a.seed,a.threads)
+    keep,filter_report=cleanlab_inliers(d.iloc[tr][NUMERIC+CATEGORICAL],d.price.iloc[tr],out/'assessment/cleanlab',d.row_id.iloc[tr],a.seed,a.threads)
     schema=fit_schema(d.iloc[tr]);x=features(d.iloc[tr],schema,tprice)
     xv=features(d.iloc[va],schema,ht[:len(va)]);xt=features(d.iloc[te],schema,ht[len(va):])
     choices=[]
@@ -110,7 +99,7 @@ def run(a):
     tp=inverse(model.predict(xt),choice['mean'],choice['std'],choice['target'])
     band=float(np.quantile(abs(np.log1p(d.price.iloc[va])-np.log1p(vp)),.8))
     evaluation={'status':'evaluated','rows':{'train':len(tr),'validation':len(va),'test':len(te),'eligible':len(d),'outlier_removed':len(tr)-len(keep),'retained_train':len(keep)},
-        'selected':choice,'grid':[c[0] for c in choices],'stacked':metrics(d.price.iloc[te],tp),
+        'outlier_filter':filter_report,'selected':choice,'grid':[c[0] for c in choices],'stacked':metrics(d.price.iloc[te],tp),
         'description_only':metrics(d.price.iloc[te],ht[len(va):]),
         'band80_test_coverage':float(np.mean(abs(np.log1p(d.price.iloc[te])-np.log1p(tp))<=band)),
         'note':'Chronological assessment, completed before the all-row deployment refit.'}
@@ -118,18 +107,18 @@ def run(a):
     print(json.dumps(evaluation,indent=2),flush=True)
     del choices,model;gc.collect()
     all_idx=np.arange(len(d));tprice,_=stage(all_idx,out)
-    keep=filter_prices(tprice,out,d.row_id,a.seed,a.threads)
+    keep,refit_filter=cleanlab_inliers(d[NUMERIC+CATEGORICAL],d.price,out/'cleanlab',d.row_id,a.seed,a.threads)
     schema=fit_schema(d);x=features(d,schema,tprice)
     model,mean,std=lgb_fit(x.iloc[keep],d.price.iloc[keep],(choice['target'],choice['alpha'],max(1,choice['best_iteration'])),a)
     model.booster_.save_model(str(out/'lightgbm.txt'));(out/'schema.json').write_text(json.dumps(schema,indent=2))
-    manifest={'status':'ready','pipeline':'fine-tuned-minilm-l6+lightgbm','trained_rows':len(keep),'training_candidates':len(d),'outlier_filter':{'algorithm':'IsolationForest','contamination':'auto','input':'predicted_text_price','removed':len(d)-len(keep)},
+    manifest={'status':'ready','pipeline':'fine-tuned-minilm-l6+lightgbm','trained_rows':len(keep),'training_candidates':len(d),'outlier_filter':refit_filter,
         'feature_names':model.booster_.feature_name(),'target_transform':choice['target'],'target_mean':mean,'target_std':std,
         'band80_log_radius':band,'fingerprint':fingerprint,'assessment_note':evaluation['note']}
-    (out/'manifest.json').write_text(json.dumps(manifest,indent=2));print('100% MiniLM + Isolation Forest stack ready',flush=True)
+    (out/'manifest.json').write_text(json.dumps(manifest,indent=2));print('100% MiniLM + Cleanlab stack ready',flush=True)
 
 
 def parser():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--data',default='training-cache/full-cohort.jsonl');p.add_argument('--output',default='artifacts/car-price-studio-full')
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--data',default='training-cache/full-cohort.jsonl');p.add_argument('--output',default='artifacts/car-price-studio-cleanlab')
     p.add_argument('--device',default='cuda');p.add_argument('--allow-cpu',action='store_true');p.add_argument('--revision',default='1110a243fdf4706b3f48f1d95db1a4f5529b4d41')
     p.add_argument('--folds',type=int,default=3);p.add_argument('--epochs',type=int,default=2)
     p.add_argument('--batch-size',type=int,default=1);p.add_argument('--accumulation',type=int,default=8);p.add_argument('--lr',type=float,default=2e-5)

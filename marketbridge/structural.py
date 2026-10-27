@@ -141,9 +141,10 @@ def known_pricing_vins(path):
             result.update(v.upper() for v in VIN.findall(str(text)))
     return result
 
-def train(cohort,index_file,out,exclude_pricing=None):
+def train(cohort,index_file,out,exclude_pricing=None,cleanlab=True):
     from carbids.common import metrics
     d=pd.concat([c.drop(columns=['text','price_evidence','source_url'],errors='ignore') for c in pd.read_json(cohort,lines=True,chunksize=5000)],ignore_index=True)
+    if cleanlab and (Path(out)/'manifest.json').exists():raise ValueError('Use a new output directory for a Cleanlab structural model')
     panel=IndexPanel(index_file);x,k,valid,date=prepare(d,training=True);ratios,_=panel.ratios(date)
     original=len(d);excluded=0;known=0
     if exclude_pricing:
@@ -151,6 +152,15 @@ def train(cohort,index_file,out,exclude_pricing=None):
         overlap=d.vehicle_group.astype(str).str.removeprefix('vin:').isin(vins);excluded=int(overlap.sum());valid&=~overlap
     d=d[valid&ratios.notna()].copy();d['log_real_price']=np.log(d.price.to_numpy()/ratios.loc[d.index].to_numpy())
     tr=d[d.phase=='train'];va=d[d.phase=='validation'];te=d[d.phase=='test'];grid=[];fits=[]
+    filter_report={'method':'none','input_rows':len(tr),'retained_rows':len(tr),'removed_rows':0}
+    def audit_rows(pool,stage):
+        from pricing.label_quality import cleanlab_inliers
+        shape,identities,_,_=prepare(pool,training=True)
+        predictors=pd.concat([shape,identities],axis=1)
+        ids=pool['row_id'] if 'row_id' in pool else pool['vehicle_group']
+        positions,report=cleanlab_inliers(predictors,np.exp(pool.log_real_price),Path(out)/stage,ids)
+        return pool.iloc[positions].copy(),report
+    if cleanlab:tr,filter_report=audit_rows(tr,'assessment-cleanlab')
     for rounds,alpha in [(250,.9),(450,.9)]:
         booster,h,schema=fit_model(tr,rounds,alpha)
         xv,kv,_,dv=prepare(va,training=True);rv,_=panel.ratios(dv)
@@ -161,14 +171,16 @@ def train(cohort,index_file,out,exclude_pricing=None):
     xt,kt,_,dt=prepare(te,training=True);rt,_=panel.ratios(dt)
     pred=np.exp(offsets(kt,h)+booster.predict(encode(xt,schema),num_threads=4))*rt
     band=float(np.quantile(abs(np.log(va.price)-np.log(pv)),.8));assessment=metrics(te.price.to_numpy(),pred.to_numpy())
-    report={'source':'Reported wholesale auction sales, 2014–2015','test':assessment,'grid':grid,'selected':grid[best],
+    report={'source':'Reported wholesale auction sales, 2014–2015','outlier_filter':filter_report,'test':assessment,'grid':grid,'selected':grid[best],
         'train_rows':len(tr),'validation_rows':len(va),'test_rows':len(te),'eligible_rows':len(d),'source_rows':original,
         'known_pricing_vins':known,'known_target_vin_overlaps_excluded':excluded,
         'unknown_target_vins_note':'Unobserved VINs cannot establish vehicle disjointness; upstream auction labels predate 2021 Pricing outcomes.',
         'source_band80_test_coverage':float(np.mean(abs(np.log(te.price)-np.log(pred))<=band)),
         'evaluation_scope':'Source-domain chronological assessment before deployment refit; no retail-sale or 2021 target-sale accuracy established. Current-vintage lagged CPI snapshot, not a real-time vintage replay.'}
     print('Refitting structural on',len(d),flush=True)
-    booster,h,schema=fit_model(d,grid[best]['rounds'],grid[best]['alpha'])
+    refit=d;refit_filter={'method':'none','input_rows':len(d),'retained_rows':len(d),'removed_rows':0}
+    if cleanlab:refit,refit_filter=audit_rows(d,'refit-cleanlab')
+    booster,h,schema=fit_model(refit,grid[best]['rounds'],grid[best]['alpha'])
     out=Path(out);out.mkdir(parents=True,exist_ok=True)
     with gzip.open(out/'lightgbm.txt.gz','wt') as f:f.write(booster.model_to_string())
     (out/'hierarchy.json').write_text(json.dumps(h));(out/'schema.json').write_text(json.dumps(schema))
@@ -177,7 +189,7 @@ def train(cohort,index_file,out,exclude_pricing=None):
     xp,_,_,dates_=prepare(d,training=True)
     temp=pd.DataFrame({'age':xp.age.astype(int).clip(0,40),'miles':d.odometer});typ=temp.groupby('age').miles.median()
     manifest={'status':'ready','pipeline':'partial-pooled-monotone-huber-age-transfer','target_kind':'auction_equivalent_under_transfer_assumptions',
-        'trained_rows':len(d),'feature_names':NUMS+CATS,'raw_model_year_feature':False,'reference_index_month':'2015-01','index_lag_months':2,
+        'trained_rows':len(refit),'training_candidates':len(d),'outlier_filter':refit_filter,'feature_names':NUMS+CATS,'raw_model_year_feature':False,'reference_index_month':'2015-01','index_lag_months':2,
         'index_series':'CUUR0000SETA02','index_source':'https://api.bls.gov/publicAPI/v2/timeseries/data/CUUR0000SETA02',
         'index_snapshot_note':'Retrieved 2026-10-26; current vintage. Aggregate retail index applied to wholesale is an explicit transfer assumption.',
         'age_range':[float(xp.age.min()),float(xp.age.max())],'model_year_range':[int(d.year.min()),int(d.year.max())],
@@ -189,5 +201,5 @@ def train(cohort,index_file,out,exclude_pricing=None):
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2));(out/'evaluation.json').write_text(json.dumps(report,indent=2));return report
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--cohort',required=True);p.add_argument('--index',required=True);p.add_argument('--output',required=True);p.add_argument('--exclude-pricing');a=p.parse_args()
-    print(json.dumps(train(a.cohort,a.index,a.output,a.exclude_pricing),indent=2))
+    p=argparse.ArgumentParser();p.add_argument('--cohort',required=True);p.add_argument('--index',required=True);p.add_argument('--output',required=True);p.add_argument('--exclude-pricing');p.add_argument('--cleanlab',choices=['off','on'],default='on');a=p.parse_args()
+    print(json.dumps(train(a.cohort,a.index,a.output,a.exclude_pricing,cleanlab=a.cleanlab=='on'),indent=2))

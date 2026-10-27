@@ -135,7 +135,7 @@ def render_comparison(root):
         robust_file=best_asking_bundle(root)/'evaluation.json'
         if robust_file.exists():
             r=json.loads(robust_file.read_text());st.write('**Larger regularized LightGBM ensemble**')
-            st.dataframe(pd.DataFrame([{'model':'Unfiltered reference' if r.get('outlier_filter',{}).get('method')=='IsolationForest' else 'Original baseline',**r['baseline']['test']},{'model':'Robust ensemble',**r['test']}]),hide_index=True)
+            st.dataframe(pd.DataFrame([{'model':'Unfiltered reference' if r.get('outlier_filter',{}).get('method') in ['Cleanlab','IsolationForest'] else 'Original baseline',**r['baseline']['test']},{'model':'Robust ensemble',**r['test']}]),hide_index=True)
             st.write('Active model:', 'Robust ensemble' if r['promoted'] else 'Original baseline')
             st.write('Ensemble members:',r['ensemble_members'])
             if engine.robust:st.write('Total deployed trees:',sum(m['trees'] for m,_ in engine.robust.members))
