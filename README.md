@@ -14,6 +14,12 @@ Measured baseline test results: **MAE $3,329, RMSE $6,839, median APE 15.6%, R²
 
 **MiniLM assessment training is complete and the model is installed.** Its transformer was fitted on 148,290 descriptions; automatic Isolation Forest filtering retained 109,609 OOF rows for LightGBM. The separate 211,844-candidate full-data refit is not yet installed. The GUI labels the scope explicitly and serves point estimates because the saved assessment omitted its interval calibration radius. Baseline scores above describe the baseline, not MiniLM.
 
+## Description examples and recomputed audit
+
+The Python calculator now offers **400 searchable real seller descriptions** with matching editable vehicle fields. Select an example, edit it if desired, then estimate. Prices and common contact/VIN formats are redacted; dataset attribution appears in the GUI.
+
+Evaluation compares every bundled asking-price model and the text branch. A reproducible new audit uses **1,000 validation and 1,000 test listings**, sampled from chronological halves of the original assessment test pool. MiniLM + LightGBM MAE is **$3,192 / $3,732** (validation/test); text-only MAE is **$3,446 / $3,767**. These are reused historical holdout data, not a fresh untouched benchmark. Deployed tabular/ensemble weights were refitted on all rows, so their recomputed errors are explicitly labelled **in-sample**. Original pre-refit test results remain separate. See [audit methodology and full-pool command](AUDIT.md).
+
 ## Full 100% database
 
 All **426,880 source listings** were scanned. Eligibility checks and deterministic description/VIN deduplication leave **211,844 listings**. The assessment partitions contain **148,290 train / 31,777 validation / 31,777 test rows**. Validation selects the Huber configuration before test scoring. The deployment baseline is then **refitted on all 211,844 eligible rows**, with no sampling.

@@ -1,5 +1,5 @@
 {
-  "status": "running",
+  "status": "complete",
   "seed": 20261027,
   "cutoff_utc": "2021-05-04 13:17:48+00:00",
   "per_phase_limit": 1000,
@@ -19,5 +19,202 @@
     "models/carbids/manifest.json": "6dcd40f511031ea9b356b8061bf5500c96056789e1d8bb1da08b21c4536aa254",
     "models/minilm-assessment/manifest.json": "a1709155c03ee12e4d0e2a52101069e61b7caf9c4ea3a7cfcf13e8c99c7e15a6"
   },
-  "models": {}
+  "models": {
+    "MiniLM + LightGBM": {
+      "evaluation_scope": "Out of original fitting and tuning data; reused assessment holdout",
+      "validation": {
+        "mae_usd": 3191.600498741665,
+        "rmse_usd": 5820.914604942254,
+        "median_ape_pct": 15.488133303043245,
+        "rmsle": 0.37095120338959325,
+        "r2": 0.8044262874411339,
+        "mae_bootstrap_95pct_usd": [
+          2892.6257284231187,
+          3499.8862947969496
+        ]
+      },
+      "test": {
+        "mae_usd": 3731.4961548822544,
+        "rmse_usd": 7722.321401792789,
+        "median_ape_pct": 15.206305430211115,
+        "rmsle": 0.39553068944555614,
+        "r2": 0.7216252327420726,
+        "mae_bootstrap_95pct_usd": [
+          3334.773644888332,
+          4189.672815621875
+        ]
+      },
+      "combined": {
+        "mae_usd": 3461.54832681196,
+        "rmse_usd": 6838.029492135032,
+        "median_ape_pct": 15.316803946666429,
+        "rmsle": 0.3834379490800724,
+        "r2": 0.758967757248713
+      }
+    },
+    "MiniLM text only": {
+      "evaluation_scope": "Out of original fitting and tuning data; reused assessment holdout",
+      "validation": {
+        "mae_usd": 3446.1425333563066,
+        "rmse_usd": 6190.968196219963,
+        "median_ape_pct": 16.694271029763954,
+        "rmsle": 0.40315073771433363,
+        "r2": 0.7787694139163803,
+        "mae_bootstrap_95pct_usd": [
+          3138.7256207807623,
+          3785.311038527658
+        ]
+      },
+      "test": {
+        "mae_usd": 3766.716369651928,
+        "rmse_usd": 7637.096578340685,
+        "median_ape_pct": 17.60221615442959,
+        "rmsle": 0.4172076715045502,
+        "r2": 0.7277357080073097,
+        "mae_bootstrap_95pct_usd": [
+          3377.449580684448,
+          4212.797797890294
+        ]
+      },
+      "combined": {
+        "mae_usd": 3606.429451504117,
+        "rmse_usd": 6951.73832050337,
+        "median_ape_pct": 17.187017874548378,
+        "rmsle": 0.4102394169761483,
+        "r2": 0.7508849105657506
+      }
+    },
+    "studio-baseline": {
+      "evaluation_scope": "IN-SAMPLE / training overlap: deployed bundle refitted on the full eligible cohort. Not a generalization MAE; consult original assessment.",
+      "validation": {
+        "mae_usd": 2795.2447651500042,
+        "rmse_usd": 4738.718329491205,
+        "median_ape_pct": 14.106848469242589,
+        "rmsle": 0.35967817995972434,
+        "r2": 0.870386626689738,
+        "mae_bootstrap_95pct_usd": [
+          2563.423137910783,
+          3034.533883352746
+        ]
+      },
+      "test": {
+        "mae_usd": 2933.5412083938736,
+        "rmse_usd": 5735.1929007562085,
+        "median_ape_pct": 14.227518849144936,
+        "rmsle": 0.3599954955123035,
+        "r2": 0.8464569438416628,
+        "mae_bootstrap_95pct_usd": [
+          2652.3574466167825,
+          3250.936560639597
+        ]
+      },
+      "combined": {
+        "mae_usd": 2864.392986771939,
+        "rmse_usd": 5260.603055503253,
+        "median_ape_pct": 14.136618797468264,
+        "rmsle": 0.35983687271337883,
+        "r2": 0.8573458966295333
+      }
+    },
+    "robust-asking": {
+      "evaluation_scope": "IN-SAMPLE / training overlap: deployed bundle refitted on the full eligible cohort. Not a generalization MAE; consult original assessment.",
+      "validation": {
+        "mae_usd": 2321.7531349396154,
+        "rmse_usd": 4030.697340985978,
+        "median_ape_pct": 11.622113552186411,
+        "rmsle": 0.30031989128602593,
+        "r2": 0.9062247130841322,
+        "mae_bootstrap_95pct_usd": [
+          2118.0467703739823,
+          2528.3421479080685
+        ]
+      },
+      "test": {
+        "mae_usd": 2486.6053861180862,
+        "rmse_usd": 5039.176161769539,
+        "median_ape_pct": 11.14185281143859,
+        "rmsle": 0.30625982948267844,
+        "r2": 0.881463198929909,
+        "mae_bootstrap_95pct_usd": [
+          2221.5918005768394,
+          2780.81101411721
+        ]
+      },
+      "combined": {
+        "mae_usd": 2404.179260528851,
+        "rmse_usd": 4562.8838164026165,
+        "median_ape_pct": 11.294468079320005,
+        "rmsle": 0.3033044017623299,
+        "r2": 0.8926771927949109
+      }
+    },
+    "robust-asking-isolation": {
+      "evaluation_scope": "IN-SAMPLE / training overlap: deployed bundle refitted on the full eligible cohort. Not a generalization MAE; consult original assessment.",
+      "validation": {
+        "mae_usd": 2548.645710287854,
+        "rmse_usd": 4512.686416181651,
+        "median_ape_pct": 12.077920996133702,
+        "rmsle": 0.3338735288689982,
+        "r2": 0.8824565765705032,
+        "mae_bootstrap_95pct_usd": [
+          2322.0606174208233,
+          2787.939218690038
+        ]
+      },
+      "test": {
+        "mae_usd": 2835.6608109029826,
+        "rmse_usd": 5902.178970281487,
+        "median_ape_pct": 11.882235445455395,
+        "rmsle": 0.34630372551230965,
+        "r2": 0.8373856491450746,
+        "mae_bootstrap_95pct_usd": [
+          2526.025173899707,
+          3182.0359130897127
+        ]
+      },
+      "combined": {
+        "mae_usd": 2692.1532605954185,
+        "rmse_usd": 5253.572845598671,
+        "median_ape_pct": 11.960932784714979,
+        "rmsle": 0.34014541271575516,
+        "r2": 0.8577269244910296
+      }
+    },
+    "transfer-asking": {
+      "evaluation_scope": "IN-SAMPLE / training overlap: deployed bundle refitted on the full eligible cohort. Not a generalization MAE; consult original assessment.",
+      "validation": {
+        "mae_usd": 2768.2167805843064,
+        "rmse_usd": 4735.7535980362045,
+        "median_ape_pct": 14.335719844789804,
+        "rmsle": 0.35986796346782224,
+        "r2": 0.8705487585621822,
+        "mae_bootstrap_95pct_usd": [
+          2542.7814156077575,
+          3013.169962916354
+        ]
+      },
+      "test": {
+        "mae_usd": 2846.0740020153225,
+        "rmse_usd": 5526.790854770981,
+        "median_ape_pct": 13.822751204927087,
+        "rmsle": 0.35419145043112893,
+        "r2": 0.8574129179182226,
+        "mae_bootstrap_95pct_usd": [
+          2573.720727579832,
+          3147.5555449561793
+        ]
+      },
+      "combined": {
+        "mae_usd": 2807.1453912998145,
+        "rmse_usd": 5146.492946351574,
+        "median_ape_pct": 14.089874629023408,
+        "rmsle": 0.3570409883255595,
+        "r2": 0.8634675239173755
+      }
+    }
+  },
+  "reference": {
+    "original_full_test_mae_usd": 3559.0701965183234,
+    "note": "The new audit uses sampled partitions; its MAE need not equal the original full-test MAE."
+  }
 }

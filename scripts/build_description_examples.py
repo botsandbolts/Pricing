@@ -33,7 +33,7 @@ def build(source, output='data/description-examples.json', count=400):
     for row in d.to_dict('records'):
         text=clean(row['text'])
         text=re.sub(r'(?i)\b[A-HJ-NPR-Z0-9]{17}\b','[VIN removed]',text)
-        text=re.sub(r'(?<!\w)(?:\+?1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}(?!\w)','[phone removed]',text)
+        text=re.sub(r'(?<!\d)(?:\+?1[ .-]*)?(?:\(\d{3}\)|\d{3})[ .-]*\d{3}[ .-]*\d{4}','[phone removed]',text)
         text=re.sub(r'(?i)\b(?:www\.)\S+|\b\S+@\S+\b','[contact removed]',text)
         # Only reasonably readable full descriptions; do not silently truncate examples.
         if not 150<=len(text)<=5000:continue

@@ -112,6 +112,11 @@ def run(data, output, batch_size=8, per_phase=1000):
             raw=p.lgb.predict(features(pool,p.schema),num_threads=4)
             values=np.expm1(np.clip(raw*p.manifest['target_std']+p.manifest['target_mean'],0,np.log1p(1e7)))
         record(folder,values,'IN-SAMPLE / training overlap: deployed bundle refitted on the full eligible cohort. Not a generalization MAE; consult original assessment.')
+    from marketbridge.asking import TransferredAsking
+    from marketbridge.structural import StructuralTransfer
+    transferred=TransferredAsking('models/transfer-asking',StructuralTransfer('models/structural-transfer'))
+    record('transfer-asking',transferred.predict_frame(pool.assign(as_of='2021-05-01')),
+           'IN-SAMPLE / training overlap: deployed bundle refitted on the full eligible cohort. Not a generalization MAE; consult original assessment.')
     predictions.to_csv(out/'audit-predictions.csv',index=False)
     report['status']='complete';save()
     print(json.dumps(report,indent=2),flush=True)

@@ -14,6 +14,10 @@ def render_model_comparison():
         rows.append({'Model':label,'Original test MAE (USD)':score['mae_usd'],'Original test RMSE (USD)':score['rmse_usd']})
         if 'description_only' in e:
             rows.append({'Model':'MiniLM description only','Original test MAE (USD)':e['description_only']['mae_usd'],'Original test RMSE (USD)':e['description_only']['rmse_usd']})
+    transfer=Path('models/transfer-asking/evaluation.json')
+    if transfer.exists():
+        score=json.loads(transfer.read_text())['models']['with_auction_structure']['test']
+        rows.append({'Model':'Auction-structure LightGBM','Original test MAE (USD)':score['mae_usd'],'Original test RMSE (USD)':score['rmse_usd']})
     st.subheader('All models · the same dollar ruler')
     st.dataframe(rows,hide_index=True)
     st.caption('Recorded chronological assessments before full-data deployment refits. Lower MAE is better: an MAE of $3,500 means $3,500 average absolute error, not a $3,500 guarantee for your car. The transformer does not automatically win just because it has read more words than your mechanic.')
