@@ -43,19 +43,19 @@ class PricePipeline:
         for col in ['year','odometer']+list(self.schema):
             if col not in frame:frame[col]=None
         x=features(frame,self.schema,None if text_price is None else [text_price])
-        raw=float(self.lgb.predict(x)[0])
+        raw=float(self.lgb.predict(x,num_threads=4)[0])
         scaled=raw*self.manifest.get('target_std',1.)+self.manifest.get('target_mean',0.)
         transform=self.manifest.get('target_transform','log1p')
         if transform not in ['log1p','dollars']:raise ValueError('Unknown target transform')
         final=float(np.expm1(np.clip(scaled,0,np.log1p(1e7)))) if transform=='log1p' else float(np.clip(scaled,0,1e7))
         log_price=np.log1p(final)
-        b=self.manifest['band80_log_radius']
+        b=self.manifest.get('band80_log_radius')
         invert=lambda z:float(np.expm1(np.clip(z,0,np.log1p(1e7))))
         result = {'predicted_text_price':text_price,'price':final,
-                'range':[invert(log_price-b),invert(log_price+b)]}
+                'range':None if b is None else [invert(log_price-b),invert(log_price+b)]}
         if explain:
             # Native LightGBM TreeSHAP, in the fitted model's raw output space.
-            values=np.asarray(self.lgb.predict(x,pred_contrib=True),dtype=float)[0]
+            values=np.asarray(self.lgb.predict(x,pred_contrib=True,num_threads=4),dtype=float)[0]
             scale=float(self.manifest.get('target_std',1.))
             base=float(values[-1]*scale+self.manifest.get('target_mean',0.))
             contributions=values[:-1]*scale

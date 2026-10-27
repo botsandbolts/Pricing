@@ -6,3 +6,9 @@ streamlit>=1.40,<2
 requests>=2.31,<3
 
 plotly>=5.24,<7
+
+# Installed MiniLM inference uses CPU; Kaggle uses requirements-training.txt.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+transformers==5.21.0
+safetensors>=0.4,<1

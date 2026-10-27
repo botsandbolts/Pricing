@@ -152,8 +152,11 @@ def save_text(model, tokenizer, path, provenance):
 
 def load_text(path, device='cpu'):
     path = Path(path)
+    from pricing.transformer_storage import backbone_directory
+    if device == 'cpu':
+        torch.set_num_threads(min(4, torch.get_num_threads()))
     state = torch.load(path/'regression.pt', map_location='cpu', weights_only=True)
-    model = TextPriceRegressor(AutoModel.from_pretrained(path/'backbone'), state['mean'], state['std'])
+    model = TextPriceRegressor(AutoModel.from_pretrained(backbone_directory(path/'backbone'), local_files_only=True), state['mean'], state['std'])
     model.head.load_state_dict(state['head'])
-    return model.to(device).eval(), AutoTokenizer.from_pretrained(path/'tokenizer')
+    return model.to(device).eval(), AutoTokenizer.from_pretrained(path/'tokenizer', local_files_only=True)
 

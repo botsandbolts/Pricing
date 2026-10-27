@@ -1,0 +1,6 @@
+{
+  "source": "sentence-transformers/all-MiniLM-L6-v2",
+  "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+  "fitting_rows": 148290,
+  "fingerprint": "b65bc3bf487ca9dd4abea44de0c5a80ef358d7919c3644365ff0037a7a75b018"
+}

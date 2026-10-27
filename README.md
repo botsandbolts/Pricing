@@ -46,7 +46,7 @@ python -m pip install -r requirements-training.txt
 python -m streamlit run app.py
 ```
 
-The Python GUI defaults to `models/studio-baseline/`. Its mode selector can load an enhanced bundle from `artifacts/car-price-studio-full/` after training. Override with `PRICING_MODEL_DIR` if needed. No API key is required. Baseline browser inputs are processed locally.
+The Python GUI defaults to its best trained regularized ensemble. Its mode selector includes the installed MiniLM assessment bundle and can also load a completed full-refit bundle from `artifacts/car-price-studio-full/`. Override with `PRICING_MODEL_DIR` if needed. No API key is required. Baseline browser inputs are processed locally.
 
 For MiniLM training, open `train_gpu.ipynb` in a CUDA runtime or run:
 
@@ -110,3 +110,19 @@ units. The technical receipt reports reconstruction checks and Monte Carlo
 sampling errors. Reference CSV uploads are optional; the default is a clearly
 labelled 30-car historical gallery. See [EXPLANATIONS.md](EXPLANATIONS.md) for the
 methods, target-scale handling, background limits and validation.
+
+
+### Installed description transformer
+
+Select **MiniLM + LightGBM (installed assessment)** in the Python GUI to price a car
+using both its free-text description and structured fields. The real fine-tuned MiniLM
+weights are included; inference runs on CPU with no API key or model download.
+`pip install -r requirements.txt` installs the CPU runtime.
+
+This is the completed 148,290-description assessment model, with LightGBM fitted
+on 109,609 Isolation Forest inliers. The separate 211,844-car refit is still pending;
+the installed bundle explicitly records this distinction. Recorded test MAE: $3,559.
+The lower-error regularized ensemble remains the default. Point estimates are available;
+the assessment did not persist its interval calibration radius. All six explanation
+graphs support this model, conditional on the submitted description-price signal.
+See [model provenance and installation](models/minilm-assessment/README.md).

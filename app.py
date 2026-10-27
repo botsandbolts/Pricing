@@ -11,16 +11,23 @@ st.title('Car Price Studio + CarBids')
 st.caption('Age-aware auction transfer and historical asking prices. Serious maths. Zero tyre-kicking.')
 from marketbridge.engine import best_asking_bundle
 choices=['Best trained ensemble','Unfiltered trained ensemble','Trained tabular baseline','MiniLM + Isolation Forest (training required)']
+installed_minilm=Path('models/minilm-assessment')
+if (installed_minilm/'manifest.json').exists():choices.insert(1,'MiniLM + LightGBM (installed assessment)')
 filtered=Path('models/robust-asking-isolation')
 if (filtered/'manifest.json').exists():choices.insert(1,'Isolation Forest trained ensemble')
 mode=st.selectbox('Pricing model',choices)
 locations={'Best trained ensemble':best_asking_bundle(Path('.')),
+           'MiniLM + LightGBM (installed assessment)':installed_minilm,
            'Isolation Forest trained ensemble':filtered,
            'Unfiltered trained ensemble':Path('models/robust-asking'),
            'Trained tabular baseline':Path('models/studio-baseline'),
            'MiniLM + Isolation Forest (training required)':Path('artifacts/car-price-studio-full')}
 path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
+selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
+uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm'
+if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
+    st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
 if not ready:
     st.info('This historical MiniLM mode has not been trained. The integrated Pricing + CarBids tab uses its own completed models and remains available.')
 
@@ -56,8 +63,8 @@ with value:
         cylinders=b.selectbox('Cylinders',['unknown','3 cylinders','4 cylinders','5 cylinders','6 cylinders','8 cylinders','10 cylinders','12 cylinders','other'])
         color=c.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'])
         state=st.text_input('US state abbreviation',value='ca',max_chars=2)
-        notes=st.text_area('Seller description — free text',height=250,max_chars=MAX_CHARACTERS,disabled=not mode.startswith('MiniLM'),
-            placeholder='The trained ensemble/baseline uses structured fields. Free text is used only after MiniLM training.')
+        notes=st.text_area('Seller description — free text',height=250,max_chars=MAX_CHARACTERS,disabled=not uses_text,
+            placeholder='Describe maintenance, equipment, condition and known problems. MiniLM reads this text and produces a price signal for LightGBM.' if uses_text else 'Select the installed MiniLM model to include your description.')
         submitted=st.form_submit_button('Estimate asking price',disabled=not ready)
     if submitted:
         if len(notes)>8000:
@@ -79,7 +86,10 @@ with value:
         result=saved[1];car=saved[2]
         st.caption(f"Explaining submitted car: {car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
         st.metric('Estimated asking price',f"${result['price']:,.0f}")
-        st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
+        if result.get('range') is not None:
+            st.text(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
+        else:
+            st.caption('Point estimate only: the saved assessment did not include its interval calibration radius. No crystal-ball interval has been invented.')
         if result.get('predicted_text_price') is not None:
             st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
         from marketbridge.ui import render_auction_companion
@@ -94,7 +104,8 @@ with how:
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
     st.write('The trained ensembles average regularized LightGBM models with age-adjusted CarBids features. The filtered experiment uses Isolation Forest with an automatic cutoff on training vehicle facts and frozen CarBids signals; asking-price labels are excluded. Validation and test cars are never filtered. The original unfiltered ensemble remains selectable. The best-model choice uses the filtered model only if its recorded assessment passed. Benchmark results are in Evaluation.')
     st.write('The MiniLM workflow fine-tunes sentence-transformers/all-MiniLM-L6-v2 on descriptions and log prices. Three-fold predictions create predicted_text_price without using each predicted row’s target in its fitting model.')
-    st.write('Isolation Forest uses contamination="auto" on training OOF description prices only. No fixed percentage is removed; validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. This enhanced mode still requires GPU training.')
+    st.write('Isolation Forest uses contamination="auto" on training OOF description prices only. No fixed percentage is removed; validation and test are unfiltered. Huber LightGBM combines retained training prices with the structured fields. The installed MiniLM assessment model runs on CPU and dynamically reads your description; GPU training is not needed to use it.')
+    st.write('For the installed assessment, MiniLM learned standardized log(1 + asking price). Its inverse-transformed dollar estimate becomes predicted_text_price. Validation selected a Huber LightGBM model with a standardized dollar target, rather than a log target. Make and model remain ordinary categorical fields. No make/model transformer is used.')
     st.write('The complete raw database is scanned before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
 with results:
     if (path/'evaluation.json').exists() and ready:
@@ -119,6 +130,13 @@ with results:
             st.caption(e.get('assessment_note','Chronological held-out assessment.'))
         else:
             st.write(e['rows']);st.json(e['stacked'])
-        if 'band80_test_coverage' in e:st.write(f"Indicative 80% band test coverage: {e['band80_test_coverage']:.1%}")
+            if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
+                st.caption(selected_manifest['assessment_note'])
+                st.text(f"Description-only test MAE: ${e['description_only']['mae_usd']:,.0f} · MiniLM + LightGBM test MAE: ${e['stacked']['mae_usd']:,.0f}.")
+                st.info('Installed for use and comparison. The lower-error ensemble remains the default. More neurons do not automatically mean a better negotiator.')
+                st.download_button('Download MiniLM assessment',json.dumps(e,indent=2),'minilm-assessment.json','application/json')
+        if selected_manifest.get('band80_log_radius') is None and uses_text:
+            st.caption('The original evaluation recorded interval coverage, but its calibration radius was not persisted. This installation serves point estimates only.')
+        elif 'band80_test_coverage' in e:st.write(f"Indicative 80% band test coverage: {e['band80_test_coverage']:.1%}")
         else:st.caption('The ensemble band is calibrated on historical validation residuals; no individual or future-market coverage guarantee is claimed.')
     else:st.info('This mode has no completed evaluation. Train MiniLM to enable it; baseline scores do not apply.')

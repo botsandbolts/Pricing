@@ -1,0 +1,2 @@
+# CPU-only deployment; trained weights are included in the repository.
+-r requirements.txt
