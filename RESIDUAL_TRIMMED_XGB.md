@@ -23,3 +23,5 @@ python -m scripts.train_residual_trimmed_xgb \
 ```
 
 Run `scripts.train_catboost_aft` and `scripts.audit_outliertree --pct-outliers 0.099` first. OOF fold caches allow resumption only with matching source and preparation fingerprints. Output manifests, schema, filter counts, assessments and weight parts are versioned in the repository after fitting. Per-row audit/prediction tables remain reconstructable; source hashes and output checksums identify the artifacts.
+
+To bound native categorical model size and rare-trim variance, final XGBoost model-name pooling is learned only on retained training cars: retain names with at least 20 examples, capped at 1,000 names. Other and unseen names map to a shared rare-model token. No car or residual rank changes. Make and other categories remain native. Each manifest persists the mapping, reused in assessment, final refit and GUI prediction.

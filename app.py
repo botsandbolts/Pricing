@@ -30,7 +30,7 @@ if (filtered/'manifest.json').exists():choices.append('Isolation Forest trained 
 cleanlab_ensemble=Path('models/robust-asking-cleanlab')
 if (cleanlab_ensemble/'manifest.json').exists() and json.loads((cleanlab_ensemble/'manifest.json').read_text()).get('status')=='ready':choices.append('Cleanlab trained ensemble')
 aft_path=Path('models/price-model-suite/ask')
-aft_label='MiniLM + Cleanlab + XGBoost AFT (default)'
+aft_label='MiniLM + Cleanlab + XGBoost AFT · original'
 aft_ready=(aft_path/'manifest.json').exists() and json.loads((aft_path/'manifest.json').read_text()).get('status')=='ready'
 if aft_ready:choices.insert(0,aft_label)
 from pricing.residual_ui import ready as robust_aft_ready

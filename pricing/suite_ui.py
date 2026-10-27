@@ -32,8 +32,9 @@ def load_suite(path,version):
 def render(root,key_prefix="suite"):
     root=Path(root);suite=root/'models/price-model-suite'
     if not (suite/'comparison.json').exists():suite=root/'models/price-model-suite-tabular'
-    from pricing.residual_ui import ready as residual_ready,render_assessment
-    if residual_ready(root):render_assessment(root)
+    from pricing.residual_ui import ready as residual_ready,render_assessment,render_calculator
+    if residual_ready(root):
+        render_calculator(root,key_prefix=key_prefix+'_robust');render_assessment(root)
     st.subheader('Historical comparison: three models walk into a car dealership')
     st.write('Huber takes extreme prices with a pinch of salt. Median regression aims at the middle car. AFT models a bell-shaped uncertainty in log price. Ridge is the straight-line accountant checking their arithmetic.')
     if not (suite/'comparison.json').exists():

@@ -38,6 +38,14 @@ def predictors(frame, side):
     return x,valid,dates
 
 
+def apply_category_pooling(x,pooling):
+    result=x.copy()
+    for column,spec in pooling.items():
+        values=result[column].astype(object)
+        result[column]=values.where(values.isin(spec['retained_levels']),spec['replacement'])
+    return result
+
+
 def encode(x,schema):
     result=x.copy()
     for col,values in schema.items():

@@ -35,7 +35,7 @@ def save(model,path):
 
 
 def side_run(d,x,y,factor,side,out,a,source_sha):
-    out.mkdir(parents=True,exist_ok=True);ids=d.row_id.astype(str).to_numpy();ph=d.phase.to_numpy();tr=np.flatnonzero(ph=='train')
+    out.mkdir(parents=True,exist_ok=True);ids=d.row_id.astype(str).to_numpy(dtype=str);ph=d.phase.to_numpy();tr=np.flatnonzero(ph=='train')
     cats=[c for c in x if not pd.api.types.is_numeric_dtype(x[c])]
     for c in cats:x[c]=x[c].fillna('unknown').astype(str)
     residual=np.full(len(d),np.nan);fold_ids=np.full(len(d),-1)
@@ -64,16 +64,22 @@ def side_run(d,x,y,factor,side,out,a,source_sha):
     audit.to_csv(out/'filter-rows.csv.gz',index=False,compression={'method':'gzip','mtime':0})
     (out/'filter-report.json').write_text(json.dumps(serial({'partitions':filter_stats,'rule':'Remove ceil(25% of each original phase) ranked by abs(log observed/predicted), tie break row_id, union all OutlierTree 0.099 full-cohort flags. Training residuals from 3-fold OOF CatBoost. Validation/test residuals from saved train-fit CatBoost assessment. No original row is overwritten.','warning':'Validation/test labels select easy cases; filtered metrics are selection-biased and are not generalization estimates. Unfiltered original test also reported, but filtering-rule development has already used its labels. A genuinely new external test is required.','source_sha256':source_sha}),indent=2))
     tr_keep=(ph=='train')&keep;va_keep=(ph=='validation')&keep;te_keep=(ph=='test')&keep
+    # Bound rare-trim variance and native categorical bitset/model size.
+    counts=x.loc[tr_keep,'model'].value_counts();named=[v for v in sorted(counts.index,key=lambda v:(-counts[v],str(v))) if counts[v]>=20][:1000]
+    rare='__xgb_rare_model__'
+    while rare in counts:rare+='_'
+    pooling={'model':{'retained_levels':named,'replacement':rare,'min_count':20,'max_levels':1000,'learned_on':'retained training only'}}
+    x.loc[~x.model.isin(named),'model']=rare
     schema={c:sorted(x.loc[tr_keep,c].unique().tolist()) for c in CATS};xf=encode(x,schema)
     print(side,'XGBOOST ASSESSMENT',filter_stats,flush=True)
     model=xgb.train(PARAMS,matrix(xf.loc[tr_keep],y[tr_keep]),num_boost_round=a.rounds,evals=[(matrix(xf.loc[va_keep],y[va_keep]),'filtered_validation')],early_stopping_rounds=150,verbose_eval=200)
-    rounds=model.best_iteration+1;assessment=model[:rounds];save(assessment,out/'assessment.ubj.gz')
+    rounds=model.best_iteration+1;assessment=model if rounds==model.num_boosted_rounds() else model[:rounds];save(assessment,out/'assessment.ubj.gz')
     records={}
     for name,mask in [('filtered_validation',va_keep),('filtered_test',te_keep),('original_unfiltered_test',ph=='test'),('excluded_test',(ph=='test')&~keep)]:
         p=assessment.predict(xgb.DMatrix(xf.loc[mask],enable_categorical=True,nthread=4))*factor[mask]
         observed=d.price.to_numpy(float)[mask];records[name]={'rows':int(mask.sum()),**metrics(observed,p)}
         if name=='original_unfiltered_test':pd.DataFrame({'row_id':ids[mask],'observed':observed,'predicted':p,'retained':keep[mask]}).to_csv(out/'original-test-predictions.csv.gz',index=False,compression={'method':'gzip','mtime':0})
-    evaluation={'side':side,'models':{'xgb_aft_normal':{'test':records['filtered_test'],'validation':records['filtered_validation']}},'rows':filter_stats,'assessment':records,'selected_boosting_rounds':rounds,'parameters':PARAMS,'evaluation':'Filtered test/validation exclude highest-residual 25% plus OutlierTree flags using their labels. These are optimistic selected-cohort results. Original unfiltered-test errors also reported; a new external test is needed for clean model selection.','text_feature':False,'outlier_filter':{'algorithm':'OOF residual top25% + OutlierTree','removed_rows':int((~keep).sum()),'retained_rows':int(keep.sum()),'input_rows':len(d)},'source_sha256':source_sha}
+    evaluation={'side':side,'models':{'xgb_aft_normal':{'test':records['filtered_test'],'validation':records['filtered_validation']}},'rows':filter_stats,'assessment':records,'selected_boosting_rounds':rounds,'category_pooling':pooling,'parameters':PARAMS,'evaluation':'Filtered test/validation exclude highest-residual 25% plus OutlierTree flags using their labels. These are optimistic selected-cohort results. Original unfiltered-test errors also reported; a new external test is needed for clean model selection.','text_feature':False,'outlier_filter':{'algorithm':'OOF residual top25% + OutlierTree','removed_rows':int((~keep).sum()),'retained_rows':int(keep.sum()),'input_rows':len(d)},'source_sha256':source_sha}
     (out/'evaluation.json').write_text(json.dumps(serial(evaluation),indent=2,allow_nan=False))
     print(side,'ASSESSMENT COMPLETE',json.dumps(records),flush=True)
     # Deliberately separate deployment refit from untouched assessment artifacts.
@@ -81,7 +87,7 @@ def side_run(d,x,y,factor,side,out,a,source_sha):
     print(side,'FULL RETAINED REFIT',int(keep.sum()),'rounds',rounds,flush=True)
     final=xgb.train(PARAMS,matrix(finalx.loc[keep],y[keep]),num_boost_round=rounds,verbose_eval=False);save(final,out/'xgb_aft_normal.ubj.gz')
     (out/'schema.json').write_text(json.dumps(final_schema))
-    manifest={'status':'ready','pipeline':'modest-model-suite','training_regime':'residual-trimmed-robust-xgb','side':side,'feature_names':list(x),'text_feature':False,'model_names':['xgb_aft_normal'],'trained_rows':int(keep.sum()),'training_candidates':len(d),'selected_boosting_rounds':rounds,'parameters':PARAMS,'outlier_filter':evaluation['outlier_filter'],'deployment_scope':'all-retained-phases-refit-after-separate-assessment','warning':evaluation['evaluation'],'source_sha256':source_sha}
+    manifest={'status':'ready','pipeline':'modest-model-suite','training_regime':'residual-trimmed-robust-xgb','side':side,'feature_names':list(x),'text_feature':False,'model_names':['xgb_aft_normal'],'trained_rows':int(keep.sum()),'training_candidates':len(d),'selected_boosting_rounds':rounds,'category_pooling':pooling,'parameters':PARAMS,'outlier_filter':evaluation['outlier_filter'],'deployment_scope':'all-retained-phases-refit-after-separate-assessment','warning':evaluation['evaluation'],'source_sha256':source_sha}
     (out/'manifest.json').write_text(json.dumps(manifest,indent=2));print(side,'READY',flush=True)
     return evaluation
 

@@ -47,3 +47,6 @@ reports/catboost-aft-residuals/**/*.gz
 models/residual-trimmed-xgb/**/filter-predictions/
 models/residual-trimmed-xgb/**/filter-rows.csv.gz
 models/residual-trimmed-xgb/**/original-test-predictions.csv.gz
+
+# Assessment weights are preserved in the training bundles; deploy only final model parts.
+models/residual-trimmed-xgb/**/assessment.ubj.gz

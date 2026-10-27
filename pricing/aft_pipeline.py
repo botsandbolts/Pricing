@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from pricing.suite_storage import read_model_file
-from pricing.model_suite import encode,predictors,predict
+from pricing.model_suite import encode,predictors,predict,apply_category_pooling
 
 
 class AFTPricePipeline:
@@ -37,7 +37,7 @@ class AFTPricePipeline:
         if self.manifest['text_feature']:
             if text_price is None or not np.isfinite(text_price):raise ValueError('Finite description-price feature required')
             x['predicted_text_price']=float(text_price)
-        return encode(x,self.schema)[self.names]
+        return encode(apply_category_pooling(x,self.manifest.get('category_pooling',{})),self.schema)[self.names]
 
     def predict_frame(self,frame,text_price=None):
         return predict(self.model,'xgb_aft_normal',self.encoded(frame,text_price))

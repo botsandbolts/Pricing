@@ -1,0 +1,301 @@
+{
+  "bytes": 17567490,
+  "sha256": "cd888881e5bcb57f238a4e8d5c15f74dc8a1f79bba512a9d015870e9968fb83d",
+  "parts": [
+    {
+      "file": "xgb_aft_normal.ubj.gz.000.part",
+      "bytes": 300000,
+      "sha256": "e8228e6a4da0d2bd60834761d1f3ee7365c0532e258f560056cd0bcb022a9aae"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.001.part",
+      "bytes": 300000,
+      "sha256": "483ffc8a72d2a464022ff928128de5f57b1d98a6a9561ed61179062bb1e48176"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.002.part",
+      "bytes": 300000,
+      "sha256": "fef11ab7237c311303a8e9f0fa947674cce0e15166f8734fcd65c9ca827336ad"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.003.part",
+      "bytes": 300000,
+      "sha256": "2d3a0e26bf7f13b81585343d2b319812a8de400c7ff9926b29f4d9711dfdc325"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.004.part",
+      "bytes": 300000,
+      "sha256": "416a3c1ce19ac3699fa263828624a1c042d716d88675f1d8f9e85b7118267f49"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.005.part",
+      "bytes": 300000,
+      "sha256": "9c041783f72d497b1045c8e7f9e67715818c5d7bf0eba1786cb186d1c6230edd"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.006.part",
+      "bytes": 300000,
+      "sha256": "0cb9170c91c48c3bf37b44e733dcee04a7aa7a35a48d96de5a388c1087c17e41"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.007.part",
+      "bytes": 300000,
+      "sha256": "d2ea29453d26eb249d9bc55301c89371f1248d534c3410308f6a967c6d3619ef"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.008.part",
+      "bytes": 300000,
+      "sha256": "4c0799fcd009c571f7051e69e44058990f74a7d4feb786111ba375867e7ec5ba"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.009.part",
+      "bytes": 300000,
+      "sha256": "b68fd62f466aba4afa13f2241e64ccc525a76ab98c439958d90567f71d75c399"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.010.part",
+      "bytes": 300000,
+      "sha256": "7c902cf4b61bfc13d088ab904ec1ca0fa8345b4dde06d3ce4c76c44b5b0dfe61"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.011.part",
+      "bytes": 300000,
+      "sha256": "73c312b33668170701a2d7749b65f76e4c1268971a45f09ebb986f3df5689dd8"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.012.part",
+      "bytes": 300000,
+      "sha256": "34a81c4031714b8e57f8657eb2340ecaf9c1868b1b9505d65bea8b2bc4f9f7f8"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.013.part",
+      "bytes": 300000,
+      "sha256": "7718577cfda668d050360a216635773a3f5cb7ca10db8740d0d439f38c54c05e"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.014.part",
+      "bytes": 300000,
+      "sha256": "a3623c08d5e49b237591715fb631f1e08f9216257baa358249b2bb822c00261f"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.015.part",
+      "bytes": 300000,
+      "sha256": "3c9cd346edb85e08a5856c2098978ac58b47bb2202698312703208ae015a45c3"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.016.part",
+      "bytes": 300000,
+      "sha256": "b035d6041b0baba1c74019974d8e87b6f7bf1ce6de99a80583004630ca65520e"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.017.part",
+      "bytes": 300000,
+      "sha256": "6ff3484136aea5cda318ff418a49d23bb4799cf877822f4ddaa27445467e3545"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.018.part",
+      "bytes": 300000,
+      "sha256": "da9b01f927377d35fd3690ba624ac49dab6a63e7e817065b14a0d1fb5f5f237e"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.019.part",
+      "bytes": 300000,
+      "sha256": "11901abf0488be84018889b4b4081c105af25e44fcbf055dea798adbf9840aaa"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.020.part",
+      "bytes": 300000,
+      "sha256": "d45d44ded17c331c4b47e189027a4ee28933b8cdd1a6f3467a76600ccebdade8"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.021.part",
+      "bytes": 300000,
+      "sha256": "4db8d904eae7e457023bb4f579816aa26573151878916bef5d17955e0596e15a"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.022.part",
+      "bytes": 300000,
+      "sha256": "2843f450cb9dece022fcc3dd49c3cf40de0d5be8dc8dcc9d32ce0d1ed0379699"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.023.part",
+      "bytes": 300000,
+      "sha256": "93981c4b6126d69ed43a5740ff9f1f81124416e991395e88b55355b2cee0f985"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.024.part",
+      "bytes": 300000,
+      "sha256": "baab51d2366cae5ca238d54d902bc820a95ed149ebb96138e4f1a13e44581454"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.025.part",
+      "bytes": 300000,
+      "sha256": "dcb8cb0f3ef4787e05b6f95bb95efcd9be95f6aee699fd6998dfe1a1200bccda"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.026.part",
+      "bytes": 300000,
+      "sha256": "1cc342c6fe37b1406dde82affe1370e63d44bd775bb723e8d3af2ac9c0a74599"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.027.part",
+      "bytes": 300000,
+      "sha256": "3a4498a987ccc546b688e88b8223492d52166b5ffb164e58202c1948adb29bdc"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.028.part",
+      "bytes": 300000,
+      "sha256": "22ba7a1b388e8f038733e4c7ff4e755558604a57a87fce7a1fdfe5359569034d"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.029.part",
+      "bytes": 300000,
+      "sha256": "812eab8841959957d83234689d376bcb381d81ebb4edaa3de3a4fa868f4c50a9"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.030.part",
+      "bytes": 300000,
+      "sha256": "aff3b588e78318e4cda66877a6f5ac1463caba0ae3c39a20a09e0025a7cc7ee1"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.031.part",
+      "bytes": 300000,
+      "sha256": "cb22f6e92e746ebca6087cb60bd68cd606b5bd86d965f9a4a29023edca2ecc55"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.032.part",
+      "bytes": 300000,
+      "sha256": "064b46e62897cead9e7f212de05c355f0aedf9f9a175b2ff0b6cfa5b178aff1b"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.033.part",
+      "bytes": 300000,
+      "sha256": "9245431280a9eb3d704ecc132683ff448598ec0334cc977e7926705c65e6c639"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.034.part",
+      "bytes": 300000,
+      "sha256": "36e859d9d5d02870132dcd7a9b3581312e30a4753efd73c29cbf46277806c88d"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.035.part",
+      "bytes": 300000,
+      "sha256": "e0aa27a578fd5c5e225121f35ac1e50ee8207da8aa494de52bedff1a7f77eb54"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.036.part",
+      "bytes": 300000,
+      "sha256": "a545c9a2852f62ebc2eea1dd7c964f1a8aa0d758dcaffbcf330c9ef1d14ef488"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.037.part",
+      "bytes": 300000,
+      "sha256": "991f31a332a695daf2b2d47c94c43f0b1d32e84391828ca5d4f415eae85193b4"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.038.part",
+      "bytes": 300000,
+      "sha256": "ab8fa0b32c5d1d92c7901b9c6573fcfc5c5324e685a6b9f079ab6ec76d675ee6"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.039.part",
+      "bytes": 300000,
+      "sha256": "181cb6b4d05c010a933ee22fed48f10ec48dfeed9b834a912089c1d70b1010cf"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.040.part",
+      "bytes": 300000,
+      "sha256": "edd908a0e61ef5ad0a1505f34863a5cbd65fe6c11a570a45c145a82416568f46"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.041.part",
+      "bytes": 300000,
+      "sha256": "7854cc1c30208ef80210fd2bc8748dfdafdf956b5e8984c093de5e8ba5661389"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.042.part",
+      "bytes": 300000,
+      "sha256": "e14dda72dcfe7c9234ffe45446492a2179b3f670703924d5d84c2658f03097fc"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.043.part",
+      "bytes": 300000,
+      "sha256": "d685aba97a7bf7e114becead34acea4828e1c07e588cb7b1fab3f7e31dd8abcf"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.044.part",
+      "bytes": 300000,
+      "sha256": "16c77585af4d7edf942f500f81d00879f0a832bd6db753125895f0c755a30ee7"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.045.part",
+      "bytes": 300000,
+      "sha256": "effcd9939cb1f7b5854080a6a7c2dfd8050c0c80a3583f5f3988a275e5c02034"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.046.part",
+      "bytes": 300000,
+      "sha256": "5311fba2607e436a1914eecc71889fa388ec18afd1dba1303a6dcaae43a6eaa2"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.047.part",
+      "bytes": 300000,
+      "sha256": "d7a744a3d9f0bf72c0468434336ed81d34aa75ae18146474196c691ac112835a"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.048.part",
+      "bytes": 300000,
+      "sha256": "24f48be3d67c78ed69c98b8a23b2e45d9c7dbb1f661f5561c19bc773ef4e2ffa"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.049.part",
+      "bytes": 300000,
+      "sha256": "5f266ae4aef6644424735325f6b43bb9cc8d9dd6146ad4de1ff9d9cac630caef"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.050.part",
+      "bytes": 300000,
+      "sha256": "b14c291980ab781a8b0b77c9e00381b2fcbb62314f9138f35e92471b86076c4f"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.051.part",
+      "bytes": 300000,
+      "sha256": "934eba935d0f611706093a15ef943bc4cf67a7d1b56acc0dcb6bcba0648f9b7e"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.052.part",
+      "bytes": 300000,
+      "sha256": "27c1644c4185393e23d8b00c73b0d9ec3c1738e7fc86ab554c58da69fdf95ae7"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.053.part",
+      "bytes": 300000,
+      "sha256": "777a7efedfe8aa0c63ac6bc6f92a897c9cd46b1ac039394c12adb8941164a05b"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.054.part",
+      "bytes": 300000,
+      "sha256": "4df43e783751681ca0e0c303d304533e30348f913ac4e6a1f4d683bbd5c4f6a2"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.055.part",
+      "bytes": 300000,
+      "sha256": "6008b444fedb5123fd7cf36a0bf6078ba4235513a50f8758e53a2d7bcac2cf4a"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.056.part",
+      "bytes": 300000,
+      "sha256": "e850ee7c523f9db40ea3b137d87f79da7cef9b549f9b91bf1a486850e8093cda"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.057.part",
+      "bytes": 300000,
+      "sha256": "d73b009a09fbbbc50b8e39b2a93d1bc2177a9582eb0736dc1b781a97bb794aae"
+    },
+    {
+      "file": "xgb_aft_normal.ubj.gz.058.part",
+      "bytes": 167490,
+      "sha256": "7fb46c56cd9103baeae23ef165fae497c85fd3c89f14d37901cdc05749357809"
+    }
+  ]
+}
