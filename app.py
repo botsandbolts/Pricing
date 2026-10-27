@@ -56,25 +56,29 @@ with compare:
     from marketbridge.ui import render_comparison
     render_comparison(Path(__file__).parent)
 with value:
+    for key,default in {'year':2015,'manufacturer':'Toyota','model':'Corolla SE','odometer':95000,'state':'ca'}.items():
+        st.session_state.setdefault('vehicle_'+key,default)
+    from pricing.description_examples import render_examples
+    render_examples(uses_text)
     with st.form('vehicle'):
         a,b,c=st.columns(3)
-        year=a.number_input('Year',min_value=1900,max_value=2027,value=2015)
-        make=b.text_input('Make',value='Toyota')
-        model=c.text_input('Model / trim',value='Corolla SE')
+        year=a.number_input('Year',key='vehicle_year',min_value=1900,max_value=2027,value=None)
+        make=b.text_input('Make',key='vehicle_manufacturer',value=None)
+        model=c.text_input('Model / trim',key='vehicle_model',value=None)
         a,b,c=st.columns(3)
-        miles=a.number_input('Mileage (miles)',min_value=0,max_value=2000000,value=95000,step=1000)
-        condition=b.selectbox('Condition',['unknown','excellent','good','fair','like new','new','salvage'])
-        fuel=c.selectbox('Fuel',['gas','diesel','hybrid','electric','other','unknown'])
+        miles=a.number_input('Mileage (miles)',key='vehicle_odometer',min_value=0,max_value=2000000,value=None,step=1000)
+        condition=b.selectbox('Condition',['unknown','excellent','good','fair','like new','new','salvage'],key='vehicle_condition')
+        fuel=c.selectbox('Fuel',['gas','diesel','hybrid','electric','other','unknown'],key='vehicle_fuel')
         a,b,c=st.columns(3)
-        transmission=a.selectbox('Transmission',['automatic','manual','other','unknown'])
-        drive=b.selectbox('Drive',['unknown','fwd','rwd','4wd'])
-        body=c.selectbox('Body type',['sedan','SUV','truck','pickup','hatchback','coupe','wagon','van','convertible','other','unknown'])
+        transmission=a.selectbox('Transmission',['automatic','manual','other','unknown'],key='vehicle_transmission')
+        drive=b.selectbox('Drive',['unknown','fwd','rwd','4wd'],key='vehicle_drive')
+        body=c.selectbox('Body type',['sedan','SUV','truck','pickup','hatchback','coupe','wagon','van','convertible','other','unknown'],key='vehicle_type')
         a,b,c=st.columns(3)
-        title=a.selectbox('Title status',['clean','rebuilt','salvage','lien','missing','parts only','unknown'])
-        cylinders=b.selectbox('Cylinders',['unknown','3 cylinders','4 cylinders','5 cylinders','6 cylinders','8 cylinders','10 cylinders','12 cylinders','other'])
-        color=c.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'])
-        state=st.text_input('US state abbreviation',value='ca',max_chars=2)
-        notes=st.text_area('Seller description — free text',height=250,max_chars=MAX_CHARACTERS,disabled=not uses_text,
+        title=a.selectbox('Title status',['clean','rebuilt','salvage','lien','missing','parts only','unknown'],key='vehicle_title_status')
+        cylinders=b.selectbox('Cylinders',['unknown','3 cylinders','4 cylinders','5 cylinders','6 cylinders','8 cylinders','10 cylinders','12 cylinders','other'],key='vehicle_cylinders')
+        color=c.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'],key='vehicle_paint_color')
+        state=st.text_input('US state abbreviation',key='vehicle_state',value=None,max_chars=2)
+        notes=st.text_area('Seller description — free text',key='seller_description',height=250,max_chars=MAX_CHARACTERS,disabled=not uses_text,
             placeholder='Describe maintenance, equipment, condition and known problems. MiniLM reads this text and produces a price signal for LightGBM.' if uses_text else 'Select the installed MiniLM model to include your description.')
         submitted=st.form_submit_button('Estimate asking price',disabled=not ready)
     if submitted:
@@ -120,6 +124,8 @@ with how:
     st.write('For the installed assessment, MiniLM learned standardized log(1 + asking price). Its inverse-transformed dollar estimate becomes predicted_text_price. Validation selected a Huber LightGBM model with a standardized dollar target, rather than a log target. Make and model remain ordinary categorical fields. No make/model transformer is used.')
     st.write('The complete raw database is scanned before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
 with results:
+    from pricing.evaluation_ui import render_model_comparison
+    render_model_comparison()
     if (path/'evaluation.json').exists() and ready:
         e=json.loads((path/'evaluation.json').read_text())
         if e.get('ensemble_members'):

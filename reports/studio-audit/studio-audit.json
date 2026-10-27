@@ -1,0 +1,23 @@
+{
+  "status": "running",
+  "seed": 20261027,
+  "cutoff_utc": "2021-05-04 13:17:48+00:00",
+  "per_phase_limit": 1000,
+  "original_test_pool_rows": 31777,
+  "data_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "counts": {
+    "validation": 1000,
+    "test": 1000
+  },
+  "split_note": "New chronological subdivisions of the ORIGINAL test pool. Not newly collected data, not an untouched new benchmark. Original training and tuning-validation rows excluded. No refitting or tuning in this audit.",
+  "model_manifests": {
+    "models/robust-asking/manifest.json": "df35998b3f9f98c7a7339bba8c25b75e71b2a7b6ec0ef9813ee8ba896ae1b95e",
+    "models/structural-transfer/manifest.json": "a85053b3ed52ca888edf67c2734fd76af51bbe3654fdeacb9f0fdf8ceb1a8d52",
+    "models/studio-baseline/manifest.json": "8ddbd0cebbe3fbb1191e6014a05a2eff9f7437ce15fca660f81d947aed7f3a8c",
+    "models/transfer-asking/manifest.json": "20803dcdd283ff3027c266e42d866383336eebfce3c4b15a82b147cfcd20634c",
+    "models/robust-asking-isolation/manifest.json": "ae7310ebfa187a802da0064093c4a08eebf9ae1a0c64c25e578f553616217f18",
+    "models/carbids/manifest.json": "6dcd40f511031ea9b356b8061bf5500c96056789e1d8bb1da08b21c4536aa254",
+    "models/minilm-assessment/manifest.json": "a1709155c03ee12e4d0e2a52101069e61b7caf9c4ea3a7cfcf13e8c99c7e15a6"
+  },
+  "models": {}
+}
