@@ -12,11 +12,11 @@ def render_explanation(p,fields,notes,pipeline):
     if p.get('ensemble'):
         from pricing.robust_pipeline import render_ensemble_explanation
         return render_ensemble_explanation(p,fields,notes,pipeline)
-    e=p['explanation'];rows=sorted(e['features'],key=lambda r:abs(r['contribution']),reverse=True)
+    e=p['explanation'];aft=e['target']=='log';brand='XGBoost AFT' if aft else 'LightGBM';rows=sorted(e['features'],key=lambda r:abs(r['contribution']),reverse=True)
     simple,technical,whatif=st.tabs(['Explain it like I buy cars','Under the bonnet · technical','What if?'])
     with simple:
         st.subheader('Why this price? The model shows its working.')
-        st.write('Think of LightGBM as a committee of small decision trees. Each new tree corrects earlier mistakes. No tree has ever kicked a tyre, but together they have read a lot of listings.')
+        st.write(f'Think of {brand} as a committee of small decision trees. Each new tree corrects earlier mistakes. No tree has ever kicked a tyre, but together they have read a lot of listings.')
         up=[label(r['feature']) for r in rows if r['contribution']>1e-8][:3]
         down=[label(r['feature']) for r in rows if r['contribution']< -1e-8][:3]
         if up:st.write('**Pulling this estimate up:** '+', '.join(up)+'.')
@@ -24,32 +24,36 @@ def render_explanation(p,fields,notes,pipeline):
         st.caption('Compared with the model’s reference prediction. These are shared-credit explanations of this car’s prediction, not universal price rules or proof of causation.')
         table=pd.DataFrame([{'Detail':label(r['feature']),'Contribution':r['contribution']} for r in rows])
         st.bar_chart(table.set_index('Detail'),horizontal=True)
-        unit='log(1 + price)' if e['target']=='log1p' else 'dollars'
+        unit='log(price)' if aft else 'log(1 + price)' if e['target']=='log1p' else 'dollars'
         st.caption(f'Right of zero raises the fitted score; left lowers it. Bar units: {unit}. Zero means no allocated contribution for this prediction.')
-        if e['target']=='log1p':st.info('The model works on a log-price scale. The bars add on that scale; they are not separate dollar discounts. Mileage and model year often share information, so their credit can move between them.')
-        st.write('**The description branch:** '+('MiniLM reads your notes and produces one text-price signal. LightGBM explains that signal as a single feature; this chart does not explain individual words.' if p.get('predicted_text_price') is not None else 'This baseline uses structured fields only. Your prose cannot sweet-talk it into a higher price.'))
+        if e['target'] in ['log1p','log']:st.info('The model works on a log-price scale. The bars add on that scale; they are not separate dollar discounts. Mileage and model year often share information, so their credit can move between them.')
+        st.write('**The description branch:** '+('MiniLM reads your notes and produces one text-price signal. The tree model explains that signal as a single feature; this chart does not explain individual words.' if p.get('predicted_text_price') is not None else 'This baseline uses structured fields only. Your prose cannot sweet-talk it into a higher price.'))
         if p.get('range') is not None:
             st.write('**The error band:** a historical error guide, not an 80% guarantee for this particular car. Rust is still allowed to surprise us.')
         else:
-            st.write('**Uncertainty:** this installed assessment provides a point estimate. Its saved output omitted the calibration radius, so an error band is unavailable. Rust remains unpredictable; we have not drawn a confidence ribbon around it.')
+            st.write('**Uncertainty:** this installed assessment provides a point estimate. No validated calibration radius is available for this selected model. Rust remains unpredictable; we have not drawn a confidence ribbon around it.')
     with technical:
         st.subheader('Native TreeSHAP attribution')
-        st.write(f"{e['method']}. {e['trees']:,} trees. Contributions are rescaled from the standardized training target.")
+        st.write(f"{e['method']}. {e['trees']:,} trees. Contributions are on the fitted target scale; standardized LightGBM targets are rescaled.")
         st.latex(r'z=b+\sum_j\phi_j')
         st.write(f"Reference b = {e['base']:.6f}; sum of contributions = {sum(r['contribution'] for r in rows):.6f}; fitted score z = {e['raw_prediction']:.6f}.")
-        if e['target']=='log1p':st.latex(r'\widehat{price}=\exp(\operatorname{clip}(z,0,\log(1+10^7)))-1')
+        if aft:st.latex(r'\widehat{price}=\operatorname{clip}(\exp(z),0,10^7)')
+        elif e['target']=='log1p':st.latex(r'\widehat{price}=\exp(\operatorname{clip}(z,0,\log(1+10^7)))-1')
         else:st.latex(r'\widehat{price}=\operatorname{clip}(z,0,10^7)')
         st.caption(f"Additivity error: {e['additivity_error']:.3g}. Prediction clipped: {e['clipped']}. The reference is not the mean dollar price; exponentiating an expected log price is a different quantity.")
         data=[]
         for r in rows:
             item={'Feature':r['feature'],'Encoded input':r['value'],'Signed contribution':r['contribution'],'Global gain %':r['gain_pct']}
-            if e['target']=='log1p':item['Factor on (price + 1)']=float(np.exp(np.clip(r['contribution'],-700,700)))
+            if aft:item['Factor on price']=float(np.exp(np.clip(r['contribution'],-700,700)))
+            elif e['target']=='log1p':item['Factor on (price + 1)']=float(np.exp(np.clip(r['contribution'],-700,700)))
             data.append(item)
         st.dataframe(pd.DataFrame(data),hide_index=True,width='stretch')
-        st.caption('Categorical inputs are integer codes; unknown categories become missing. Gain % summarizes total training split gains across the model: it is not a local attribution or an accuracy score. Correlated features and tree structure affect credit allocation. The product of the displayed factors maps the reference price+1 to the un-clipped prediction+1.')
-        st.write('**Training:** description regression learns standardized log1p targets. Three-fold OOF predictions keep each row’s own target out of its text predictor. New training uses Cleanlab regression on vehicle facts and observed training log prices; text-price stacking features are excluded from auditing. Legacy weights retain their original filter. LightGBM tries raw/log targets and Huber thresholds; validation MAE selects settings, then the chronological test is evaluated before deployment refitting.')
-        st.write('**Limits:** TreeSHAP explains the fitted LightGBM function, including the scalar text-price feature when active. It does not explain MiniLM token behaviour, establish causal effects, remove leakage automatically, or certify a fair transaction price.')
-        st.link_button('LightGBM prediction / contribution documentation','https://lightgbm.readthedocs.io/en/stable/pythonapi/lightgbm.Booster.html#lightgbm.Booster.predict')
+        st.caption('Categorical inputs are integer codes; unknown categories become missing. Gain % summarizes total training split gains across the model: it is not a local attribution or an accuracy score. Correlated features and tree structure affect credit allocation. Multiplicative factors refer to price for AFT and price+1 for log1p LightGBM.')
+        if aft:st.write('**AFT training:** 100 boosting rounds; normal log-price likelihood; scale=1; exact dollar bounds in this run. MiniLM uses separate training-only OOF features for assessment and full-cohort OOF features for deployment. Cleanlab audits vehicle facts only. AFT has the lowest recorded test RMSE on both market datasets; Huber has lower asking MAE. See TOBIT_AND_CENSORING.md for assumptions.')
+        else:st.write('**Training:** description regression learns standardized log1p targets. Three-fold OOF predictions keep each row’s own target out of its text predictor. New training uses Cleanlab regression on vehicle facts and observed training log prices; text-price stacking features are excluded from auditing. Legacy weights retain their original filter. LightGBM tries raw/log targets and Huber thresholds; validation MAE selects settings, then the chronological test is evaluated before deployment refitting.')
+        st.write('**Limits:** TreeSHAP explains the fitted tree function, including the scalar text-price feature when active. It does not explain MiniLM token behaviour, establish causal effects, remove leakage automatically, or certify a fair transaction price.')
+        if aft:st.link_button('XGBoost AFT documentation','https://xgboost.readthedocs.io/en/stable/tutorials/aft_survival_analysis.html')
+        else:st.link_button('LightGBM prediction / contribution documentation','https://lightgbm.readthedocs.io/en/stable/pythonapi/lightgbm.Booster.html#lightgbm.Booster.predict')
     with whatif:
         st.subheader('A small thought experiment. No time machine required.')
         st.write('Change one detail while keeping the rest of this submitted car fixed. The result is a fresh model prediction, not a causal claim.')

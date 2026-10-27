@@ -48,6 +48,15 @@ class ModelView:
         if self.ensemble is None and getattr(pipeline,'_ensemble',None) is not None:
             self.ensemble=pipeline._ensemble.ensemble
         self.text_price=text_price
+        self.aft=getattr(pipeline,'aft',None)
+        if self.aft is not None:
+            self.model=self.aft.model;self.member=None;self.weight=1.
+            self.target='log';self.mean=0.;self.std=1.
+            self.member_name='XGBoost normal AFT';self.schema=self.aft.schema
+            self.conditional_text=self.aft.manifest['text_feature']
+            if self.conditional_text and (text_price is None or not np.isfinite(text_price)):
+                raise ValueError('A submitted description-price signal is required for AFT')
+            return
         if self.ensemble is not None:
             self.member,self.model=self.ensemble.members[member_index]
             self.target=self.member['target'];self.mean=self.member['mean'];self.std=self.member['std']
@@ -62,8 +71,9 @@ class ModelView:
         if self.conditional_text and (text_price is None or not np.isfinite(text_price)):
             raise ValueError('A submitted description-price signal is required for this model')
     @property
-    def unit(self):return 'log(1 + price)' if self.target=='log1p' else 'USD'
+    def unit(self):return 'log(price)' if self.target=='log' else 'log(1 + price)' if self.target=='log1p' else 'USD'
     def encoded(self,frame):
+        if self.aft is not None:return self.aft.encoded(clean_frame(frame),self.text_price)
         frame=clean_frame(frame)
         if self.ensemble is not None:
             from marketbridge.robust import engineer
@@ -72,6 +82,7 @@ class ModelView:
         text=np.full(len(frame),self.text_price) if self.conditional_text else None
         return features(frame,self.schema,text)
     def predict(self,frame):
+        if self.aft is not None:return self.aft.predict_frame(clean_frame(frame),self.text_price)
         frame=clean_frame(frame)
         if self.ensemble is not None:
             frame['as_of']='2021-05-01'
@@ -79,6 +90,7 @@ class ModelView:
         score=np.asarray(self.model.predict(self.encoded(frame),num_threads=4))*self.std+self.mean
         return np.expm1(np.clip(score,0,np.log1p(1e7))) if self.target=='log1p' else np.clip(score,0,1e7)
     def native(self,frame):
+        if self.aft is not None:return self.aft.native(clean_frame(frame),self.text_price)
         x=self.encoded(frame)
         raw=np.asarray(self.model.predict(x,pred_contrib=True,num_threads=4),float)
         contributions=raw[:,:-1]*self.std;base=raw[:,-1]*self.std+self.mean

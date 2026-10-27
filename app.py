@@ -29,8 +29,12 @@ filtered=Path('models/robust-asking-isolation')
 if (filtered/'manifest.json').exists():choices.append('Isolation Forest trained ensemble')
 cleanlab_ensemble=Path('models/robust-asking-cleanlab')
 if (cleanlab_ensemble/'manifest.json').exists() and json.loads((cleanlab_ensemble/'manifest.json').read_text()).get('status')=='ready':choices.append('Cleanlab trained ensemble')
+aft_path=Path('models/price-model-suite/ask')
+aft_label='MiniLM + Cleanlab + XGBoost AFT (default)'
+aft_ready=(aft_path/'manifest.json').exists() and json.loads((aft_path/'manifest.json').read_text()).get('status')=='ready'
+if aft_ready:choices.insert(0,aft_label)
 mode=st.selectbox('Pricing model',choices,index=0)
-locations={'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
+locations={aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
            'Unfiltered trained ensemble':Path('models/robust-asking'),
@@ -38,7 +42,10 @@ locations={'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble'
 path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
-uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm'
+uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline')=='modest-model-suite' and selected_manifest.get('text_feature',False))
+if selected_manifest.get('pipeline')=='modest-model-suite':
+    st.success('AFT is the preferred default: lowest recorded test RMSE on both datasets and lowest auction MAE. Huber remains better for asking-price MAE.')
+    st.caption('Normal AFT predicts the log-normal median. This trained run used exact price bounds; no interval-censoring mechanism was verified.')
 if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
     st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
 if uses_text:
@@ -118,7 +125,7 @@ with value:
             st.caption('Point estimate only: the saved assessment did not include its interval calibration radius. No crystal-ball interval has been invented.')
         if result.get('predicted_text_price') is not None:
             st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
-            st.caption('The companion below uses an independent structured ensemble for comparison. Your selected MiniLM + LightGBM estimate is the price shown above.')
+            st.caption('The companion below uses an independent structured ensemble for comparison. Your selected text-and-tree estimate is the price shown above.')
         from marketbridge.ui import render_auction_companion
         render_auction_companion(Path(__file__).parent,car)
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
@@ -126,6 +133,7 @@ with value:
         render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
+    st.write('The default asking and auction option is XGBoost normal AFT: a modest 100-round log-price likelihood model. It has the lowest recorded RMSE on both test datasets; Huber wins asking MAE. AFT supports genuine interval bounds, but the installed models used exact prices. Read TOBIT_AND_CENSORING.md for classical Tobit, censoring versus selection, and the evidence needed for interval-censored experiments in either dataset.')
     st.subheader('A pricing committee with thousands of small opinions')
     st.write('LightGBM learns lots of small decision trees, each correcting earlier mistakes. Huber loss softens the influence of large errors: one wildly ambitious seller does not get to chair the committee. The fitted tree count and exact drivers appear after an estimate.')
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
@@ -155,6 +163,12 @@ with results:
                 if not e['promoted']:st.info('This is the completed filtered experiment. The Best trained ensemble option selects the unfiltered ensemble because its benchmark errors are lower.')
             st.download_button('Download selected ensemble assessment',json.dumps(e,indent=2),'asking-ensemble-evaluation.json','application/json')
             with st.expander('All training candidates · technical details'):st.json(e['grid'])
+        elif selected_manifest.get('pipeline')=='modest-model-suite':
+            st.subheader('Default asking AFT · chronological held-out assessment')
+            st.json(e['models']['xgb_aft_normal']['test'])
+            st.write(e['rows'])
+            st.caption(e['evaluation'])
+            st.info('AFT is preferred by recorded RMSE on both market datasets. Compare all models, MAE trade-offs, Spearman and Ridge calibration in New model laboratory.')
         elif e.get('mode')=='tabular_baseline':
             st.info(e['label']);st.json(e['test'])
             st.write({k:e[k] for k in ['train_rows','validation_rows','test_rows','eligible_rows']})
@@ -167,7 +181,9 @@ with results:
                 st.text(f"Description-only test MAE: ${e['description_only']['mae_usd']:,.0f} · MiniLM + LightGBM test MAE: ${e['stacked']['mae_usd']:,.0f}.")
                 st.info('The installed MiniLM model is the default studio model. Its filter is recorded in the model manifest. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
                 st.download_button('Download MiniLM assessment',json.dumps(e,indent=2),'minilm-assessment.json','application/json')
-        if selected_manifest.get('band80_log_radius') is None and uses_text:
+        if selected_manifest.get('pipeline')=='modest-model-suite':
+            st.caption('AFT point estimate only. Its assumed log-normal distribution is not a validated individual prediction interval.')
+        elif selected_manifest.get('band80_log_radius') is None and uses_text:
             st.caption('The original evaluation recorded interval coverage, but its calibration radius was not persisted. This installation serves point estimates only.')
         elif 'band80_test_coverage' in e:st.write(f"Indicative 80% band test coverage: {e['band80_test_coverage']:.1%}")
         else:st.caption('The ensemble band is calibrated on historical validation residuals; no individual or future-market coverage guarantee is claimed.')

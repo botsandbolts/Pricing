@@ -1,3 +1,9 @@
+> **Current default: MiniLM + Cleanlab + XGBoost normal AFT for asking prices,
+> and Cleanlab + normal AFT for auction prices.** AFT has the lowest recorded test
+> RMSE in both new-model comparisons, while Huber retains lower asking MAE.
+> See [Tobit and censoring](TOBIT_AND_CENSORING.md) and [full results](reports/model-suite/RESULTS.md).
+> Older model descriptions below document historical experiments.
+
 # pricing · Car Price Studio
 
 Car Price Studio is a used-car asking-price GUI with custom make/model fields, vehicle dropdowns, mileage/year inputs, a dollar estimate, an indicative error band and measured test results.

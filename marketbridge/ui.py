@@ -42,6 +42,12 @@ def show_prices(result):
     st.caption('Source residual sensitivity: '+f"${result['source_residual_sensitivity_low_usd']:,.0f}–${result['source_residual_sensitivity_high_usd']:,.0f}. This is NOT a validated target-date 80% interval. Transfer, generation and retail-channel uncertainty remain uncalibrated.")
 
 def render_comparison(root):
+    if (Path(root)/'models/price-model-suite/comparison.json').exists():
+        mode=st.selectbox('Two-market comparison mode',['AFT defaults','Historical structural experiments'],key='integrated_comparison_mode')
+        if mode=='AFT defaults':
+            from pricing.suite_ui import render
+            render(root,key_prefix='integrated')
+            return
     st.subheader('The car got older. The model should notice.')
     st.write('CarBids supplies depreciation and relative-value structure. Pricing supplies the asking-market model. A BLS index anchors market movement; it does not magically turn wholesale prices into retail transactions.')
     try:engine=comparison(str(root))

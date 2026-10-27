@@ -23,25 +23,20 @@ used-car CPI adjustment to January 2015 reference dollars. Bid estimates are
 historical wholesale auction sale-price proxies, not executable offers. All known
 VIN overlaps with the asking cohort are excluded from auction fitting.
 
-## AFT and Tobit: what the data identify
+## Preferred defaults: normal AFT for asking and auction prices
 
-XGBoost `survival:aft` with normal errors fits `ln(price) = tree(x) + sigma Z`.
-Use **dollars**, not already logged prices, in `label_lower_bound` and
-`label_upper_bound`; the AFT likelihood handles the logarithm.
+The main asking calculator, laboratory selectors and auction companion default
+to **XGBoost normal AFT**. It has the lowest recorded test **RMSE in both datasets**
+and the lowest auction MAE. Huber still has lower asking MAE; "optimal" is scoped
+to this benchmark and metric. The fitted weights and evaluation scores are unchanged.
 
-The implementation accepts optional `aft_lower_price` and `aft_upper_price`
-columns. Exact labels use `[price, price]`; left censoring `[0, upper]`; right
-censoring `[lower, +infinity]`; measured intervals `[lower, upper]`. Both columns
-are required together; invalid bounds fail before fitting. The Python `fit`
-function also accepts `lower` and `upper` arrays.
-
-The available datasets provide exact asking or reported auction prices, **not
-measured censoring bounds**. Their default run therefore uses exact bounds.
-This is an uncensored log-normal price model. Calling an asking price an upper
-bound on a latent sale price would impose an unverified assumption. Treating every
-listing as left censored would not identify a useful latent sale-price level.
-A genuine Tobit analysis needs measured censoring and enough uncensored outcomes;
-this run makes no claim to recover confirmed retail sale prices.
+Read [Tobit, AFT and censoring in both datasets](TOBIT_AND_CENSORING.md) for the
+latent-variable model, likelihood equations, exact/left/right/interval bounds,
+median versus mean, and identifiability. That document explains when interval
+censoring could apply to either source, which assumptions need evidence, and why
+the installed exact-label fits cannot be described as verified censored-data fits.
+The trainer accepts optional `aft_lower_price` and `aft_upper_price` columns in
+dollars for a separately documented future bounded-label experiment.
 
 ## Correlations and Ridge comparisons
 

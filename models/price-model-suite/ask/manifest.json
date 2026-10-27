@@ -74,5 +74,8 @@
     "scikit-learn": "1.9.1",
     "cleanlab": "2.9.0"
   },
-  "training_source_sha256": "7999d03358741689e33eeb2cecd4bad882c521bfc11d3cd26d2c63359ef5ecd4"
+  "training_source_sha256": "7999d03358741689e33eeb2cecd4bad882c521bfc11d3cd26d2c63359ef5ecd4",
+  "default_model": "xgb_aft_normal",
+  "default_selection": "User-preferred normal AFT: lowest recorded test RMSE on both datasets; not a claim of universal optimality. Huber has lower asking MAE.",
+  "text_model_fingerprint": "b65bc3bf487ca9dd4abea44de0c5a80ef358d7919c3644365ff0037a7a75b018"
 }

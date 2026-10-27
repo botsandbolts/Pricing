@@ -32,3 +32,6 @@ models/minilm-cleanlab/**/label-audit.csv
 
 # Preliminary structured-only weights stay reproducible locally; compact reports are committed.
 models/price-model-suite-tabular/
+
+# Row-level rerun audits are reconstructable; compact audit metadata is committed.
+reports/cleanlab-rerun-*/**/label-audit.csv

@@ -1,5 +1,11 @@
 # Completed model assessments
 
+**Preferred/default model: normal XGBoost AFT on both market sides.** It has the
+lowest recorded test RMSE in both datasets and the lowest auction MAE. Huber
+remains the best of these asking candidates by MAE. These are descriptive
+benchmark rankings, not a test of statistical significance or universal optimality.
+See [Tobit and interval-censoring assumptions](../../TOBIT_AND_CENSORING.md).
+
 | Market | Model | Test rows | MAE USD | RMSE USD |
 |---|---|---:|---:|---:|
 | ask | lgb_huber | 31,682 | 3,097.29 | 6,517.16 |

@@ -29,7 +29,7 @@ def render_visual_explanations(result,fields,notes,pipeline):
         if ensemble is None and getattr(pipeline,'_ensemble',None) is not None:ensemble=pipeline._ensemble.ensemble
         count=len(ensemble.members) if ensemble is not None else 1
         member=st.selectbox('Member for exact TreeSHAP plots',list(range(count)),
-            format_func=lambda i:f'Member {i+1}' if ensemble is not None else 'Selected LightGBM model',key='shap_graph_member')
+            format_func=lambda i:f'Member {i+1}' if ensemble is not None else 'Selected tree model',key='shap_graph_member')
         speed=st.select_slider('Dollar explanation detail',options=['Quick','Balanced','Thorough'],value='Balanced',key='shap_graph_detail')
         pairs={'Quick':4,'Balanced':8,'Thorough':16}[speed]
         st.caption('Dollar waterfall: approximate grouped permutation SHAP of the whole served model. Other SHAP charts: exact native contributions for the selected member, on its own target scale. More detail samples more feature orders; it does not make the model more accurate.')
@@ -84,7 +84,7 @@ def render_visual_explanations(result,fields,notes,pipeline):
         st.plotly_chart(plots.interaction_grid(a['heatmap']),width='stretch',key='shap_interaction_grid')
         st.caption('This is a two-feature sensitivity surface, not a SHAP interaction decomposition. Make/model and other submitted facts stay fixed. The historical reference date remains May 2021; changing year can cross model generations, so read unusual combinations cautiously.')
     with technical:
-        st.write('**Two explanation contracts.** The USD graph explains the served prediction function using grouped interventional permutation Shapley estimates. Native charts explain one LightGBM member using tree-path-dependent TreeSHAP, rescaled from its standardized target.')
+        st.write('**Two explanation contracts.** The USD graph explains the served prediction function using grouped interventional permutation Shapley estimates. Native charts explain the selected tree model on its fitted output scale: log(price) for AFT, or the recorded target scale for LightGBM.')
         st.latex(r'\widehat p(x)=\sum_m w_m\,T_m^{-1}(f_m(x));\qquad \widehat p(x)\approx b_{\$}+\sum_g\phi_{g,\$}')
         st.write('The dollar approximation samples feature orders, not the final summation: every path telescopes from its reference prediction to the submitted prediction. Additivity checks can pass even when individual Monte Carlo allocations remain noisy.')
         st.write({'USD reconstruction error':local['error'],'Native member reconstruction error':native['error'],
