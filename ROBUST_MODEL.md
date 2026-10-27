@@ -1,3 +1,5 @@
+> **Cleanlab migration:** Current filtered training uses Cleanlab regression audits. See [CLEANLAB.md](CLEANLAB.md). Isolation Forest sections and measured results below describe legacy installed weights. To reproduce those historical commands, check out commit `4e712f3`; the updated filtered Kaggle notebook trains a new Cleanlab candidate in a separate output directory.
+
 # Larger regularized LightGBM ensemble
 
 This upgrade targets the final **Pricing asking-price model**, while retaining the age/CPI-adjusted CarBids signal as an input. It does not convert asking labels into verified retail transactions and does not retrain a sentence transformer.

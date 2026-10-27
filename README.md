@@ -2,7 +2,7 @@
 
 Car Price Studio is a used-car asking-price GUI with custom make/model fields, vehicle dropdowns, mileage/year inputs, a dollar estimate, an indicative error band and measured test results.
 
-**Current choices:** no make/model transformer; the **full 100% raw database**; MiniLM description-price regression plus **Isolation Forest in auto mode** for the enhanced workflow; Huber LightGBM as the final regressor.
+**Installed legacy architecture:** no make/model transformer; the **full 100% raw database**; MiniLM description-price regression plus **Isolation Forest in auto mode** for the enhanced workflow; Huber LightGBM as the final regressor.
 
 ## Cleanlab training migration
 
@@ -38,7 +38,7 @@ python -m scripts.prepare_full /path/to/vehicles.zip --output training-cache/ful
 
 Source: Craigslist US asking prices from April–May **2021**. These are not verified sale prices, live valuations or inflation-adjusted prices. Newer cars are outside the training period.
 
-## Requested enhanced pipeline
+## Historical Isolation Forest pipeline · installed assessment
 
 1. Fine-tune `sentence-transformers/all-MiniLM-L6-v2` on **seller descriptions only**, predicting standardized log1p(price). The pinned MiniLM checkpoint is `1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, with a 384-dimensional representation and 256-token windows. Up to 8,000 cleaned characters use consecutive windows and pooled representations.
 2. Three-fold cross-fitting creates **`predicted_text_price`** in dollars. Every training row is predicted by a model that did not see its target or use it in target scaling.
@@ -82,7 +82,7 @@ node tests/check-browser.mjs
 python -m compileall -q pricing scripts app.py
 ```
 
-Tests cover target exclusion, cache validity, transformer gradients, the complete MiniLM + scalar-only Isolation Forest + LightGBM flow on synthetic fixtures, make/model-transformer removal, and feature/inference schemas. Synthetic scores are not pricing-quality evidence. The browser check verifies exported-tree prices against native LightGBM on 30 exported-model rows (maximum difference below $0.000001). Browser QA covered estimates, custom unseen names, examples, results and training-status labeling.
+Tests cover target exclusion, cache validity, transformer gradients, the complete MiniLM + Cleanlab + LightGBM flow on synthetic asking and auction fixtures, make/model-transformer removal, and feature/inference schemas. Synthetic scores are not pricing-quality evidence. The browser check verifies exported-tree prices against native LightGBM on 30 exported-model rows (maximum difference below $0.000001). Browser QA covered estimates, custom unseen names, examples, results and training-status labeling.
 
 The GUI error band is indicative, based on validation log residuals. It is not a guaranteed per-car sale range. Back-transformed log predictions are not bias-corrected arithmetic means.
 
@@ -110,7 +110,7 @@ See [ROBUST_MODEL.md](ROBUST_MODEL.md) for the complete design, capacity/latency
 
 ### Trained Isolation Forest asking experiment
 
-The separate filtered ensemble is trained on the full original cohort with automatic predictor-only filtering. Test MAE: **$3,368**, compared with **$3,288** for the unfiltered ensemble. The **Best trained ensemble** option continues to select the unfiltered ensemble. Select **Isolation Forest trained ensemble** in the GUI to try the completed filtered model. Full counts, metrics and reproducibility details are in [ROBUST_MODEL.md](ROBUST_MODEL.md); Kaggle reproduction is in [train_filtered_kaggle.ipynb](train_filtered_kaggle.ipynb).
+The separate filtered ensemble is trained on the full original cohort with automatic predictor-only filtering. Test MAE: **$3,368**, compared with **$3,288** for the unfiltered ensemble. The **Best trained ensemble** option continues to select the unfiltered ensemble. Select **Isolation Forest trained ensemble** in the GUI to try the completed filtered model. Full counts, metrics and reproducibility details are in [ROBUST_MODEL.md](ROBUST_MODEL.md); The updated [train_filtered_kaggle.ipynb](train_filtered_kaggle.ipynb) now trains the Cleanlab successor. Reproduce the historical Isolation Forest experiment from commit `4e712f3`.
 
 ### Interactive price explanations
 
