@@ -1,0 +1,18 @@
+{
+  "versions": {
+    "outliertree": "1.10.0.post4",
+    "pandas": "2.3.3",
+    "numpy": "2.5.4",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1"
+  },
+  "script_sha256": "84fa7d909eb2612d8c21054471b2ea903e10a929f3db829309e607678565f5ac",
+  "files_sha256": {
+    "README.md": "7d5bfffbf1254489af69065b7109f496d3928e6d58de4362e11176418ad20834",
+    "summary.json": "40946975b62970c88590ed5bf9824fa52c775807f080af4613f40e4b4f9753a6",
+    "ask/scores.csv.gz": "c9eb8e2b000d7594c86d11bad7ad4398682a2c34e803ac5f762146d16ac7affa",
+    "ask/report.json": "1ecd5680086006412b2e41e152bcdb52ef85d2dc1fae613f83f09ffb038ad25a",
+    "bid/scores.csv.gz": "9599d6b66e5a84bd7c453c00b73dbd29e52e648129fc7b6779fc7f5cd2fc6db5",
+    "bid/report.json": "354c6f6984320a1bf2ac9312b6d0c34aca50fc3210efc8ab23702118b60e4deb"
+  }
+}

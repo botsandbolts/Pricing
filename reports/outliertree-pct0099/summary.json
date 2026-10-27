@@ -1,0 +1,299 @@
+{
+  "status": "complete",
+  "algorithm": "OutlierTree",
+  "pct_outliers": 0.099,
+  "markets": {
+    "ask": {
+      "source_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+      "auction_vin_overlap_exclusions": 0,
+      "stages": {
+        "assessment": {
+          "input_rows": 147777,
+          "flagged_rows": 19,
+          "flagged_fraction": 0.00012857210526671944,
+          "primary_flagged_fields": {
+            "log_miles": 10,
+            "age": 9
+          },
+          "primary_price_flags": 0,
+          "settings": {
+            "max_depth": 4,
+            "min_gain": 0.01,
+            "z_norm": 2.67,
+            "z_outlier": 8.0,
+            "pct_outliers": 0.099,
+            "min_size_numeric": 25,
+            "min_size_categ": 50,
+            "categ_split": "binarize",
+            "categ_outliers": "tail",
+            "numeric_split": "raw",
+            "follow_all": false,
+            "gain_as_pct": true,
+            "nthreads": 4
+          },
+          "category_pooling": {
+            "original_levels": 18909,
+            "retained_named_levels": 935,
+            "pooled_rows": 41910,
+            "min_count": 20,
+            "max_retained_levels": 1000,
+            "replacement": "__outliertree_rare_model__"
+          },
+          "native_categorical_columns": [
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color",
+            "seller_condition"
+          ],
+          "phase_counts": {
+            "train": 147777
+          },
+          "elapsed_seconds": 21.322324685999774,
+          "cars_deleted": 0,
+          "weights_refitted": false,
+          "input_columns": [
+            "age",
+            "log_miles",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color",
+            "seller_condition",
+            "log_reference_price"
+          ]
+        },
+        "full_cohort": {
+          "input_rows": 211127,
+          "flagged_rows": 31,
+          "flagged_fraction": 0.0001468310542943347,
+          "primary_flagged_fields": {
+            "age": 14,
+            "log_miles": 14,
+            "log_reference_price": 3
+          },
+          "primary_price_flags": 3,
+          "settings": {
+            "max_depth": 4,
+            "min_gain": 0.01,
+            "z_norm": 2.67,
+            "z_outlier": 8.0,
+            "pct_outliers": 0.099,
+            "min_size_numeric": 25,
+            "min_size_categ": 50,
+            "categ_split": "binarize",
+            "categ_outliers": "tail",
+            "numeric_split": "raw",
+            "follow_all": false,
+            "gain_as_pct": true,
+            "nthreads": 4
+          },
+          "category_pooling": {
+            "original_levels": 24805,
+            "retained_named_levels": 1000,
+            "pooled_rows": 60639,
+            "min_count": 20,
+            "max_retained_levels": 1000,
+            "replacement": "__outliertree_rare_model__"
+          },
+          "native_categorical_columns": [
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color",
+            "seller_condition"
+          ],
+          "phase_counts": {
+            "train": 147777,
+            "test": 31682,
+            "validation": 31668
+          },
+          "elapsed_seconds": 36.73341102699942,
+          "cars_deleted": 0,
+          "weights_refitted": false,
+          "input_columns": [
+            "age",
+            "log_miles",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color",
+            "seller_condition",
+            "log_reference_price"
+          ]
+        }
+      }
+    },
+    "bid": {
+      "source_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601",
+      "auction_vin_overlap_exclusions": 110,
+      "stages": {
+        "assessment": {
+          "input_rows": 384198,
+          "flagged_rows": 74,
+          "flagged_fraction": 0.00019260901930775277,
+          "primary_flagged_fields": {
+            "log_miles": 65,
+            "age": 6,
+            "log_reference_price": 3
+          },
+          "primary_price_flags": 3,
+          "settings": {
+            "max_depth": 4,
+            "min_gain": 0.01,
+            "z_norm": 2.67,
+            "z_outlier": 8.0,
+            "pct_outliers": 0.099,
+            "min_size_numeric": 25,
+            "min_size_categ": 50,
+            "categ_split": "binarize",
+            "categ_outliers": "tail",
+            "numeric_split": "raw",
+            "follow_all": false,
+            "gain_as_pct": true,
+            "nthreads": 4
+          },
+          "category_pooling": {
+            "original_levels": 828,
+            "retained_named_levels": 573,
+            "pooled_rows": 1533,
+            "min_count": 20,
+            "max_retained_levels": 1000,
+            "replacement": "__outliertree_rare_model__"
+          },
+          "native_categorical_columns": [
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color"
+          ],
+          "phase_counts": {
+            "train": 384198
+          },
+          "elapsed_seconds": 24.29823642899919,
+          "cars_deleted": 0,
+          "weights_refitted": false,
+          "input_columns": [
+            "age",
+            "log_miles",
+            "auction_grade",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color",
+            "log_reference_price"
+          ]
+        },
+        "full_cohort": {
+          "input_rows": 550181,
+          "flagged_rows": 74,
+          "flagged_fraction": 0.00013450119142609433,
+          "primary_flagged_fields": {
+            "log_miles": 66,
+            "age": 5,
+            "log_reference_price": 3
+          },
+          "primary_price_flags": 3,
+          "settings": {
+            "max_depth": 4,
+            "min_gain": 0.01,
+            "z_norm": 2.67,
+            "z_outlier": 8.0,
+            "pct_outliers": 0.099,
+            "min_size_numeric": 25,
+            "min_size_categ": 50,
+            "categ_split": "binarize",
+            "categ_outliers": "tail",
+            "numeric_split": "raw",
+            "follow_all": false,
+            "gain_as_pct": true,
+            "nthreads": 4
+          },
+          "category_pooling": {
+            "original_levels": 851,
+            "retained_named_levels": 608,
+            "pooled_rows": 1440,
+            "min_count": 20,
+            "max_retained_levels": 1000,
+            "replacement": "__outliertree_rare_model__"
+          },
+          "native_categorical_columns": [
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color"
+          ],
+          "phase_counts": {
+            "train": 384198,
+            "test": 83603,
+            "validation": 82380
+          },
+          "elapsed_seconds": 38.458216565999464,
+          "cars_deleted": 0,
+          "weights_refitted": false,
+          "input_columns": [
+            "age",
+            "log_miles",
+            "auction_grade",
+            "manufacturer",
+            "model",
+            "type",
+            "transmission",
+            "state",
+            "fuel",
+            "drive",
+            "title_status",
+            "cylinders",
+            "paint_color",
+            "log_reference_price"
+          ]
+        }
+      }
+    }
+  },
+  "cars_deleted": 0,
+  "weights_refitted": false,
+  "scope": "Assessment fits training only; full cohort audit is descriptive and includes validation/test. It must not be used to filter held-out evaluation. Price is an audit input, never a pricing predictor. No descriptions, text predictions, VIN, MMR or identifiers enter detector. Native object/string categorical columns; rare model names pooled to control memory. Flags are review candidates, not confirmed errors. pct_outliers is not a deletion quota."
+}

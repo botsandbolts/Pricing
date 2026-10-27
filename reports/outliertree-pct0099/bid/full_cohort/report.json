@@ -1,0 +1,935 @@
+{
+  "input_rows": 550181,
+  "flagged_rows": 74,
+  "flagged_fraction": 0.00013450119142609433,
+  "primary_flagged_fields": {
+    "log_miles": 66,
+    "age": 5,
+    "log_reference_price": 3
+  },
+  "primary_price_flags": 3,
+  "settings": {
+    "max_depth": 4,
+    "min_gain": 0.01,
+    "z_norm": 2.67,
+    "z_outlier": 8.0,
+    "pct_outliers": 0.099,
+    "min_size_numeric": 25,
+    "min_size_categ": 50,
+    "categ_split": "binarize",
+    "categ_outliers": "tail",
+    "numeric_split": "raw",
+    "follow_all": false,
+    "gain_as_pct": true,
+    "nthreads": 4
+  },
+  "category_pooling": {
+    "original_levels": 851,
+    "retained_named_levels": 608,
+    "pooled_rows": 1440,
+    "min_count": 20,
+    "max_retained_levels": 1000,
+    "replacement": "__outliertree_rare_model__"
+  },
+  "native_categorical_columns": [
+    "manufacturer",
+    "model",
+    "type",
+    "transmission",
+    "state",
+    "fuel",
+    "drive",
+    "title_status",
+    "cylinders",
+    "paint_color"
+  ],
+  "phase_counts": {
+    "train": 384198,
+    "test": 83603,
+    "validation": 82380
+  },
+  "examples": [
+    {
+      "car": {
+        "row_id": "9f9f9bf56b192b587ab505f8",
+        "phase": "train",
+        "price": 7200,
+        "manufacturer": "Ford",
+        "model": "Escape",
+        "year": 2008,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 9.325185763645223,
+          "pct_above": 0.9987927565392354,
+          "mean": 11.456965440784092,
+          "sd": 0.3713339063433353,
+          "n_obs": 2482
+        },
+        "conditions": [
+          {
+            "column": "auction_grade",
+            "comparison": "is NA",
+            "value_comp": null,
+            "value_this": null,
+            "decimals": 1
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 8.737372791327223,
+            "value_this": 8.837371326403005,
+            "decimals": 1
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 7.424839400036369,
+            "value_this": 8.837371326403005,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 4.156057494866445,
+            "value_this": 6.974674880219027,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 1.0,
+        "outlier_score": 0.0006099177138649485
+      }
+    },
+    {
+      "car": {
+        "row_id": "8b33a617057c3634055dd324",
+        "phase": "train",
+        "price": 13250,
+        "manufacturer": "Honda",
+        "model": "Civic",
+        "year": 2009,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 9.325185763645223,
+          "pct_above": 0.9987927565392354,
+          "mean": 11.456965440784092,
+          "sd": 0.3713339063433353,
+          "n_obs": 2482
+        },
+        "conditions": [
+          {
+            "column": "auction_grade",
+            "comparison": "is NA",
+            "value_comp": null,
+            "value_this": null,
+            "decimals": 1
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 8.737372791327223,
+            "value_this": 9.447287852813227,
+            "decimals": 1
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 7.424839400036369,
+            "value_this": 9.447287852813227,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 4.156057494866445,
+            "value_this": 5.974674880219027,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 1.0,
+        "outlier_score": 0.0006099177138649485
+      }
+    },
+    {
+      "car": {
+        "row_id": "582a36bbae0c7259972f3260",
+        "phase": "train",
+        "price": 13700,
+        "manufacturer": "Chevrolet",
+        "model": "Corvette",
+        "year": 1992,
+        "odometer": 14372.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "age",
+          "value": 23.05201916495548,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "upper_thr": 15.459958932238123,
+          "pct_below": 0.9999815228839083,
+          "mean": 1.5322833812153716,
+          "sd": 0.9979768479694756,
+          "n_obs": 54120
+        },
+        "conditions": [
+          {
+            "column": "log_miles",
+            "comparison": "<=",
+            "value_comp": 9.666625329080981,
+            "value_this": 9.573106725551233,
+            "decimals": 0
+          },
+          {
+            "column": "log_miles",
+            "comparison": "<=",
+            "value_comp": 10.13962629934515,
+            "value_this": 9.573106725551233,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 8.922658299524402,
+            "value_this": 9.506313811256701,
+            "decimals": 1
+          },
+          {
+            "column": "log_miles",
+            "comparison": "<=",
+            "value_comp": 11.124110962931043,
+            "value_this": 9.573106725551233,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.0008340752869586155
+      }
+    },
+    {
+      "car": {
+        "row_id": "dac9148995cc57e6be05e58a",
+        "phase": "train",
+        "price": 8600,
+        "manufacturer": "chevrolet",
+        "model": "corvette",
+        "year": 1986,
+        "odometer": 12466.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "age",
+          "value": 29.01642710472288,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "upper_thr": 23.05201916495548,
+          "pct_below": 0.9999828797904486,
+          "mean": 1.8559478328323438,
+          "sd": 1.0975681835602513,
+          "n_obs": 116819
+        },
+        "conditions": [
+          {
+            "column": "log_miles",
+            "comparison": "<=",
+            "value_comp": 10.13962629934515,
+            "value_this": 9.430840432344976,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 8.922658299524402,
+            "value_this": 9.040680181682085,
+            "decimals": 1
+          },
+          {
+            "column": "log_miles",
+            "comparison": "<=",
+            "value_comp": 11.124110962931043,
+            "value_this": 9.430840432344976,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 3.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.0009642881703939905
+      }
+    },
+    {
+      "car": {
+        "row_id": "5cc41b3183c49278464f9cda",
+        "phase": "train",
+        "price": 3900,
+        "manufacturer": "Chevrolet",
+        "model": "Colorado",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 4.0164271047228794,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 8.249894531558223,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 4.0164271047228794,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.0164271047228794,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "4dc54f11f3fb7829d34738cd",
+        "phase": "train",
+        "price": 6000,
+        "manufacturer": "Nissan",
+        "model": "Altima",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 4.0328542094455315,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 8.680677447650677,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 4.0328542094455315,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.0328542094455315,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "0dba2cccb15f8aa4395900b4",
+        "phase": "train",
+        "price": 5000,
+        "manufacturer": "Volkswagen",
+        "model": "Jetta",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 3.996577686516048,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 8.472728212815097,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 3.996577686516048,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 3.996577686516048,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "53ddebd50f6e5035851ed776",
+        "phase": "train",
+        "price": 1000,
+        "manufacturer": "Chevrolet",
+        "model": "Malibu",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 4.0547570157425525,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 6.888917978422622,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 4.0547570157425525,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.0547570157425525,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "700c122c472c38c68143ab49",
+        "phase": "train",
+        "price": 3200,
+        "manufacturer": "Kia",
+        "model": "Sorento",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 4.0547570157425525,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 8.052068788228302,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 4.0547570157425525,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.0547570157425525,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "b3def74c3700a9f117357037",
+        "phase": "train",
+        "price": 1000,
+        "manufacturer": "Nissan",
+        "model": "Versa",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 4.073921971252503,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 6.888917978422622,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 4.073921971252503,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.073921971252503,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "2107e162668bcb60b1304f32",
+        "phase": "train",
+        "price": 1200,
+        "manufacturer": "MINI",
+        "model": "Cooper Clubman",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 4.1314168377823535,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 7.086576701653545,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 4.1314168377823535,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.1314168377823535,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "88233e2cecbc2fa48b547d87",
+        "phase": "train",
+        "price": 600,
+        "manufacturer": "Ford",
+        "model": "F-150",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 8.288534459413917,
+          "pct_above": 0.99906919019547,
+          "mean": 11.128697146593858,
+          "sd": 0.46079436476499047,
+          "n_obs": 9660
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 3.9555099247090766,
+            "value_this": 4.073921971252503,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": "<=",
+            "value_comp": 9.26520348115055,
+            "value_this": 6.378092354656632,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 1.9555099247090766,
+            "value_this": 4.073921971252503,
+            "decimals": 0
+          },
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.073921971252503,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001118680435203232
+      }
+    },
+    {
+      "car": {
+        "row_id": "5140d6351384d3cb90ad809a",
+        "phase": "validation",
+        "price": 17100,
+        "manufacturer": "Ford",
+        "model": "Taurus",
+        "year": 2011,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 5.700443573390687,
+          "pct_above": 0.9997668522134467,
+          "mean": 11.066613710136947,
+          "sd": 0.47703647428252005,
+          "n_obs": 34305
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 5.514715947980903,
+            "value_this": 4.396988364134131,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 8.737372791327223,
+            "value_this": 9.708268766084984,
+            "decimals": 1
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 7.424839400036369,
+            "value_this": 9.708268766084984,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 4.156057494866445,
+            "value_this": 4.396988364134131,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001127374204220291
+      }
+    },
+    {
+      "car": {
+        "row_id": "e27986e9cb513de292851711",
+        "phase": "train",
+        "price": 20500,
+        "manufacturer": "Nissan",
+        "model": "Versa",
+        "year": 2010,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 5.700443573390687,
+          "pct_above": 0.9997668522134467,
+          "mean": 11.066613710136947,
+          "sd": 0.47703647428252005,
+          "n_obs": 34305
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 5.514715947980903,
+            "value_this": 5.095824777549524,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 8.737372791327223,
+            "value_this": 9.924680031003952,
+            "decimals": 1
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 7.424839400036369,
+            "value_this": 9.924680031003952,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 4.156057494866445,
+            "value_this": 5.095824777549524,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001127374204220291
+      }
+    },
+    {
+      "car": {
+        "row_id": "c1d5ef3a6622a60157bcd64b",
+        "phase": "train",
+        "price": 11800,
+        "manufacturer": "Audi",
+        "model": "A5",
+        "year": 2010,
+        "odometer": 1.0
+      },
+      "explanation": {
+        "suspicious_value": {
+          "column": "log_miles",
+          "value": 0.6931471805599453,
+          "decimals": 0
+        },
+        "group_statistics": {
+          "lower_thr": 5.700443573390687,
+          "pct_above": 0.9997668522134467,
+          "mean": 11.066613710136947,
+          "sd": 0.47703647428252005,
+          "n_obs": 34305
+        },
+        "conditions": [
+          {
+            "column": "age",
+            "comparison": "<=",
+            "value_comp": 5.514715947980903,
+            "value_this": 5.0383299110199005,
+            "decimals": 0
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 8.737372791327223,
+            "value_this": 9.357017509894241,
+            "decimals": 1
+          },
+          {
+            "column": "log_reference_price",
+            "comparison": ">",
+            "value_comp": 7.424839400036369,
+            "value_this": 9.357017509894241,
+            "decimals": 1
+          },
+          {
+            "column": "age",
+            "comparison": ">",
+            "value_comp": 4.156057494866445,
+            "value_this": 5.0383299110199005,
+            "decimals": 0
+          }
+        ],
+        "tree_depth": 4.0,
+        "uses_NA_branch": 0.0,
+        "outlier_score": 0.001127374204220291
+      }
+    }
+  ],
+  "elapsed_seconds": 38.458216565999464,
+  "cars_deleted": 0,
+  "weights_refitted": false,
+  "input_columns": [
+    "age",
+    "log_miles",
+    "auction_grade",
+    "manufacturer",
+    "model",
+    "type",
+    "transmission",
+    "state",
+    "fuel",
+    "drive",
+    "title_status",
+    "cylinders",
+    "paint_color",
+    "log_reference_price"
+  ]
+}

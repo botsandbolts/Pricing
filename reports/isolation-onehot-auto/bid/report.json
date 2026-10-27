@@ -1,0 +1,219 @@
+{
+  "input_rows": 550181,
+  "flagged_rows": 0,
+  "flagged_fraction": 0.0,
+  "settings": {
+    "n_estimators": 100,
+    "max_samples": 256,
+    "contamination": "auto",
+    "max_features": 1.0,
+    "bootstrap": false,
+    "n_jobs": 4,
+    "random_state": 42
+  },
+  "offset": -0.5,
+  "score_samples_quantiles": {
+    "0": -0.37374350879320317,
+    "0.01": -0.34895454285765953,
+    "0.05": -0.34136955521687645,
+    "0.25": -0.3321814762832387,
+    "0.5": -0.3267288535385792,
+    "0.75": -0.3220929429211736,
+    "0.95": -0.31624393075127155,
+    "0.99": -0.31245540621978507,
+    "1.0": -0.30437408847599134
+  },
+  "decision_function_quantiles": {
+    "0": 0.12625649120679683,
+    "0.01": 0.15104545714234047,
+    "0.05": 0.15863044478312355,
+    "0.25": 0.16781852371676131,
+    "0.5": 0.17327114646142078,
+    "0.75": 0.17790705707882642,
+    "0.95": 0.18375606924872845,
+    "0.99": 0.18754459378021493,
+    "1.0": 0.19562591152400866
+  },
+  "numeric_columns": [
+    "age",
+    "log_miles",
+    "auction_grade",
+    "log_reference_price"
+  ],
+  "categorical_columns": [
+    "manufacturer",
+    "model",
+    "type",
+    "transmission",
+    "state",
+    "fuel",
+    "drive",
+    "title_status",
+    "cylinders",
+    "paint_color"
+  ],
+  "one_hot_categories": {
+    "manufacturer": 67,
+    "model": 851,
+    "type": 46,
+    "transmission": 3,
+    "state": 38,
+    "fuel": 1,
+    "drive": 1,
+    "title_status": 1,
+    "cylinders": 1,
+    "paint_color": 21
+  },
+  "encoded_columns": 1034,
+  "encoded_nonzero": 7702325,
+  "phase_statistics": {
+    "test": {
+      "rows": 83603,
+      "flagged": 0,
+      "flagged_fraction": 0.0
+    },
+    "train": {
+      "rows": 384198,
+      "flagged": 0,
+      "flagged_fraction": 0.0
+    },
+    "validation": {
+      "rows": 82380,
+      "flagged": 0,
+      "flagged_fraction": 0.0
+    }
+  },
+  "outliertree_comparison": {
+    "outliertree_flags": 74,
+    "both_flags": 0,
+    "isolation_only": 0,
+    "outliertree_only": 74,
+    "jaccard": 0.0
+  },
+  "most_anomalous_examples": [
+    {
+      "row_id": "7ab017a86df7f0d16c660cc7",
+      "phase": "test",
+      "price": 1600,
+      "manufacturer": null,
+      "model": null,
+      "year": 2002,
+      "odometer": 110881.0,
+      "score_samples": -0.37374350879320317,
+      "decision_function": 0.12625649120679683,
+      "flagged": false
+    },
+    {
+      "row_id": "eb1b94c6156d711f1aeca6a1",
+      "phase": "train",
+      "price": 500,
+      "manufacturer": null,
+      "model": null,
+      "year": 1999,
+      "odometer": 1.0,
+      "score_samples": -0.3726806953461576,
+      "decision_function": 0.1273193046538424,
+      "flagged": false
+    },
+    {
+      "row_id": "47f37d054aa421ec48097889",
+      "phase": "validation",
+      "price": 850,
+      "manufacturer": null,
+      "model": null,
+      "year": 2005,
+      "odometer": 162372.0,
+      "score_samples": -0.3722163841320185,
+      "decision_function": 0.12778361586798148,
+      "flagged": false
+    },
+    {
+      "row_id": "18892c6e180eb11d5472e418",
+      "phase": "test",
+      "price": 3400,
+      "manufacturer": null,
+      "model": null,
+      "year": 2007,
+      "odometer": 229428.0,
+      "score_samples": -0.3703491671281749,
+      "decision_function": 0.1296508328718251,
+      "flagged": false
+    },
+    {
+      "row_id": "993b5e91a0700c5919572023",
+      "phase": "validation",
+      "price": 8100,
+      "manufacturer": null,
+      "model": null,
+      "year": 2011,
+      "odometer": 67696.0,
+      "score_samples": -0.3701577396486038,
+      "decision_function": 0.12984226035139618,
+      "flagged": false
+    },
+    {
+      "row_id": "bb546cca9e40010f00294f2a",
+      "phase": "validation",
+      "price": 8000,
+      "manufacturer": null,
+      "model": null,
+      "year": 2011,
+      "odometer": 112404.0,
+      "score_samples": -0.36990738069181217,
+      "decision_function": 0.13009261930818783,
+      "flagged": false
+    },
+    {
+      "row_id": "6a4f9427c73a64630d8590da",
+      "phase": "train",
+      "price": 2950,
+      "manufacturer": "MINI",
+      "model": "Cooper",
+      "year": 2003,
+      "odometer": 144060.0,
+      "score_samples": -0.3697925046692886,
+      "decision_function": 0.1302074953307114,
+      "flagged": false
+    },
+    {
+      "row_id": "e343ea174487925a3f1ef26e",
+      "phase": "train",
+      "price": 5100,
+      "manufacturer": "MINI",
+      "model": "Cooper",
+      "year": 2005,
+      "odometer": 42026.0,
+      "score_samples": -0.36961497148534206,
+      "decision_function": 0.13038502851465794,
+      "flagged": false
+    },
+    {
+      "row_id": "18effb2046f316ac55344093",
+      "phase": "train",
+      "price": 19000,
+      "manufacturer": null,
+      "model": null,
+      "year": 2014,
+      "odometer": 30886.0,
+      "score_samples": -0.3692470544683009,
+      "decision_function": 0.13075294553169908,
+      "flagged": false
+    },
+    {
+      "row_id": "938f865afea06475a3c20385",
+      "phase": "test",
+      "price": 23500,
+      "manufacturer": null,
+      "model": null,
+      "year": 2014,
+      "odometer": 21755.0,
+      "score_samples": -0.3688695363561838,
+      "decision_function": 0.1311304636438162,
+      "flagged": false
+    }
+  ],
+  "elapsed_seconds": 14.115928756999892,
+  "cars_deleted": 0,
+  "weights_refitted": false,
+  "interpretation": "Lower score_samples means more anomalous. Negative decision_function is flagged. Auto uses offset=-0.5; it is not a removal fraction or calibrated error probability. No labelled anomaly truth exists, so precision/recall or accuracy cannot be reported. Full-cohort descriptive audit, never a held-out filtering rule. No rare model pooling; each distinct category gets its own one-hot column."
+}

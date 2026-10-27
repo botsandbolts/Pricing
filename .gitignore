@@ -37,3 +37,6 @@ models/price-model-suite-tabular/
 reports/cleanlab-rerun-*/**/label-audit.csv
 
 reports/cleanlab-rerun-*/**/audit-schema.json
+
+# Reproducible full row-level Isolation Forest score exports
+reports/isolation-onehot-*/**/scores.csv.gz

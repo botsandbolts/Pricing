@@ -1,0 +1,220 @@
+{
+  "input_rows": 211127,
+  "flagged_rows": 0,
+  "flagged_fraction": 0.0,
+  "settings": {
+    "n_estimators": 100,
+    "max_samples": 256,
+    "contamination": "auto",
+    "max_features": 1.0,
+    "bootstrap": false,
+    "n_jobs": 4,
+    "random_state": 42
+  },
+  "offset": -0.5,
+  "score_samples_quantiles": {
+    "0": -0.36932402721472246,
+    "0.01": -0.34761448579563986,
+    "0.05": -0.3402978527195877,
+    "0.25": -0.33074520126910373,
+    "0.5": -0.3249741655480685,
+    "0.75": -0.32008465340481873,
+    "0.95": -0.3143712515903483,
+    "0.99": -0.31136357017523203,
+    "1.0": -0.3041761090712437
+  },
+  "decision_function_quantiles": {
+    "0": 0.13067597278527754,
+    "0.01": 0.15238551420436014,
+    "0.05": 0.1597021472804123,
+    "0.25": 0.16925479873089627,
+    "0.5": 0.17502583445193148,
+    "0.75": 0.17991534659518127,
+    "0.95": 0.1856287484096517,
+    "0.99": 0.188636429824768,
+    "1.0": 0.1958238909287563
+  },
+  "numeric_columns": [
+    "age",
+    "log_miles",
+    "log_reference_price"
+  ],
+  "categorical_columns": [
+    "manufacturer",
+    "model",
+    "type",
+    "transmission",
+    "state",
+    "fuel",
+    "drive",
+    "title_status",
+    "cylinders",
+    "paint_color",
+    "seller_condition"
+  ],
+  "one_hot_categories": {
+    "manufacturer": 43,
+    "model": 24805,
+    "type": 14,
+    "transmission": 4,
+    "state": 51,
+    "fuel": 6,
+    "drive": 4,
+    "title_status": 7,
+    "cylinders": 9,
+    "paint_color": 13,
+    "seller_condition": 7
+  },
+  "encoded_columns": 24966,
+  "encoded_nonzero": 2955155,
+  "phase_statistics": {
+    "test": {
+      "rows": 31682,
+      "flagged": 0,
+      "flagged_fraction": 0.0
+    },
+    "train": {
+      "rows": 147777,
+      "flagged": 0,
+      "flagged_fraction": 0.0
+    },
+    "validation": {
+      "rows": 31668,
+      "flagged": 0,
+      "flagged_fraction": 0.0
+    }
+  },
+  "outliertree_comparison": {
+    "outliertree_flags": 31,
+    "both_flags": 0,
+    "isolation_only": 0,
+    "outliertree_only": 31,
+    "jaccard": 0.0
+  },
+  "most_anomalous_examples": [
+    {
+      "row_id": "b1d3abd3d9df05bd1ba060dc70cc04d5d15dc8ac969a3e15705c0dea94dad624",
+      "phase": "validation",
+      "price": 6000,
+      "manufacturer": "jeep",
+      "model": null,
+      "year": 1956.0,
+      "odometer": 50000.0,
+      "score_samples": -0.36932402721472246,
+      "decision_function": 0.13067597278527754,
+      "flagged": false
+    },
+    {
+      "row_id": "2fd07bc0c70867570748a1ada21d3d8fbe1f281a7be59a8e7dd7eb0602e394fe",
+      "phase": "validation",
+      "price": 4850,
+      "manufacturer": "ford",
+      "model": "focus se",
+      "year": 2014.0,
+      "odometer": 119500.0,
+      "score_samples": -0.36922672703194337,
+      "decision_function": 0.13077327296805663,
+      "flagged": false
+    },
+    {
+      "row_id": "439b5d241b0973237bb792e679fed8352596263952376f8102ef70b18b2c747b",
+      "phase": "train",
+      "price": 2200,
+      "manufacturer": "ford",
+      "model": "f350",
+      "year": 1993.0,
+      "odometer": 200000.0,
+      "score_samples": -0.36916313599239164,
+      "decision_function": 0.13083686400760836,
+      "flagged": false
+    },
+    {
+      "row_id": "3195b23b65a475af8fbc085352031fa1001148b43428ead61a23e86cf6372a9a",
+      "phase": "train",
+      "price": 3800,
+      "manufacturer": "nissan",
+      "model": "versa",
+      "year": 2007.0,
+      "odometer": 115505.0,
+      "score_samples": -0.36911321554185716,
+      "decision_function": 0.13088678445814284,
+      "flagged": false
+    },
+    {
+      "row_id": "f4c089985f0abc2e205060609561491b2d2485f5a6021a86c926a9a4626d36c1",
+      "phase": "train",
+      "price": 6500,
+      "manufacturer": "ford",
+      "model": null,
+      "year": 1929.0,
+      "odometer": 1.0,
+      "score_samples": -0.3689949973615208,
+      "decision_function": 0.1310050026384792,
+      "flagged": false
+    },
+    {
+      "row_id": "3a7da0713f68316a368ba2525a21e52dfb6f9d385384cbe6e6f08e14a89adbbc",
+      "phase": "train",
+      "price": 12000,
+      "manufacturer": "ram",
+      "model": "2500",
+      "year": 1996.0,
+      "odometer": 211000.0,
+      "score_samples": -0.36869725487901234,
+      "decision_function": 0.13130274512098766,
+      "flagged": false
+    },
+    {
+      "row_id": "652b52bab9e7d8020b137cacbdf1e9cb2a950da0c56491b96bdf33e7b04bf27d",
+      "phase": "train",
+      "price": 20000,
+      "manufacturer": "dodge",
+      "model": null,
+      "year": 2006.0,
+      "odometer": 12000.0,
+      "score_samples": -0.3680693840191423,
+      "decision_function": 0.1319306159808577,
+      "flagged": false
+    },
+    {
+      "row_id": "d57ddbaebc0b3eae73b13ad6cb5346cc7067a49f68c6f6bce3cd2289090d36de",
+      "phase": "train",
+      "price": 2700,
+      "manufacturer": "jeep",
+      "model": "m52",
+      "year": 1968.0,
+      "odometer": 500.0,
+      "score_samples": -0.3676858323565956,
+      "decision_function": 0.13231416764340442,
+      "flagged": false
+    },
+    {
+      "row_id": "8f85477d20ce7e749116989d1de57a2f8ec6934994faea4d213e63e47ff45ef5",
+      "phase": "train",
+      "price": 1900,
+      "manufacturer": "jeep",
+      "model": "willys",
+      "year": 1947.0,
+      "odometer": 10000.0,
+      "score_samples": -0.36764382026262005,
+      "decision_function": 0.13235617973737995,
+      "flagged": false
+    },
+    {
+      "row_id": "5d5dfef5cdff56f20a0d07e1f49eab3eeff172b6c118ebb2012873654111f964",
+      "phase": "train",
+      "price": 2900,
+      "manufacturer": "dodge",
+      "model": null,
+      "year": 1946.0,
+      "odometer": 65111.0,
+      "score_samples": -0.367631390168536,
+      "decision_function": 0.13236860983146398,
+      "flagged": false
+    }
+  ],
+  "elapsed_seconds": 6.634748750000654,
+  "cars_deleted": 0,
+  "weights_refitted": false,
+  "interpretation": "Lower score_samples means more anomalous. Negative decision_function is flagged. Auto uses offset=-0.5; it is not a removal fraction or calibrated error probability. No labelled anomaly truth exists, so precision/recall or accuracy cannot be reported. Full-cohort descriptive audit, never a held-out filtering rule. No rare model pooling; each distinct category gets its own one-hot column."
+}

@@ -1,0 +1,22 @@
+{
+  "versions": {
+    "outliertree": "1.10.0.post4",
+    "pandas": "2.3.3",
+    "numpy": "2.5.4",
+    "scikit-learn": "1.9.1",
+    "lightgbm": "4.7.0"
+  },
+  "script_sha256": "be4e7fdeb5244d1113f4f745a9ea3f77055dbfa482825c2768038356d6f86e73",
+  "files_sha256": {
+    "README.md": "437bca5e406080eb045c66bcf5e3d8a372801c581ac8f8d263432b1712ef7127",
+    "summary.json": "2a9ee23ac36ae71a570475f654466426634dbb8b967e30b5460dfae673ca6693",
+    "ask/full_cohort/flagged-cars.csv.gz": "6b4451ea40907e5c7fead57c6d546e4a32f4b65b3170efb198d8fcb85008dd5c",
+    "ask/full_cohort/report.json": "4a96238389a1d44f7b8bb5c491bd788b69960dafe6650d8bff9127c63836e04d",
+    "ask/assessment/flagged-cars.csv.gz": "6a8a9d093db7b50b233c84e15027d4e61014537d1b2614e89bfed5b07c62477d",
+    "ask/assessment/report.json": "2a85710732ba6358ef1f8253f77ee527cbb9659b8090fe30cb5bc38c321f22d9",
+    "bid/full_cohort/flagged-cars.csv.gz": "f25b633484eaf4d3efdc59b78973eafb437b30b5da171065443828af7405019e",
+    "bid/full_cohort/report.json": "29801613e57ac2851a8ef44c0d214be6f2205a187829f98b8e918d1978914565",
+    "bid/assessment/flagged-cars.csv.gz": "70664fa834f1f33fa50ac88c39b2bb67674a009c98e3ac4fd677580e8902785a",
+    "bid/assessment/report.json": "67fe4a8d04b0cb3d2a47acca7e36a76007933c8f7c2e33dd7899f8d34473db59"
+  }
+}
