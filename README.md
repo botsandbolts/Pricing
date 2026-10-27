@@ -46,7 +46,7 @@ python -m pip install -r requirements-training.txt
 python -m streamlit run app.py
 ```
 
-The Python GUI defaults to its best trained regularized ensemble. Its mode selector includes the installed MiniLM assessment bundle and can also load a completed full-refit bundle from `artifacts/car-price-studio-full/`. Override with `PRICING_MODEL_DIR` if needed. No API key is required. Baseline browser inputs are processed locally.
+The Python GUI defaults to MiniLM + Isolation Forest + LightGBM and opens the free-text valuation form. Its mode selector includes the installed MiniLM assessment bundle and can also load a completed full-refit bundle from `artifacts/car-price-studio-full/`. Override with `PRICING_MODEL_DIR` if needed. No API key is required. Baseline browser inputs are processed locally.
 
 For MiniLM training, open `train_gpu.ipynb` in a CUDA runtime or run:
 
@@ -86,19 +86,19 @@ The hosted browser GUI adds an **Explain the price** page, lay explanations, exp
 
 ## Integrated structural Pricing + CarBids GUI
 
-The default **Pricing + CarBids** tab transfers auction depreciation/relative-value structure using the vehicle's **age at valuation**, actual mileage and a lagged official BLS used-car price index. It shows the 2021 asking estimate separately, an age/market-adjusted auction equivalent, an experimental asking LightGBM with auction features, decompositions, support warnings and per-car batch export. Both engines and trained weights are bundled; no second service or GPU is required.
+The **Pricing + CarBids** comparison tab transfers auction depreciation/relative-value structure using the vehicle's **age at valuation**, actual mileage and a lagged official BLS used-car price index. It shows the 2021 asking estimate separately, an age/market-adjusted auction equivalent, an experimental asking LightGBM with auction features, decompositions, support warnings and per-car batch export. Both engines and trained weights are bundled; no second service or GPU is required.
 
-The transfer experiment slightly worsened test MAE ($3,329 → $3,338) while improving RMSE ($6,839 → $6,807); the original asking model remains the default. The full 211,844-row Pricing cohort was processed, with 717 unavailable auction equivalents explicitly flagged. Retail-channel premiums remain assumptions, not fitted sale calibration. See [INTEGRATION.md](INTEGRATION.md) for equations/specification, actual assessments, index provenance, leakage controls and reproduction commands.
+The transfer experiment slightly worsened test MAE ($3,329 → $3,338) while improving RMSE ($6,839 → $6,807); the original asking model is retained as a comparison baseline. The full 211,844-row Pricing cohort was processed, with 717 unavailable auction equivalents explicitly flagged. Retail-channel premiums remain assumptions, not fitted sale calibration. See [INTEGRATION.md](INTEGRATION.md) for equations/specification, actual assessments, index provenance, leakage controls and reproduction commands.
 
 ## Best trained LightGBM ensemble
 
-The promoted regularized ensemble uses **9 members and 18,324 trees**, with CarBids structural features, bagging, categorical smoothing and three fixed seed repetitions. Historical test MAE improved **$3,328.66 → $3,288.05**, and RMSE **$6,839.35 → $6,664.99**. Pricing's normal model selector defaults to it; both shared GUIs use it. The original baseline is preserved.
+The promoted regularized ensemble uses **9 members and 18,324 trees**, with CarBids structural features, bagging, categorical smoothing and three fixed seed repetitions. Historical test MAE improved **$3,328.66 → $3,288.05**, and RMSE **$6,839.35 → $6,664.99**. The comparison panels use this structured ensemble; the main valuation form now defaults to MiniLM + Isolation Forest + LightGBM. The original baseline is preserved.
 
 See [ROBUST_MODEL.md](ROBUST_MODEL.md) for the complete design, capacity/latency tradeoff and reused-benchmark limits. [train_robust_kaggle.ipynb](train_robust_kaggle.ipynb) reproduces the CPU-only robust search without transformer epochs. The earlier transfer-only experiment and its reports are retained as historical comparisons.
 
 ### Trained Isolation Forest asking experiment
 
-The separate filtered ensemble is trained on the full original cohort with automatic predictor-only filtering. Test MAE: **$3,368**, compared with **$3,288** for the unfiltered ensemble. The unfiltered ensemble remains the default. Select **Isolation Forest trained ensemble** in the GUI to try the completed filtered model. Full counts, metrics and reproducibility details are in [ROBUST_MODEL.md](ROBUST_MODEL.md); Kaggle reproduction is in [train_filtered_kaggle.ipynb](train_filtered_kaggle.ipynb).
+The separate filtered ensemble is trained on the full original cohort with automatic predictor-only filtering. Test MAE: **$3,368**, compared with **$3,288** for the unfiltered ensemble. The **Best trained ensemble** option continues to select the unfiltered ensemble. Select **Isolation Forest trained ensemble** in the GUI to try the completed filtered model. Full counts, metrics and reproducibility details are in [ROBUST_MODEL.md](ROBUST_MODEL.md); Kaggle reproduction is in [train_filtered_kaggle.ipynb](train_filtered_kaggle.ipynb).
 
 ### Interactive price explanations
 
@@ -114,7 +114,7 @@ methods, target-scale handling, background limits and validation.
 
 ### Installed description transformer
 
-Select **MiniLM + LightGBM (installed assessment)** in the Python GUI to price a car
+Select **MiniLM + Isolation Forest + LightGBM** in the Python GUI to price a car
 using both its free-text description and structured fields. The real fine-tuned MiniLM
 weights are included; inference runs on CPU with no API key or model download.
 `pip install -r requirements.txt` installs the CPU runtime.
@@ -122,7 +122,7 @@ weights are included; inference runs on CPU with no API key or model download.
 This is the completed 148,290-description assessment model, with LightGBM fitted
 on 109,609 Isolation Forest inliers. The separate 211,844-car refit is still pending;
 the installed bundle explicitly records this distinction. Recorded test MAE: $3,559.
-The lower-error regularized ensemble remains the default. Point estimates are available;
+MiniLM + Isolation Forest + LightGBM is now the default studio choice; the regularized ensemble remains selectable for comparison. Point estimates are available;
 the assessment did not persist its interval calibration radius. All six explanation
 graphs support this model, conditional on the submitted description-price signal.
 See [model provenance and installation](models/minilm-assessment/README.md).

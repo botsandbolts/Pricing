@@ -10,24 +10,35 @@ st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
 st.title('Car Price Studio + CarBids')
 st.caption('Age-aware auction transfer and historical asking prices. Serious maths. Zero tyre-kicking.')
 from marketbridge.engine import best_asking_bundle
-choices=['Best trained ensemble','Unfiltered trained ensemble','Trained tabular baseline','MiniLM + Isolation Forest (training required)']
+minilm_label='MiniLM + Isolation Forest + LightGBM'
+# Prefer a completed full-data deployment once installed; serve the real assessment meanwhile.
 installed_minilm=Path('models/minilm-assessment')
-if (installed_minilm/'manifest.json').exists():choices.insert(1,'MiniLM + LightGBM (installed assessment)')
+for candidate in [Path('models/minilm-full'),Path('artifacts/car-price-studio-full'),installed_minilm]:
+    manifest_file=candidate/'manifest.json'
+    if manifest_file.exists():
+        candidate_manifest=json.loads(manifest_file.read_text())
+        if (candidate_manifest.get('status')=='ready' and
+            candidate_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' and
+            candidate_manifest.get('outlier_filter',{}).get('algorithm')=='IsolationForest'):
+            installed_minilm=candidate
+            break
+choices=[minilm_label,'Best trained ensemble','Unfiltered trained ensemble','Trained tabular baseline']
 filtered=Path('models/robust-asking-isolation')
-if (filtered/'manifest.json').exists():choices.insert(1,'Isolation Forest trained ensemble')
-mode=st.selectbox('Pricing model',choices)
+if (filtered/'manifest.json').exists():choices.append('Isolation Forest trained ensemble')
+mode=st.selectbox('Pricing model',choices,index=0)
 locations={'Best trained ensemble':best_asking_bundle(Path('.')),
-           'MiniLM + LightGBM (installed assessment)':installed_minilm,
+           minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
            'Unfiltered trained ensemble':Path('models/robust-asking'),
-           'Trained tabular baseline':Path('models/studio-baseline'),
-           'MiniLM + Isolation Forest (training required)':Path('artifacts/car-price-studio-full')}
+           'Trained tabular baseline':Path('models/studio-baseline')}
 path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
 uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm'
 if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
     st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
+if uses_text:
+    st.caption('MiniLM reads the description. Isolation Forest in auto mode filtered unusual training text-price signals; it does not reject your car at prediction time. LightGBM combines that signal with the form fields. The bouncer worked during training; the pricing desk is open.')
 if not ready:
     st.info('This historical MiniLM mode has not been trained. The integrated Pricing + CarBids tab uses its own completed models and remains available.')
 
@@ -40,7 +51,7 @@ def get_pipeline(location):
     file=Path(location)/'manifest.json'
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
-compare,value,how,results=st.tabs(['Pricing + CarBids','Value a car','How it works','Evaluation'])
+value,compare,how,results=st.tabs(['Value a car','Pricing + CarBids','How it works','Evaluation'])
 with compare:
     from marketbridge.ui import render_comparison
     render_comparison(Path(__file__).parent)
@@ -121,7 +132,7 @@ with results:
                 st.caption('The bouncer checked vehicle facts, not price tags. Unusual can still mean legitimate. Every validation and test car stayed in the queue.')
                 st.dataframe([{'model':'Unfiltered reference',**e['baseline']['test']},{'model':'Isolation Forest ensemble',**e['test']}],hide_index=True)
                 st.json(f,expanded=False)
-                if not e['promoted']:st.info('This is the completed filtered experiment. The unfiltered ensemble remains the default because its benchmark errors are lower.')
+                if not e['promoted']:st.info('This is the completed filtered experiment. The Best trained ensemble option selects the unfiltered ensemble because its benchmark errors are lower.')
             st.download_button('Download selected ensemble assessment',json.dumps(e,indent=2),'asking-ensemble-evaluation.json','application/json')
             with st.expander('All training candidates · technical details'):st.json(e['grid'])
         elif e.get('mode')=='tabular_baseline':
@@ -134,7 +145,7 @@ with results:
             if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
                 st.caption(selected_manifest['assessment_note'])
                 st.text(f"Description-only test MAE: ${e['description_only']['mae_usd']:,.0f} · MiniLM + LightGBM test MAE: ${e['stacked']['mae_usd']:,.0f}.")
-                st.info('Installed for use and comparison. The lower-error ensemble remains the default. More neurons do not automatically mean a better negotiator.')
+                st.info('MiniLM + Isolation Forest + LightGBM is the default studio model. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
                 st.download_button('Download MiniLM assessment',json.dumps(e,indent=2),'minilm-assessment.json','application/json')
         if selected_manifest.get('band80_log_radius') is None and uses_text:
             st.caption('The original evaluation recorded interval coverage, but its calibration radius was not persisted. This installation serves point estimates only.')

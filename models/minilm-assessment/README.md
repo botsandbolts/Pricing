@@ -35,7 +35,7 @@ python -m pip install -r requirements.txt
 python -m streamlit run app.py
 ```
 
-Select **MiniLM + LightGBM (installed assessment)**, open **Value a car**, enter a seller
+Select **MiniLM + Isolation Forest + LightGBM**, open **Value a car**, enter a seller
 description and estimate. All six explanation graphs remain available. Graphs hold the
 submitted text-price signal fixed across scenario cars; they do not explain individual words.
-The lower-error regularized ensemble remains the default.
+MiniLM + Isolation Forest + LightGBM is now the default studio choice; the regularized ensemble remains selectable for comparison.
