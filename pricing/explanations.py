@@ -28,7 +28,10 @@ def render_explanation(p,fields,notes,pipeline):
         st.caption(f'Right of zero raises the fitted score; left lowers it. Bar units: {unit}. Zero means no allocated contribution for this prediction.')
         if e['target']=='log1p':st.info('The model works on a log-price scale. The bars add on that scale; they are not separate dollar discounts. Mileage and model year often share information, so their credit can move between them.')
         st.write('**The description branch:** '+('MiniLM reads your notes and produces one text-price signal. LightGBM explains that signal as a single feature; this chart does not explain individual words.' if p.get('predicted_text_price') is not None else 'This baseline uses structured fields only. Your prose cannot sweet-talk it into a higher price.'))
-        st.write('**The error band:** a historical error guide, not an 80% guarantee for this particular car. Rust is still allowed to surprise us.')
+        if p.get('range') is not None:
+            st.write('**The error band:** a historical error guide, not an 80% guarantee for this particular car. Rust is still allowed to surprise us.')
+        else:
+            st.write('**Uncertainty:** this installed assessment provides a point estimate. Its saved output omitted the calibration radius, so an error band is unavailable. Rust remains unpredictable; we have not drawn a confidence ribbon around it.')
     with technical:
         st.subheader('Native TreeSHAP attribution')
         st.write(f"{e['method']}. {e['trees']:,} trees. Contributions are rescaled from the standardized training target.")

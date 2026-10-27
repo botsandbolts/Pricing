@@ -92,6 +92,7 @@ with value:
             st.caption('Point estimate only: the saved assessment did not include its interval calibration radius. No crystal-ball interval has been invented.')
         if result.get('predicted_text_price') is not None:
             st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
+            st.caption('The companion below uses an independent structured ensemble for comparison. Your selected MiniLM + LightGBM estimate is the price shown above.')
         from marketbridge.ui import render_auction_companion
         render_auction_companion(Path(__file__).parent,car)
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
