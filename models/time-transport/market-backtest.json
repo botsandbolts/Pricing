@@ -39,32 +39,32 @@
       "method": "damped_holt",
       "horizon": 1,
       "forecasts": 11,
-      "mean_abs_log_error": 0.008026394095799373,
-      "rms_log_error": 0.012242542269908126
+      "mean_abs_log_error": 0.008052631662346972,
+      "rms_log_error": 0.012256475629889586
     },
     {
       "stage": "locked_test",
       "method": "damped_holt",
       "horizon": 3,
       "forecasts": 11,
-      "mean_abs_log_error": 0.030417619275932128,
-      "rms_log_error": 0.0424435469941499
+      "mean_abs_log_error": 0.030519039792574355,
+      "rms_log_error": 0.04253539964737535
     },
     {
       "stage": "locked_test",
       "method": "damped_holt",
       "horizon": 6,
       "forecasts": 11,
-      "mean_abs_log_error": 0.06362191456342221,
-      "rms_log_error": 0.08337649546857567
+      "mean_abs_log_error": 0.06378101239896761,
+      "rms_log_error": 0.08367682218900868
     },
     {
       "stage": "locked_test",
       "method": "damped_holt",
       "horizon": 12,
       "forecasts": 11,
-      "mean_abs_log_error": 0.07280561985855795,
-      "rms_log_error": 0.0934346598555418
+      "mean_abs_log_error": 0.07302484596197259,
+      "rms_log_error": 0.09392462434306399
     },
     {
       "stage": "locked_test",
@@ -167,32 +167,32 @@
       "method": "damped_holt",
       "horizon": 1,
       "forecasts": 20,
-      "mean_abs_log_error": 0.012178814937282222,
-      "rms_log_error": 0.017686167282836972
+      "mean_abs_log_error": 0.012250851678541303,
+      "rms_log_error": 0.01755477774546036
     },
     {
       "stage": "selection",
       "method": "damped_holt",
       "horizon": 3,
       "forecasts": 20,
-      "mean_abs_log_error": 0.04101518714653764,
-      "rms_log_error": 0.052931302902373224
+      "mean_abs_log_error": 0.041081124158719944,
+      "rms_log_error": 0.052653170066950035
     },
     {
       "stage": "selection",
       "method": "damped_holt",
       "horizon": 6,
       "forecasts": 20,
-      "mean_abs_log_error": 0.06161663935521346,
-      "rms_log_error": 0.09303592208562263
+      "mean_abs_log_error": 0.05950462224031391,
+      "rms_log_error": 0.09233753227339547
     },
     {
       "stage": "selection",
       "method": "damped_holt",
       "horizon": 12,
       "forecasts": 20,
-      "mean_abs_log_error": 0.10172482503535718,
-      "rms_log_error": 0.14687886382146992
+      "mean_abs_log_error": 0.09899634344614129,
+      "rms_log_error": 0.1444875375368258
     },
     {
       "stage": "selection",
@@ -260,10 +260,10 @@
     }
   ],
   "sensitivity_abs_log_error_90": {
-    "1": 0.025104014176630936,
-    "3": 0.08129314075365139,
-    "6": 0.12381308627997377,
-    "12": 0.20989480769784974
+    "1": 0.02500944989184359,
+    "3": 0.08119950360672962,
+    "6": 0.12486664205867981,
+    "12": 0.20613029422071893
   },
   "warning": "Current-vintage rolling-origin index backtest, not a real-time vintage or per-car price backtest. These empirical errors describe market-index forecast sensitivity only."
 }

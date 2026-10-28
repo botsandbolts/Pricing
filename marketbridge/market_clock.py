@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
-from statsmodels.tsa.holtwinters import Holt
+from scipy.optimize import minimize
 
 SERIES='CUUR0000SETA02'
 PAGE=f'https://fred.stlouisfed.org/series/{SERIES}'
@@ -35,9 +35,20 @@ def forecast(values,h,method):
     if method=='last_value':z=np.repeat(y[-1],h)
     elif method=='seasonal_naive':z=np.array([y[-12+(i%12)] for i in range(h)])
     elif method=='damped_holt':
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore');fit=Holt(y,damped_trend=True,initialization_method='estimated').fit(optimized=True)
-        z=np.asarray(fit.forecast(h))
+        # Damped additive Holt on log levels, implemented with SciPy only.
+        # Each information cutoff estimates its own smoothing parameters.
+        initial_trend=float(np.median(np.diff(y[:min(13,len(y))])))
+        def states(params,score=False):
+            alpha,beta,phi=params;level=float(y[0]);trend=initial_trend;sse=0.
+            for observed in y[1:]:
+                prediction=level+phi*trend;sse+=(observed-prediction)**2
+                previous=level;level=alpha*observed+(1-alpha)*prediction
+                trend=beta*(level-previous)+(1-beta)*phi*trend
+            return sse if score else (level,trend)
+        fitted=minimize(lambda p:states(p,True),[.6,.1,.95],method='L-BFGS-B',bounds=[(.001,.999),(.001,.999),(.8,.9999)],options={'maxiter':150,'ftol':1e-12})
+        if not np.isfinite(fitted.fun):raise ValueError('Damped Holt fit failed')
+        level,trend=states(fitted.x);phi=fitted.x[2]
+        z=level+np.cumsum(phi**np.arange(1,h+1))*trend
     elif method=='ar_1_12':
         xx=np.array([[1.,y[i-1],y[i-12]] for i in range(12,len(y))]);b=np.linalg.lstsq(xx,y[12:],rcond=None)[0]
         history=list(y);z=[]

@@ -18,5 +18,5 @@ xgboost>=3.0,<4
 # Native CatBoost SurvivalAft serving and SHAP
 catboost==1.2.10
 
-# Short-horizon market-clock forecasting; CPU-only.
-statsmodels>=0.14,<1
+# Short-horizon market-clock forecasting; CPU-only, no extra forecast framework.
+scipy>=1.11,<2

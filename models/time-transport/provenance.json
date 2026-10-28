@@ -4,11 +4,11 @@
   "pandas": "2.2.3",
   "scipy": "1.17.0",
   "sklearn": "1.8.0",
-  "statsmodels": "0.15.0",
   "backend": "CPU; no Kaggle GPU started",
   "qa": "9 focused tests plus real-model Streamlit AppTest, two mileage scenarios, two market traces and preserved scientific graph controls",
   "ask_tree_git_sha": "de16c34aea5e8293cb8e7409f258f7159648ad2d",
   "bid_tree_git_sha": "3e1c70a5d3034d35d761fc71acb91860d37c6219",
   "text_tree_git_sha": "f0ea6125d8ec4bfecf49a2a09e838217e5a2049b",
-  "scope": "New depreciation components and public-index forecast; not a validated contemporary transaction model"
+  "scope": "New depreciation components and public-index forecast; not a validated contemporary transaction model",
+  "forecast_implementation": "SciPy-only damped additive Holt on log index; per-origin smoothing optimization; no statsmodels runtime dependency"
 }
