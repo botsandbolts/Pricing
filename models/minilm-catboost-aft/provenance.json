@@ -1,0 +1,31 @@
+{
+  "status": "complete",
+  "architecture": {
+    "ask": "fine-tuned MiniLM-L6 description price + native categorical CatBoost normal SurvivalAft",
+    "bid": "tabular CatBoost normal SurvivalAft; auction source has zero descriptions"
+  },
+  "text_model": {
+    "source": "sentence-transformers/all-MiniLM-L6-v2",
+    "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+    "fitting_rows": 211844,
+    "fingerprint": "b65bc3bf487ca9dd4abea44de0c5a80ef358d7919c3644365ff0037a7a75b018"
+  },
+  "feature_cache": {
+    "library_file_id": "libfile_87be7d639550819186bfe52e9e187a70",
+    "file": "MiniLM_verified_features.zip",
+    "bytes": 20715365,
+    "sha256": "19cf84c2a32accb44719592725e8b86af12b79e50e94d60cafa2eb5783831658",
+    "original_kaggle_run": 362713451,
+    "held_inference_kaggle_run": 363162642,
+    "gpu_session": "explicitly stopped"
+  },
+  "checks": {
+    "recovered_and_installed_minilm_backbone_equal": true,
+    "regression_head_and_target_scale_equal": true,
+    "forward_window_batch_prediction_ast_equal": true,
+    "assessment": "training-only OOF and training-only head for validation/test",
+    "deployment": "separate full-cohort three-fold OOF; full-cohort MiniLM head"
+  },
+  "selected_trees": 1500,
+  "warning": "Same fixed filter membership as the requested XGBoost experiment: highest absolute log-residual quartile within each original phase plus OutlierTree flags. Filtered validation/test scores are optimistic because labels selected retained cars. Original-test scores are diagnostic, not a fresh external benchmark. Assessment fits training only; validation selects stopping; deployment refit is separate."
+}

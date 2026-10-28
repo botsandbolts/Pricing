@@ -36,10 +36,13 @@ aft_label='MiniLM + Cleanlab + XGBoost AFT · original'
 aft_ready=(aft_path/'manifest.json').exists() and json.loads((aft_path/'manifest.json').read_text()).get('status')=='ready'
 if aft_ready:choices.insert(0,aft_label)
 from pricing.residual_ui import ready as robust_aft_ready,model_root
-robust_aft_label=('CatBoost AFT' if model_root(Path('.')).name=='catboost-aft' else 'XGBoost AFT')+' · residual-trimmed (default)'
+_default_root=model_root(Path('.'))
+robust_aft_label=('MiniLM + CatBoost AFT' if _default_root.name=='minilm-catboost-aft' else 'CatBoost AFT' if _default_root.name=='catboost-aft' else 'XGBoost AFT')+' · residual-trimmed (default)'
 if robust_aft_ready(Path('.')):choices.insert(0,robust_aft_label)
+tabular_catboost_label='CatBoost AFT · tabular comparison'
+if _default_root.name=='minilm-catboost-aft' and Path('models/catboost-aft/ask/manifest.json').exists():choices.append(tabular_catboost_label)
 mode=st.selectbox('Pricing model',choices,index=0)
-locations={robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
+locations={tabular_catboost_label:Path('models/catboost-aft/ask'),robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
            'Unfiltered trained ensemble':Path('models/robust-asking'),
@@ -47,9 +50,9 @@ locations={robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Clea
 path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
-uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline')=='modest-model-suite' and selected_manifest.get('text_feature',False))
-if selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft']:
-    st.info('Default: regularized CatBoost normal AFT. Highest-residual 25% per split plus OutlierTree flags removed; tabular vehicle facts only.')
+uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft'] and selected_manifest.get('text_feature',False))
+if selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
+    st.info('MiniLM reads the seller description, then regularized CatBoost normal AFT combines its predicted_text_price with vehicle facts.' if uses_text else 'CatBoost normal AFT · tabular-only comparison; this model does not use the description.')
     st.warning('Filtered validation/test scores are optimistic because their labels select retained cars. See Evaluation for original unfiltered-test errors too.')
 elif selected_manifest.get('pipeline')=='modest-model-suite':
     st.success('AFT is the preferred default: lowest recorded test RMSE on both datasets and lowest auction MAE. Huber remains better for asking-price MAE.')
@@ -57,7 +60,9 @@ elif selected_manifest.get('pipeline')=='modest-model-suite':
 if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
     st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
 if uses_text:
-    if selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
+    if selected_manifest.get('pipeline')=='catboost-aft':
+        st.caption('MiniLM supplies one dynamic description-price feature. CatBoost learned this feature from out-of-fold text predictions. Make and model remain native categorical fields. Highest-residual 25% per split plus OutlierTree flags were excluded; filtered scores are optimistic. The neural mechanic reads the advert; the tree committee checks the paperwork.')
+    elif selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
         st.caption('MiniLM reads the description. Cleanlab audited suspected training price-label errors using vehicle facts, internal cross-validation and uncertainty estimation. It does not filter the car you enter. Validation and test rows remain intact.')
     else:
         st.info('Cleanlab has replaced Isolation Forest in the training code. This installed model still uses its original Isolation Forest weights; it will be replaced only after a Cleanlab bundle is trained and installed.')
@@ -105,7 +110,7 @@ with value:
         color=c.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'],key='vehicle_paint_color')
         state=st.text_input('US state abbreviation',key='vehicle_state',value=None,max_chars=2)
         notes=st.text_area('Seller description — free text',key='seller_description',height=250,max_chars=MAX_CHARACTERS,disabled=not uses_text,
-            placeholder='Describe maintenance, equipment, condition and known problems. MiniLM reads this text and produces a price signal for LightGBM.' if uses_text else 'Select the installed MiniLM model to include your description.')
+            placeholder='Describe maintenance, equipment, condition and known problems. MiniLM reads this text and produces a price signal for the selected final model.' if uses_text else 'Select the installed MiniLM model to include your description.')
         submitted=st.form_submit_button('Estimate asking price',disabled=not ready)
     if submitted:
         if len(notes)>8000:
@@ -133,7 +138,7 @@ with value:
             st.caption('Point estimate only: the saved assessment did not include its interval calibration radius. No crystal-ball interval has been invented.')
         if result.get('predicted_text_price') is not None:
             st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
-            st.caption('The companion below uses an independent structured ensemble for comparison. Your selected text-and-tree estimate is the price shown above.')
+            st.caption('The auction companion uses tabular CatBoost AFT because its source has no descriptions. Your selected MiniLM-and-tree asking estimate is shown above.')
         from marketbridge.ui import render_auction_companion
         render_auction_companion(Path(__file__).parent,car)
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
@@ -141,7 +146,7 @@ with value:
         render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
-    st.write('The current requested defaults are CatBoost normal AFT for both markets. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. The highest-residual quartile per original split plus OutlierTree flags is excluded. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. No transformer feature is included in this refit. Earlier models remain available for comparison.')
+    st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction model is tabular CatBoost AFT because its dataset has no descriptions. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. The highest-residual quartile per original split plus OutlierTree flags is excluded. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Earlier models remain available for comparison.')
     st.subheader('A pricing committee with thousands of small opinions')
     st.write('LightGBM learns lots of small decision trees, each correcting earlier mistakes. Huber loss softens the influence of large errors: one wildly ambitious seller does not get to chair the committee. The fitted tree count and exact drivers appear after an estimate.')
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
@@ -171,7 +176,7 @@ with results:
                 if not e['promoted']:st.info('This is the completed filtered experiment. The Best trained ensemble option selects the unfiltered ensemble because its benchmark errors are lower.')
             st.download_button('Download selected ensemble assessment',json.dumps(e,indent=2),'asking-ensemble-evaluation.json','application/json')
             with st.expander('All training candidates · technical details'):st.json(e['grid'])
-        elif selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft']:
+        elif selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
             from pricing.residual_ui import render_assessment
             render_assessment(Path('.'))
         elif selected_manifest.get('pipeline')=='modest-model-suite':

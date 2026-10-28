@@ -1,7 +1,8 @@
-> **Current requested default: CatBoost normal AFT for Ask and Bid.**
-> Ask source: Craigslist Used Cars (2021 asking-price listings, Zenodo archive). Bid source: Used Car Auction Prices (Kaggle / tunguz, historical 2014–2015 auction sales). Both names are visible in the GUI.
-> This refit retains the previous fixed highest-residual 25% cuts in train/validation/test plus OutlierTree exclusions. Filtered scores are optimistic; original-test diagnostics are reported separately.
-> See [CatBoost deployment](CATBOOST_DEPLOYMENT.md). Earlier architectures and scores below are historical.
+> **Default: MiniLM + CatBoost normal AFT for asking prices.**
+> MiniLM reads the description and produces `predicted_text_price`; newly fitted CatBoost combines it with vehicle facts. Make/model remain categorical fields, without transformers.
+> Sources: **Craigslist Used Cars** (asking listings) and **Used Car Auction Prices · Kaggle/tunguz** (auction selling prices). The auction dataset has no descriptions, so its CatBoost model remains tabular.
+> The requested fixed 25% highest-residual filtering plus OutlierTree exclusions remains. Filtered validation/test scores are optimistic; original-test diagnostics are reported separately.
+> See [MiniLM + CatBoost architecture and cross-fitting](MINILM_CATBOOST.md). Earlier architectures and scores below are historical.
 
 # pricing · Car Price Studio
 

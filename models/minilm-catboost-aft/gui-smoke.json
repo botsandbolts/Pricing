@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "default": "MiniLM + CatBoost AFT \u00b7 residual-trimmed (default)",
+  "free_text_enabled": true,
+  "text_feature_in_native_shap": true,
+  "graph_exceptions": 0,
+  "same_car_first_description": {
+    "price": 11120.23057881292,
+    "text_price": 5118.975837475221
+  },
+  "same_car_second_description": {
+    "price": 10583.163984535535,
+    "text_price": 1462.5789084067117
+  },
+  "metrics": [
+    {
+      "label": "Estimated asking price",
+      "value": "$10,583"
+    },
+    {
+      "label": "Transported wholesale auction estimate",
+      "value": "$10,644"
+    }
+  ]
+}

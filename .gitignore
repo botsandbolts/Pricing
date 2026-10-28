@@ -54,3 +54,8 @@ models/residual-trimmed-xgb/**/assessment.ubj.gz
 # Reproducible CatBoost assessment artifacts; deploy final checksum-verified parts.
 models/catboost-aft/**/assessment.cbm.gz
 models/catboost-aft/**/original-test-predictions.csv.gz
+
+# MiniLM + CatBoost assessment artifacts are archived separately.
+models/minilm-catboost-aft/**/assessment.cbm.gz
+models/minilm-catboost-aft/**/original-test-predictions.csv.gz
+models/minilm-catboost-aft/**/deployment-prefit*

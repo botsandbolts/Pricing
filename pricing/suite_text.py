@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.model_selection import KFold
 
 
-def validated_features(cohort,path):
+def validated_features(cohort,path,*,full_only=False):
     path=Path(path);meta=json.loads((path/'provenance.json').read_text())
     digest=hashlib.file_digest(open(cohort,'rb'),'sha256').hexdigest()
     if meta['cohort_sha256']!=digest:raise ValueError('Text predictions belong to different cohort')
@@ -25,10 +25,11 @@ def validated_features(cohort,path):
             for number,(_,idx) in enumerate(KFold(3,shuffle=True,random_state=42).split(ids)):expected[idx]=number
             if not np.array_equal(expected,d.fold.to_numpy()):raise ValueError('OOF fold assignment mismatch')
         return pd.Series(prices,index=ids)
-    tr=read('assessment-oof.csv',train,True);ht=read('held-predictions.csv',held,False)
     full=read('full-oof.csv',rows.row_id.tolist(),True)
     fp=json.loads((path/'full-text-provenance.json').read_text())
     if fp['fitting_rows']!=len(rows) or fp['fingerprint']!=p['fingerprint'] or fp['revision']!=p['revision']:
         raise ValueError('Full and assessment text model provenance differ')
+    if full_only:return full
+    tr=read('assessment-oof.csv',train,True);ht=read('held-predictions.csv',held,False)
     result=pd.concat([tr,ht]);result.attrs['full_oof']=full
     return result

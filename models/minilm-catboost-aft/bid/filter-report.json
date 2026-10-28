@@ -1,0 +1,37 @@
+{
+  "partitions": {
+    "train": {
+      "original_rows": 384198,
+      "top_residual_removed": 96050,
+      "outliertree_flags": 55,
+      "additional_outliertree_removed": 9,
+      "removed_rows": 96059,
+      "retained_rows": 288139,
+      "retained_fraction": 0.7499752731664402,
+      "residual_abs_cutoff": 0.21106340846807115
+    },
+    "validation": {
+      "original_rows": 82380,
+      "top_residual_removed": 20595,
+      "outliertree_flags": 8,
+      "additional_outliertree_removed": 0,
+      "removed_rows": 20595,
+      "retained_rows": 61785,
+      "retained_fraction": 0.75,
+      "residual_abs_cutoff": 0.2210272797716044
+    },
+    "test": {
+      "original_rows": 83603,
+      "top_residual_removed": 20901,
+      "outliertree_flags": 11,
+      "additional_outliertree_removed": 0,
+      "removed_rows": 20901,
+      "retained_rows": 62702,
+      "retained_fraction": 0.7499970096766863,
+      "residual_abs_cutoff": 0.2055750774190166
+    }
+  },
+  "rule": "Remove ceil(25% of each original phase) ranked by abs(log observed/predicted), tie break row_id, union all OutlierTree 0.099 full-cohort flags. Training residuals from 3-fold OOF CatBoost. Validation/test residuals from saved train-fit CatBoost assessment. No original row is overwritten.",
+  "warning": "Validation/test labels select easy cases; filtered metrics are selection-biased and are not generalization estimates. Unfiltered original test also reported, but filtering-rule development has already used its labels. A genuinely new external test is required.",
+  "source_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601"
+}
