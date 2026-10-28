@@ -7,36 +7,52 @@ from pricing.model_suite import encode,predict,predictors,IndexPanel,apply_categ
 from pricing.suite_storage import read_model_file
 
 
+def model_root(root):
+    for name in ['catboost-aft','residual-trimmed-xgb']:
+        folder=Path(root)/'models'/name
+        if all((folder/side/'manifest.json').exists() and json.loads((folder/side/'manifest.json').read_text()).get('status')=='ready' for side in ['ask','bid']):return folder
+    return Path(root)/'models/catboost-aft'
+
 def ready(root):
-    root=Path(root)/'models/residual-trimmed-xgb'
-    return all((root/side/'manifest.json').exists() and json.loads((root/side/'manifest.json').read_text()).get('status')=='ready' for side in ['ask','bid'])
+    folder=model_root(root)
+    return all((folder/side/'manifest.json').exists() for side in ['ask','bid'])
+
+def estimate(model,schema,record,raw,side):
+    if record['pipeline']=='catboost-aft':return model.predict_frame(raw)
+    x,valid,_=predictors(raw,side)
+    if not valid.all():raise ValueError('Unsupported vehicle')
+    return predict(model,'xgb_aft_normal',encode(apply_category_pooling(x,record.get('category_pooling',{})),schema))
 
 
 @st.cache_resource
 def load(path,version):
+    folder=Path(path);record=json.loads((folder/'manifest.json').read_text())
+    if record['pipeline']=='catboost-aft':
+        from pricing.catboost_aft_pipeline import CatBoostAFTPipeline
+        model=CatBoostAFTPipeline(folder);return model,model.schema,record
     import xgboost as xgb
-    folder=Path(path);model=xgb.Booster();model.load_model(bytearray(gzip.decompress(read_model_file(folder/'xgb_aft_normal.ubj.gz'))))
+    model=xgb.Booster();model.load_model(bytearray(gzip.decompress(read_model_file(folder/'xgb_aft_normal.ubj.gz'))))
     return model,json.loads((folder/'schema.json').read_text()),json.loads((folder/'manifest.json').read_text())
 
 
 def render_bid(root,fields):
-    folder=Path(root)/'models/residual-trimmed-xgb/bid';mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
+    folder=model_root(root)/'bid';mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
     raw=pd.DataFrame([{**fields,'as_of':'2021-05-01','condition':None}]);x,valid,dates=predictors(raw,'bid');ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
     if not valid.all() or ratios.isna().any():raise ValueError('Unsupported vehicle/date')
-    value=float(predict(model,'xgb_aft_normal',encode(apply_category_pooling(x,record.get('category_pooling',{})),schema))[0]*ratios.iloc[0])
-    st.subheader('Default auction model · regularized XGBoost AFT')
+    value=float(estimate(model,schema,record,raw,'bid')[0]*ratios.iloc[0])
+    st.subheader('Default auction model · CatBoost AFT')
     st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
     st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. Highest-residual 25% per phase plus OutlierTree flags excluded. These are historical wholesale equivalents, not guaranteed bids.")
 
 
 def render_assessment(root):
-    folder=Path(root)/'models/residual-trimmed-xgb'
-    st.subheader('New default · larger regularized XGBoost AFT')
+    folder=model_root(root)
+    st.subheader('New default · regularized AFT models')
     st.warning('The requested residual filtering uses validation/test prices to select easier cars. Filtered scores are optimistic selected-cohort results. Original test scores are also shown, but this test has already informed filtering-rule development; a new external test is needed for an unbiased comparison.')
     rows=[]
     for side in ['ask','bid']:
         r=json.loads((folder/side/'evaluation.json').read_text())
-        for cohort,m in r['assessment'].items():rows.append({'Market':side,'Cohort':cohort,**m})
+        for cohort,m in r['assessment'].items():rows.append({'Market':side,'Dataset':'Craigslist Used Cars' if side=='ask' else 'Used Car Auction Prices (Kaggle / tunguz)','Cohort':cohort,**m})
     st.dataframe(pd.DataFrame(rows),hide_index=True)
     with st.expander('Filter counts, training recipe and limitations'):
         for side in ['ask','bid']:
@@ -45,7 +61,7 @@ def render_assessment(root):
 
 
 def render_calculator(root,key_prefix='robust_pair'):
-    st.subheader('Default ask + auction pricing · larger XGBoost models')
+    st.subheader('Default ask + auction pricing · CatBoost AFT')
     st.caption('Two market estimates. One car. The dealer and the auctioneer are still allowed to disagree.')
     with st.form(key_prefix+'_form'):
         a,b,c=st.columns(3)
@@ -58,11 +74,11 @@ def render_calculator(root,key_prefix='robust_pair'):
     if submit:
         raw=pd.DataFrame([{'year':year,'manufacturer':make,'model':name,'odometer':miles,'type':body,'state':state,'transmission':transmission,'fuel':fuel,'as_of':str(date),'auction_condition':grade}]);rows=[]
         for side in ['ask','bid']:
-            folder=Path(root)/'models/residual-trimmed-xgb'/side;mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
+            folder=model_root(root)/side;mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
             x,valid,dates=predictors(raw,side);ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
             if not valid.all() or (side=='bid' and ratios.isna().any()):st.error('Unsupported vehicle/date');return
-            value=float(predict(model,'xgb_aft_normal',encode(apply_category_pooling(x,record.get('category_pooling',{})),schema))[0])
+            value=float(estimate(model,schema,record,raw,side)[0])
             if side=='bid':value*=float(ratios.iloc[0])
-            rows.append({'Market':side,'Price USD':value,'Model':'Residual-trimmed regularized XGBoost AFT'})
+            rows.append({'Market':side,'Price USD':value,'Model':'Residual-trimmed CatBoost AFT'})
         st.dataframe(pd.DataFrame(rows),hide_index=True)
         st.caption('Asking prices retain their historical listing-market target; auctions are CPI transported wholesale estimates. Neither is a verified current retail transaction. No description text feature in this refit.')

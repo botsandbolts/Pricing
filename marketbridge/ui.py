@@ -44,8 +44,8 @@ def show_prices(result):
 def render_comparison(root):
     from pricing.residual_ui import ready as residual_ready,render_calculator,render_assessment
     if residual_ready(root):
-        mode=st.selectbox('Two-market pricing models',['Larger XGBoost defaults','Original models and structural experiments'],key='robust_integrated_mode')
-        if mode=='Larger XGBoost defaults':
+        mode=st.selectbox('Two-market pricing models',['CatBoost AFT defaults','Original models and structural experiments'],key='robust_integrated_mode')
+        if mode=='CatBoost AFT defaults':
             render_calculator(root,key_prefix='integrated_new');render_assessment(root);return
     if (Path(root)/'models/price-model-suite/comparison.json').exists():
         mode=st.selectbox('Two-market comparison mode',['AFT defaults','Historical structural experiments'],key='integrated_comparison_mode')
@@ -161,6 +161,11 @@ def render_comparison(root):
         st.link_button('Pricing source','https://github.com/botsandbolts/Pricing');st.link_button('CarBids source','https://github.com/botsandbolts/Carbids')
 
 def render_auction_companion(root,fields):
+    from pricing.residual_ui import ready as residual_ready,render_bid
+    if residual_ready(root):
+        try:render_bid(root,fields)
+        except Exception as exc:st.warning(f'AFT auction companion unavailable: {exc}')
+        return
     candidates=[Path(root)/'models/price-model-suite/bid/manifest.json',Path(root)/'models/price-model-suite-tabular/bid/manifest.json']
     if any(p.exists() and json.loads(p.read_text()).get('status')=='ready' for p in candidates):
         from pricing.suite_ui import render_bid_companion

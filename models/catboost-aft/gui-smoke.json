@@ -1,0 +1,17 @@
+{
+  "default": "CatBoost AFT \u00b7 residual-trimmed (default)",
+  "dataset_names_visible": true,
+  "both_prices_visible": true,
+  "prediction_exceptions": 0,
+  "graph_exceptions": 0,
+  "metrics": [
+    {
+      "label": "Estimated asking price",
+      "value": "$14,313"
+    },
+    {
+      "label": "Transported wholesale auction estimate",
+      "value": "$10,644"
+    }
+  ]
+}

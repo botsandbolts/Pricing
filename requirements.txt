@@ -14,3 +14,6 @@ transformers==5.21.0
 safetensors>=0.4,<1
 
 xgboost>=3.0,<4
+
+# Native CatBoost SurvivalAft serving and SHAP
+catboost==1.2.10

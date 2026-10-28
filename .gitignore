@@ -50,3 +50,7 @@ models/residual-trimmed-xgb/**/original-test-predictions.csv.gz
 
 # Assessment weights are preserved in the training bundles; deploy only final model parts.
 models/residual-trimmed-xgb/**/assessment.ubj.gz
+
+# Reproducible CatBoost assessment artifacts; deploy final checksum-verified parts.
+models/catboost-aft/**/assessment.cbm.gz
+models/catboost-aft/**/original-test-predictions.csv.gz

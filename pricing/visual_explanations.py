@@ -52,7 +52,7 @@ class ModelView:
         if self.aft is not None:
             self.model=self.aft.model;self.member=None;self.weight=1.
             self.target='log';self.mean=0.;self.std=1.
-            self.member_name='XGBoost normal AFT';self.schema=self.aft.schema
+            self.member_name='CatBoost normal AFT' if self.aft.manifest.get('pipeline')=='catboost-aft' else 'XGBoost normal AFT';self.schema=self.aft.schema
             self.conditional_text=self.aft.manifest['text_feature']
             if self.conditional_text and (text_price is None or not np.isfinite(text_price)):
                 raise ValueError('A submitted description-price signal is required for AFT')

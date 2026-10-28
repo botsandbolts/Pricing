@@ -12,7 +12,7 @@ def render_explanation(p,fields,notes,pipeline):
     if p.get('ensemble'):
         from pricing.robust_pipeline import render_ensemble_explanation
         return render_ensemble_explanation(p,fields,notes,pipeline)
-    e=p['explanation'];aft=e['target']=='log';brand='XGBoost AFT' if aft else 'LightGBM';rows=sorted(e['features'],key=lambda r:abs(r['contribution']),reverse=True)
+    e=p['explanation'];aft=e['target']=='log';brand=('CatBoost AFT' if pipeline.manifest.get('pipeline')=='catboost-aft' else 'XGBoost AFT') if aft else 'LightGBM';rows=sorted(e['features'],key=lambda r:abs(r['contribution']),reverse=True)
     simple,technical,whatif=st.tabs(['Explain it like I buy cars','Under the bonnet · technical','What if?'])
     with simple:
         st.subheader('Why this price? The model shows its working.')
@@ -43,19 +43,21 @@ def render_explanation(p,fields,notes,pipeline):
         st.caption(f"Additivity error: {e['additivity_error']:.3g}. Prediction clipped: {e['clipped']}. The reference is not the mean dollar price; exponentiating an expected log price is a different quantity.")
         data=[]
         for r in rows:
-            item={'Feature':r['feature'],'Encoded input':r['value'],'Signed contribution':r['contribution'],'Global gain %':r['gain_pct']}
+            item={'Feature':r['feature'],'Encoded input':str(r['value']) if pipeline.manifest.get('pipeline')=='catboost-aft' else r['value'],'Signed contribution':r['contribution'],('Global importance %' if pipeline.manifest.get('pipeline')=='catboost-aft' else 'Global gain %'):r['gain_pct']}
             if aft:item['Factor on price']=float(np.exp(np.clip(r['contribution'],-700,700)))
             elif e['target']=='log1p':item['Factor on (price + 1)']=float(np.exp(np.clip(r['contribution'],-700,700)))
             data.append(item)
         st.dataframe(pd.DataFrame(data),hide_index=True,width='stretch')
-        st.caption('Categorical inputs are integer codes; unknown categories become missing. Gain % summarizes total training split gains across the model: it is not a local attribution or an accuracy score. Correlated features and tree structure affect credit allocation. Multiplicative factors refer to price for AFT and price+1 for log1p LightGBM.')
+        if pipeline.manifest.get('pipeline')=='catboost-aft':st.caption('CatBoost handles category labels natively; rare trims use the saved pooling mapping. Global importance is PredictionValuesChange, not local SHAP or split gain.')
+        else:st.caption('Categorical inputs are integer codes; unknown categories become missing. Gain % summarizes total training split gains across the model: it is not a local attribution or an accuracy score. Correlated features and tree structure affect credit allocation. Multiplicative factors refer to price for AFT and price+1 for log1p LightGBM.')
         if aft:
-            if pipeline.manifest.get('training_regime')=='residual-trimmed-robust-xgb':
+            if pipeline.manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft']:
                 st.write(f"**AFT training:** {pipeline.manifest['selected_boosting_rounds']:,} regularized trees; normal log-price likelihood, scale=1, exact bounds. Tabular facts only. Top 25% absolute log residuals per split plus OutlierTree flags excluded. Filtered validation/test scores are optimistic; compare original-test errors in Evaluation.")
             else:st.write('**Original AFT benchmark:** 100 rounds; normal log-price likelihood; exact price bounds. See TOBIT_AND_CENSORING.md for assumptions.')
         else:st.write('**Training:** description regression learns standardized log1p targets. Three-fold OOF predictions keep each row’s own target out of its text predictor. New training uses Cleanlab regression on vehicle facts and observed training log prices; text-price stacking features are excluded from auditing. Legacy weights retain their original filter. LightGBM tries raw/log targets and Huber thresholds; validation MAE selects settings, then the chronological test is evaluated before deployment refitting.')
         st.write('**Limits:** TreeSHAP explains the fitted tree function, including the scalar text-price feature when active. It does not explain MiniLM token behaviour, establish causal effects, remove leakage automatically, or certify a fair transaction price.')
-        if aft:st.link_button('XGBoost AFT documentation','https://xgboost.readthedocs.io/en/stable/tutorials/aft_survival_analysis.html')
+        if pipeline.manifest.get('pipeline')=='catboost-aft':st.link_button('CatBoost AFT documentation','https://catboost.ai/docs/en/concepts/loss-functions-regression#SurvivalAft')
+        elif aft:st.link_button('XGBoost AFT documentation','https://xgboost.readthedocs.io/en/stable/tutorials/aft_survival_analysis.html')
         else:st.link_button('LightGBM prediction / contribution documentation','https://lightgbm.readthedocs.io/en/stable/pythonapi/lightgbm.Booster.html#lightgbm.Booster.predict')
     with whatif:
         st.subheader('A small thought experiment. No time machine required.')

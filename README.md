@@ -1,8 +1,7 @@
-> **Current default: MiniLM + Cleanlab + XGBoost normal AFT for asking prices,
-> and Cleanlab + normal AFT for auction prices.** AFT has the lowest recorded test
-> RMSE in both new-model comparisons, while Huber retains lower asking MAE.
-> See [Tobit and censoring](TOBIT_AND_CENSORING.md) and [full results](reports/model-suite/RESULTS.md).
-> Older model descriptions below document historical experiments.
+> **Current requested default: CatBoost normal AFT for Ask and Bid.**
+> Ask source: Craigslist Used Cars (2021 asking-price listings, Zenodo archive). Bid source: Used Car Auction Prices (Kaggle / tunguz, historical 2014–2015 auction sales). Both names are visible in the GUI.
+> This refit retains the previous fixed highest-residual 25% cuts in train/validation/test plus OutlierTree exclusions. Filtered scores are optimistic; original-test diagnostics are reported separately.
+> See [CatBoost deployment](CATBOOST_DEPLOYMENT.md). Earlier architectures and scores below are historical.
 
 # pricing · Car Price Studio
 

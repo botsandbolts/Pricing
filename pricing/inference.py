@@ -12,6 +12,10 @@ class PricePipeline:
     def __init__(self,path,device='cpu'):
         path=Path(path)
         self.manifest=json.loads((path/'manifest.json').read_text())
+        if self.manifest.get('status')=='ready' and self.manifest.get('pipeline')=='catboost-aft':
+            from pricing.catboost_aft_pipeline import CatBoostAFTPipeline
+            self.aft=CatBoostAFTPipeline(path,device);self.schema=self.aft.schema
+            self.text_model=self.tokenizer=None;self.lgb=None;self.device=device;return
         if self.manifest.get('status')=='ready' and self.manifest.get('pipeline')=='modest-model-suite':
             from pricing.aft_pipeline import AFTPricePipeline
             self.aft=AFTPricePipeline(path,device);self.schema=self.aft.schema
