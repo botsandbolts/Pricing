@@ -11,6 +11,8 @@ st.title('Car Price Studio + CarBids')
 st.caption('Age-aware auction transfer and historical asking prices. Serious maths. Zero tyre-kicking.')
 from pricing.dataset_sources import render_sources
 render_sources()
+from pricing.model_method_ui import render_methods
+render_methods(Path(__file__).parent)
 from marketbridge.engine import best_asking_bundle
 # Prefer a completed full-data deployment once installed; serve the real assessment meanwhile.
 installed_minilm=Path('models/minilm-assessment')
@@ -138,7 +140,7 @@ with value:
             st.caption('Point estimate only: the saved assessment did not include its interval calibration radius. No crystal-ball interval has been invented.')
         if result.get('predicted_text_price') is not None:
             st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
-            st.caption('The auction companion uses tabular CatBoost AFT because its source has no descriptions. Your selected MiniLM-and-tree asking estimate is shown above.')
+            st.caption('The auction companion uses its separately selected tabular model; the default is CatBoost log-median quantile 0.5 because its source contains exact reported sales but no descriptions. Your selected MiniLM-and-tree asking estimate is shown above.')
         from marketbridge.ui import render_auction_companion
         render_auction_companion(Path(__file__).parent,car)
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
@@ -146,7 +148,7 @@ with value:
         render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
     st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
-    st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction model is tabular CatBoost AFT because its dataset has no descriptions. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. The highest-residual quartile per original split plus OutlierTree flags is excluded. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Earlier models remain available for comparison.')
+    st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction default is tabular CatBoost quantile 0.5 on log prices, fitted after a separate quantile-residual cleaner removes the highest-residual 25% per original phase. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. Ask preserves its existing highest-residual quartile plus OutlierTree masks. Bid uses its new quantile-residual top-quarter cut only, without additional OutlierTree flags. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Only its cleaner can optionally use an IMR fitted from a genuine sold/unsold listing population; such data are currently unavailable. Earlier models remain available for comparison.')
     st.subheader('A pricing committee with thousands of small opinions')
     st.write('LightGBM learns lots of small decision trees, each correcting earlier mistakes. Huber loss softens the influence of large errors: one wildly ambitious seller does not get to chair the committee. The fitted tree count and exact drivers appear after an estimate.')
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')

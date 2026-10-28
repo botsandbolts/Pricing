@@ -1,0 +1,43 @@
+{
+  "status": "ready",
+  "scope": "bid-only replacement; asking weights and predictions preserved",
+  "ask_preservation": {
+    "minilm_tree_sha_git": "f0ea6125d8ec4bfecf49a2a09e838217e5a2049b",
+    "previous_release_price": 11120.23057881292,
+    "current_price": 11120.23057881292,
+    "current_text_price": 5118.975837475221,
+    "native_shap_error": 2.1316282072803006e-14,
+    "weights_changed": false,
+    "ask_model_tree_git_sha": "de16c34aea5e8293cb8e7409f258f7159648ad2d"
+  },
+  "selection_imr": {
+    "status": "disabled",
+    "reason": "The supplied wholesale dataset contains only reported sold vehicles. No same-market sold/unsold total listing population is available. Craigslist asking listings are not fabricated auction non-sales.",
+    "scope": "cleaning model only; never a feature of the final quantile model"
+  },
+  "canonical_source_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601",
+  "cleaning_residual_audit_sha256": "4c9a8f43a95befc1d540eae1f9a31cde7e759c45b6f872c529bc7f32ed179603",
+  "final_model_compressed_sha256": "2a146ce0976013839d5e575f55a7d8c31b4a68225a9fc9a9edda31785e14cf1d",
+  "final_model_bytes": 11960927,
+  "final_feature_names": [
+    "age",
+    "log_miles",
+    "auction_grade",
+    "manufacturer",
+    "model",
+    "type",
+    "transmission",
+    "state",
+    "fuel",
+    "drive",
+    "title_status",
+    "cylinders",
+    "paint_color"
+  ],
+  "target": "log of January-2015-reference USD; existing date transport retained",
+  "cleaning_assessment_audit": {
+    "library_file_id": "libfile_727c25dcf6c081918cd913b6c5909383",
+    "file": "bid-quantile-cleaning-assessment-audit.zip",
+    "bytes": 43122149
+  }
+}

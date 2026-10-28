@@ -1,4 +1,4 @@
-"""Serve real CatBoost SurvivalAft models and native log-price TreeSHAP."""
+"""Serve CatBoost normal AFT and log-median models with native TreeSHAP."""
 import gzip,json
 from pathlib import Path
 import numpy as np
@@ -11,8 +11,9 @@ from pricing.model_suite import predictors,apply_category_pooling
 class CatBoostAFTPipeline:
     def __init__(self,path,device='cpu'):
         self.path=Path(path);self.device=device;self.manifest=json.loads((self.path/'manifest.json').read_text())
-        if self.manifest.get('status')!='ready' or self.manifest.get('pipeline')!='catboost-aft':raise ValueError('Ready CatBoost AFT bundle required')
-        self.schema=json.loads((self.path/'schema.json').read_text());self.model=CatBoostRegressor();self.model.load_model(blob=gzip.decompress(read_model_file(self.path/'catboost_aft.cbm.gz')))
+        if self.manifest.get('status')!='ready' or self.manifest.get('pipeline') not in ['catboost-aft','catboost-log-quantile']:raise ValueError('Ready CatBoost log-price bundle required')
+        self.schema=json.loads((self.path/'schema.json').read_text());self.model=CatBoostRegressor();self.model.load_model(blob=gzip.decompress(read_model_file(self.path/self.manifest.get('model_file','catboost_aft.cbm.gz'))))
+        self.model_label='CatBoost log-median · quantile 0.5' if self.manifest['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT'
         self.names=self.model.feature_names_;self.text_model=self.tokenizer=None
         if self.manifest.get('text_feature'):
             from pricing.text import load_text
@@ -44,14 +45,14 @@ class CatBoostAFTPipeline:
         x=self.encoded(frame,text_price);pool=Pool(x,cat_features=self.manifest['categorical_columns']);v=np.asarray(self.model.get_feature_importance(pool,type='ShapValues',thread_count=4),float)
         raw=np.asarray(self.model.predict(x,prediction_type='RawFormulaVal',thread_count=4),float);error=float(np.max(abs(v.sum(axis=1)-raw)))
         if error>1e-5:raise ValueError('CatBoost native SHAP reconstruction failed')
-        return {'x':x,'values':v[:,:-1],'base':v[:,-1],'prediction':raw,'error':error,'names':self.names,'unit':'log(price)','member':'CatBoost normal AFT','weight':1.}
+        return {'x':x,'values':v[:,:-1],'base':v[:,-1],'prediction':raw,'error':error,'names':self.names,'unit':'log(price)','member':self.model_label,'weight':1.}
     def predict(self,text,fields,explain=False):
         text_price=None
         if self.text_model is not None:
             from pricing.text import predict_text
             text_price=float(predict_text(self.text_model,self.tokenizer,[text],self.device)[0])
-        frame=pd.DataFrame([fields]);price=float(self.predict_frame(frame,text_price)[0]);result={'price':price,'predicted_text_price':text_price,'range':None,'model_name':('MiniLM + CatBoost normal AFT' if self.text_model is not None else 'CatBoost normal AFT')}
+        frame=pd.DataFrame([fields]);price=float(self.predict_frame(frame,text_price)[0]);result={'price':price,'predicted_text_price':text_price,'range':None,'model_name':('MiniLM + '+self.model_label if self.text_model is not None else self.model_label)}
         if explain:
             n=self.native(frame,text_price);importance=np.asarray(self.model.get_feature_importance(type='PredictionValuesChange',thread_count=4),float);den=float(importance.sum()) or 1.;raw=float(n['prediction'][0]);base=float(n['base'][0])
-            result['explanation']={'method':'CatBoost native TreeSHAP on AFT log-price margin','importance_kind':'CatBoost PredictionValuesChange','target':'log','base':base,'raw_prediction':raw,'reconstructed':float(base+n['values'][0].sum()),'additivity_error':n['error'],'clipped':raw>np.log(1e7),'trees':self.model.tree_count_,'features':[{'feature':name,'value':None if pd.isna(n['x'].iloc[0][name]) else (str(n['x'].iloc[0][name]) if name in self.schema else float(n['x'].iloc[0][name])),'contribution':float(n['values'][0][i]),'gain_pct':float(100*importance[i]/den)} for i,name in enumerate(self.names)]}
+            result['explanation']={'method':'CatBoost native TreeSHAP on '+self.model_label+' log-price margin','importance_kind':'CatBoost PredictionValuesChange','target':'log','base':base,'raw_prediction':raw,'reconstructed':float(base+n['values'][0].sum()),'additivity_error':n['error'],'clipped':raw>np.log(1e7),'trees':self.model.tree_count_,'features':[{'feature':name,'value':None if pd.isna(n['x'].iloc[0][name]) else (str(n['x'].iloc[0][name]) if name in self.schema else float(n['x'].iloc[0][name])),'contribution':float(n['values'][0][i]),'gain_pct':float(100*importance[i]/den)} for i,name in enumerate(self.names)]}
         return result

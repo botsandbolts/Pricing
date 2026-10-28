@@ -1,4 +1,4 @@
-"""Serve the requested residual-trimmed XGBoost defaults with honest cohort labels."""
+"""Route unchanged asking AFT and independently selected auction defaults."""
 import gzip,json
 from pathlib import Path
 import pandas as pd
@@ -13,12 +13,18 @@ def model_root(root):
         if all((folder/side/'manifest.json').exists() and json.loads((folder/side/'manifest.json').read_text()).get('status')=='ready' for side in ['ask','bid']):return folder
     return Path(root)/'models/catboost-aft'
 
+def bid_folder(root):
+    candidate=Path(root)/'models/bid-quantile-cleaned';mf=candidate/'manifest.json'
+    if mf.exists() and json.loads(mf.read_text()).get('status')=='ready':return candidate
+    return model_root(root)/'bid'
+
+
 def ready(root):
     folder=model_root(root)
     return all((folder/side/'manifest.json').exists() for side in ['ask','bid'])
 
 def estimate(model,schema,record,raw,side):
-    if record['pipeline']=='catboost-aft':
+    if record['pipeline'] in ['catboost-aft','catboost-log-quantile']:
         text_price=None
         if record.get('text_feature'):
             from pricing.text import predict_text
@@ -33,7 +39,7 @@ def estimate(model,schema,record,raw,side):
 @st.cache_resource
 def load(path,version):
     folder=Path(path);record=json.loads((folder/'manifest.json').read_text())
-    if record['pipeline']=='catboost-aft':
+    if record['pipeline'] in ['catboost-aft','catboost-log-quantile']:
         from pricing.catboost_aft_pipeline import CatBoostAFTPipeline
         model=CatBoostAFTPipeline(folder);return model,model.schema,record
     import xgboost as xgb
@@ -42,32 +48,40 @@ def load(path,version):
 
 
 def render_bid(root,fields):
-    folder=model_root(root)/'bid';mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
+    default=bid_folder(root);previous=model_root(root)/'bid'
+    options={'CatBoost log-median · quantile 0.5 (default)':default,'CatBoost normal AFT · previous':previous} if default!=previous else {'CatBoost normal AFT':previous}
+    selected=st.selectbox('Auction pricing model',list(options),index=0,key='companion_bid_model')
+    folder=options[selected];mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
     raw=pd.DataFrame([{**fields,'as_of':'2021-05-01','condition':None}]);x,valid,dates=predictors(raw,'bid');ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
     if not valid.all() or ratios.isna().any():raise ValueError('Unsupported vehicle/date')
     value=float(estimate(model,schema,record,raw,'bid')[0]*ratios.iloc[0])
-    st.subheader('Default auction model · CatBoost AFT')
+    st.subheader('Auction model · '+('CatBoost log-median · quantile 0.5' if record['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT'))
     st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
-    st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. Highest-residual 25% per phase plus OutlierTree flags excluded. These are historical wholesale equivalents, not guaranteed bids.")
+    st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {('Exactly ceil(25%) per phase removed by a separate log-quantile CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline']=='catboost-log-quantile' else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')} These are historical wholesale equivalents, not guaranteed bids.")
+    if record['pipeline']=='catboost-log-quantile':
+        selection=record.get('selection_imr',{})
+        st.caption('Cleaner-only IMR: '+selection.get('status','unavailable')+'. '+selection.get('reason','Lambda is excluded from the final price model.'))
 
 
 def render_assessment(root):
     folder=model_root(root)
-    st.subheader('New default · regularized AFT models')
+    st.subheader('Default models · asking AFT and auction log-median')
     st.warning('The requested residual filtering uses validation/test prices to select easier cars. Filtered scores are optimistic selected-cohort results. Original test scores are also shown, but this test has already informed filtering-rule development; a new external test is needed for an unbiased comparison.')
     rows=[]
     for side in ['ask','bid']:
-        r=json.loads((folder/side/'evaluation.json').read_text())
-        for cohort,m in r['assessment'].items():rows.append({'Market':side,'Dataset':'Craigslist Used Cars' if side=='ask' else 'Used Car Auction Prices (Kaggle / tunguz)','Cohort':cohort,**m})
+        active=folder/'ask' if side=='ask' else bid_folder(root)
+        r=json.loads((active/'evaluation.json').read_text())
+        for cohort,m in r['assessment'].items():rows.append({'Market':side,'Estimator':r.get('parameters',{}).get('loss_function','historical'),'Dataset':'Craigslist Used Cars' if side=='ask' else 'Used Car Auction Prices (Kaggle / tunguz)','Cohort':cohort,**m})
     st.dataframe(pd.DataFrame(rows),hide_index=True)
     with st.expander('Filter counts, training recipe and limitations'):
         for side in ['ask','bid']:
-            st.write(side);st.json(json.loads((folder/side/'filter-report.json').read_text()));st.json(json.loads((folder/side/'manifest.json').read_text()))
+            active=folder/'ask' if side=='ask' else bid_folder(root)
+            st.write(side);st.json(json.loads((active/'filter-report.json').read_text()));st.json(json.loads((active/'manifest.json').read_text()))
     st.caption(('MiniLM description-price stacking is active for Craigslist; the auction dataset has no descriptions. ' if json.loads((folder/'ask/manifest.json').read_text()).get('text_feature') else 'Tabular-only comparison. ')+'Native categorical splits. Strong regularization, row/column subsampling, validation stopping and a separate all-retained-data deployment refit. Selecting easy exam questions does not make the mechanic clairvoyant.')
 
 
 def render_calculator(root,key_prefix='robust_pair'):
-    st.subheader('Ask: MiniLM + CatBoost AFT · Auction: tabular CatBoost AFT' if json.loads((model_root(root)/'ask/manifest.json').read_text()).get('text_feature') else 'Ask + auction pricing · tabular CatBoost AFT')
+    st.subheader('Ask: MiniLM + CatBoost AFT · Auction: CatBoost log-median 0.5' if json.loads((model_root(root)/'ask/manifest.json').read_text()).get('text_feature') else 'Ask + auction pricing · tabular CatBoost AFT')
     st.caption('Two market estimates. One car. The dealer and the auctioneer are still allowed to disagree.')
     with st.form(key_prefix+'_form'):
         a,b,c=st.columns(3)
@@ -81,11 +95,11 @@ def render_calculator(root,key_prefix='robust_pair'):
     if submit:
         raw=pd.DataFrame([{'year':year,'manufacturer':make,'model':name,'odometer':miles,'type':body,'state':state,'transmission':transmission,'fuel':fuel,'as_of':str(date),'auction_condition':grade,'text':description}]);rows=[]
         for side in ['ask','bid']:
-            folder=model_root(root)/side;mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
+            folder=model_root(root)/'ask' if side=='ask' else bid_folder(root);mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
             x,valid,dates=predictors(raw,side);ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
             if not valid.all() or (side=='bid' and ratios.isna().any()):st.error('Unsupported vehicle/date');return
             value=float(estimate(model,schema,record,raw,side)[0])
             if side=='bid':value*=float(ratios.iloc[0])
-            rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'Tabular CatBoost AFT'})
+            rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'CatBoost log-median 0.5' if record['pipeline']=='catboost-log-quantile' else 'Tabular CatBoost AFT'})
         st.dataframe(pd.DataFrame(rows),hide_index=True)
         st.caption('Asking prices retain their historical listing-market target; auctions are CPI transported wholesale estimates. Neither is a verified current retail transaction. MiniLM reads descriptions for the combined asking model. Auction data have no descriptions, so the bid model uses vehicle facts.')

@@ -59,3 +59,11 @@ models/catboost-aft/**/original-test-predictions.csv.gz
 models/minilm-catboost-aft/**/assessment.cbm.gz
 models/minilm-catboost-aft/**/original-test-predictions.csv.gz
 models/minilm-catboost-aft/**/deployment-prefit*
+
+# Reconstructable bid-only cleaning and held-out assessment checkpoints.
+models/bid-quantile-cleaned/cleaning-oof/
+models/bid-quantile-cleaned/cleaning-assessment.cbm.gz
+models/bid-quantile-cleaned/cleaning-probit.joblib
+models/bid-quantile-cleaned/assessment.cbm.gz
+models/bid-quantile-cleaned/filter-rows.csv.gz
+models/bid-quantile-cleaned/original-test-predictions.csv.gz

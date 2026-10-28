@@ -1,0 +1,20 @@
+{
+  "status": "passed",
+  "ask_default_unchanged": true,
+  "ask_prediction": 11120.23057881292,
+  "bid_default": "CatBoost log-median \u00b7 quantile 0.5 (default)",
+  "metrics": [
+    {
+      "label": "Estimated asking price",
+      "value": "$11,120"
+    },
+    {
+      "label": "Transported wholesale auction estimate",
+      "value": "$11,476"
+    }
+  ],
+  "previous_aft_comparison_bid": "$10,644",
+  "integrated_comparison_uses_new_quantile": true,
+  "ask_explanation_graph_exceptions": 0,
+  "selection_imr": "disabled; sold/unsold listing population unavailable"
+}

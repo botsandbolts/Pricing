@@ -1,7 +1,9 @@
 > **Default: MiniLM + CatBoost normal AFT for asking prices.**
 > MiniLM reads the description and produces `predicted_text_price`; newly fitted CatBoost combines it with vehicle facts. Make/model remain categorical fields, without transformers.
+> **Bid default: CatBoost quantile 0.5 on log prices**, newly fitted after a separate log-quantile CatBoost cleaner removes the highest-residual 25% within each original train/validation/test phase. Ask weights are unchanged.
 > Sources: **Craigslist Used Cars** (asking listings) and **Used Car Auction Prices · Kaggle/tunguz** (auction selling prices). The auction dataset has no descriptions, so its CatBoost model remains tabular.
-> The requested fixed 25% highest-residual filtering plus OutlierTree exclusions remains. Filtered validation/test scores are optimistic; original-test diagnostics are reported separately.
+> Optional Probit/IMR is cleaner-only and currently disabled: no same-market sold/unsold total listing population is available. See [bid quantile workflow and limitations](BID_QUANTILE.md).
+> Ask retains its original residual/OutlierTree exclusions. Bid now uses its separately recomputed quantile-residual 25% cuts only. Filtered validation/test scores are optimistic; original-test diagnostics are reported separately.
 > See [MiniLM + CatBoost architecture and cross-fitting](MINILM_CATBOOST.md). Earlier architectures and scores below are historical.
 
 # pricing · Car Price Studio

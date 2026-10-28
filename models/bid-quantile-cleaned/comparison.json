@@ -1,0 +1,27 @@
+{
+  "cohort": "same original unfiltered auction test",
+  "rows": 83603,
+  "source_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601",
+  "requested_quantile_default": {
+    "rows": 83603,
+    "mae_usd": 2148.135475711007,
+    "rmse_usd": 4454.93690773063,
+    "bias_observed_minus_predicted_usd": 296.5901582520956,
+    "log_mae": 0.16187511290683745,
+    "log_rmse": 0.2580714577051392,
+    "spearman": 0.959062038261483
+  },
+  "previous_aft": {
+    "rows": 83603,
+    "mae_usd": 2090.199411137958,
+    "rmse_usd": 4251.58142429192,
+    "bias_observed_minus_predicted_usd": 459.70738693339365,
+    "log_mae": 0.15774053616604183,
+    "log_rmse": 0.24845038530946656,
+    "spearman": 0.9605952532621447
+  },
+  "mae_delta_usd": 57.93606457304895,
+  "mae_relative_change": 0.027717960432065647,
+  "promotion": "user-requested default, not an accuracy improvement",
+  "warning": "Requested top-25% absolute log-residual filtering also uses validation/test outcomes. Filtered metrics are optimistic selected-cohort results, not generalization estimates. Original unfiltered-test diagnostics use a previously examined benchmark; a fresh external test is needed. Assessment weights fit retained training only; deployment is a separate refit on all retained phases."
+}
