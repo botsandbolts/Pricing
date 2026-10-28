@@ -47,7 +47,7 @@ input,textarea { color:var(--garage-ink)!important; }
 .garage-eyebrow { display:flex; gap:.55rem; align-items:center; font-size:.68rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; margin-bottom:1rem; }
 .garage-eyebrow b { background:var(--garage-ink); color:var(--garage-lime); padding:6px 10px; border-radius:40px; }
 .garage-hero h1 { font-family:Arial,Helvetica,sans-serif; font-size:clamp(2.5rem,5.3vw,4.8rem); line-height:.98; font-weight:900; letter-spacing:-.07em; margin:0 0 1rem; padding:0; }
-.garage-hero h1 span { color:#6351d7; }
+.garage-hero h1 .garage-accent { color:#6351d7; }
 .garage-hero p { color:#534a63; font-size:1rem; max-width:420px; line-height:1.6; margin:0 0 1.4rem; }
 .garage-cta { display:inline-block; background:var(--garage-ink); color:#fff!important; padding:13px 21px; border-radius:12px; font-size:.9rem; font-weight:750; text-decoration:none!important; box-shadow:0 4px 0 #b7a7db; }
 .garage-cta:hover { background:#45346b; }
@@ -79,7 +79,7 @@ def install_style():
 def render_hero():
     st.markdown('''<div class="garage-nav"><div class="garage-brand"><span class="garage-mark">CP/</span> car price studio<span style="color:#9688a6;font-weight:450"> + carbids</span></div><div class="garage-nav-note">The open garage for curious car people</div></div>
 <section class="garage-hero" aria-label="Car Price Studio introduction">
-<div><div class="garage-eyebrow"><b>Free to try</b> Built for your inner car nerd</div><h1>Less haggle.<br><span>More signal.</span></h1><p>A car, a few details, a little machine learning.<br>Get a price estimate. Then interrogate the maths.</p><a class="garage-cta" href="#studio-calculator">Let’s price your car ↗</a></div>
+<div><div class="garage-eyebrow"><b>Free to try</b> Built for your inner car nerd</div><h1>Less haggle.<br><span class="garage-accent">More signal.</span></h1><p>A car, a few details, a little machine learning.<br>Get a price estimate. Then interrogate the maths.</p><a class="garage-cta" href="#studio-calculator">Let’s price your car ↗</a></div>
 <div class="garage-art"><div class="garage-sticker">“I know what<br>I’ve got.”<br>Let’s check.</div>
 <svg viewBox="0 0 500 290" role="img" aria-label="Playful lime-green car on a violet test track">
 <ellipse cx="256" cy="248" rx="205" ry="20" fill="#c6b9e7"/>
@@ -95,7 +95,7 @@ def render_hero():
 <circle cx="365" cy="218" r="30" fill="#30243d"/><circle cx="365" cy="218" r="16" fill="#e9e2fa"/><circle cx="365" cy="218" r="5" fill="#30243d"/>
 <path d="M172 83L186 66M202 79L208 57M232 80L230 62" stroke="#6351e8" stroke-width="4" stroke-linecap="round"/>
 <path d="M50 67L55 55L60 67L73 72L60 77L55 90L50 77L37 72Z" fill="#ff997d"/>
-<text x="275" y="276" fill="#6b5e7d" font-size="12" font-family="Arial,sans-serif" letter-spacing="2">SMALL CAR. BIG DATA ENERGY.</text>
+<text x="192" y="276" fill="#6b5e7d" font-size="10" font-family="Arial,sans-serif" letter-spacing="1.4">SMALL CAR. BIG DATA ENERGY.</text>
 </svg></div></section>
 <div class="garage-ticker"><span><strong>01</strong> Pick a car</span><span><strong>02</strong> Tell its story</span><span><strong>03</strong> Get the numbers</span><span>✦ Historical data. Real models. No crystal ball.</span></div>''',unsafe_allow_html=True)
 
