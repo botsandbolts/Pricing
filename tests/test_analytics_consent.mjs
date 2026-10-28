@@ -34,7 +34,7 @@ test('no analytics ID, lookup or device data before consent; rejection stays off
   const f=fixture();await new Promise(setImmediate);
   assert.equal(f.fetches,0);assert.equal(f.cookies.has('pricing_visitor'),false);
   assert.equal(f.storage.size,0);assert.equal(f.nodes.get('dialog').open,true);
-  assert.equal(f.outputs.at(-1).choice,'unknown');
+  assert.equal(f.outputs.length,0);
   f.nodes.get('#reject').onclick();await new Promise(setImmediate);
   assert.equal(f.fetches,0);assert.equal(f.outputs.at(-1).choice,'rejected');
   assert.equal(f.cookies.has('pricing_visitor'),false);

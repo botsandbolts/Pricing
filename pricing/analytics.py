@@ -229,6 +229,15 @@ def record_price(side, price, fields, model, source, valuation_date=None, event_
 
 
 def render_privacy():
+    """A missing/unsupported optional component cannot block the price calculator."""
+    import streamlit as st
+    try:
+        _render_privacy_impl()
+    except Exception:
+        st.session_state['_analytics_consent'] = None
+
+
+def _render_privacy_impl():
     import streamlit as st
     from pathlib import Path
     import streamlit.components.v2 as components
@@ -237,6 +246,7 @@ def render_privacy():
         js=(folder/'notice.js').read_text(), css=(folder/'notice.css').read_text())
     enabled = configured()
     result = component(key='pricing_privacy', data={'enabled': enabled, 'version': CONSENT_VERSION,
+        'current': (st.session_state.get('pricing_privacy') or {}).get('consent'),
         'geo_mode': _setting('ANALYTICS_GEO_MODE', 'geojs'),
         'controller': _setting('ANALYTICS_CONTROLLER_NAME', 'Car Price Studio operator'),
         'contact': _setting('ANALYTICS_CONTROLLER_CONTACT', 'Contact the studio operator')},

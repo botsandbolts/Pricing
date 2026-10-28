@@ -66,7 +66,7 @@ export default function(component) {
     root.querySelector('#visitor').textContent=payload.visitor_id ? 'Your analytics visitor ID: '+payload.visitor_id : 'No analytics visitor ID is active.';
     // A rerender must not create a Python rerun loop.
     const serialized=JSON.stringify(payload);
-    if (root.__publishedConsent !== serialized) {
+    if (payload.choice !== 'unknown' && root.__publishedConsent !== serialized && JSON.stringify(data.current) !== serialized) {
       root.__publishedConsent=serialized;
       setStateValue('consent',payload);
     }
