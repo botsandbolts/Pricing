@@ -1,3 +1,5 @@
+> **New studio design and experimental Value over time panel.** Current-value Ask/Bid scenarios separate categorical depreciation from a release-aware market clock, with an interactive same-car timeline and optional annual mileage. The historical MiniLM+AFT Ask and quantile-0.5 Bid weights are unchanged. [Method, research projects, backtests and limitations](TIME_TRANSPORT.md).
+
 > **Default: MiniLM + CatBoost normal AFT for asking prices.**
 > MiniLM reads the description and produces `predicted_text_price`; newly fitted CatBoost combines it with vehicle facts. Make/model remain categorical fields, without transformers.
 > **Bid default: CatBoost quantile 0.5 on log prices**, newly fitted after a separate log-quantile CatBoost cleaner removes the highest-residual 25% within each original train/validation/test phase. Ask weights are unchanged.

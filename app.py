@@ -77,7 +77,7 @@ with st.sidebar.expander('Active model · technical receipt'):
 sidebar_receipt(Path(__file__).parent)
 with st.sidebar:
     with st.expander('Datasets & provenance'):
-        render_sources()
+        render_sources(stacked=True)
     render_methods(Path(__file__).parent)
 if not ready:
     st.warning('The selected historical model is unavailable. Choose an installed model in the sidebar.')
@@ -92,7 +92,7 @@ def get_pipeline(location):
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
 st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
-value,compare,how,results,laboratory=st.tabs(['🚗 Price my car','↔ Two-market garage','🧠 The science','📊 Evaluation','🧪 Model lab'])
+value,compare,time_panel,how,results,laboratory=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab'])
 with laboratory:
     from pricing.suite_ui import render
     render(Path(__file__).parent)
@@ -111,7 +111,7 @@ with value:
             render_examples(uses_text)
             with st.form('vehicle'):
                 a,b,c=st.columns(3)
-                year=a.number_input('Year',key='vehicle_year',min_value=1900,max_value=2027,value=None)
+                year=a.number_input('Year',key='vehicle_year',min_value=1900,max_value=2021,value=None)
                 make=b.text_input('Make',key='vehicle_manufacturer',value=None)
                 model=c.text_input('Model / trim',key='vehicle_model',value=None)
                 a,b,c=st.columns(3)
@@ -155,6 +155,7 @@ with value:
                 st.caption(f"{car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
                 st.metric('Estimated asking price',f"${result['price']:,.0f}")
                 st.caption('Historical advertised-price estimate. Seller optimism, with a statistical chaperone.')
+                st.info('Want today’s value? Open 📅 Value over time for date-adjusted Ask/Bid scenarios and the interactive timeline.')
                 if result.get('range') is not None:
                     st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
                 else:st.caption('Point estimate only. No validated individual prediction interval is available.')
@@ -177,6 +178,11 @@ with value:
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
         from pricing.explanation_ui import render_visual_explanations
         render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
+with time_panel:
+    from pricing.time_ui import render_time_studio
+    time_saved=st.session_state.get('last_explained_price')
+    if time_saved and time_saved[0]!=str(path):time_saved=None
+    render_time_studio(Path(__file__).parent,time_saved,get_pipeline(str(path)) if time_saved else None)
 with how:
     st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction default is tabular CatBoost quantile 0.5 on log prices, fitted after a separate quantile-residual cleaner removes the highest-residual 25% per original phase. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. Ask preserves its existing highest-residual quartile plus OutlierTree masks. Bid uses its new quantile-residual top-quarter cut only, without additional OutlierTree flags. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Only its cleaner can optionally use an IMR fitted from a genuine sold/unsold listing population; such data are currently unavailable. Earlier models remain available for comparison.')
     st.subheader('A pricing committee with thousands of small opinions')

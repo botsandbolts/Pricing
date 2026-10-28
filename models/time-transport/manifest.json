@@ -1,0 +1,14 @@
+{
+  "status": "ready",
+  "pipeline": "separate-smooth-depreciation-and-market-clock",
+  "ask_reference_date": "2021-05-01",
+  "bid_reference_date": "2015-01-01",
+  "bid_anchor_age": 5.0,
+  "max_model_year": 2021,
+  "age_scope": [
+    0,
+    30
+  ],
+  "forecast_months_max": 6,
+  "role": "experimental date-transport layer, not independently validated present-day car prices"
+}

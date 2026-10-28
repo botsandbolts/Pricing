@@ -1,0 +1,10 @@
+{
+  "series": "CUUR0000SETA02",
+  "source": "https://fred.stlouisfed.org/series/CUUR0000SETA02",
+  "csv": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CUUR0000SETA02&cosd=2013-01-01",
+  "retrieved_at": "2026-10-28T20:58:34.382552+00:00",
+  "latest_release_date": "2026-10-14",
+  "latest_observation": "2026-09",
+  "vintage": "current vintage; historical release replay uses conservative two-month lag, not ALFRED vintages",
+  "sha256": "36c1c64415d51cf405d1de2673523a1ecd2689eb87dd1b9f9f755984c5c35061"
+}

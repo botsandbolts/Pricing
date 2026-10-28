@@ -1,0 +1,45 @@
+{
+  "status": "passed",
+  "historical_ask_price": 10608.983456680162,
+  "historical_ask_unchanged": true,
+  "bid_default": "quantile 0.5",
+  "metrics": [
+    {
+      "label": "Estimated asking price",
+      "value": "$10,609"
+    },
+    {
+      "label": "Description-price feature",
+      "value": "$4,497"
+    },
+    {
+      "label": "Transported wholesale auction estimate",
+      "value": "$11,336"
+    },
+    {
+      "label": "Current asking scenario \u00b7 28 Oct 2026",
+      "value": "$6,782"
+    },
+    {
+      "label": "Current auction scenario \u00b7 28 Oct 2026",
+      "value": "$5,684"
+    },
+    {
+      "label": "Ask \u00b7 Craigslist \u00b7 MAE",
+      "value": "$3,309"
+    },
+    {
+      "label": "Bid \u00b7 auction sales \u00b7 MAE",
+      "value": "$2,148"
+    }
+  ],
+  "timeline_rows": 298,
+  "timeline_markets": [
+    "Ask \u00b7 advertised",
+    "Bid \u00b7 wholesale"
+  ],
+  "annual_mileage_scenario": "passed",
+  "explanation_graph_controls_preserved": true,
+  "newer_than_2021_guard": "unit tested",
+  "network": "UI QA uses saved audited index; live adapter verified separately"
+}

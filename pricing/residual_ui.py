@@ -92,7 +92,7 @@ def render_calculator(root,key_prefix='robust_pair'):
     st.caption('Two market estimates. One car. The dealer and the auctioneer are still allowed to disagree.')
     with st.form(key_prefix+'_form'):
         a,b,c=st.columns(3)
-        year=a.number_input('Year',1900,2027,2015,key=key_prefix+'_year')
+        year=a.number_input('Year',1900,2021,2015,key=key_prefix+'_year')
         make=b.text_input('Make','Toyota',key=key_prefix+'_make');name=c.text_input('Model / trim','Corolla',key=key_prefix+'_model')
         miles=a.number_input('Miles',0,2000000,95000,key=key_prefix+'_miles');body=b.selectbox('Body',['sedan','suv','truck','coupe','wagon','van','hatchback','convertible'],key=key_prefix+'_body');state=c.text_input('State','ca',key=key_prefix+'_state')
         transmission=a.selectbox('Transmission',['automatic','manual','unknown'],key=key_prefix+'_transmission');fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','unknown'],key=key_prefix+'_fuel');date=c.date_input('Valuation date',pd.Timestamp('2021-05-01').date(),key=key_prefix+'_date')

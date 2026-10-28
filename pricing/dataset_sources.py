@@ -3,9 +3,9 @@ ASK={'name':'Craigslist Used Cars','archive':'Used Cars Dataset · Tom / Zenodo'
 BID={'name':'Used Car Auction Prices','archive':'Kaggle · tunguz','url':'https://www.kaggle.com/datasets/tunguz/used-car-auction-prices','target':'Reported historical auction selling price','period':'2014–2015 auction records'}
 
 
-def render_sources():
+def render_sources(stacked=False):
     import streamlit as st
-    a,b=st.columns(2)
+    a,b=(st.container(),st.container()) if stacked else st.columns(2)
     with a:
         st.markdown('**ASK · Craigslist Used Cars**')
         st.caption('Advertised asking prices · 2021 snapshot. A seller’s wish is not a completed sale.')

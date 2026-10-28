@@ -1,0 +1,269 @@
+{
+  "selected": "damped_holt",
+  "selection_metric": "mean absolute log index error at horizons 1 and 3, origins before 2023 only",
+  "summary": [
+    {
+      "stage": "locked_test",
+      "method": "ar_1_12",
+      "horizon": 1,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.011023555248731321,
+      "rms_log_error": 0.015230533705535721
+    },
+    {
+      "stage": "locked_test",
+      "method": "ar_1_12",
+      "horizon": 3,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.0380546375699725,
+      "rms_log_error": 0.05029429951066647
+    },
+    {
+      "stage": "locked_test",
+      "method": "ar_1_12",
+      "horizon": 6,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.062292883715510866,
+      "rms_log_error": 0.08788767930789716
+    },
+    {
+      "stage": "locked_test",
+      "method": "ar_1_12",
+      "horizon": 12,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.08167109346467788,
+      "rms_log_error": 0.11248568329148419
+    },
+    {
+      "stage": "locked_test",
+      "method": "damped_holt",
+      "horizon": 1,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.008026394095799373,
+      "rms_log_error": 0.012242542269908126
+    },
+    {
+      "stage": "locked_test",
+      "method": "damped_holt",
+      "horizon": 3,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.030417619275932128,
+      "rms_log_error": 0.0424435469941499
+    },
+    {
+      "stage": "locked_test",
+      "method": "damped_holt",
+      "horizon": 6,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.06362191456342221,
+      "rms_log_error": 0.08337649546857567
+    },
+    {
+      "stage": "locked_test",
+      "method": "damped_holt",
+      "horizon": 12,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.07280561985855795,
+      "rms_log_error": 0.0934346598555418
+    },
+    {
+      "stage": "locked_test",
+      "method": "last_value",
+      "horizon": 1,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.009229207824578319,
+      "rms_log_error": 0.0122667918056461
+    },
+    {
+      "stage": "locked_test",
+      "method": "last_value",
+      "horizon": 3,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.024352655925398627,
+      "rms_log_error": 0.034207864776438945
+    },
+    {
+      "stage": "locked_test",
+      "method": "last_value",
+      "horizon": 6,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.03880583652476678,
+      "rms_log_error": 0.051152031908186485
+    },
+    {
+      "stage": "locked_test",
+      "method": "last_value",
+      "horizon": 12,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.03994331969104179,
+      "rms_log_error": 0.0494567150256842
+    },
+    {
+      "stage": "locked_test",
+      "method": "seasonal_naive",
+      "horizon": 1,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.05812844471637691,
+      "rms_log_error": 0.07146802549666306
+    },
+    {
+      "stage": "locked_test",
+      "method": "seasonal_naive",
+      "horizon": 3,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.05212970676164052,
+      "rms_log_error": 0.059451069376369424
+    },
+    {
+      "stage": "locked_test",
+      "method": "seasonal_naive",
+      "horizon": 6,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.047755805811250045,
+      "rms_log_error": 0.05613303283314763
+    },
+    {
+      "stage": "locked_test",
+      "method": "seasonal_naive",
+      "horizon": 12,
+      "forecasts": 11,
+      "mean_abs_log_error": 0.03994331969104179,
+      "rms_log_error": 0.0494567150256842
+    },
+    {
+      "stage": "selection",
+      "method": "ar_1_12",
+      "horizon": 1,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.016389008977472592,
+      "rms_log_error": 0.023814077925551957
+    },
+    {
+      "stage": "selection",
+      "method": "ar_1_12",
+      "horizon": 3,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.05085400876757765,
+      "rms_log_error": 0.07110282642823076
+    },
+    {
+      "stage": "selection",
+      "method": "ar_1_12",
+      "horizon": 6,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.07876831673864512,
+      "rms_log_error": 0.11630788612924207
+    },
+    {
+      "stage": "selection",
+      "method": "ar_1_12",
+      "horizon": 12,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.1581674533074286,
+      "rms_log_error": 0.24322564477459183
+    },
+    {
+      "stage": "selection",
+      "method": "damped_holt",
+      "horizon": 1,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.012178814937282222,
+      "rms_log_error": 0.017686167282836972
+    },
+    {
+      "stage": "selection",
+      "method": "damped_holt",
+      "horizon": 3,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.04101518714653764,
+      "rms_log_error": 0.052931302902373224
+    },
+    {
+      "stage": "selection",
+      "method": "damped_holt",
+      "horizon": 6,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.06161663935521346,
+      "rms_log_error": 0.09303592208562263
+    },
+    {
+      "stage": "selection",
+      "method": "damped_holt",
+      "horizon": 12,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.10172482503535718,
+      "rms_log_error": 0.14687886382146992
+    },
+    {
+      "stage": "selection",
+      "method": "last_value",
+      "horizon": 1,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.015078027962643625,
+      "rms_log_error": 0.02215863358166131
+    },
+    {
+      "stage": "selection",
+      "method": "last_value",
+      "horizon": 3,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.04455197662429411,
+      "rms_log_error": 0.06085234468912453
+    },
+    {
+      "stage": "selection",
+      "method": "last_value",
+      "horizon": 6,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.06227289537644104,
+      "rms_log_error": 0.0903124289988769
+    },
+    {
+      "stage": "selection",
+      "method": "last_value",
+      "horizon": 12,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.100978974689011,
+      "rms_log_error": 0.1458943618351941
+    },
+    {
+      "stage": "selection",
+      "method": "seasonal_naive",
+      "horizon": 1,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.08764287304013224,
+      "rms_log_error": 0.13940078706089773
+    },
+    {
+      "stage": "selection",
+      "method": "seasonal_naive",
+      "horizon": 3,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.0920676382797996,
+      "rms_log_error": 0.14359815543168059
+    },
+    {
+      "stage": "selection",
+      "method": "seasonal_naive",
+      "horizon": 6,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.09500325756369046,
+      "rms_log_error": 0.14438391571416592
+    },
+    {
+      "stage": "selection",
+      "method": "seasonal_naive",
+      "horizon": 12,
+      "forecasts": 20,
+      "mean_abs_log_error": 0.100978974689011,
+      "rms_log_error": 0.1458943618351941
+    }
+  ],
+  "sensitivity_abs_log_error_90": {
+    "1": 0.025104014176630936,
+    "3": 0.08129314075365139,
+    "6": 0.12381308627997377,
+    "12": 0.20989480769784974
+  },
+  "warning": "Current-vintage rolling-origin index backtest, not a real-time vintage or per-car price backtest. These empirical errors describe market-index forecast sensitivity only."
+}

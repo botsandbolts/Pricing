@@ -1,0 +1,140 @@
+{
+  "side": "bid",
+  "source_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601",
+  "source_dates": [
+    "2014-01-01 17:15:00+00:00",
+    "2015-07-21 09:30:00+00:00"
+  ],
+  "source_rows_in_age_scope": 549995,
+  "original_phases": {
+    "train": 383991,
+    "validation": 82388,
+    "test": 83616
+  },
+  "candidates": [
+    {
+      "kind": "linear",
+      "cv": [
+        {
+          "rows": 81271,
+          "mae_usd": 2401.2533619495425,
+          "rmse_usd": 4161.39586876118,
+          "log_mae": 0.23403480005751143,
+          "bias_observed_minus_predicted_usd": 506.2667304521981,
+          "spearman": 0.9362471026646254
+        },
+        {
+          "rows": 98521,
+          "mae_usd": 2413.480093566353,
+          "rmse_usd": 4385.436887243059,
+          "log_mae": 0.22095581996018332,
+          "bias_observed_minus_predicted_usd": 862.426229003008,
+          "spearman": 0.9385827379283046
+        },
+        {
+          "rows": 84506,
+          "mae_usd": 2360.9435188054163,
+          "rmse_usd": 4215.810842146476,
+          "log_mae": 0.216371473576554,
+          "bias_observed_minus_predicted_usd": 851.0972649184067,
+          "spearman": 0.9434811817414771
+        }
+      ],
+      "selection_log_mae": 0.22378736453141626
+    },
+    {
+      "kind": "piecewise",
+      "cv": [
+        {
+          "rows": 81271,
+          "mae_usd": 1999.0469368014956,
+          "rmse_usd": 3790.2578326050384,
+          "log_mae": 0.19292091627507182,
+          "bias_observed_minus_predicted_usd": 597.2603923981957,
+          "spearman": 0.956443740627732
+        },
+        {
+          "rows": 98521,
+          "mae_usd": 1989.124301224346,
+          "rmse_usd": 4033.262391081809,
+          "log_mae": 0.18127045818018175,
+          "bias_observed_minus_predicted_usd": 923.1900020475949,
+          "spearman": 0.9586707712163456
+        },
+        {
+          "rows": 84506,
+          "mae_usd": 1919.461267949631,
+          "rmse_usd": 3802.303066685984,
+          "log_mae": 0.17630795380235142,
+          "bias_observed_minus_predicted_usd": 946.8448793171078,
+          "spearman": 0.9628104305272528
+        }
+      ],
+      "selection_log_mae": 0.18349977608586832
+    },
+    {
+      "kind": "spline",
+      "cv": [
+        {
+          "rows": 81271,
+          "mae_usd": 1995.8843811336403,
+          "rmse_usd": 3793.402079740835,
+          "log_mae": 0.19252711921820653,
+          "bias_observed_minus_predicted_usd": 597.6825402296063,
+          "spearman": 0.9567399173677432
+        },
+        {
+          "rows": 98521,
+          "mae_usd": 1989.103256582745,
+          "rmse_usd": 4041.642525136881,
+          "log_mae": 0.18102028859480862,
+          "bias_observed_minus_predicted_usd": 926.0917903238982,
+          "spearman": 0.9589025999782317
+        },
+        {
+          "rows": 84506,
+          "mae_usd": 1918.1295717571059,
+          "rmse_usd": 3802.436525606012,
+          "log_mae": 0.17617145923026134,
+          "bias_observed_minus_predicted_usd": 944.2382838423908,
+          "spearman": 0.9628856203439298
+        }
+      ],
+      "selection_log_mae": 0.1832396223477588
+    }
+  ],
+  "selected": "spline",
+  "assessment": {
+    "validation": {
+      "rows": 82388,
+      "mae_usd": 2145.23413339222,
+      "rmse_usd": 4367.0781510621555,
+      "log_mae": 0.1905575359614526,
+      "bias_observed_minus_predicted_usd": 344.2284503841135,
+      "spearman": 0.9519468716772281
+    },
+    "test": {
+      "rows": 83616,
+      "mae_usd": 2314.743365894021,
+      "rmse_usd": 4658.668642643781,
+      "log_mae": 0.17561545702628786,
+      "bias_observed_minus_predicted_usd": 148.17901949383312,
+      "spearman": 0.9497093861086057
+    }
+  },
+  "age_tail_stress": {
+    "rows": 29157,
+    "mae_usd": 940.3775360933925,
+    "rmse_usd": 1682.0142455736009,
+    "log_mae": 0.4387419471037006,
+    "bias_observed_minus_predicted_usd": 331.600091321335,
+    "spearman": 0.7431109827785354
+  },
+  "age_scope": [
+    0,
+    30
+  ],
+  "outcome_residual_trimming": false,
+  "censoring": "exact observed advertised prices for ask; exact reported sale prices for bid",
+  "warning": "CV is forward-date within original training. Assessment is held source-period prices. Age-tail is a cross-sectional stress test, not observed ageing. No 2015\u21922026 or 2021\u21922026 individual-car validation is available. Deployment curve refits all in-scope rows after assessment. Existing CatBoost/MiniLM weights are untouched."
+}
