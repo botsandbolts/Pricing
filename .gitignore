@@ -1,4 +1,8 @@
 node_modules/
+.streamlit/secrets.toml
+.env
+private-analytics/
+*.mmdb
 **/__pycache__/
 **/.cache/
 training-cache/

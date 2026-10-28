@@ -10,6 +10,8 @@ st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',pa
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
+from pricing.analytics import render_privacy, record_price
+render_privacy()
 from pricing.dataset_sources import render_sources
 from pricing.model_method_ui import render_methods
 with st.sidebar:
@@ -144,6 +146,9 @@ with value:
                 with st.spinner('Interviewing the trees. They have opinions…'):
                     p=get_pipeline(str(path)).predict(notes,fields,explain=True)
                 st.session_state['last_explained_price']=(str(path),p,fields,notes)
+                import uuid
+                st.session_state['_price_request_id']=str(uuid.uuid4())
+                record_price('ask',p['price'],fields,mode,'calculator','2021-05-01',st.session_state['_price_request_id'])
             except Exception as exc:
                 st.error(f'Model unavailable: {exc}')
     saved=st.session_state.get('last_explained_price')

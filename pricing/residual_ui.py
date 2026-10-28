@@ -58,6 +58,10 @@ def render_bid(root,fields):
     raw=pd.DataFrame([{**fields,'as_of':'2021-05-01','condition':None}]);x,valid,dates=predictors(raw,'bid');ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
     if not valid.all() or ratios.isna().any():raise ValueError('Unsupported vehicle/date')
     value=float(estimate(model,schema,record,raw,'bid')[0]*ratios.iloc[0])
+    from pricing.analytics import record_price
+    request=st.session_state.get('_price_request_id')
+    if request:
+        record_price('bid',value,fields,selected,'calculator-companion','2021-05-01',request+':'+selected)
     with price_slot:
         st.markdown('**WHOLESALE / THE OTHER SIDE OF THE DEAL**')
         st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
@@ -108,5 +112,7 @@ def render_calculator(root,key_prefix='robust_pair'):
             value=float(estimate(model,schema,record,raw,side)[0])
             if side=='bid':value*=float(ratios.iloc[0])
             rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'CatBoost log-median 0.5' if record['pipeline']=='catboost-log-quantile' else 'Tabular CatBoost AFT'})
+            from pricing.analytics import record_price
+            record_price(side,value,raw.iloc[0].to_dict(),str(folder),key_prefix,str(date))
         st.dataframe(pd.DataFrame(rows),hide_index=True)
         st.caption('Asking prices retain their historical listing-market target; auctions are CPI transported wholesale estimates. Neither is a verified current retail transaction. MiniLM reads descriptions for the combined asking model. Auction data have no descriptions, so the bid model uses vehicle facts.')

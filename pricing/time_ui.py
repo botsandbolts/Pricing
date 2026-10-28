@@ -45,6 +45,9 @@ def render_time_studio(root,saved,ask_pipeline):
             with col:
                 try:
                     r=current.estimate(pipeline,text,car,date,side,allow,as_of=today(),text_price=result.get('predicted_text_price') if side=='ask' else None);receipts[side]=r
+                    from pricing.analytics import record_price
+                    request=st.session_state.get('_price_request_id','')
+                    record_price(side,r['price'],car,'time-transport/'+side,'time-scenario',str(date),request+':'+str(date)+':'+str(allow))
                     st.metric(('Current asking scenario' if side=='ask' else 'Current auction scenario')+f' · {date:%d %b %Y}',f"${r['price']:,.0f}")
                     st.caption(f"Age {r['age']:.2f} years · age factor ×{r['age_factor']:.3f} · market factor ×{r['market_factor']:.3f}")
                     if not r['model_known_to_curve']:st.caption('Sparse/unseen model: pooled manufacturer/body depreciation applies.')

@@ -87,6 +87,8 @@ def render(root,key_prefix="suite"):
             p=float(predict(models[choice],choice,encode(x,schema))[0])
             if side=='bid':p*=float(ratios.iloc[0])
             results.append({'Side':'Historical asking' if side=='ask' else 'Transported wholesale auction','Model':LABELS[choice],'Price USD':p})
+            from pricing.analytics import record_price
+            record_price(side,p,fields,LABELS[choice],key_prefix,str(date))
         st.dataframe(pd.DataFrame(results),hide_index=True)
         st.caption('Asking prices describe the 2021 listing market. Auction prices are CPI- and age-transported historical wholesale estimates, not a promised bid or verified retail sale.')
     rows=[]

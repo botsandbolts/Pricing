@@ -2,7 +2,7 @@ numpy>=1.26,<3
 pandas>=2.1,<3
 scikit-learn>=1.4,<2
 lightgbm>=4.5,<5
-streamlit>=1.40,<2
+streamlit>=1.51,<2
 requests>=2.31,<3
 
 plotly>=5.24,<7
@@ -20,3 +20,6 @@ catboost==1.2.10
 
 # Short-horizon market-clock forecasting; CPU-only, no extra forecast framework.
 scipy>=1.11,<2
+
+# Optional local IP-to-country/city analytics; no remote IP lookup service.
+maxminddb>=2.6,<4

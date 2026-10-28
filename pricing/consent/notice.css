@@ -1,0 +1,8 @@
+:host {font-family:system-ui,sans-serif;color:#242034}
+button {font:inherit;cursor:pointer;border:1px solid #6351e8;border-radius:12px;padding:10px 16px;background:#fff;color:#4635b8;min-height:44px}
+button:focus-visible {outline:3px solid #e57c57;outline-offset:3px}
+dialog {color:#242034;background:#fffdf8;border:2px solid #6351e8;border-radius:20px;padding:24px;max-width:590px;width:calc(100vw - 72px);max-height:80vh;overflow:auto;box-shadow:0 16px 70px #24203444}
+dialog::backdrop {background:#24203488}
+h2 {font-size:1.6rem;margin-top:0} p {font-size:.95rem;line-height:1.5}
+.actions {display:flex;flex-wrap:wrap;gap:12px;margin:20px 0 12px}.actions button {flex:1; background:#eee9ff;font-weight:600}
+button:disabled {opacity:.5;cursor:default} #close {border-color:#777;color:#333} #visitor {font-size:.8rem;overflow-wrap:anywhere}
