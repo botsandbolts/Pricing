@@ -6,7 +6,7 @@ import streamlit as st
 MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
-st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon='🚗',layout='wide',initial_sidebar_state='collapsed')
+st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()

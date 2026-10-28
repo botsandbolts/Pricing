@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Car Price Studio</title>
+  <desc id="desc">A lime car and rising violet price signal on a midnight rounded square, with a coral spark.</desc>
+  <rect width="96" height="96" rx="26" fill="#241d35"/>
+  <path d="m17 52 9-19a9 9 0 0 1 8-5h24a10 10 0 0 1 8 5l12 18 3 3v14H15V56Z" fill="#d9fb77"/>
+  <path d="m29 47 6-12h22l9 12Z" fill="#241d35"/>
+  <path d="m35 43 7-6 7 4 10-10" fill="none" stroke="#b7a7ff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53 31h6v6" fill="none" stroke="#b7a7ff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="21" y="54" width="11" height="5" rx="2.5" fill="#fffdf8"/>
+  <rect x="65" y="54" width="10" height="5" rx="2.5" fill="#fffdf8"/>
+  <path d="M41 57h13" stroke="#241d35" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="28" cy="68" r="9" fill="#241d35"/><circle cx="28" cy="68" r="4" fill="#fffdf8"/>
+  <circle cx="69" cy="68" r="9" fill="#241d35"/><circle cx="69" cy="68" r="4" fill="#fffdf8"/>
+  <path d="m76 13 2.7 6.3L85 22l-6.3 2.7L76 31l-2.7-6.3L67 22l6.3-2.7Z" fill="#ff997d"/>
+</svg>

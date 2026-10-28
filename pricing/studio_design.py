@@ -40,8 +40,12 @@ input,textarea { color:var(--garage-ink)!important; }
 .st-key-auction_receipt { background:#e5edcf; border:1px solid #d3dfb0; border-radius:20px; padding:1.3rem; margin-top:1rem; }
 .st-key-auction_receipt [data-testid="stMetricValue"] { color:#344d25; font-size:2.7rem; }
 .garage-nav { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:.1rem 0 1.25rem; }
-.garage-brand { display:flex; gap:.7rem; align-items:center; color:var(--garage-ink); font-size:1.08rem; font-weight:850; letter-spacing:-.04em; }
-.garage-mark { display:grid; place-items:center; width:40px; height:40px; border-radius:12px; background:var(--garage-ink); color:var(--garage-lime); font-size:17px; letter-spacing:-.1em; transform:rotate(-6deg); }
+.garage-brand { display:flex; gap:.8rem; align-items:center; color:var(--garage-ink); text-decoration:none!important; }
+.garage-mark { display:block; flex:0 0 56px; width:56px; height:56px; filter:drop-shadow(0 3px 0 #cfc7de); }
+.garage-mark svg { display:block; width:100%; height:100%; }
+.garage-wordmark { display:flex; flex-direction:column; gap:2px; line-height:1.05; }
+.garage-wordmark strong { font-size:1.4rem; font-weight:850; letter-spacing:-.065em; }
+.garage-wordmark small { font-size:.65rem; font-weight:750; text-transform:uppercase; letter-spacing:.17em; color:#776789; }
 .garage-nav-note { font-size:.72rem; text-transform:uppercase; letter-spacing:.12em; color:#70677d; font-weight:700; }
 .garage-hero { display:grid; grid-template-columns:1.2fr 1fr; gap:2rem; align-items:center; padding:2.6rem 3rem; background:#e7e2fb; border:1px solid #d8d0ef; border-radius:28px; overflow:hidden; margin-bottom:1.2rem; }
 .garage-eyebrow { display:flex; gap:.55rem; align-items:center; font-size:.68rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; margin-bottom:1rem; }
@@ -77,7 +81,8 @@ def install_style():
 
 
 def render_hero():
-    st.markdown('''<div class="garage-nav"><div class="garage-brand"><span class="garage-mark">CP/</span> car price studio<span style="color:#9688a6;font-weight:450"> + carbids</span></div><div class="garage-nav-note">The open garage for curious car people</div></div>
+    mark=(Path(__file__).resolve().parents[1]/'assets/pricing-logo.svg').read_text()
+    st.markdown('''<div class="garage-nav"><a class="garage-brand" href="#studio-calculator" aria-label="Car Price Studio · go to calculator"><span class="garage-mark">'''+mark+'''</span><span class="garage-wordmark"><strong>car price studio</strong><small>Powered by curiosity + CarBids</small></span></a><div class="garage-nav-note">The open garage for curious car people</div></div>
 <section class="garage-hero" aria-label="Car Price Studio introduction">
 <div><div class="garage-eyebrow"><b>Free to try</b> Built for your inner car nerd</div><h1>Less haggle.<br><span class="garage-accent">More signal.</span></h1><p>A car, a few details, a little machine learning.<br>Get a price estimate. Then interrogate the maths.</p><a class="garage-cta" href="#studio-calculator">Let’s price your car ↗</a></div>
 <div class="garage-art"><div class="garage-sticker">“I know what<br>I’ve got.”<br>Let’s check.</div>
