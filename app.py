@@ -6,13 +6,15 @@ import streamlit as st
 MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
-st.set_page_config(page_title='Car Price Studio',page_icon='🚗',layout='wide')
-st.title('Car Price Studio + CarBids')
-st.caption('Age-aware auction transfer and historical asking prices. Serious maths. Zero tyre-kicking.')
+st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon='🚗',layout='wide',initial_sidebar_state='collapsed')
+from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
+install_style()
+render_hero()
 from pricing.dataset_sources import render_sources
-render_sources()
 from pricing.model_method_ui import render_methods
-render_methods(Path(__file__).parent)
+with st.sidebar:
+    st.markdown('## Nerd mode, unlocked.')
+    st.caption('Model controls, real scores and receipts. The science has its own parking space.')
 from marketbridge.engine import best_asking_bundle
 # Prefer a completed full-data deployment once installed; serve the real assessment meanwhile.
 installed_minilm=Path('models/minilm-assessment')
@@ -43,7 +45,7 @@ robust_aft_label=('MiniLM + CatBoost AFT' if _default_root.name=='minilm-catboos
 if robust_aft_ready(Path('.')):choices.insert(0,robust_aft_label)
 tabular_catboost_label='CatBoost AFT · tabular comparison'
 if _default_root.name=='minilm-catboost-aft' and Path('models/catboost-aft/ask/manifest.json').exists():choices.append(tabular_catboost_label)
-mode=st.selectbox('Pricing model',choices,index=0)
+mode=st.sidebar.selectbox('Pricing model',choices,index=0,key='pricing_model')
 locations={tabular_catboost_label:Path('models/catboost-aft/ask'),robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
@@ -53,24 +55,32 @@ path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
 uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft'] and selected_manifest.get('text_feature',False))
-if selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
-    st.info('MiniLM reads the seller description, then regularized CatBoost normal AFT combines its predicted_text_price with vehicle facts.' if uses_text else 'CatBoost normal AFT · tabular-only comparison; this model does not use the description.')
-    st.warning('Filtered validation/test scores are optimistic because their labels select retained cars. See Evaluation for original unfiltered-test errors too.')
-elif selected_manifest.get('pipeline')=='modest-model-suite':
-    st.success('AFT is the preferred default: lowest recorded test RMSE on both datasets and lowest auction MAE. Huber remains better for asking-price MAE.')
-    st.caption('Normal AFT predicts the log-normal median. This trained run used exact price bounds; no interval-censoring mechanism was verified.')
-if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
-    st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
-if uses_text:
-    if selected_manifest.get('pipeline')=='catboost-aft':
-        st.caption('MiniLM supplies one dynamic description-price feature. CatBoost learned this feature from out-of-fold text predictions. Make and model remain native categorical fields. Highest-residual 25% per split plus OutlierTree flags were excluded; filtered scores are optimistic. The neural mechanic reads the advert; the tree committee checks the paperwork.')
-    elif selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
-        st.caption('MiniLM reads the description. Cleanlab audited suspected training price-label errors using vehicle facts, internal cross-validation and uncertainty estimation. It does not filter the car you enter. Validation and test rows remain intact.')
-    else:
-        st.info('Cleanlab has replaced Isolation Forest in the training code. This installed model still uses its original Isolation Forest weights; it will be replaced only after a Cleanlab bundle is trained and installed.')
-        st.caption('MiniLM reads the description. Isolation Forest in auto mode filtered unusual training text-price signals; it does not reject your car at prediction time. LightGBM combines that signal with the form fields. The bouncer worked during training; the pricing desk is open.')
+with st.sidebar.expander('Active model · technical receipt'):
+    if selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
+        st.info('MiniLM reads the seller description, then regularized CatBoost normal AFT combines its predicted_text_price with vehicle facts.' if uses_text else 'CatBoost normal AFT · tabular-only comparison; this model does not use the description.')
+        st.warning('Filtered validation/test scores are optimistic because their labels select retained cars. See Evaluation for original unfiltered-test errors too.')
+    elif selected_manifest.get('pipeline')=='modest-model-suite':
+        st.success('AFT is the preferred default: lowest recorded test RMSE on both datasets and lowest auction MAE. Huber remains better for asking-price MAE.')
+        st.caption('Normal AFT predicts the log-normal median. This trained run used exact price bounds; no interval-censoring mechanism was verified.')
+    if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
+        st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
+    if uses_text:
+        if selected_manifest.get('pipeline')=='catboost-aft':
+            st.caption('MiniLM supplies one dynamic description-price feature. CatBoost learned this feature from out-of-fold text predictions. Make and model remain native categorical fields. Highest-residual 25% per split plus OutlierTree flags were excluded; filtered scores are optimistic. The neural mechanic reads the advert; the tree committee checks the paperwork.')
+        elif selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
+            st.caption('MiniLM reads the description. Cleanlab audited suspected training price-label errors using vehicle facts, internal cross-validation and uncertainty estimation. It does not filter the car you enter. Validation and test rows remain intact.')
+        else:
+            st.info('Cleanlab has replaced Isolation Forest in the training code. This installed model still uses its original Isolation Forest weights; it will be replaced only after a Cleanlab bundle is trained and installed.')
+            st.caption('MiniLM reads the description. Isolation Forest in auto mode filtered unusual training text-price signals; it does not reject your car at prediction time. LightGBM combines that signal with the form fields. The bouncer worked during training; the pricing desk is open.')
+    if not ready:
+        st.info('This historical MiniLM mode has not been trained. The integrated Pricing + CarBids tab uses its own completed models and remains available.')
+sidebar_receipt(Path(__file__).parent)
+with st.sidebar:
+    with st.expander('Datasets & provenance'):
+        render_sources()
+    render_methods(Path(__file__).parent)
 if not ready:
-    st.info('This historical MiniLM mode has not been trained. The integrated Pricing + CarBids tab uses its own completed models and remains available.')
+    st.warning('The selected historical model is unavailable. Choose an installed model in the sidebar.')
 
 @st.cache_resource
 def _get_pipeline(location,version):
@@ -81,7 +91,8 @@ def get_pipeline(location):
     file=Path(location)/'manifest.json'
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
-value,compare,how,results,laboratory=st.tabs(['Value a car','Pricing + CarBids','How it works','Evaluation','New model laboratory'])
+st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
+value,compare,how,results,laboratory=st.tabs(['🚗 Price my car','↔ Two-market garage','🧠 The science','📊 Evaluation','🧪 Model lab'])
 with laboratory:
     from pricing.suite_ui import render
     render(Path(__file__).parent)
@@ -91,29 +102,37 @@ with compare:
 with value:
     for key,default in {'year':2015,'manufacturer':'Toyota','model':'Corolla SE','odometer':95000,'state':'ca'}.items():
         st.session_state.setdefault('vehicle_'+key,default)
-    from pricing.description_examples import render_examples
-    render_examples(uses_text)
-    with st.form('vehicle'):
-        a,b,c=st.columns(3)
-        year=a.number_input('Year',key='vehicle_year',min_value=1900,max_value=2027,value=None)
-        make=b.text_input('Make',key='vehicle_manufacturer',value=None)
-        model=c.text_input('Model / trim',key='vehicle_model',value=None)
-        a,b,c=st.columns(3)
-        miles=a.number_input('Mileage (miles)',key='vehicle_odometer',min_value=0,max_value=2000000,value=None,step=1000)
-        condition=b.selectbox('Condition',['unknown','excellent','good','fair','like new','new','salvage'],key='vehicle_condition')
-        fuel=c.selectbox('Fuel',['gas','diesel','hybrid','electric','other','unknown'],key='vehicle_fuel')
-        a,b,c=st.columns(3)
-        transmission=a.selectbox('Transmission',['automatic','manual','other','unknown'],key='vehicle_transmission')
-        drive=b.selectbox('Drive',['unknown','fwd','rwd','4wd'],key='vehicle_drive')
-        body=c.selectbox('Body type',['sedan','SUV','truck','pickup','hatchback','coupe','wagon','van','convertible','other','unknown'],key='vehicle_type')
-        a,b,c=st.columns(3)
-        title=a.selectbox('Title status',['clean','rebuilt','salvage','lien','missing','parts only','unknown'],key='vehicle_title_status')
-        cylinders=b.selectbox('Cylinders',['unknown','3 cylinders','4 cylinders','5 cylinders','6 cylinders','8 cylinders','10 cylinders','12 cylinders','other'],key='vehicle_cylinders')
-        color=c.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'],key='vehicle_paint_color')
-        state=st.text_input('US state abbreviation',key='vehicle_state',value=None,max_chars=2)
-        notes=st.text_area('Seller description — free text',key='seller_description',height=250,max_chars=MAX_CHARACTERS,disabled=not uses_text,
-            placeholder='Describe maintenance, equipment, condition and known problems. MiniLM reads this text and produces a price signal for the selected final model.' if uses_text else 'Select the installed MiniLM model to include your description.')
-        submitted=st.form_submit_button('Estimate asking price',disabled=not ready)
+    editor,receipt=st.columns([1.65,1],gap='large')
+    with editor:
+        with st.container(key='vehicle_editor'):
+            section('01 / The test drive','Meet your next number.')
+            st.caption('Try a real advert or bring your own car. Every detail is editable.')
+            from pricing.description_examples import render_examples
+            render_examples(uses_text)
+            with st.form('vehicle'):
+                a,b,c=st.columns(3)
+                year=a.number_input('Year',key='vehicle_year',min_value=1900,max_value=2027,value=None)
+                make=b.text_input('Make',key='vehicle_manufacturer',value=None)
+                model=c.text_input('Model / trim',key='vehicle_model',value=None)
+                a,b,c=st.columns(3)
+                miles=a.number_input('Mileage (miles)',key='vehicle_odometer',min_value=0,max_value=2000000,value=None,step=1000)
+                state=b.text_input('US state abbreviation',key='vehicle_state',value=None,max_chars=2)
+                body=c.selectbox('Body type',['sedan','SUV','truck','pickup','hatchback','coupe','wagon','van','convertible','other','unknown'],key='vehicle_type')
+                with st.expander('Fine-tune the details · condition, engine & more'):
+                    a,b,c=st.columns(3)
+                    condition=a.selectbox('Condition',['unknown','excellent','good','fair','like new','new','salvage'],key='vehicle_condition')
+                    fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','other','unknown'],key='vehicle_fuel')
+                    transmission=c.selectbox('Transmission',['automatic','manual','other','unknown'],key='vehicle_transmission')
+                    a,b=st.columns(2)
+                    drive=a.selectbox('Drive',['unknown','fwd','rwd','4wd'],key='vehicle_drive')
+                    title=b.selectbox('Title status',['clean','rebuilt','salvage','lien','missing','parts only','unknown'],key='vehicle_title_status')
+                    cylinders=a.selectbox('Cylinders',['unknown','3 cylinders','4 cylinders','5 cylinders','6 cylinders','8 cylinders','10 cylinders','12 cylinders','other'],key='vehicle_cylinders')
+                    color=b.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'],key='vehicle_paint_color')
+                st.markdown('**02 / The backstory**')
+                notes=st.text_area('Seller description — free text',key='seller_description',height=165,max_chars=MAX_CHARACTERS,disabled=not uses_text,
+                    placeholder='Service history? Fresh tyres? That mysterious rattle? Tell the model the whole story.' if uses_text else 'Choose a MiniLM model in the sidebar to include your description.')
+                submitted=st.form_submit_button('Estimate asking price',disabled=not ready,type='primary',use_container_width=True)
+            st.caption('Historical data, not today’s market. 2021 asking listings + age/CPI-transported auction records. Estimates, not guaranteed transactions.')
     if submitted:
         if len(notes)>8000:
             st.warning('Please keep the description within 8,000 characters.')
@@ -122,31 +141,42 @@ with value:
                 fuel=fuel,transmission=transmission,drive=drive,type=body,title_status=title,
                 cylinders=cylinders,paint_color=color,state=state)
             try:
-                with st.spinner('Calculating the asking-price estimate…'):
+                with st.spinner('Interviewing the trees. They have opinions…'):
                     p=get_pipeline(str(path)).predict(notes,fields,explain=True)
                 st.session_state['last_explained_price']=(str(path),p,fields,notes)
             except Exception as exc:
                 st.error(f'Model unavailable: {exc}')
     saved=st.session_state.get('last_explained_price')
-    if saved and saved[0]==str(path):
-        from pricing.explanations import render_explanation
-        st.divider()
-        result=saved[1];car=saved[2]
-        st.caption(f"Explaining submitted car: {car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
-        st.metric('Estimated asking price',f"${result['price']:,.0f}")
-        if result.get('range') is not None:
-            st.text(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
+    with receipt:
+        with st.container(key='price_receipt'):
+            if saved and saved[0]==str(path):
+                result=saved[1];car=saved[2]
+                section('03 / Your price receipt','The numbers are in.')
+                st.caption(f"{car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
+                st.metric('Estimated asking price',f"${result['price']:,.0f}")
+                st.caption('Historical advertised-price estimate. Seller optimism, with a statistical chaperone.')
+                if result.get('range') is not None:
+                    st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
+                else:st.caption('Point estimate only. No validated individual prediction interval is available.')
+                if result.get('predicted_text_price') is not None:
+                    with st.expander('What did the description contribute?'):
+                        st.metric('Description-price feature',f"${result['predicted_text_price']:,.0f}")
+                        st.caption('MiniLM’s description-only scalar enters the asking model alongside vehicle facts. It is not an independent offer or a word-level explanation.')
+            else:empty_receipt()
+        if saved and saved[0]==str(path):
+            with st.container(key='auction_receipt'):
+                from marketbridge.ui import render_auction_companion
+                render_auction_companion(Path(__file__).parent,saved[2])
         else:
-            st.caption('Point estimate only: the saved assessment did not include its interval calibration radius. No crystal-ball interval has been invented.')
-        if result.get('predicted_text_price') is not None:
-            st.caption(f"Description-price feature: ${result['predicted_text_price']:,.0f}")
-            st.caption('The auction companion uses its separately selected tabular model; the default is CatBoost log-median quantile 0.5 because its source contains exact reported sales but no descriptions. Your selected MiniLM-and-tree asking estimate is shown above.')
-        from marketbridge.ui import render_auction_companion
-        render_auction_companion(Path(__file__).parent,car)
+            st.markdown('<div class="garage-science-note"><strong>Curious what moves the price?</strong><br>After estimating, explore feature contributions, mileage scenarios and all six explanation graphs below.</div>',unsafe_allow_html=True)
+    if saved and saved[0]==str(path):
+        st.divider()
+        section('The receipts / Explainable machine learning','Pop the bonnet. Question everything.')
+        st.caption('Your estimate, explained. Contributions describe the model—not causal effects or guaranteed dollar discounts.')
+        from pricing.explanations import render_explanation
         render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
         from pricing.explanation_ui import render_visual_explanations
         render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
-    st.caption('Snapshot: April–May 2021. Asking prices, not verified sale prices or present-day valuations. Newer cars are outside the training period.')
 with how:
     st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction default is tabular CatBoost quantile 0.5 on log prices, fitted after a separate quantile-residual cleaner removes the highest-residual 25% per original phase. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. Ask preserves its existing highest-residual quartile plus OutlierTree masks. Bid uses its new quantile-residual top-quarter cut only, without additional OutlierTree flags. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Only its cleaner can optionally use an IMR fitted from a genuine sold/unsold listing population; such data are currently unavailable. Earlier models remain available for comparison.')
     st.subheader('A pricing committee with thousands of small opinions')
@@ -206,3 +236,5 @@ with results:
         elif 'band80_test_coverage' in e:st.write(f"Indicative 80% band test coverage: {e['band80_test_coverage']:.1%}")
         else:st.caption('The ensemble band is calibrated on historical validation residuals; no individual or future-market coverage guarantee is claimed.')
     else:st.info('This mode has no completed evaluation. Train MiniLM to enable it; baseline scores do not apply.')
+
+footer()

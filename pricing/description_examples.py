@@ -30,6 +30,4 @@ def render_examples(uses_text):
         format_func=lambda i: 'Write your own description' if i == 0 else examples[i - 1]['label'],
         disabled=not uses_text,
         help='Selecting an example loads its description and matching car fields. Edit either, then press Estimate asking price.')
-    st.caption('Real historical listings, with advertised prices and contact details redacted. Selecting a car loads matching fields; nothing is priced until you click Estimate. Your keyboard remains the chief mechanic.')
-
-    st.caption('Examples adapted from Tom, Used Cars Dataset (Zenodo 10457828), CC BY 4.0. Prices and common contact/VIN formats redacted; formatting normalized. [Dataset](https://zenodo.org/records/10457828) · [License](https://creativecommons.org/licenses/by/4.0/)')
+    st.caption('Real, editable adverts. Prices and common contact/VIN details redacted. Adapted from Tom’s [Used Cars Dataset](https://zenodo.org/records/10457828), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Selecting an example loads its fields; press Estimate when ready.')

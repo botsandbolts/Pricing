@@ -50,17 +50,24 @@ def load(path,version):
 def render_bid(root,fields):
     default=bid_folder(root);previous=model_root(root)/'bid'
     options={'CatBoost log-median · quantile 0.5 (default)':default,'CatBoost normal AFT · previous':previous} if default!=previous else {'CatBoost normal AFT':previous}
-    selected=st.selectbox('Auction pricing model',list(options),index=0,key='companion_bid_model')
+    price_slot=st.container()
+    details=st.expander('Auction model · controls & technical receipt')
+    with details:
+        selected=st.selectbox('Auction pricing model',list(options),index=0,key='companion_bid_model')
     folder=options[selected];mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
     raw=pd.DataFrame([{**fields,'as_of':'2021-05-01','condition':None}]);x,valid,dates=predictors(raw,'bid');ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
     if not valid.all() or ratios.isna().any():raise ValueError('Unsupported vehicle/date')
     value=float(estimate(model,schema,record,raw,'bid')[0]*ratios.iloc[0])
-    st.subheader('Auction model · '+('CatBoost log-median · quantile 0.5' if record['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT'))
-    st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
-    st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {('Exactly ceil(25%) per phase removed by a separate log-quantile CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline']=='catboost-log-quantile' else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')} These are historical wholesale equivalents, not guaranteed bids.")
-    if record['pipeline']=='catboost-log-quantile':
-        selection=record.get('selection_imr',{})
-        st.caption('Cleaner-only IMR: '+selection.get('status','unavailable')+'. '+selection.get('reason','Lambda is excluded from the final price model.'))
+    with price_slot:
+        st.markdown('**WHOLESALE / THE OTHER SIDE OF THE DEAL**')
+        st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
+        st.caption('A historical auction equivalent, age/CPI transported to May 2021. Not a live bid or a retail-sale quote.')
+    with details:
+        st.write('CatBoost log-median · quantile 0.5' if record['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT')
+        st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {('Exactly ceil(25%) per phase removed by a separate log-quantile CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline']=='catboost-log-quantile' else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')} These are historical wholesale equivalents, not guaranteed bids.")
+        if record['pipeline']=='catboost-log-quantile':
+            selection=record.get('selection_imr',{})
+            st.caption('Cleaner-only IMR: '+selection.get('status','unavailable')+'. '+selection.get('reason','Lambda is excluded from the final price model.'))
 
 
 def render_assessment(root):
