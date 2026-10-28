@@ -20,7 +20,7 @@ if a.ask_before:
     before=json.loads(Path(a.ask_before).read_text())
     assert before['fields']==fields and before['text']==text
     assert ask['price']==before['price'] and ask['predicted_text_price']==before['text_price']
-at=AppTest.from_file('app.py').run(timeout=180)
+at=AppTest.from_file(str((root/'app.py').resolve())).run(timeout=180)
 assert not at.exception,[x.value for x in at.exception]
 assert at.selectbox[0].value=='MiniLM + CatBoost AFT · residual-trimmed (default)'
 for key in ['year','odometer']:at.number_input(key='vehicle_'+key).set_value(fields[key])
