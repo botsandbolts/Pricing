@@ -3,7 +3,7 @@
 No sales-price/outcome variables enter the design. Both sold and genuinely
 unsold listings are essential; one-class sale data cannot identify selection.
 This is a selection diagnostic, not a claim of identified Heckman correction
-for flexible quantile trees.
+for flexible robust trees.
 """
 import numpy as np
 from scipy import sparse

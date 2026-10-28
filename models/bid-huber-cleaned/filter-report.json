@@ -1,0 +1,53 @@
+{
+  "algorithm": "CatBoost log Huber delta=0.2 residual top25% per phase",
+  "partitions": {
+    "train": {
+      "input_rows": 384198,
+      "removed_rows": 96050,
+      "retained_rows": 288148,
+      "removed_fraction": 0.2500013014122926,
+      "smallest_removed_abs_log_residual": 0.22118438474546487
+    },
+    "validation": {
+      "input_rows": 82380,
+      "removed_rows": 20595,
+      "retained_rows": 61785,
+      "removed_fraction": 0.25,
+      "smallest_removed_abs_log_residual": 0.2285154350993528
+    },
+    "test": {
+      "input_rows": 83603,
+      "removed_rows": 20901,
+      "retained_rows": 62702,
+      "removed_fraction": 0.25000299032331375,
+      "smallest_removed_abs_log_residual": 0.21244384862094456
+    }
+  },
+  "input_rows": 550181,
+  "removed_rows": 137546,
+  "retained_rows": 412635,
+  "rule": "Exactly ceil(25% of each original phase), ranked by absolute log observed/predicted residual; deterministic row_id tie break. Original training uses 3-fold OOF; validation/test use a training-only cleaner. No OutlierTree/IsolationForest union.",
+  "selection_imr": {
+    "status": "disabled",
+    "reason": "The supplied wholesale dataset contains only reported sold vehicles. No same-market sold/unsold total listing population is available. Craigslist asking listings are not fabricated auction non-sales.",
+    "scope": "cleaning model only; never a feature of the final Huber model"
+  },
+  "warning": "Requested top-25% absolute log-residual filtering also uses validation/test outcomes. Filtered metrics are optimistic selected-cohort results, not generalization estimates. Original unfiltered-test diagnostics use a previously examined benchmark; a fresh external test is needed. Assessment weights fit retained training only; deployment is a separate refit on all retained phases.",
+  "source_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601",
+  "cleaner_parameters": {
+    "loss_function": "Huber:delta=0.2",
+    "leaf_estimation_method": "Gradient",
+    "learning_rate": 0.05,
+    "l2_leaf_reg": 10.0,
+    "random_strength": 1.0,
+    "rsm": 0.8,
+    "bootstrap_type": "Bayesian",
+    "bagging_temperature": 1.0,
+    "random_seed": 42,
+    "thread_count": 4,
+    "allow_writing_files": false,
+    "iterations": 800,
+    "depth": 7
+  },
+  "held_cleaner_log_target_offset": 9.365456378540106
+}

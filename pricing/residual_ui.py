@@ -14,8 +14,9 @@ def model_root(root):
     return Path(root)/'models/catboost-aft'
 
 def bid_folder(root):
-    candidate=Path(root)/'models/bid-quantile-cleaned';mf=candidate/'manifest.json'
-    if mf.exists() and json.loads(mf.read_text()).get('status')=='ready':return candidate
+    for name in ['bid-huber-cleaned','bid-quantile-cleaned']:
+        candidate=Path(root)/'models'/name;mf=candidate/'manifest.json'
+        if mf.exists() and json.loads(mf.read_text()).get('status')=='ready':return candidate
     return model_root(root)/'bid'
 
 
@@ -24,7 +25,7 @@ def ready(root):
     return all((folder/side/'manifest.json').exists() for side in ['ask','bid'])
 
 def estimate(model,schema,record,raw,side):
-    if record['pipeline'] in ['catboost-aft','catboost-log-quantile']:
+    if record['pipeline'] in ['catboost-aft','catboost-log-quantile','catboost-log-huber']:
         text_price=None
         if record.get('text_feature'):
             from pricing.text import predict_text
@@ -39,7 +40,7 @@ def estimate(model,schema,record,raw,side):
 @st.cache_resource
 def load(path,version):
     folder=Path(path);record=json.loads((folder/'manifest.json').read_text())
-    if record['pipeline'] in ['catboost-aft','catboost-log-quantile']:
+    if record['pipeline'] in ['catboost-aft','catboost-log-quantile','catboost-log-huber']:
         from pricing.catboost_aft_pipeline import CatBoostAFTPipeline
         model=CatBoostAFTPipeline(folder);return model,model.schema,record
     import xgboost as xgb
@@ -49,23 +50,29 @@ def load(path,version):
 
 def render_bid(root,fields):
     default=bid_folder(root);previous=model_root(root)/'bid'
-    options={'CatBoost log-median · quantile 0.5 (default)':default,'CatBoost normal AFT · previous':previous} if default!=previous else {'CatBoost normal AFT':previous}
+    record=json.loads((default/'manifest.json').read_text())
+    label='CatBoost log-Huber · delta '+str(record['huber_delta']) if record['pipeline']=='catboost-log-huber' else 'CatBoost log-median · quantile 0.5' if record['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT'
+    options={label+' (default)':default}
+    quantile=Path(root)/'models/bid-quantile-cleaned'
+    if quantile!=default and (quantile/'manifest.json').exists():options['CatBoost log-median · quantile 0.5 · previous']=quantile
+    if previous!=default:options['CatBoost normal AFT · previous']=previous
     selected=st.selectbox('Auction pricing model',list(options),index=0,key='companion_bid_model')
     folder=options[selected];mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
     raw=pd.DataFrame([{**fields,'as_of':'2021-05-01','condition':None}]);x,valid,dates=predictors(raw,'bid');ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
     if not valid.all() or ratios.isna().any():raise ValueError('Unsupported vehicle/date')
     value=float(estimate(model,schema,record,raw,'bid')[0]*ratios.iloc[0])
-    st.subheader('Auction model · '+('CatBoost log-median · quantile 0.5' if record['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT'))
+    st.subheader('Auction model · '+getattr(model,'model_label',label))
     st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
-    st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {('Exactly ceil(25%) per phase removed by a separate log-quantile CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline']=='catboost-log-quantile' else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')} These are historical wholesale equivalents, not guaranteed bids.")
-    if record['pipeline']=='catboost-log-quantile':
+    cleaning=('Exactly ceil(25%) per phase removed by a separate '+record['parameters']['loss_function']+' log-price CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline'] in ['catboost-log-quantile','catboost-log-huber'] else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')
+    st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {cleaning} These are historical wholesale equivalents, not guaranteed bids.")
+    if record['pipeline'] in ['catboost-log-quantile','catboost-log-huber']:
         selection=record.get('selection_imr',{})
         st.caption('Cleaner-only IMR: '+selection.get('status','unavailable')+'. '+selection.get('reason','Lambda is excluded from the final price model.'))
 
 
 def render_assessment(root):
     folder=model_root(root)
-    st.subheader('Default models · asking AFT and auction log-median')
+    st.subheader('Default models · asking AFT and auction log-Huber')
     st.warning('The requested residual filtering uses validation/test prices to select easier cars. Filtered scores are optimistic selected-cohort results. Original test scores are also shown, but this test has already informed filtering-rule development; a new external test is needed for an unbiased comparison.')
     rows=[]
     for side in ['ask','bid']:
@@ -81,7 +88,7 @@ def render_assessment(root):
 
 
 def render_calculator(root,key_prefix='robust_pair'):
-    st.subheader('Ask: MiniLM + CatBoost AFT · Auction: CatBoost log-median 0.5' if json.loads((model_root(root)/'ask/manifest.json').read_text()).get('text_feature') else 'Ask + auction pricing · tabular CatBoost AFT')
+    st.subheader('Ask: MiniLM + CatBoost AFT · Auction: CatBoost log-Huber' if json.loads((model_root(root)/'ask/manifest.json').read_text()).get('text_feature') else 'Ask + auction pricing · tabular CatBoost AFT')
     st.caption('Two market estimates. One car. The dealer and the auctioneer are still allowed to disagree.')
     with st.form(key_prefix+'_form'):
         a,b,c=st.columns(3)
@@ -100,6 +107,6 @@ def render_calculator(root,key_prefix='robust_pair'):
             if not valid.all() or (side=='bid' and ratios.isna().any()):st.error('Unsupported vehicle/date');return
             value=float(estimate(model,schema,record,raw,side)[0])
             if side=='bid':value*=float(ratios.iloc[0])
-            rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'CatBoost log-median 0.5' if record['pipeline']=='catboost-log-quantile' else 'Tabular CatBoost AFT'})
+            rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'CatBoost log-Huber · delta '+str(record['huber_delta']) if record['pipeline']=='catboost-log-huber' else 'CatBoost log-median 0.5' if record['pipeline']=='catboost-log-quantile' else 'Tabular CatBoost AFT'})
         st.dataframe(pd.DataFrame(rows),hide_index=True)
         st.caption('Asking prices retain their historical listing-market target; auctions are CPI transported wholesale estimates. Neither is a verified current retail transaction. MiniLM reads descriptions for the combined asking model. Auction data have no descriptions, so the bid model uses vehicle facts.')

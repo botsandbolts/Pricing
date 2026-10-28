@@ -1,3 +1,5 @@
+> Historical quantile comparison bundle. The current bid default is [CatBoost log-Huber](BID_HUBER.md). The workflow and recorded results below describe the previous quantile release.
+
 # Bid-only CatBoost log-median default
 
 The asking default, its MiniLM text head, CatBoost-AFT weights, model schema,

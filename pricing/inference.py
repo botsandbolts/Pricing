@@ -12,7 +12,7 @@ class PricePipeline:
     def __init__(self,path,device='cpu'):
         path=Path(path)
         self.manifest=json.loads((path/'manifest.json').read_text())
-        if self.manifest.get('status')=='ready' and self.manifest.get('pipeline') in ['catboost-aft','catboost-log-quantile']:
+        if self.manifest.get('status')=='ready' and self.manifest.get('pipeline') in ['catboost-aft','catboost-log-quantile','catboost-log-huber']:
             from pricing.catboost_aft_pipeline import CatBoostAFTPipeline
             self.aft=CatBoostAFTPipeline(path,device);self.schema=self.aft.schema
             self.text_model=self.aft.text_model;self.tokenizer=self.aft.tokenizer;self.lgb=None;self.device=device;return

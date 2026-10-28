@@ -1,4 +1,4 @@
-"""Serve CatBoost normal AFT and log-median models with native TreeSHAP."""
+"""Serve CatBoost normal AFT, log-median and log-Huber models with native TreeSHAP."""
 import gzip,json
 from pathlib import Path
 import numpy as np
@@ -11,9 +11,11 @@ from pricing.model_suite import predictors,apply_category_pooling
 class CatBoostAFTPipeline:
     def __init__(self,path,device='cpu'):
         self.path=Path(path);self.device=device;self.manifest=json.loads((self.path/'manifest.json').read_text())
-        if self.manifest.get('status')!='ready' or self.manifest.get('pipeline') not in ['catboost-aft','catboost-log-quantile']:raise ValueError('Ready CatBoost log-price bundle required')
+        if self.manifest.get('status')!='ready' or self.manifest.get('pipeline') not in ['catboost-aft','catboost-log-quantile','catboost-log-huber']:raise ValueError('Ready CatBoost log-price bundle required')
         self.schema=json.loads((self.path/'schema.json').read_text());self.model=CatBoostRegressor();self.model.load_model(blob=gzip.decompress(read_model_file(self.path/self.manifest.get('model_file','catboost_aft.cbm.gz'))))
         self.model_label='CatBoost log-median · quantile 0.5' if self.manifest['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT'
+        if self.manifest['pipeline']=='catboost-log-huber':self.model_label='CatBoost log-Huber · delta '+str(self.manifest['huber_delta'])
+        self.log_target_offset=float(self.manifest.get('log_target_offset',0.))
         self.names=self.model.feature_names_;self.text_model=self.tokenizer=None
         if self.manifest.get('text_feature'):
             from pricing.text import load_text
@@ -38,12 +40,12 @@ class CatBoostAFTPipeline:
         for c in self.manifest['categorical_columns']:x[c]=x[c].fillna('unknown').astype(str)
         return x[self.names]
     def predict_frame(self,frame,text_price=None):
-        raw=np.asarray(self.model.predict(self.encoded(frame,text_price),prediction_type='RawFormulaVal',thread_count=4),float)
+        raw=np.asarray(self.model.predict(self.encoded(frame,text_price),prediction_type='RawFormulaVal',thread_count=4),float)+self.log_target_offset
         if not np.isfinite(raw).all():raise ValueError('Nonfinite CatBoost output')
         return np.exp(np.clip(raw,-700,np.log(1e7)))
     def native(self,frame,text_price=None):
         x=self.encoded(frame,text_price);pool=Pool(x,cat_features=self.manifest['categorical_columns']);v=np.asarray(self.model.get_feature_importance(pool,type='ShapValues',thread_count=4),float)
-        raw=np.asarray(self.model.predict(x,prediction_type='RawFormulaVal',thread_count=4),float);error=float(np.max(abs(v.sum(axis=1)-raw)))
+        raw=np.asarray(self.model.predict(x,prediction_type='RawFormulaVal',thread_count=4),float)+self.log_target_offset;v[:,-1]+=self.log_target_offset;error=float(np.max(abs(v.sum(axis=1)-raw)))
         if error>1e-5:raise ValueError('CatBoost native SHAP reconstruction failed')
         return {'x':x,'values':v[:,:-1],'base':v[:,-1],'prediction':raw,'error':error,'names':self.names,'unit':'log(price)','member':self.model_label,'weight':1.}
     def predict(self,text,fields,explain=False):
