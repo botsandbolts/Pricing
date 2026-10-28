@@ -210,5 +210,11 @@
   "native_shap_error": 0.0,
   "deployment_reference_price_smoke": 10350.635147614348,
   "ask_tree_git_sha": "de16c34aea5e8293cb8e7409f258f7159648ad2d",
-  "minilm_tree_git_sha": "f0ea6125d8ec4bfecf49a2a09e838217e5a2049b"
+  "minilm_tree_git_sha": "f0ea6125d8ec4bfecf49a2a09e838217e5a2049b",
+  "assessment_audit": {
+    "file_name": "bid-huber-cleaning-assessment-audit.zip",
+    "size_bytes": 41389393,
+    "library_file_id": "libfile_0040679a8da48191b9fb154e1ada3e84"
+  },
+  "gui_smoke": "passed; both calculators and previous comparisons; exact pre/post Ask control prediction"
 }

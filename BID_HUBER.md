@@ -60,3 +60,5 @@ References:
 | Previous normal AFT | 2,090.20 | 4,251.58 | 0.96060 |
 
 Selected deployment trees: 1500; retained rows: 412,635. Filtered test MAE $1,349.83 / RMSE $1,909.34, on 62,702 outcome-selected cars, is optimistic. Original test has all 83,603 cars. The default follows the requested Huber loss and does not imply the lowest measured error.
+
+Complete masks, OOF predictions, cleaning and assessment weights, original-test predictions, code and passing GUI proof are saved in `bid-huber-cleaning-assessment-audit.zip` (41,389,393 bytes), Library ID `libfile_0040679a8da48191b9fb154e1ada3e84`. Final deployment weights are checksum-verified Git parts.

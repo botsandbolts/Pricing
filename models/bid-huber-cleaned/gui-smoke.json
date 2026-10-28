@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "ask_default_unchanged": true,
+  "ask_prediction": 10608.983456680162,
+  "ask_text_prediction": 4497.288604882026,
+  "ask_native_shap_error": 8.881784197001252e-15,
+  "pre_install_prediction_compared": true,
+  "bid_default": "CatBoost log-Huber · delta 0.2 (default)",
+  "bid_native_shap_error": 0,
+  "metrics": [
+    {
+      "label": "Estimated asking price",
+      "value": "$10,609"
+    },
+    {
+      "label": "Transported wholesale auction estimate",
+      "value": "$11,259"
+    }
+  ],
+  "previous_bid_comparisons": {
+    "CatBoost log-median · quantile 0.5 · previous": "$11,336",
+    "CatBoost normal AFT · previous": "$10,339"
+  },
+  "integrated_calculator_uses_huber": true,
+  "selection_imr": "disabled; genuine sold/unsold population unavailable"
+}
