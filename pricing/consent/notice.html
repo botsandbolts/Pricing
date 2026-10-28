@@ -1,14 +1,20 @@
 <button id="privacy" type="button">Privacy &amp; cookies</button>
-<dialog aria-labelledby="privacy-title">
-  <h2 id="privacy-title">Cookies? Your call. 🍪</h2>
-  <p>Your car gets a price either way. Optional analytics help us understand visits and which pricing tools people use.</p>
+<dialog aria-labelledby="privacy-title" aria-describedby="summary">
+  <h2 id="privacy-title">Your privacy. Your call. 🍪</h2>
   <p id="status"></p>
-  <p>If you accept, we use a random visitor cookie (90 days) and a session ID to link visits with vehicle characteristics, Ask/Bid estimates, valuation dates and UTC timestamps. We collect broad browser/device categories and approximate country, region and city when available. VPN/mobile locations may be wrong.</p>
-  <p id="geo-notice"></p>
-  <p>No fingerprinting, precise location, raw IP addresses or seller descriptions are stored in our analytics. Turso hosts the private records. Records are retained for 90 days; cleanup runs during consented visits and via a daily job when configured. Hosting providers may maintain their own operational logs.</p>
-  <p>The necessary preference cookie remembers your choice for 90 days. You can change it here anytime. Withdrawal stops future collection; contact the operator for deletion of earlier records, quoting your visitor ID below.</p>
-  <p id="operator"></p><p id="visitor"></p>
-  <p>Location sources: <a href="https://www.geojs.io/privacy/" target="_blank" rel="noopener noreferrer">GeoJS privacy</a> / MaxMind GeoLite. For optional local databases: <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">IP Geolocation by DB-IP</a> or MaxMind GeoLite2.</p>
+  <div id="consent-info">
+    <p id="summary">Allow optional visitor and pricing analytics, including approximate country and city? Pricing works just as well if you reject.</p>
+    <p class="short-note">Turso stores the private records for 90 days. <span id="geo-short"></span></p>
+    <details id="privacy-details">
+      <summary>What we collect &amp; your choices</summary>
+      <p>A random visitor cookie (90 days) and session ID link visits with vehicle characteristics, Ask/Bid estimates, valuation dates and timestamps. Broad browser/device categories and approximate country, region and city are included when available. IP location can be wrong, especially with VPNs and mobile networks.</p>
+      <p id="geo-notice"></p>
+      <p>Our analytics excludes fingerprinting, GPS coordinates, raw IP addresses and seller descriptions. Hosting providers may keep separate operational logs.</p>
+      <p>The necessary preference cookie remembers your choice for 90 days. Use Privacy &amp; cookies anytime to withdraw. Withdrawal stops future collection and removes analytics identifiers from this browser. To delete earlier records, contact the operator with your visitor ID.</p>
+      <p id="operator"></p><p id="visitor"></p>
+      <p><a href="https://www.geojs.io/privacy/" target="_blank" rel="noopener noreferrer">GeoJS privacy</a> · MaxMind GeoLite. Optional local database: <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">IP Geolocation by DB-IP</a>.</p>
+    </details>
+  </div>
   <div class="actions"><button id="reject" type="button">Reject analytics</button><button id="accept" type="button">Accept analytics</button></div>
-  <button id="close" type="button">Close without changing</button>
+  <button id="close" type="button">Close</button>
 </dialog>

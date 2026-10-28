@@ -22,7 +22,13 @@ export default function(component) {
       !['accepted','rejected'].includes(pref.choice)) pref = null;
   if (!pref || pref.choice !== 'accepted' || !data.enabled) clearIdentity();
   root.querySelector('#operator').textContent = 'Operator: '+data.controller+'. Contact: '+data.contact+'.';
-  root.querySelector('#status').textContent = data.enabled ? 'Optional analytics are off until you accept.' : 'Optional analytics are currently disabled. Pricing works normally.';
+  root.querySelector('#status').textContent = data.enabled ? '' : 'Optional analytics are off. No analytics visitor ID is active. You can use every pricing tool normally.';
+  root.querySelector('#status').hidden = data.enabled;
+  root.querySelector('#consent-info').hidden = !data.enabled;
+  root.querySelector('.actions').hidden = !data.enabled;
+  root.querySelector('#geo-short').textContent = data.geo_mode === 'geojs'
+    ? 'After acceptance, GeoJS receives your IP to estimate city/country; we save only the approximate location.'
+    : 'Location is estimated locally from an IP supplied by our host.';
   root.querySelector('#accept').disabled = !data.enabled;
   root.querySelector('#geo-notice').textContent = data.geo_mode === 'geojs'
     ? 'After acceptance, your browser contacts GeoJS (using MaxMind GeoLite data) to estimate your country/city. GeoJS and its network provider receive your IP through that connection. We keep only country, city and region; the returned IP, coordinates and other fields are discarded. No lookup is made before consent.'
