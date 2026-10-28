@@ -67,11 +67,3 @@ models/bid-quantile-cleaned/cleaning-probit.joblib
 models/bid-quantile-cleaned/assessment.cbm.gz
 models/bid-quantile-cleaned/filter-rows.csv.gz
 models/bid-quantile-cleaned/original-test-predictions.csv.gz
-
-# Bid Huber row-level audit and assessment checkpoints.
-models/bid-huber-cleaned/cleaning-oof/
-models/bid-huber-cleaned/cleaning-assessment.cbm.gz
-models/bid-huber-cleaned/cleaning-probit.joblib
-models/bid-huber-cleaned/assessment.cbm.gz
-models/bid-huber-cleaned/filter-rows.csv.gz
-models/bid-huber-cleaned/original-test-predictions.csv.gz
