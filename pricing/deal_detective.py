@@ -334,7 +334,7 @@ def render(estimate_fn=None,bid_fn=None,model_id=''):
         st.session_state['deal_advert_text']=st.session_state.pop('deal_ocr_pending');draft_parse()
     render_shared()
     saved=st.session_state.get('last_explained_price')
-    tabs=st.tabs(['📸 Import advert','🕵️ Price verdict','📤 Share & go viral','🚗 Compare cars','🔎 Evidence','🎯 Beat the model','🧰 Buyer briefing','🧾 Sale feedback'],key='detective_tabs')
+    tabs=st.tabs(['📸 Import advert','🕵️ Price verdict','📤 Share & go viral','🚗 Compare cars','🔎 Evidence','🎯 Beat the model','🧰 Buyer briefing','🧾 Sale feedback'],key='detective_tabs',on_change='rerun')
     with tabs[0]:render_importer()
     with tabs[5]:render_game(bid_fn)
     if not saved:
