@@ -31,7 +31,3 @@ pytesseract>=0.3.13,<0.4
 qrcode>=8,<9
 
 # Release 3: author attribution and MIT footer; runtime dependencies unchanged.
-
-# Advert-type discovery and frozen out-of-sample assignment.
--r requirements-clustering.txt
-# Release 4: all-category TF-IDF advert groups; restart serving with schema 2 bundle.
