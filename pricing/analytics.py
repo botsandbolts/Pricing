@@ -306,8 +306,11 @@ def record_price(side, price, fields, model, source, valuation_date=None, event_
     except (ValueError, TypeError):
         valid_price = False
     if valid_price and valid_consent(consent):
-        from pricing.ga_events import queue_estimate
-        queue_estimate(side, source, event_key)
+        try:
+            from pricing.ga_events import queue_estimate
+            queue_estimate(side, source, event_key)
+        except Exception:
+            pass  # Optional telemetry must never interrupt pricing.
     if not configured() or not valid_consent(consent):
         return False
     if side not in {'ask', 'bid'}:

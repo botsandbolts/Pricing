@@ -56,7 +56,7 @@ function installPricingInteractions() {
   ]);
   const state = {panel:'calculator',subpanel:'none',since:performance.now(),active:!document.hidden,
     allowed:false,seen:new Set(),lastChange:new Map()};
-  const allowed = () => window.__pricingGoogleAnalytics?.allowed === true;
+  const allowed = () => window.__pricingGoogleAnalytics?.allowed === true && window.__pricingGoogleAnalytics?.featureConsent === true;
   function send(name, params={}) {
     if (!allowed() || document.hidden || !window.gtag) return;
     window.gtag('event',name,{send_to:window.__pricingGoogleAnalytics.id,
@@ -167,6 +167,7 @@ function pricingGoogleAnalytics(data, allowed, root) {
         ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied'});
     }
     clearCookies();
+    if(state)state.featureConsent=false;
     interactions.consentChanged();
     status.textContent = 'Google Analytics: off until you accept.';
     return;
@@ -201,6 +202,7 @@ function pricingGoogleAnalytics(data, allowed, root) {
       page_location:'https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/',
       page_referrer:'',page_title:'Car Price Studio | US used cars'});
   }
+  state.featureConsent = data.version === '2026-10-29-v3';
   interactions.consentChanged();
   status.textContent = state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
     : state.loaded ? 'Google Analytics: tag loaded after acceptance.'

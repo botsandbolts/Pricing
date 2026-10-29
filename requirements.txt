@@ -31,3 +31,5 @@ pytesseract>=0.3.13,<0.4
 qrcode>=8,<9
 
 # Release 3: author attribution and MIT footer; runtime dependencies unchanged.
+
+# GA4 feature analytics v3: reload consent policy and server completion hooks.

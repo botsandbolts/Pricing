@@ -10,7 +10,7 @@ const node=(text,role='button')=>({textContent:text,getAttribute:n=>n==='role'?r
  matches:s=>s!=='summary',getClientRects:()=>[1]});
 const click=text=>handlers.click[0]({composedPath:()=>[node(text)]});
 click('Estimate asking price');assert.equal(events.length,0);
-ctx.window.__pricingGoogleAnalytics={allowed:true,id:'G-TEST'};t.consentChanged();
+ctx.window.__pricingGoogleAnalytics={allowed:true,featureConsent:true,id:'G-TEST'};t.consentChanged();
 assert.equal(events[0][1],'panel_view');
 now=5000;click('📊 Evaluation');assert.equal(t.state.panel,'evaluation');
 assert.equal(events[1][1],'panel_engagement');assert.equal(events[1][2].duration_seconds,5);
