@@ -1,0 +1,27 @@
+name: Vehicle story summary checks
+on:
+  push:
+    paths: ['app.py', 'pricing/vehicle_summary.py', 'pricing/summary*', 'requirements-summary.txt', 'tests/test_vehicle_summary.py', 'tests/test_summary_ui.py', '.github/workflows/vehicle-summary.yml']
+  pull_request:
+    paths: ['app.py', 'pricing/vehicle_summary.py', 'pricing/summary*', 'requirements-summary.txt', 'tests/test_vehicle_summary.py', 'tests/test_summary_ui.py']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            tests
+            requirements-summary.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install --only-binary llama-cpp-python -r requirements-summary.txt pytest 'streamlit==1.66.1'
+      - run: python -c "import llama_cpp; print(llama_cpp.__version__)"
+      - run: python -m pytest tests/test_vehicle_summary.py tests/test_summary_ui.py -q
