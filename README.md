@@ -156,12 +156,6 @@ See [model provenance and installation](models/minilm-assessment/README.md).
 The **New model laboratory** compares default-sized Huber LightGBM, median quantile LightGBM and normal XGBoost AFT, with a Ridge feature baseline. It reports dollar errors, same-car Spearman matrices, and validation-fitted Ridge slopes, intercepts and test bias. See [MODEL_SUITE.md](MODEL_SUITE.md) for training, text OOF boundaries and the censoring assumptions.
 
 
-## Vehicle-story summaries
-
-After Estimate, a local Qwen transformer summarizes the supplied vehicle facts and
-seller description into a readable car story. See [VEHICLE_SUMMARIES.md](VEHICLE_SUMMARIES.md)
-for the model, serving requirements and limitations.
-
 ## License and author
 
 Original project software is released under the [MIT License](LICENSE).

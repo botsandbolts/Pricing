@@ -31,6 +31,3 @@ pytesseract>=0.3.13,<0.4
 qrcode>=8,<9
 
 # Release 3: author attribution and MIT footer; runtime dependencies unchanged.
--r requirements-summary.txt
-
-# Deploy fast Qwen 0.5B summarizer with reduced CPU memory (release 2026-10-29).

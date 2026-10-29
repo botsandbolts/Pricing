@@ -166,8 +166,6 @@ with value:
                 st.caption(f"{car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
                 st.metric('Estimated asking price',f"${result['price']:,.0f}")
                 st.caption('Historical advertised-price estimate. Seller optimism, with a statistical chaperone.')
-                from pricing.summary_ui import render_vehicle_summary
-                render_vehicle_summary(car,saved[3])
                 from pricing.deal_detective import open_share
                 st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='open_share')
                 st.info('Want today’s value? Open 📅 Value over time for date-adjusted Ask/Bid scenarios and the interactive timeline.')
