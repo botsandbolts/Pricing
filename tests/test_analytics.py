@@ -8,7 +8,7 @@ import requests
 
 from pricing.analytics import (SCHEMA, CONSENT_VERSION, TursoStore, valid_consent,
     safe_vehicle, country_from_headers, record_price, _failure, failure_code,
-    _setting, _persist_visit)
+    _setting, _persist_visit, token_structure)
 from pricing.geo import approximate_location
 
 
@@ -197,3 +197,17 @@ def test_visit_check_is_consent_only_and_idempotent():
             _persist_visit(c, retry=retry)
         assert st.session_state['_analytics_status'] == 'visitor_saved'
         assert s.db.execute('SELECT COUNT(*) FROM visitors').fetchone()[0] == 1
+
+
+def test_token_structure_never_returns_credential_values():
+    import base64
+    payload = base64.urlsafe_b64encode(b'{"a":"rw","iat":1,"id":"PRIVATE_ID"}').decode().rstrip('=')
+    assert token_structure(payload) == 'claims_only'
+    assert token_structure('header.' + payload + '.signature') == 'three_parts'
+    assert token_structure('Bearer hidden') == 'bearer_prefix_in_secret'
+    assert token_structure('broken token') == 'whitespace_in_secret'
+    assert token_structure('opaque-token') == 'unrecognized'
+    response = requests.Response(); response.status_code = 400
+    response._content = b'Invalid auth token'
+    error = requests.HTTPError(response=response); error.analytics_token_structure = 'claims_only'
+    assert failure_code(error) == 'authentication_400:claims_only'

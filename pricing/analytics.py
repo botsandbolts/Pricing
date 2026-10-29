@@ -1,5 +1,6 @@
 """Private, opt-in Turso analytics. Never imported by model training/inference."""
 import json
+import base64
 import logging
 import math
 import os
@@ -30,6 +31,28 @@ SCHEMA = [
 VEHICLE_FIELDS = {'year', 'manufacturer', 'model', 'odometer', 'type', 'fuel',
                   'transmission', 'drive', 'condition', 'title_status', 'cylinders',
                   'paint_color', 'state', 'auction_condition'}
+
+
+def token_structure(token):
+    """Non-secret format hint only; never treat decoding as authentication."""
+    value = str(token).strip()
+    if value.lower().startswith('bearer '):
+        return 'bearer_prefix_in_secret'
+    if any(char.isspace() for char in value):
+        return 'whitespace_in_secret'
+    if value.count('.') == 2 and all(value.split('.')):
+        return 'three_parts'
+    if len(value) <= 65536 and '.' not in value:
+        try:
+            decoded = json.loads(base64.b64decode(value + '=' * (-len(value) % 4),
+                                                 altchars=b'-_', validate=True))
+            if (isinstance(decoded, dict) and 'a' in decoded and 'iat' in decoded
+                    and ('id' in decoded or 'exp' in decoded)
+                    and not {'signature', 'sig', 'signed_token'} & decoded.keys()):
+                return 'claims_only'
+        except (ValueError, TypeError, UnicodeError):
+            pass
+    return 'unrecognized'
 
 
 def failure_code(error):
@@ -72,6 +95,10 @@ def failure_code(error):
         code = 'configuration'
     elif isinstance(error, RuntimeError):
         code = 'database_statement'
+    hint = getattr(error, 'analytics_token_structure', None)
+    if code.startswith('authentication_') and hint in {
+            'claims_only', 'bearer_prefix_in_secret', 'whitespace_in_secret'}:
+        code += ':' + hint
     return code
 
 
@@ -165,7 +192,11 @@ class TursoStore:
             json={'baton': None, 'requests': [{'type': 'execute', 'stmt': {'sql': sql,
                 'args': [_arg(v) for v in args], 'named_args': [], 'want_rows': True}}, {'type': 'close'}]},
             timeout=(2, 3), allow_redirects=False)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as error:
+            error.analytics_token_structure = token_structure(self.token)
+            raise
         result = response.json()['results'][0]
         if result.get('type') != 'ok':
             raise RuntimeError('Turso rejected analytics statement')
