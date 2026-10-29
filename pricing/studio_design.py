@@ -130,3 +130,6 @@ def sidebar_receipt(root):
 
 def footer():
     st.markdown('''<footer class="garage-footer"><span><strong>Car Price Studio.</strong> Serious maths. Zero tyre-kicking.</span><span>Estimates ≠ sale guarantees. Keep your mechanic.</span></footer>''',unsafe_allow_html=True)
+    st.caption('© 2026 [Amit Steinberg](https://de.linkedin.com/in/amit-steinberg-504546445) · Open-source software · [MIT License](https://github.com/botsandbolts/Pricing/blob/main/LICENSE)')
+    st.caption('Datasets, pretrained models and dependencies retain their respective licences.')
+

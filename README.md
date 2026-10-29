@@ -154,3 +154,11 @@ See [model provenance and installation](models/minilm-assessment/README.md).
 ### Modest ask and auction options
 
 The **New model laboratory** compares default-sized Huber LightGBM, median quantile LightGBM and normal XGBoost AFT, with a Ridge feature baseline. It reports dollar errors, same-car Spearman matrices, and validation-fitted Ridge slopes, intercepts and test bias. See [MODEL_SUITE.md](MODEL_SUITE.md) for training, text OOF boundaries and the censoring assumptions.
+
+
+## License and author
+
+Original project software is released under the [MIT License](LICENSE).
+Copyright (c) 2026 Amit Steinberg. [Connect on LinkedIn](https://de.linkedin.com/in/amit-steinberg-504546445).
+
+Dataset, pretrained-model and dependency licences remain separate; their existing attribution and licence notices are preserved. The MIT grant does not relicense third-party assets or private analytics records.
