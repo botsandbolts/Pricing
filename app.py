@@ -7,6 +7,12 @@ MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
+# Keep troubleshooting reachable without importing/loading any pricing models.
+if st.query_params.get('connection_check') == '1':
+    from pricing.analytics import render_connection_check
+    render_connection_check()
+    st.stop()
+
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()

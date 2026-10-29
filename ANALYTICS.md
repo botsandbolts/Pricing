@@ -33,6 +33,14 @@ this app (there is deliberately no visitor-data buffer).
 
 ### Delivery diagnostics
 
+Open the app with `?connection_check=1` to use a lightweight **database connection
+check** page. Its native button and status are visible directly on the page after
+consent; no model imports, record viewer, secrets editor or admin access is added.
+This route is handled before pricing-model imports, making it useful when the
+calculator is slow or fails while loading models. Database checks still require
+consent. It is not a substitute for looking at linked query rows after a real
+price request.
+
 The privacy details show a safe collection status for the current session only;
 no database records or credentials are displayed. `pending` is not a success.
 `visitor_saved` confirms an acknowledged visitor upsert; `price_saved` confirms

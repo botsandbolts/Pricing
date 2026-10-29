@@ -353,3 +353,31 @@ def _render_privacy_impl():
     if not enabled or not valid_consent(consent):
         return
     _persist_visit(consent)
+
+
+def render_connection_check():
+    """Small troubleshooting view: no model loads, credentials or database records."""
+    import streamlit as st
+    st.title('Pricing · database connection check')
+    st.write('This page checks whether the studio can save a consented visit. '
+             'It does not load the car-pricing models or show database records.')
+    st.info('First tap Privacy & cookies below and accept analytics. '
+            'Then press Check database connection.')
+    render_privacy()
+    consent = st.session_state.get('_analytics_consent')
+    allowed = bool(configured() and valid_consent(consent))
+    if st.button('Check database connection', type='primary', disabled=not allowed):
+        with st.spinner('Checking connection and visitor write…'):
+            _persist_visit(consent, retry=True)
+    if not configured():
+        st.warning('Analytics is disabled or its private settings are incomplete.')
+    elif not allowed:
+        st.caption('The check becomes available after your consent reaches the server.')
+    status = st.session_state.get('_analytics_status', 'pending')
+    st.caption('Collection status')
+    st.code(status, language=None)
+    if status in {'visitor_saved', 'price_saved'}:
+        st.success('Turso acknowledged a saved record. The connection is working.')
+    elif status != 'pending':
+        st.warning('The check did not confirm a saved record. Share only the status code above.')
+    st.markdown('[Return to the car-price calculator](./)')
