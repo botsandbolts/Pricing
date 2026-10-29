@@ -1,5 +1,5 @@
 from pricing.vehicle_narrative import narrative
-from pricing.falconsai_summary import summarize_story,CHUNK_TOKENS
+from pricing.bart_summary import summarize_story,CHUNK_TOKENS
 
 class Engine:
     def __init__(self):self.calls=[]

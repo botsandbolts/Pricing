@@ -1,13 +1,15 @@
-"""Local Falconsai T5-small abstractive summaries; no LexRank or external inference."""
+"""Local BART-base-CNN abstractive summaries; no LexRank or external inference."""
 import hashlib
 import re
 import threading
 from pricing.vehicle_narrative import narrative
 
-MODEL_ID='Falconsai/text_summarization'
-REVISION='6e505f907968c4a9360773ff57885cdc6dca4bfd'
-CHUNK_TOKENS=440
-OUTPUT_TOKENS=80
+MODEL_ID='ainize/bart-base-cnn'
+REVISION='b90bc9a7c93de6449a8c531ed5f957d84649b99a'
+CHUNK_TOKENS=960
+OUTPUT_TOKENS=128
+PROMPT=''
+PROMPT_SUFFIX=''
 
 
 class SummaryEngine:
@@ -18,7 +20,7 @@ class SummaryEngine:
         self.torch=torch
         self.tokenizer=AutoTokenizer.from_pretrained(MODEL_ID,revision=REVISION,use_fast=True)
         self.model=AutoModelForSeq2SeqLM.from_pretrained(MODEL_ID,revision=REVISION,
-                                                       use_safetensors=True).to('cpu').eval()
+                                                       use_safetensors=False,weights_only=True,trust_remote_code=False,dtype=torch.float32).to('cpu').eval()
         self.lock=threading.RLock()
 
     def encode(self,text):
@@ -28,10 +30,10 @@ class SummaryEngine:
         return self.tokenizer.decode(tokens,skip_special_tokens=True)
 
     def generate(self,text):
-        inputs=self.tokenizer('summarize: '+text,return_tensors='pt',truncation=False)
-        if inputs.input_ids.shape[1]>512:raise ValueError('Summary input exceeds token budget')
+        inputs=self.tokenizer(PROMPT+text+PROMPT_SUFFIX,return_tensors='pt',truncation=False)
+        if inputs.input_ids.shape[1]>1024:raise ValueError('Summary input exceeds token budget')
         with self.lock,self.torch.inference_mode():
-            output=self.model.generate(**inputs,max_new_tokens=OUTPUT_TOKENS,num_beams=1,
+            output=self.model.generate(**inputs,max_new_tokens=OUTPUT_TOKENS,num_beams=1,min_new_tokens=0,forced_eos_token_id=None,
                                        do_sample=False,use_cache=True,no_repeat_ngram_size=3)
         if output[0,-1].item()!=self.tokenizer.eos_token_id:
             raise ValueError('Summary output did not finish within its token budget')
@@ -40,9 +42,7 @@ class SummaryEngine:
 
 def build_story(fields,description):
     facts,text=narrative(fields,description)
-    identity,separator,details=facts.partition(' Supplied details — ')
-    # Keep the seller narrative beside the identity, before the specification inventory.
-    return identity+(' The seller reports (unverified): '+text if text else '')+(' '+separator.strip()+' '+details if separator else '')
+    return facts+('\nSeller description (unverified):\n'+text if text else '')
 
 
 def summarize_story(story,engine):
@@ -72,24 +72,24 @@ def render_story(fields,description):
     def get_engine(model_id,revision):
         return SummaryEngine()
     story=build_story(fields,description)
-    fingerprint=hashlib.sha256(str((REVISION,CHUNK_TOKENS,OUTPUT_TOKENS,story)).encode()).hexdigest()
+    fingerprint=hashlib.sha256(str((MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story)).encode()).hexdigest()
     st.markdown('#### 📖 The car’s story · AI summary')
-    saved=st.session_state.get('_falconsai_summary',{})
+    saved=st.session_state.get('_bart_summary',{})
     if saved.get('fingerprint')!=fingerprint:
         try:
             with st.spinner('Condensing the car’s story…'):
                 result=summarize_story(story,get_engine(MODEL_ID,REVISION))
             saved={'fingerprint':fingerprint,'result':result}
-            st.session_state['_falconsai_summary']=saved
+            st.session_state['_bart_summary']=saved
         except Exception as error:
             import logging
-            logging.getLogger(__name__).warning('Falconsai summary unavailable: %s',type(error).__name__)
+            logging.getLogger(__name__).warning('BART summary unavailable: %s',type(error).__name__)
             saved={'fingerprint':fingerprint,'result':{'status':'unavailable','summary':''}}
     result=saved['result']
     if result['status']=='ready':st.write(result['summary'])
     elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
     else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
-    st.caption('Falconsai/text_summarization · AI-generated summary of unverified listing information. It can omit details or misstate facts; check the original. This summary does not affect the price model.')
+    st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
     with st.expander('Full supplied story · model & limitations'):
         st.text(story)
-        st.caption('T5-small runs locally on CPU, using greedy decoding and a shared cached model. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')
+        st.caption('BART-base-CNN runs locally on CPU, using greedy decoding and a shared cached model. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')

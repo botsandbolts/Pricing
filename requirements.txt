@@ -34,5 +34,4 @@ qrcode>=8,<9
 
 # GA4 feature analytics v3: reload consent policy and server completion hooks.
 
-# Falconsai T5-small story summaries; direct seq2seq loading, no pipeline API.
-sentencepiece>=0.2,<1
+# BART-base-CNN story summaries; rebuild to release the prior summary model.
