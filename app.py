@@ -100,7 +100,7 @@ def get_pipeline(location):
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
 st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
-value,compare,time_panel,how,results,laboratory=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab'])
+value,compare,time_panel,how,results,laboratory,detective=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective'])
 with laboratory:
     from pricing.suite_ui import render
     render(Path(__file__).parent)
@@ -255,3 +255,7 @@ with results:
     else:st.info('This mode has no completed evaluation. Train MiniLM to enable it; baseline scores do not apply.')
 
 footer()
+
+with detective:
+    from pricing.deal_detective import render as render_detective
+    render_detective()
