@@ -1,0 +1,33 @@
+name: Advert cluster serving checks
+on:
+  push:
+    paths: ['app.py', 'pricing/advert_cluster*', 'scripts/train_advert_clusters.py', 'models/advert-clusters/**', 'tests/test_advert_cluster*', 'requirements-clustering.txt', '.github/workflows/advert-clusters.yml']
+  pull_request:
+    paths: ['app.py', 'pricing/advert_cluster*', 'scripts/train_advert_clusters.py', 'models/advert-clusters/**', 'tests/test_advert_cluster*', 'requirements-clustering.txt']
+permissions:
+  contents: read
+jobs:
+  serve:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            scripts
+            models/advert-clusters
+            data/description-examples.json
+            tests
+            requirements-clustering.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -r requirements-clustering.txt pytest pandas 'streamlit==1.66.1'
+      - run: python -m pytest tests/test_advert_clusters.py tests/test_advert_cluster_ui.py -q
+        env:
+          OMP_NUM_THREADS: '2'
+          OPENBLAS_NUM_THREADS: '2'
+          NUMBA_NUM_THREADS: '2'

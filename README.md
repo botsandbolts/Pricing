@@ -156,6 +156,14 @@ See [model provenance and installation](models/minilm-assessment/README.md).
 The **New model laboratory** compares default-sized Huber LightGBM, median quantile LightGBM and normal XGBoost AFT, with a Ridge feature baseline. It reports dollar errors, same-car Spearman matrices, and validation-fitted Ridge slopes, intercepts and test bias. See [MODEL_SUITE.md](MODEL_SUITE.md) for training, text OOF boundaries and the censoring assumptions.
 
 
+## Named advert types
+
+The asking calculator also shows named, unsupervised advert types after Estimate:
+TF-IDF + common one-hot categories + numeric year/mileage, weighted Hellinger
+distance, UMAP and HDBSCAN. See [ADVERT_CLUSTERS.md](ADVERT_CLUSTERS.md) for training,
+held-out coverage, naming, rejection and limitations. These are exploratory groups,
+not verified dealer/private labels, and do not change the pricing models.
+
 ## License and author
 
 Original project software is released under the [MIT License](LICENSE).

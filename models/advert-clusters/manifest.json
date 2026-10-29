@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "sha256": "1a60dbcef530a8e06430a1f594a1c78f69ff015c50e96f08ebc1dc555a4098b6",
+  "bytes": 24597136,
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "scikit-learn": "1.8.0",
+    "umap-learn": "0.5.12",
+    "hdbscan": "0.8.44",
+    "numba": "0.68.1",
+    "llvmlite": "0.50.0",
+    "pynndescent": "0.7.0",
+    "joblib": "1.5.3"
+  },
+  "training_rows": 19998,
+  "cluster_count": 86
+}

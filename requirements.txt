@@ -31,3 +31,6 @@ pytesseract>=0.3.13,<0.4
 qrcode>=8,<9
 
 # Release 3: author attribution and MIT footer; runtime dependencies unchanged.
+
+# Advert-type discovery and frozen out-of-sample assignment.
+-r requirements-clustering.txt

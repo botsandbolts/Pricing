@@ -1,0 +1,1438 @@
+{
+  "training_rows": 19998,
+  "clusters": {
+    "0": {
+      "name": "Sold America / Just Sold \u00b7 C000",
+      "keywords": [
+        "sold america",
+        "just sold",
+        "nearby dealerships",
+        "inventory nearby",
+        "identical use",
+        "including identical"
+      ],
+      "size": 125,
+      "representative_sha256": "46ed9d07ad6990803f811f09f43f406e15610b2539379bb487c4da9b1e0e4132",
+      "mean_membership_strength": 0.6779632524090906
+    },
+    "1": {
+      "name": "Carvana / Ft Pickupmileage \u00b7 C001",
+      "keywords": [
+        "carvana",
+        "ft pickupmileage",
+        "pickupmileage milesexterior",
+        "cab responsible",
+        "cab stock",
+        "pickup ft"
+      ],
+      "size": 77,
+      "representative_sha256": "1ba40df040d242841564dc7d99508b6624554a497df8c85946499df56cc8c16f",
+      "mean_membership_strength": 0.7776370480747583
+    },
+    "2": {
+      "name": "Carvana / Minutes \u00b7 C002",
+      "keywords": [
+        "carvana",
+        "minutes",
+        "reported",
+        "safer",
+        "providing",
+        "point inspection"
+      ],
+      "size": 748,
+      "representative_sha256": "804528a88e9bf2ceba31f17b48b655188a8b91d60c33a607dbfef6a6afecac30",
+      "mean_membership_strength": 0.9478397008630038
+    },
+    "3": {
+      "name": "Clickable / Day Delivery \u00b7 C003",
+      "keywords": [
+        "clickable",
+        "day delivery",
+        "links",
+        "detailed photos",
+        "pj",
+        "paste browser"
+      ],
+      "size": 144,
+      "representative_sha256": "a4e63f117c74337deb7cb69c039286a8a4f7c1172cccc7f830c492d6adceca27",
+      "mean_membership_strength": 0.6433948917679788
+    },
+    "4": {
+      "name": "Autonation / Confirm Availability \u00b7 C004",
+      "keywords": [
+        "autonation",
+        "confirm availability",
+        "prevent",
+        "disinfectant",
+        "used vehicle",
+        "product"
+      ],
+      "size": 427,
+      "representative_sha256": "d297a5d72281f31a50fea6d9004e83a53d6e79b3e54961ffa0afa22234716a62",
+      "mean_membership_strength": 0.7179676554032203
+    },
+    "5": {
+      "name": "Northwest Motorsport / Rating Reviews \u00b7 C005",
+      "keywords": [
+        "northwest motorsport",
+        "rating reviews",
+        "locations washington",
+        "address bar",
+        "trucks trucks",
+        "diesels"
+      ],
+      "size": 133,
+      "representative_sha256": "555d714fb37a04a758c5a13d0ab6f1bb60a81f84fc3679ea38fad41760c36831",
+      "mean_membership_strength": 0.9825920282936684
+    },
+    "6": {
+      "name": "Cars Everyday / Ship Doorwe \u00b7 C006",
+      "keywords": [
+        "cars everyday",
+        "ship doorwe",
+        "ship door",
+        "repossession problem",
+        "super quick",
+        "free super"
+      ],
+      "size": 64,
+      "representative_sha256": "361f09142479f6668817e05a4192e8ba4d0c9d5f83bd8bcb1f1f857059c31718",
+      "mean_membership_strength": 0.8100611054606772
+    },
+    "7": {
+      "name": "Room Inchesrear / Inchesfront \u00b7 C007",
+      "keywords": [
+        "room inchesrear",
+        "inchesfront",
+        "excellentnhtsa",
+        "leg room",
+        "head room",
+        "grade"
+      ],
+      "size": 90,
+      "representative_sha256": "7948d434bb5f670dc70e2211fd1b9ae6e5029b736e9bc8c2aefcbc969ffc9071",
+      "mean_membership_strength": 0.8926540612855166
+    },
+    "8": {
+      "name": "Hundreds New / Really Bad \u00b7 C008",
+      "keywords": [
+        "hundreds new",
+        "really bad",
+        "vehicle page",
+        "youtube video",
+        "suvs open",
+        "doors drive"
+      ],
+      "size": 104,
+      "representative_sha256": "039cd82899a2633102b07742d7cb10be47a7df58b606df8e408fabdd6fd94f2e",
+      "mean_membership_strength": 0.6600857282646536
+    },
+    "9": {
+      "name": "Il Vehicles / Seen Automallofspringfield \u00b7 C009",
+      "keywords": [
+        "il vehicles",
+        "seen automallofspringfield",
+        "listing store",
+        "seen dirksen",
+        "sat vehicle",
+        "automallofspringfield com"
+      ],
+      "size": 66,
+      "representative_sha256": "0b22b549ddd6a037ce8920e2075f925caa2140a59af359603ec5b45155cb06bf",
+      "mean_membership_strength": 0.6906933051672947
+    },
+    "10": {
+      "name": "Link Info / Follow Link \u00b7 C010",
+      "keywords": [
+        "link info",
+        "follow link",
+        "purchase commitment",
+        "commitment vehicle",
+        "presented believed",
+        "accurate provided"
+      ],
+      "size": 51,
+      "representative_sha256": "4042fedee6aa228234593a40b8ddb243cede105795d268d42e14942f80fdb297",
+      "mean_membership_strength": 0.8826933992955048
+    },
+    "11": {
+      "name": "Lake / Grove \u00b7 C011",
+      "keywords": [
+        "lake",
+        "grove",
+        "falls",
+        "river",
+        "north",
+        "saint"
+      ],
+      "size": 87,
+      "representative_sha256": "54be78fb16b12d114a99df28542dc303af1858c11ad9c2fb5e71fd27c4ddf1d5",
+      "mean_membership_strength": 0.8817313179818986
+    },
+    "12": {
+      "name": "Text Address / Monthly Payment \u00b7 C012",
+      "keywords": [
+        "text address",
+        "monthly payment",
+        "vin stk",
+        "com craigslist",
+        "wizposter com",
+        "posting tool"
+      ],
+      "size": 232,
+      "representative_sha256": "543855c1f9c8f10cf525215cff499dbe2c7d43483670dfcd7b43c66de571d8dd",
+      "mean_membership_strength": 0.688386870388244
+    },
+    "13": {
+      "name": "Engine Functioning / Functioning Properly \u00b7 C013",
+      "keywords": [
+        "engine functioning",
+        "functioning properly",
+        "properly issues",
+        "maintained extra",
+        "shifts smoothly",
+        "transmission shifts"
+      ],
+      "size": 69,
+      "representative_sha256": "11b2b09f1318fbc4b8463d6d44c8192860193c6bf355a66aab6a51a67eb780d4",
+      "mean_membership_strength": 0.9554368209731396
+    },
+    "14": {
+      "name": "Visit Online / Automaticdrive Train \u00b7 C014",
+      "keywords": [
+        "visit online",
+        "automaticdrive train",
+        "nomileage",
+        "info visit",
+        "wheel drivecertified",
+        "enginecall"
+      ],
+      "size": 68,
+      "representative_sha256": "bd14c706443b84e184d403aee2c2eaa3dd9bd633cb7e6477f33c501779125b54",
+      "mean_membership_strength": 0.8462414948576492
+    },
+    "15": {
+      "name": "Automotive Avenues / Avenues Info \u00b7 C015",
+      "keywords": [
+        "automotive avenues",
+        "avenues info",
+        "wall used",
+        "compass temperature",
+        "seller",
+        "digital info"
+      ],
+      "size": 103,
+      "representative_sha256": "6115d8e1f23c10c59747565d7a1b0f8e6fcfea3ef0a707b3b3517980352d0a4e",
+      "mean_membership_strength": 0.6527504707245043
+    },
+    "16": {
+      "name": "Pictures Details / Additional Pictures \u00b7 C016",
+      "keywords": [
+        "pictures details",
+        "additional pictures",
+        "cheap like",
+        "ext int",
+        "vehicle description",
+        "used clear"
+      ],
+      "size": 215,
+      "representative_sha256": "a927a6552a60b4cc112316455b1117e76215df71a3fd500b92c92f6d0a04b6af",
+      "mean_membership_strength": 0.6669179608514582
+    },
+    "17": {
+      "name": "Deery / Cedar \u00b7 C017",
+      "keywords": [
+        "deery",
+        "cedar",
+        "price quote",
+        "dan",
+        "quote description",
+        "sold mention"
+      ],
+      "size": 55,
+      "representative_sha256": "5d433a1373bd360107f72d04a9364f30e7d588e6fb58c873a392dbcdd2e8ea57",
+      "mean_membership_strength": 0.7904693003809091
+    },
+    "18": {
+      "name": "Drivetitle / City Highwayengine \u00b7 C018",
+      "keywords": [
+        "drivetitle",
+        "city highwayengine",
+        "automaticdrivetrain wheel",
+        "lbs fuel",
+        "gasolinetransmission automaticdrivetrain",
+        "removed key"
+      ],
+      "size": 263,
+      "representative_sha256": "145d3f08921326f4c88d95f5225589e62ccab295954cda1ecab1900ce8f6d880",
+      "mean_membership_strength": 0.4260934664161703
+    },
+    "19": {
+      "name": "Help Finance / Craigslist Great \u00b7 C019",
+      "keywords": [
+        "help finance",
+        "craigslist great",
+        "stock craigslist",
+        "saw stock",
+        "mention saw",
+        "deal details"
+      ],
+      "size": 200,
+      "representative_sha256": "9695204098af3ed2fdb15a5e6b25d4543bd9a0f96928951335a09c5b848e9c9f",
+      "mean_membership_strength": 0.6139844858701976
+    },
+    "20": {
+      "name": "Gasoline / Belowto View \u00b7 C020",
+      "keywords": [
+        "gasoline",
+        "belowto view",
+        "view information",
+        "url belowto",
+        "paste url",
+        "cheap"
+      ],
+      "size": 1106,
+      "representative_sha256": "2d5e25332e9eaafa65834e902beea6340e894f11a6f88a321dd168a7ab4334d5",
+      "mean_membership_strength": 0.9252900276441689
+    },
+    "21": {
+      "name": "Kendall / Hold Link \u00b7 C021",
+      "keywords": [
+        "kendall",
+        "hold link",
+        "link mobile",
+        "information click",
+        "click hold",
+        "today use"
+      ],
+      "size": 44,
+      "representative_sha256": "be59bd2a7e0064ecf9cac35619df152ea13275bfaf993d1da822823b3425b26e",
+      "mean_membership_strength": 0.9672274737862426
+    },
+    "22": {
+      "name": "Appear Site / Information Responsibility \u00b7 C022",
+      "keywords": [
+        "appear site",
+        "information responsibility",
+        "errors appear",
+        "product information",
+        "information advertising",
+        "typographical pricing"
+      ],
+      "size": 53,
+      "representative_sha256": "2d595bc08f2f974e4d26e76f72c86c653ea133e63df49ee13e82bce3212cf2a8",
+      "mean_membership_strength": 0.8910027508233023
+    },
+    "23": {
+      "name": "Exterior Mirrors / Seatbelts Seatbelt \u00b7 C023",
+      "keywords": [
+        "exterior mirrors",
+        "seatbelts seatbelt",
+        "adjustments",
+        "rear seats",
+        "warnings reminders",
+        "windows wipers"
+      ],
+      "size": 131,
+      "representative_sha256": "c4093477a9d2339db638e1610f4ba3c20b302d0078387041b36c1615e8dada37",
+      "mean_membership_strength": 0.6009090236797977
+    },
+    "24": {
+      "name": "Phone Ext / Pages Verify \u00b7 C024",
+      "keywords": [
+        "phone ext",
+        "pages verify",
+        "used lot",
+        "contained pages",
+        "lot truck",
+        "sedan wholesale"
+      ],
+      "size": 77,
+      "representative_sha256": "c2f3cfeb7e9b055d4cbf852db361ed86b0b931bcdaeb2ed4a747c40bcd43c00e",
+      "mean_membership_strength": 0.7163081350604522
+    },
+    "25": {
+      "name": "Lockspower Door / Air Bagfront \u00b7 C025",
+      "keywords": [
+        "lockspower door",
+        "air bagfront",
+        "disc brakesa",
+        "bagpassenger",
+        "tamiami",
+        "monitortires"
+      ],
+      "size": 44,
+      "representative_sha256": "62c981001dc93cd3c816b875cb55b81d1f3478e12d5964fa5ec5c0cc01d6445a",
+      "mean_membership_strength": 0.9608682646248451
+    },
+    "26": {
+      "name": "View Entire / Choose Showcase \u00b7 C026",
+      "keywords": [
+        "view entire",
+        "choose showcase",
+        "closed view",
+        "michigan hours",
+        "stock view",
+        "work team"
+      ],
+      "size": 59,
+      "representative_sha256": "85be8777f7f611af3db4e8818037665ee18f075ede94c72b05814513e3a3b522",
+      "mean_membership_strength": 0.9182982135105635
+    },
+    "27": {
+      "name": "Vehicle Type / Vin Trans \u00b7 C027",
+      "keywords": [
+        "vehicle type",
+        "vin trans",
+        "mileage stock",
+        "automatic color",
+        "drive train",
+        "notes"
+      ],
+      "size": 95,
+      "representative_sha256": "eb1b3f35ec1b18940ea45ac4fcdfbc6e2ad43d8a2dd34c93bd01b84f4297ef38",
+      "mean_membership_strength": 0.730386246589459
+    },
+    "28": {
+      "name": "Steeringtilt Steering / Brakesair \u00b7 C028",
+      "keywords": [
+        "steeringtilt steering",
+        "brakesair",
+        "door lockspower",
+        "columntire",
+        "multi adjustable",
+        "theftvehicle"
+      ],
+      "size": 170,
+      "representative_sha256": "8adcd90d7a9524850d8fd42f4632d6015b7e26e49fdb75529c899fee3a71f850",
+      "mean_membership_strength": 0.6987486922862267
+    },
+    "29": {
+      "name": "Listed / Charges Optional \u00b7 C029",
+      "keywords": [
+        "listed",
+        "charges optional",
+        "credit liability",
+        "amounts disclosed",
+        "legible fashion",
+        "clear conspicuous"
+      ],
+      "size": 135,
+      "representative_sha256": "bd96247722fa370fd19b0a60162fa1b689c61e962a01cb3c4c32355f6cc151ad",
+      "mean_membership_strength": 0.7528023506685404
+    },
+    "30": {
+      "name": "Diameter / Adjustments \u00b7 C030",
+      "keywords": [
+        "diameter",
+        "adjustments",
+        "brake type",
+        "rear brake",
+        "color body",
+        "multi function"
+      ],
+      "size": 185,
+      "representative_sha256": "62d8df694b1868cc756b57b481e955509fc2125f2bdb6469aa2f4964889ade5a",
+      "mean_membership_strength": 0.6369749204499645
+    },
+    "31": {
+      "name": "Vehicle Data / Consumer Auto \u00b7 C031",
+      "keywords": [
+        "vehicle data",
+        "consumer auto",
+        "latest vehicle",
+        "misprint incorrect",
+        "incorrect vehicle",
+        "data guaranteed"
+      ],
+      "size": 51,
+      "representative_sha256": "68f165ef47cb185cef845f7fc7de9d1226948c776ee8a0e5f31663c453d90eb4",
+      "mean_membership_strength": 0.9436423453996876
+    },
+    "32": {
+      "name": "Apply Information / Reliable Guaranteed \u00b7 C032",
+      "keywords": [
+        "apply information",
+        "reliable guaranteed",
+        "testing compliance",
+        "information deemed",
+        "purchase decision",
+        "parties confirm"
+      ],
+      "size": 188,
+      "representative_sha256": "9ff5876a85bd7d38019eed1982b3746ab1fc36e089cdba7cf6a58fbf8d3ceb67",
+      "mean_membership_strength": 0.7065231215469573
+    },
+    "33": {
+      "name": "Charge / Preparation \u00b7 C033",
+      "keywords": [
+        "charge",
+        "preparation",
+        "quick auto",
+        "dealer document",
+        "payment cash",
+        "advertised"
+      ],
+      "size": 63,
+      "representative_sha256": "9dbbd472eb55aedae3dae83879899d3920b5111f00984c583b3f4ad8dde2d476",
+      "mean_membership_strength": 1.0
+    },
+    "34": {
+      "name": "Unlimited Auto / Auto Group \u00b7 C034",
+      "keywords": [
+        "unlimited auto",
+        "auto group",
+        "walk online",
+        "text walk",
+        "fast pre",
+        "buyers program"
+      ],
+      "size": 84,
+      "representative_sha256": "dbe47f1c009772cb80db74204f6d4de51df2e721d4e7290b034eed42bfc985b1",
+      "mean_membership_strength": 0.8886618566575277
+    },
+    "35": {
+      "name": "Welcome Dollar / Apply \u00b7 C035",
+      "keywords": [
+        "welcome dollar",
+        "apply",
+        "automated disclaimer",
+        "used mileage",
+        "real human",
+        "human automated"
+      ],
+      "size": 238,
+      "representative_sha256": "316171578ff406138ebd3e5aa4c4fb2a77d20f5bb3ae9b541cc86559751633a7",
+      "mean_membership_strength": 0.829449706612941
+    },
+    "36": {
+      "name": "Jeep Grand / Grand Cherokee \u00b7 C036",
+      "keywords": [
+        "jeep grand",
+        "grand cherokee",
+        "cherokee laredo",
+        "cherokee limited",
+        "jeep cherokee",
+        "hitch"
+      ],
+      "size": 54,
+      "representative_sha256": "3e5a26ff8fe2b19c91c3aee7a1644d078e3e9c579e3d5c52c53b72ceee206314",
+      "mean_membership_strength": 0.9166035764931045
+    },
+    "37": {
+      "name": "Showcase Auto / West Brady \u00b7 C037",
+      "keywords": [
+        "showcase auto",
+        "west brady",
+        "chesaning michigan",
+        "brady chesaning",
+        "llc west",
+        "sales llc"
+      ],
+      "size": 76,
+      "representative_sha256": "458399ee5cd7a4374bdfbb7fba103d67ea1e3ad979cd5f7b709c1393bf1e9289",
+      "mean_membership_strength": 0.6824865406396033
+    },
+    "38": {
+      "name": "Auto Solutions / Absolute Auto \u00b7 C038",
+      "keywords": [
+        "auto solutions",
+        "absolute auto",
+        "adjustments",
+        "ext text",
+        "cupholders",
+        "dual brake"
+      ],
+      "size": 42,
+      "representative_sha256": "422051879a563b905f36a0c816187055ab2815bf233825a16e3225dfeb47020d",
+      "mean_membership_strength": 0.9829786343227321
+    },
+    "39": {
+      "name": "Interval Wipers / Curtain Airbag \u00b7 C039",
+      "keywords": [
+        "interval wipers",
+        "curtain airbag",
+        "vehicle stability",
+        "safety door",
+        "brake assistance",
+        "folding seat"
+      ],
+      "size": 51,
+      "representative_sha256": "c72441b362020aa248059bdb2d9bb2d2ecdcacc5b2715316100735644f7fcec9",
+      "mean_membership_strength": 0.9928020556230723
+    },
+    "40": {
+      "name": "Body Colored / Lights Carpet \u00b7 C040",
+      "keywords": [
+        "body colored",
+        "lights carpet",
+        "space lights",
+        "dc power",
+        "clearcoat paint",
+        "power outlets"
+      ],
+      "size": 42,
+      "representative_sha256": "aeae93b4faaed4ee3194421c5cdd03c8cc45f2bcb1cb9bd788570d2709b27d6b",
+      "mean_membership_strength": 0.996942290624284
+    },
+    "41": {
+      "name": "Origination / Highlighted \u00b7 C041",
+      "keywords": [
+        "origination",
+        "highlighted",
+        "wireless phone",
+        "phone connectivity",
+        "highway mpg",
+        "beverage holders"
+      ],
+      "size": 79,
+      "representative_sha256": "d9d326511f721c1bf99e098aab982d64636d01868a3c8bfcb798ff66303cf27b",
+      "mean_membership_strength": 0.8893614774676889
+    },
+    "42": {
+      "name": "Quickest Response / Response Text \u00b7 C042",
+      "keywords": [
+        "quickest response",
+        "response text",
+        "number quickest",
+        "lithia",
+        "chrysler jeep",
+        "jeep dodge"
+      ],
+      "size": 120,
+      "representative_sha256": "79c64a0f56b64852c75167ae259b37698532f5bc1a87a1b3dcbff208191861bc",
+      "mean_membership_strength": 0.6057153205820792
+    },
+    "43": {
+      "name": "Tom Auto / East University \u00b7 C043",
+      "keywords": [
+        "tom auto",
+        "east university",
+        "group east",
+        "air bag",
+        "university ave",
+        "mirror power"
+      ],
+      "size": 87,
+      "representative_sha256": "f14118562c6e5b0392e1312382d074ce9d60ba548ff110fc6a099eded3445545",
+      "mean_membership_strength": 0.7445035565782924
+    },
+    "44": {
+      "name": "Air Bag / Bag Passenger \u00b7 C044",
+      "keywords": [
+        "air bag",
+        "bag passenger",
+        "head air",
+        "passenger air",
+        "link contact",
+        "mirror passenger"
+      ],
+      "size": 197,
+      "representative_sha256": "df7315c77aae1a854b1d4860ec7a8d5679709e625594c5067708cd05820ca763",
+      "mean_membership_strength": 0.5779677072348103
+    },
+    "45": {
+      "name": "Door Bin / Roll Bar \u00b7 C045",
+      "keywords": [
+        "door bin",
+        "roll bar",
+        "door mirrors",
+        "variably intermittent",
+        "dual impact",
+        "impact airbags"
+      ],
+      "size": 107,
+      "representative_sha256": "111ef166a4676262925e9e9f9a000bc6792648fbedb9826d03ae8bcad36f384e",
+      "mean_membership_strength": 0.7808404019547318
+    },
+    "46": {
+      "name": "Link Contact / Details Link \u00b7 C046",
+      "keywords": [
+        "link contact",
+        "details link",
+        "text details",
+        "ext text",
+        "infostock",
+        "interiorexterior"
+      ],
+      "size": 98,
+      "representative_sha256": "417c45de9402c2107274010a5d09646c466cf60ac4e6310e98daaa5640fc9822",
+      "mean_membership_strength": 0.7563793337913006
+    },
+    "47": {
+      "name": "Cupholder / Metal Look \u00b7 C047",
+      "keywords": [
+        "cupholder",
+        "metal look",
+        "stage driver",
+        "cargo access",
+        "body colored",
+        "dual stage"
+      ],
+      "size": 150,
+      "representative_sha256": "d4011a0aaf9523143f4425f46d340b1b5ffaa74ae738fd21044c7e3d727d9d70",
+      "mean_membership_strength": 0.7757441492164797
+    },
+    "48": {
+      "name": "Dual Impact / Impact Airbags \u00b7 C048",
+      "keywords": [
+        "dual impact",
+        "impact airbags",
+        "brakes fm",
+        "door bin",
+        "paste link",
+        "assist bumpers"
+      ],
+      "size": 176,
+      "representative_sha256": "dd897b2ddf6cccbf9fe0b72a90a98c69f895bc739ddb0a6c1a5cfa4a795ade81",
+      "mean_membership_strength": 0.6852146228206675
+    },
+    "49": {
+      "name": "Drive Motion / Ext Text \u00b7 C049",
+      "keywords": [
+        "drive motion",
+        "ext text",
+        "motion greeley",
+        "air bags",
+        "complete secure",
+        "started just"
+      ],
+      "size": 55,
+      "representative_sha256": "eae9f6ed46319e145a9bf201e9694f7a9ce6daee781d029df4ad2967b3b84773",
+      "mean_membership_strength": 0.9189073154789004
+    },
+    "50": {
+      "name": "Child Restraints / Children \u00b7 C050",
+      "keywords": [
+        "child restraints",
+        "children",
+        "secured rear",
+        "properly secured",
+        "safer properly",
+        "use safety"
+      ],
+      "size": 133,
+      "representative_sha256": "e4e92c464844125535aaab1e4a4685a0167419ae67db13beb506aac7e516bd48",
+      "mean_membership_strength": 0.8137937023506808
+    },
+    "51": {
+      "name": "Stage Driver / Colored \u00b7 C051",
+      "keywords": [
+        "stage driver",
+        "colored",
+        "suspension coil",
+        "dc power",
+        "metal look",
+        "passenger airbagsdual"
+      ],
+      "size": 78,
+      "representative_sha256": "a7d8819eff8f671a9484a51fbb945fc480bba274157be8b601d4c9843cfba3b1",
+      "mean_membership_strength": 0.8072922950136476
+    },
+    "52": {
+      "name": "Pwr / Valve \u00b7 C052",
+      "keywords": [
+        "pwr",
+        "valve",
+        "stabilizer",
+        "intermittent windshield",
+        "rack pinion",
+        "seat belts"
+      ],
+      "size": 107,
+      "representative_sha256": "b530bc1e769c218c196d66f3a6123e104b4ef5af58e9bd7cca8e66dd58af335f",
+      "mean_membership_strength": 0.8458669281563037
+    },
+    "53": {
+      "name": "Fuel Type / Type Gasoline \u00b7 C053",
+      "keywords": [
+        "fuel type",
+        "type gasoline",
+        "city mpg",
+        "performance auto",
+        "gasoline transmission",
+        "speed drivetrain"
+      ],
+      "size": 124,
+      "representative_sha256": "203e26eac19e0710f63bbe84ab133ed807d5aeaa7fb4724bf842b593b8cd3cc9",
+      "mean_membership_strength": 0.7567403830219399
+    },
+    "54": {
+      "name": "Bmw / Audi \u00b7 C054",
+      "keywords": [
+        "bmw",
+        "audi",
+        "volvo",
+        "mercedes",
+        "hyundai",
+        "pilot"
+      ],
+      "size": 181,
+      "representative_sha256": "aadac4ab9af00396270e5379f2b956aa29ad3c893e48b35dd9093c846ea7601f",
+      "mean_membership_strength": 0.5259120568512047
+    },
+    "55": {
+      "name": "Head Airbags / Information Make \u00b7 C055",
+      "keywords": [
+        "head airbags",
+        "information make",
+        "dealership info",
+        "stock offered",
+        "stock dealership",
+        "active seatbelts"
+      ],
+      "size": 246,
+      "representative_sha256": "da01499b2b4cef15b49439a188c6d1050efe3c08700837082417ae64f263102c",
+      "mean_membership_strength": 0.4775955131451617
+    },
+    "56": {
+      "name": "Credit / Para \u00b7 C056",
+      "keywords": [
+        "credit",
+        "para",
+        "el",
+        "en",
+        "bajos",
+        "proof income"
+      ],
+      "size": 124,
+      "representative_sha256": "951bd40a45a613a22d120509a10231bfeb1dec39243c0dc1ca1dec3ee39c4670",
+      "mean_membership_strength": 0.7904464569961681
+    },
+    "57": {
+      "name": "Titulo / Millas \u00b7 C057",
+      "keywords": [
+        "titulo",
+        "millas",
+        "limpio",
+        "solo",
+        "al",
+        "en"
+      ],
+      "size": 55,
+      "representative_sha256": "f97e9f6cee1c864dae00de5f1cca783218e32b09508cbb47f5933357ce9eaef6",
+      "mean_membership_strength": 0.8990860308734151
+    },
+    "58": {
+      "name": "Tacoma / Trd \u00b7 C058",
+      "keywords": [
+        "tacoma",
+        "trd",
+        "toyota",
+        "double cab",
+        "bed",
+        "access cab"
+      ],
+      "size": 50,
+      "representative_sha256": "1c3e12477b8982e94fa01edea5f50464ec0bba8506d4e3fa6e1917e43ca049be",
+      "mean_membership_strength": 0.9783823408061935
+    },
+    "59": {
+      "name": "Powered Dealercenter / Air Bags \u00b7 C059",
+      "keywords": [
+        "powered dealercenter",
+        "air bags",
+        "milesengine",
+        "single disc",
+        "omissions prices",
+        "sale reserve"
+      ],
+      "size": 289,
+      "representative_sha256": "02455748c702f5115d20e252fcac9acacd35c080923e571a79d00149260b6f8e",
+      "mean_membership_strength": 0.8289811408019742
+    },
+    "60": {
+      "name": "Air Bags / Dual Air \u00b7 C060",
+      "keywords": [
+        "air bags",
+        "dual air",
+        "abs wheel",
+        "cd single",
+        "control",
+        "telescoping wheel"
+      ],
+      "size": 123,
+      "representative_sha256": "a1fd629742437b5ed6cf75d2d7daea37282382a7dd00c99ba554711011d2d8de",
+      "mean_membership_strength": 0.7496775805633239
+    },
+    "61": {
+      "name": "Wrangler / Jeep \u00b7 C061",
+      "keywords": [
+        "wrangler",
+        "jeep",
+        "winch",
+        "soft",
+        "lift",
+        "manual transmission"
+      ],
+      "size": 175,
+      "representative_sha256": "714a27c5628672730b8b7ef23bdde922dc8ba8bd0a89ab7620930a3df695bdff",
+      "mean_membership_strength": 0.6602035098987057
+    },
+    "62": {
+      "name": "Honda Odyssey / Odyssey Ex \u00b7 C062",
+      "keywords": [
+        "honda odyssey",
+        "odyssey ex",
+        "dvd",
+        "sliding doors",
+        "van",
+        "power sliding"
+      ],
+      "size": 40,
+      "representative_sha256": "4d44543500b5d6ca29431fba675fe76dfca275b461869718bd33b28fd60682c3",
+      "mean_membership_strength": 1.0
+    },
+    "63": {
+      "name": "Ford Transit / Van \u00b7 C063",
+      "keywords": [
+        "ford transit",
+        "van",
+        "chevrolet express",
+        "cargo",
+        "transit connect",
+        "vans"
+      ],
+      "size": 64,
+      "representative_sha256": "bb611cbbd27ddefc1b83cb6219cea3b08f7ab6c1b171c50b51061452464b3249",
+      "mean_membership_strength": 0.9711714203971894
+    },
+    "64": {
+      "name": "Rebuilt Title / Nissan Rogue \u00b7 C064",
+      "keywords": [
+        "rebuilt title",
+        "nissan rogue",
+        "wichita",
+        "atlas",
+        "contact info",
+        "broadway"
+      ],
+      "size": 59,
+      "representative_sha256": "0e6501c06c1fcb3ce4030bdd2884bd78d25d38f60a10a52dea4db3ad62ce38a9",
+      "mean_membership_strength": 0.9927492256173419
+    },
+    "65": {
+      "name": "Caravan / Dodge Grand \u00b7 C065",
+      "keywords": [
+        "caravan",
+        "dodge grand",
+        "ramp",
+        "wheelchair",
+        "chrysler town",
+        "town country"
+      ],
+      "size": 104,
+      "representative_sha256": "4ebd697b9f5d4696914b0df735ae3895d8f10c31e878cbbb99c3f9c73ba4d484",
+      "mean_membership_strength": 0.7396574148929389
+    },
+    "66": {
+      "name": "Cards / Battle Creek \u00b7 C066",
+      "keywords": [
+        "cards",
+        "battle creek",
+        "debit",
+        "friday saturday",
+        "monday friday",
+        "checks"
+      ],
+      "size": 70,
+      "representative_sha256": "e3209b17d91c8588722284fc83b013e2b1724854dca822a03e95693160e83526",
+      "mean_membership_strength": 0.9880957116144479
+    },
+    "67": {
+      "name": "Best Offer / Removed Best \u00b7 C067",
+      "keywords": [
+        "best offer",
+        "removed best",
+        "price removed",
+        "runs",
+        "needs",
+        "good"
+      ],
+      "size": 70,
+      "representative_sha256": "757e1a2fdea4284c7c7c44a0fb93ac1676f95bc78f0fc94dbea8899c074076d0",
+      "mean_membership_strength": 0.9217441430663724
+    },
+    "68": {
+      "name": "Heated / Seats \u00b7 C068",
+      "keywords": [
+        "heated",
+        "seats",
+        "leather",
+        "power",
+        "sunroof",
+        "navigation"
+      ],
+      "size": 506,
+      "representative_sha256": "83060b6def3260c349ad07ae5e620d7b4a69822d2ab2594001be8028d00e7ee0",
+      "mean_membership_strength": 0.9116195206707914
+    },
+    "69": {
+      "name": "Good Condition / Runs Good \u00b7 C069",
+      "keywords": [
+        "good condition",
+        "runs good",
+        "car good",
+        "miles runs",
+        "condition runs",
+        "work"
+      ],
+      "size": 70,
+      "representative_sha256": "42d1b0265a83d8c671f941ac13fed55e728f6e9b2d5e43bf1bb21680f8087c32",
+      "mean_membership_strength": 0.9968625348009259
+    },
+    "70": {
+      "name": "Subaru / Outback \u00b7 C070",
+      "keywords": [
+        "subaru",
+        "outback",
+        "forester",
+        "legacy",
+        "awd",
+        "heated seats"
+      ],
+      "size": 64,
+      "representative_sha256": "eb54c9798c7affa3b26b298fcebb666c9cf515f39e094237e539b91e7e554cad",
+      "mean_membership_strength": 0.9582718216159922
+    },
+    "71": {
+      "name": "Dump / Van \u00b7 C071",
+      "keywords": [
+        "dump",
+        "van",
+        "box truck",
+        "commercial",
+        "work trucks",
+        "box trucks"
+      ],
+      "size": 65,
+      "representative_sha256": "0a2258539f27b1ec4a8abb3743ff10421266ce263181c0c2a300d384a7ff17c4",
+      "mean_membership_strength": 0.8905866322611047
+    },
+    "72": {
+      "name": "Contact Info / Text Contact \u00b7 C072",
+      "keywords": [
+        "contact info",
+        "text contact",
+        "obo",
+        "smog",
+        "clean title",
+        "great condition"
+      ],
+      "size": 136,
+      "representative_sha256": "7ac3028e63f942ac86a887cd8d5f2b86858d52dcb144d1f1dbf96fe99d59925c",
+      "mean_membership_strength": 0.9463915110138614
+    },
+    "73": {
+      "name": "Toyota Camry / Prius \u00b7 C073",
+      "keywords": [
+        "toyota camry",
+        "prius",
+        "nissan altima",
+        "toyota corolla",
+        "le",
+        "cold"
+      ],
+      "size": 211,
+      "representative_sha256": "54ee94bd699f90f8e3aa86744d902d6094eb74aa8b00de3a7886557fdaaeb64e",
+      "mean_membership_strength": 0.7039634570725612
+    },
+    "74": {
+      "name": "Drives Good / Runs Drives \u00b7 C074",
+      "keywords": [
+        "drives good",
+        "runs drives",
+        "drives great",
+        "great gas",
+        "works",
+        "issues"
+      ],
+      "size": 68,
+      "representative_sha256": "6bd74f7547b6a9f0a13d9155bf4f27c21cdafbf0b7d99643c1817fff1daa2212",
+      "mean_membership_strength": 0.9864555399302423
+    },
+    "75": {
+      "name": "Timing Belt / Water Pump \u00b7 C075",
+      "keywords": [
+        "timing belt",
+        "water pump",
+        "new timing",
+        "plugs",
+        "belt water",
+        "spark"
+      ],
+      "size": 139,
+      "representative_sha256": "e5ae110054df08dd97ea615adc808f18d34145f363810802a0ca985d0437406c",
+      "mean_membership_strength": 0.8324650342437331
+    },
+    "76": {
+      "name": "Excellent Condition / Like New \u00b7 C076",
+      "keywords": [
+        "excellent condition",
+        "like new",
+        "miles excellent",
+        "car low",
+        "new condition",
+        "car excellent"
+      ],
+      "size": 75,
+      "representative_sha256": "fa7354dd46650640b2a818deb71c0df41d68aaa0008135a3f168f9e0288529f8",
+      "mean_membership_strength": 0.9681016459979689
+    },
+    "77": {
+      "name": "Original / Corvette \u00b7 C077",
+      "keywords": [
+        "original",
+        "corvette",
+        "parts",
+        "project",
+        "car",
+        "headers"
+      ],
+      "size": 678,
+      "representative_sha256": "7cffe07fba49ab0da1ee8563036f6406f01b25d6b0f5fd608597d5dc652948f8",
+      "mean_membership_strength": 0.6195621781578519
+    },
+    "78": {
+      "name": "Speed Manual / Manual Transmission \u00b7 C078",
+      "keywords": [
+        "speed manual",
+        "manual transmission",
+        "wrx",
+        "subaru",
+        "clutch",
+        "sti"
+      ],
+      "size": 64,
+      "representative_sha256": "4449829ed9cc4b330584852ec4632ed93d35403f8a74902d7ee115dfd7e9fa3f",
+      "mean_membership_strength": 0.9984643445967664
+    },
+    "79": {
+      "name": "Honda Accord / Accord Lx \u00b7 C079",
+      "keywords": [
+        "honda accord",
+        "accord lx",
+        "accord ex",
+        "exl",
+        "good",
+        "runs"
+      ],
+      "size": 46,
+      "representative_sha256": "30a483269aec8893769b0b7bd9feb4bf65422766ba904522e0d7476b1276d3eb",
+      "mean_membership_strength": 0.9935678714199068
+    },
+    "80": {
+      "name": "Honda Civic / Civic Lx \u00b7 C080",
+      "keywords": [
+        "honda civic",
+        "civic lx",
+        "civic ex",
+        "coupe",
+        "works",
+        "minor"
+      ],
+      "size": 67,
+      "representative_sha256": "9992453840d8712dd16aa84b74d5eeaed267799211976f6548b8096f1e051e97",
+      "mean_membership_strength": 0.9295777744059502
+    },
+    "81": {
+      "name": "Yukon / Chevy Tahoe \u00b7 C081",
+      "keywords": [
+        "yukon",
+        "chevy tahoe",
+        "xl",
+        "denali",
+        "gmc",
+        "dvd"
+      ],
+      "size": 66,
+      "representative_sha256": "086aeaa00866556161aeb52401866c2017146adcaa5bb6542db85430adb4efc3",
+      "mean_membership_strength": 0.9997847088538507
+    },
+    "82": {
+      "name": "Bed Liner / Tonneau \u00b7 C082",
+      "keywords": [
+        "bed liner",
+        "tonneau",
+        "cover",
+        "boards",
+        "silverado",
+        "truck"
+      ],
+      "size": 131,
+      "representative_sha256": "e13c9ce52cb12a45b85b738e24b64acbd91a910be17a7a6421a26769875940d2",
+      "mean_membership_strength": 0.8927016635109871
+    },
+    "83": {
+      "name": "Work Truck / Chevy Silverado \u00b7 C083",
+      "keywords": [
+        "work truck",
+        "chevy silverado",
+        "plow",
+        "rust",
+        "gas engine",
+        "great truck"
+      ],
+      "size": 109,
+      "representative_sha256": "3fc379bc6bc614e292a96283dc843705eb2cab6aea6523ea99d10129c8a3a709",
+      "mean_membership_strength": 0.9705792694801555
+    },
+    "84": {
+      "name": "Diesel / Truck \u00b7 C084",
+      "keywords": [
+        "diesel",
+        "truck",
+        "international",
+        "super duty",
+        "dump",
+        "box"
+      ],
+      "size": 322,
+      "representative_sha256": "8b8956f41ea27b248500125e3b6aa1f258808d46dafbb22673d4b4cc7d3071cc",
+      "mean_membership_strength": 0.8663383430011202
+    },
+    "85": {
+      "name": "Dodge Ram / Cummins \u00b7 C085",
+      "keywords": [
+        "dodge ram",
+        "cummins",
+        "bed",
+        "tuner",
+        "diesel",
+        "deleted"
+      ],
+      "size": 66,
+      "representative_sha256": "300b5c02222f98782abfaaae2a4fadea585a966af9b6036eda09ee83db2ff36c",
+      "mean_membership_strength": 0.9169936117878693
+    }
+  },
+  "cluster_count": 86,
+  "training_noise_fraction": 0.38228822882288227,
+  "category_min_count": 100,
+  "common_categories": {
+    "manufacturer": [
+      "acura",
+      "audi",
+      "bmw",
+      "buick",
+      "cadillac",
+      "chevrolet",
+      "chrysler",
+      "dodge",
+      "ford",
+      "gmc",
+      "honda",
+      "hyundai",
+      "infiniti",
+      "jeep",
+      "kia",
+      "lexus",
+      "lincoln",
+      "mazda",
+      "mercedes-benz",
+      "mini",
+      "mitsubishi",
+      "nissan",
+      "pontiac",
+      "ram",
+      "rover",
+      "subaru",
+      "toyota",
+      "volkswagen",
+      "volvo"
+    ],
+    "model": [
+      "1500",
+      "2500",
+      "accord",
+      "altima",
+      "camry",
+      "civic",
+      "corvette",
+      "cr-v",
+      "escape",
+      "explorer",
+      "f-150",
+      "focus",
+      "fusion",
+      "grand cherokee",
+      "mustang",
+      "silverado",
+      "silverado 1500",
+      "tacoma",
+      "wrangler"
+    ],
+    "condition": [
+      "excellent",
+      "fair",
+      "good",
+      "like new"
+    ],
+    "cylinders": [
+      "4 cylinders",
+      "5 cylinders",
+      "6 cylinders",
+      "8 cylinders"
+    ],
+    "fuel": [
+      "diesel",
+      "gas",
+      "hybrid",
+      "other"
+    ],
+    "title_status": [
+      "clean",
+      "lien",
+      "rebuilt",
+      "salvage"
+    ],
+    "transmission": [
+      "automatic",
+      "manual",
+      "other"
+    ],
+    "drive": [
+      "4wd",
+      "fwd",
+      "rwd"
+    ],
+    "type": [
+      "convertible",
+      "coupe",
+      "hatchback",
+      "mini-van",
+      "other",
+      "pickup",
+      "sedan",
+      "suv",
+      "truck",
+      "van",
+      "wagon"
+    ],
+    "paint_color": [
+      "black",
+      "blue",
+      "brown",
+      "custom",
+      "green",
+      "grey",
+      "red",
+      "silver",
+      "white",
+      "yellow"
+    ],
+    "state": [
+      "ak",
+      "al",
+      "ar",
+      "az",
+      "ca",
+      "co",
+      "ct",
+      "dc",
+      "fl",
+      "ga",
+      "hi",
+      "ia",
+      "id",
+      "il",
+      "in",
+      "ks",
+      "ky",
+      "la",
+      "ma",
+      "md",
+      "me",
+      "mi",
+      "mn",
+      "mo",
+      "mt",
+      "nc",
+      "nh",
+      "nj",
+      "nm",
+      "nv",
+      "ny",
+      "oh",
+      "ok",
+      "or",
+      "pa",
+      "sc",
+      "sd",
+      "tn",
+      "tx",
+      "va",
+      "vt",
+      "wa",
+      "wi"
+    ]
+  },
+  "text_weight": 0.65,
+  "category_weight": 0.2,
+  "numeric_weight": 0.14999999999999997,
+  "numeric_fields": [
+    "year",
+    "odometer"
+  ],
+  "numeric_transform": "training quantile rank encoded as [q, 1-q]",
+  "distance": "weighted block-normalized Hellinger",
+  "umap": {
+    "n_neighbors": 30,
+    "n_components": 10,
+    "min_dist": 0,
+    "metric": "hellinger",
+    "seed": 42
+  },
+  "hdbscan": {
+    "min_cluster_size": 40,
+    "min_samples": 10
+  },
+  "naming": "centroid TF-IDF \u00d7 smoothed positive log lift; minimum 8% cluster term support",
+  "minimum_assignment_strength": 0.3,
+  "source": "Tom, Used Cars Dataset, Zenodo 10457828, CC BY 4.0",
+  "source_url": "https://zenodo.org/records/10457828",
+  "seed": 42,
+  "available_unique_training_descriptions": 145703,
+  "training_selection": "Deterministic SHA256(seed:row_id) ranking within original train phase",
+  "original_split": "scripts.prepare_all chronological 70/15/15; original eligibility and VIN/text deduplication",
+  "holdout_selection": "Deterministic samples; normalized descriptions occurring anywhere in train excluded",
+  "holdouts": {
+    "validation": {
+      "rows": 1000,
+      "assigned": 429,
+      "assignment_fraction": 0.429,
+      "vocabulary_usable_fraction": 1.0,
+      "median_assigned_strength": 0.8650828118697985,
+      "clusters_reached": 71
+    },
+    "test": {
+      "rows": 1000,
+      "assigned": 455,
+      "assignment_fraction": 0.455,
+      "vocabulary_usable_fraction": 1.0,
+      "median_assigned_strength": 0.9375021893676571,
+      "clusters_reached": 73
+    }
+  },
+  "price_features_used": false,
+  "limitations": [
+    "Unsupervised groups, no validated dealer/private labels or classification accuracy.",
+    "Coverage is not accuracy; membership strength is not calibrated probability.",
+    "UMAP distorts density; clusters may follow boilerplate, geography or vehicle makes.",
+    "Weights and rejection threshold are explicit heuristics, not supervised optima.",
+    "Historical Craigslist asking adverts, not auction bid descriptions."
+  ],
+  "fit_and_diagnostics_seconds": 103.5,
+  "versions": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "scikit-learn": "1.8.0",
+    "umap-learn": "0.5.12",
+    "hdbscan": "0.8.44",
+    "numba": "0.68.1",
+    "llvmlite": "0.50.0",
+    "pynndescent": "0.7.0",
+    "joblib": "1.5.3"
+  },
+  "projection": "Frozen UMAP embedding; exact weighted Hellinger reference distances; UMAP precomputed-distance transform"
+}
