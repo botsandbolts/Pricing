@@ -37,6 +37,12 @@ The privacy details show a safe collection status for the current session only;
 no database records or credentials are displayed. `pending` is not a success.
 `visitor_saved` confirms an acknowledged visitor upsert; `price_saved` confirms
 an acknowledged price insert. The status is refreshed on the next Python rerun.
+After consent, **Privacy & cookies → What we collect & your choices → Check
+collection connection** runs a fresh check without the failure cooldown. It first
+executes `SELECT 1`, then idempotent schema setup and a visitor upsert. The check
+does nothing without valid consent. Its status is included when the component is
+mounted, avoiding a stale `pending` result. It never displays rows or secrets.
+
 Failures log only a stage and an allowlisted code, never exception text, SQL
 arguments, database URL, token or response body.
 
@@ -45,6 +51,14 @@ arguments, database URL, token or response body.
   `TURSO_DATABASE_URL` belongs to this database and `TURSO_AUTH_TOKEN` is its full,
   unexpired database token with read/write permission. A Turso platform/API token,
   token from another database, truncated token or placeholder will not work.
+- `connection_check:token_format_rejected`, `token_signature_rejected`,
+  `token_expired`, `token_not_yet_valid`, or `token_scope_rejected`: the provider
+  message identifies that specific category. `authentication_400` is still
+  inconclusive beyond an authentication-related HTTP rejection. Code does not
+  reject a token merely because it is not a conventional three-part JWT, and it
+  never reconstructs a token from screenshots or attempts to repair signatures.
+- `schema_setup:*`, `visitor_write:*`, `price_write:*`, `retention:*`: distinguish
+  successful connectivity from later schema, insert and cleanup failures.
 - `network`, `timeout`, `http_NNN`: service/network failure; check server logs and
   retry after the 60-second cooldown.
 - `database_statement`: SQL rejected; inspect schema and permissions privately.
@@ -54,6 +68,10 @@ arguments, database URL, token or response body.
 Keep tokens in Streamlit Secrets; never paste them into a chat or Git. After
 correcting secrets and reloading the app, accept analytics, submit a valid car,
 and verify linked rows in **both** Turso tables. Rejection must prevent new writes.
+Streamlit Secrets are authoritative when a key is present; environment variables
+are a fallback for CLI/local deployments. This avoids an older environment mirror
+overriding a newly saved secret. A source-code change or passing local tests alone
+does not establish that the live deployment's credentials are valid.
 
 ## Consent and data
 

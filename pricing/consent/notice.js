@@ -1,5 +1,5 @@
 export default function(component) {
-  const {parentElement: root, data, setStateValue} = component;
+  const {parentElement: root, data, setStateValue, setTriggerValue} = component;
   const dialog = root.querySelector('dialog');
   const prefName = 'pricing_consent';
   const visitorName = 'pricing_visitor';
@@ -71,6 +71,7 @@ export default function(component) {
       } catch {payload={choice:'rejected',version:data.version};clearIdentity();}
     }
     root.querySelector('#visitor').textContent=payload.visitor_id ? 'Your analytics visitor ID: '+payload.visitor_id : 'No analytics visitor ID is active.';
+    root.querySelector('#check-connection').hidden = !(payload.choice === 'accepted' && data.enabled);
     // A rerender must not create a Python rerun loop.
     const serialized=JSON.stringify(payload);
     if (payload.choice !== 'unknown' && root.__publishedConsent !== serialized && JSON.stringify(data.current) !== serialized) {
@@ -80,6 +81,12 @@ export default function(component) {
   };
   root.querySelector('#privacy').onclick=()=>dialog.showModal();
   root.querySelector('#close').onclick=()=>dialog.close();
+  root.querySelector('#check-connection').onclick=()=>{
+    if (pref?.choice === 'accepted' && data.enabled) {
+      root.querySelector('#delivery').textContent='Checking collection connection…';
+      setTriggerValue('check_connection',true);
+    }
+  };
   for (const choice of ['accepted','rejected']) {
     root.querySelector(choice==='accepted'?'#accept':'#reject').onclick=()=>{
       pref={choice,version:data.version,at:new Date().toISOString()};

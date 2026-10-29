@@ -19,15 +19,15 @@ function fixture(enabled=true) {
     if(!nodes.has(key))nodes.set(key,{textContent:'',open:false,showModal(){this.open=true},close(){this.open=false}});
     return nodes.get(key);
   }};
-  let fetches=0, outputs=[];
+  let fetches=0, outputs=[], triggers=[];
   const context=vm.createContext({document,sessionStorage:{getItem:k=>storage.get(k)||null,
     setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     crypto:globalThis.crypto,navigator:{userAgent:'Chrome/123 Mobi'},AbortSignal,
     fetch:async()=>{fetches++;return {ok:true,json:async()=>({country_code:'DE',city:'Berlin',region:'Berlin',ip:'SECRET_IP',latitude:'SECRET_COORDINATE'})}},
     data:{enabled,version:'v1',geo_mode:'geojs',controller:'Test operator',contact:'Test contact'},root,
-    send:(key,value)=>outputs.push(value)});
-  vm.runInContext(code+'\nrender({parentElement:root,data,setStateValue:send});',context);
-  return {cookies,storage,nodes,get fetches(){return fetches},get outputs(){return outputs},context};
+    send:(key,value)=>outputs.push(value),trigger:(key,value)=>triggers.push({key,value})});
+  vm.runInContext(code+'\nrender({parentElement:root,data,setStateValue:send,setTriggerValue:trigger});',context);
+  return {cookies,storage,nodes,get fetches(){return fetches},get outputs(){return outputs},triggers,context};
 }
 
 test('no analytics ID, lookup or device data before consent; rejection stays off',async()=>{
@@ -56,4 +56,16 @@ test('disabled integration makes no lookup and does not auto-open a consent soli
   const f=fixture(false);await new Promise(setImmediate);
   assert.equal(f.nodes.get('dialog').open,false);assert.equal(f.nodes.get('#accept').disabled,true);
   assert.equal(f.fetches,0);assert.equal(f.storage.size,0);
+});
+
+test('connection retry is available only after consent and never contains credentials',async()=>{
+  const f=fixture();await new Promise(setImmediate);
+  f.nodes.get('#check-connection').onclick();assert.equal(f.triggers.length,0);
+  f.nodes.get('#accept').onclick();await new Promise(setImmediate);
+  assert.equal(f.nodes.get('#check-connection').hidden,false);
+  f.nodes.get('#check-connection').onclick();
+  assert.deepEqual(f.triggers,[{key:'check_connection',value:true}]);
+  f.nodes.get('#reject').onclick();await new Promise(setImmediate);
+  assert.equal(f.nodes.get('#check-connection').hidden,true);
+  f.nodes.get('#check-connection').onclick();assert.equal(f.triggers.length,1);
 });

@@ -32,23 +32,37 @@ VEHICLE_FIELDS = {'year', 'manufacturer', 'model', 'odometer', 'type', 'fuel',
                   'paint_color', 'state', 'auction_condition'}
 
 
-def _failure(stage, error):
-    """Safe diagnostics: never log exception text, request bodies or credentials."""
-    import streamlit as st
+def failure_code(error):
+    """Return only allowlisted categories; provider messages never leave this function."""
     code = 'internal'
     if isinstance(error, requests.HTTPError):
         status = error.response.status_code if error.response is not None else 0
         code = 'authentication_' + str(status) if status in (401, 403) else 'http_' + str(status)
-        if status == 400 and error.response is not None:
+        if status in (400, 401, 403) and error.response is not None:
             # Classify locally; never expose the provider's raw error message.
             body = error.response.text[:4096].lower()
-            if any(word in body for word in ('jwt', 'token', 'authorization', 'authentication')):
-                code = 'authentication_400'
-            elif 'want_rows' in body:
+            auth_error = any(word in body for word in ('jwt', 'authorization', 'authentication',
+                                                      'auth token', 'invalid token', 'token expired'))
+            if auth_error:
+                if 'expired' in body or 'expiration' in body:
+                    code = 'token_expired'
+                elif any(word in body for word in ('not yet valid', 'issued in the future', 'immature')):
+                    code = 'token_not_yet_valid'
+                elif 'signature' in body:
+                    code = 'token_signature_rejected'
+                elif any(word in body for word in ('base64', 'decode', 'parse', 'malformed',
+                                                  'segment', 'format', 'deserialize')):
+                    code = 'token_format_rejected'
+                elif any(word in body for word in ('scope', 'permission', 'database mismatch',
+                                                  'audience', 'namespace')):
+                    code = 'token_scope_rejected'
+                else:
+                    code = 'authentication_' + str(status)
+            elif status == 400 and 'want_rows' in body:
                 code = 'protocol_want_rows'
-            elif 'baton' in body:
+            elif status == 400 and 'baton' in body:
                 code = 'protocol_baton'
-            elif any(word in body for word in ('deserialize', 'json', 'missing field')):
+            elif status == 400 and any(word in body for word in ('deserialize', 'json', 'missing field')):
                 code = 'protocol_json'
     elif isinstance(error, requests.Timeout):
         code = 'timeout'
@@ -58,6 +72,13 @@ def _failure(stage, error):
         code = 'configuration'
     elif isinstance(error, RuntimeError):
         code = 'database_statement'
+    return code
+
+
+def _failure(stage, error):
+    """Safe diagnostics: never log exception text, request bodies or credentials."""
+    import streamlit as st
+    code = failure_code(error)
     st.session_state['_analytics_status'] = stage + ':' + code
     logging.getLogger(__name__).warning('Analytics unavailable stage=%s code=%s', stage, code)
 
@@ -184,13 +205,14 @@ class TursoStore:
 
 def _setting(name, default=''):
     import streamlit as st
-    value = os.getenv(name)
-    if value is not None:
-        return value
+    # Streamlit mirrors root string secrets into os.environ. Reading that mirror
+    # first can hide an updated secret. The current secrets file is authoritative.
     try:
-        return st.secrets.get(name, default)
+        if name in st.secrets:
+            return st.secrets[name]
     except Exception:
-        return default
+        pass
+    return os.getenv(name, default)
 
 
 def configured():
@@ -271,6 +293,38 @@ def render_privacy():
         _failure('consent_component', error)
 
 
+def _persist_visit(consent, retry=False):
+    """Check auth with SELECT 1, then acknowledge a real visitor upsert."""
+    import streamlit as st
+    if not configured() or not valid_consent(consent):
+        return
+    stage = 'connection_setup'
+    try:
+        store = _store()
+        if retry:
+            store.retry_after = 0
+        if time.monotonic() < store.retry_after:
+            return
+        marker = consent['visitor_id'] + ':' + consent['session_id']
+        if retry or st.session_state.get('_analytics_visit') != marker:
+            stage = 'connection_check'
+            store.execute('SELECT 1')
+            stage = 'schema_setup'
+            store.initialize()
+            stage = 'visitor_write'
+            store.visit(consent, _location())
+            st.session_state['_analytics_visit'] = marker
+            st.session_state['_analytics_status'] = 'visitor_saved'
+        if time.monotonic() - store.last_purge > 3600:
+            stage = 'retention'
+            store.purge()
+            store.last_purge = time.monotonic()
+    except Exception as error:
+        _failure(stage, error)
+        if 'store' in locals():
+            store.retry_after = time.monotonic() + 60
+
+
 def _render_privacy_impl():
     import streamlit as st
     from pathlib import Path
@@ -279,33 +333,23 @@ def _render_privacy_impl():
     component = components.component('pricing_consent', html=(folder/'notice.html').read_text(),
         js=(folder/'notice.js').read_text(), css=(folder/'notice.css').read_text())
     enabled = configured()
+    previous = st.session_state.get('pricing_privacy') or {}
+    consent = previous.get('consent')
+    st.session_state['_analytics_consent'] = consent if enabled and valid_consent(consent) else None
+    # Process the persisted component state before mounting, so the browser sees
+    # the result of this check immediately instead of a one-rerun-old "pending".
+    _persist_visit(consent, retry=bool(previous.get('check_connection')))
     result = component(key='pricing_privacy', data={'enabled': enabled, 'version': CONSENT_VERSION,
-        'current': (st.session_state.get('pricing_privacy') or {}).get('consent'),
+        'current': consent,
         'geo_mode': _setting('ANALYTICS_GEO_MODE', 'geojs'),
         'backend_status': st.session_state.get('_analytics_status', 'pending'),
         'controller': _setting('ANALYTICS_CONTROLLER_NAME', 'Car Price Studio operator'),
         'contact': _setting('ANALYTICS_CONTROLLER_CONTACT', 'Contact the studio operator')},
-        on_consent_change=lambda: None)
+        on_consent_change=lambda: None, on_check_connection_change=lambda: None)
     consent = result.consent
     st.session_state['_analytics_consent'] = consent if valid_consent(consent) and enabled else None
     if consent and not valid_consent(consent) and consent.get('choice') == 'accepted':
         st.session_state['_analytics_status'] = 'consent:invalid'
     if not enabled or not valid_consent(consent):
         return
-    try:
-        store = _store()
-        if time.monotonic() < store.retry_after:
-            return
-        marker = consent['visitor_id'] + ':' + consent['session_id']
-        if st.session_state.get('_analytics_visit') != marker:
-            store.initialize()
-            store.visit(consent, _location())
-            st.session_state['_analytics_visit'] = marker
-            st.session_state['_analytics_status'] = 'visitor_saved'
-        if time.monotonic() - store.last_purge > 3600:
-            store.purge()
-            store.last_purge = time.monotonic()
-    except Exception as error:
-        _failure('visitor_write', error)
-        if 'store' in locals():
-            store.retry_after = time.monotonic() + 60
+    _persist_visit(consent)

@@ -7,7 +7,8 @@ import pytest
 import requests
 
 from pricing.analytics import (SCHEMA, CONSENT_VERSION, TursoStore, valid_consent,
-    safe_vehicle, country_from_headers, record_price, _failure)
+    safe_vehicle, country_from_headers, record_price, _failure, failure_code,
+    _setting, _persist_visit)
 from pricing.geo import approximate_location
 
 
@@ -136,3 +137,63 @@ def test_price_event_saves_linked_rows_and_only_marks_success_after_write():
         assert s.db.execute('SELECT COUNT(*) FROM visitors').fetchone()[0] == 1
         assert s.db.execute('SELECT COUNT(*) FROM pricing_queries').fetchone()[0] == 1
         assert s.db.execute('SELECT country,city,price_usd FROM pricing_queries').fetchone() == ('DE','Berlin',12996)
+
+
+@pytest.mark.parametrize('message,expected', [
+    ('Invalid JWT: token has expired SECRET', 'token_expired'),
+    ('Invalid auth token: JWT not yet valid SECRET', 'token_not_yet_valid'),
+    ('JWT signature verification failed SECRET', 'token_signature_rejected'),
+    ('Failed to parse auth token: invalid base64 SECRET', 'token_format_rejected'),
+    ('JWT audience or namespace mismatch SECRET', 'token_scope_rejected'),
+    ('Invalid auth token SECRET', 'authentication_400'),
+    ('JSON missing field want_rows SECRET', 'protocol_want_rows'),
+    ('Invalid baton SECRET', 'protocol_baton'),
+    ('Failed to deserialize JSON SECRET', 'protocol_json'),
+    ('SQL unexpected token near SECRET', 'http_400'),
+])
+def test_provider_errors_are_allowlisted_and_sql_token_is_not_auth(message, expected):
+    response = requests.Response(); response.status_code = 400
+    response._content = message.encode()
+    assert failure_code(requests.HTTPError(response=response)) == expected
+
+
+def test_current_streamlit_secret_wins_over_environment_mirror():
+    import streamlit as st
+    with patch.dict('os.environ', {'TURSO_AUTH_TOKEN':'old-mirror'}), \
+         patch.object(st, 'secrets', {'TURSO_AUTH_TOKEN':'current-secret'}):
+        assert _setting('TURSO_AUTH_TOKEN') == 'current-secret'
+    with patch.dict('os.environ', {'TURSO_AUTH_TOKEN':'cli-secret'}), \
+         patch.object(st, 'secrets', {}):
+        assert _setting('TURSO_AUTH_TOKEN') == 'cli-secret'
+
+
+def test_connection_check_reports_auth_stage_and_never_initializes_on_failure():
+    import streamlit as st
+    response = requests.Response(); response.status_code = 400
+    response._content = b'Failed to parse auth token: invalid base64 SECRET'
+    s = Mock(retry_after=0, last_purge=0)
+    s.execute.side_effect = requests.HTTPError(response=response)
+    with patch.dict(st.session_state, {}, clear=True), \
+         patch('pricing.analytics.configured', return_value=True), \
+         patch('pricing.analytics._store', return_value=s):
+        _persist_visit(consent(), retry=True)
+        s.execute.assert_called_once_with('SELECT 1')
+        s.initialize.assert_not_called(); s.visit.assert_not_called()
+        assert st.session_state['_analytics_status'] == 'connection_check:token_format_rejected'
+        assert s.retry_after > 0
+
+
+def test_visit_check_is_consent_only_and_idempotent():
+    import streamlit as st
+    s = LocalStore(); c = consent()
+    geo = dict(country='DE', city='Berlin', region='Berlin', geo_provider='GeoJS / MaxMind GeoLite')
+    with patch.dict(st.session_state, {}, clear=True), \
+         patch('pricing.analytics.configured', return_value=True), \
+         patch('pricing.analytics._store', return_value=s) as connect, \
+         patch('pricing.analytics._location', return_value=geo):
+        _persist_visit(None, retry=True)
+        connect.assert_not_called()
+        for retry in (False, False, True):
+            _persist_visit(c, retry=retry)
+        assert st.session_state['_analytics_status'] == 'visitor_saved'
+        assert s.db.execute('SELECT COUNT(*) FROM visitors').fetchone()[0] == 1
