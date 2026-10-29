@@ -38,7 +38,7 @@ def _failure(stage, error):
     code = 'internal'
     if isinstance(error, requests.HTTPError):
         status = error.response.status_code if error.response is not None else 0
-        code = 'authentication' if status in (401, 403) else 'http_' + str(status)
+        code = 'authentication_' + str(status) if status in (401, 403) else 'http_' + str(status)
     elif isinstance(error, requests.Timeout):
         code = 'timeout'
     elif isinstance(error, requests.ConnectionError):
@@ -237,6 +237,7 @@ def record_price(side, price, fields, model, source, valuation_date=None, event_
             return True
         store.visit(consent, location)
         store.query(consent, location, query_id, side, price, model, source, valuation_date, fields)
+        st.session_state['_analytics_status'] = 'price_saved'
         done.add(query_id)
         if len(done) > 1000:
             done.clear()

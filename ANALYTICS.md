@@ -24,8 +24,36 @@ The privacy notice is public; the records are private.
 5. Administrator health check: with credentials in environment, run
    `python -m scripts.analytics_admin check`. It prints counts only.
 
-No authenticated Turso account or database token was available during development;
-live database provisioning and end-to-end writes require that account connection.
+The database and tables have been provisioned. On 29 October 2026, a live
+consented visit reached the backend but Turso rejected authentication. The running
+calculator and enabled consent dialog do **not** prove that records were saved.
+Correct the deployment credential and verify both tables before calling collection
+operational. Events that failed before being stored cannot be reconstructed by
+this app (there is deliberately no visitor-data buffer).
+
+### Delivery diagnostics
+
+The privacy details show a safe collection status for the current session only;
+no database records or credentials are displayed. `pending` is not a success.
+`visitor_saved` confirms an acknowledged visitor upsert; `price_saved` confirms
+an acknowledged price insert. The status is refreshed on the next Python rerun.
+Failures log only a stage and an allowlisted code, never exception text, SQL
+arguments, database URL, token or response body.
+
+- `visitor_write:authentication_401` / `_403`: Turso rejected the credential or
+  access. In Streamlit's **pricing app → Settings → Secrets**, check that
+  `TURSO_DATABASE_URL` belongs to this database and `TURSO_AUTH_TOKEN` is its full,
+  unexpired database token with read/write permission. A Turso platform/API token,
+  token from another database, truncated token or placeholder will not work.
+- `network`, `timeout`, `http_NNN`: service/network failure; check server logs and
+  retry after the 60-second cooldown.
+- `database_statement`: SQL rejected; inspect schema and permissions privately.
+- `consent:invalid`: browser consent is missing valid IDs/version/timestamp.
+- `consent_component:*`: component failed; collection stays off.
+
+Keep tokens in Streamlit Secrets; never paste them into a chat or Git. After
+correcting secrets and reloading the app, accept analytics, submit a valid car,
+and verify linked rows in **both** Turso tables. Rejection must prevent new writes.
 
 ## Consent and data
 

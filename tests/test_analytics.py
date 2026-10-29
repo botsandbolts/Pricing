@@ -4,9 +4,10 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, Mock
 
 import pytest
+import requests
 
 from pricing.analytics import (SCHEMA, CONSENT_VERSION, TursoStore, valid_consent,
-    safe_vehicle, country_from_headers, record_price)
+    safe_vehicle, country_from_headers, record_price, _failure)
 from pricing.geo import approximate_location
 
 
@@ -106,3 +107,30 @@ def test_database_failure_never_breaks_prediction():
          patch('pricing.analytics._store',return_value=broken):
         assert not record_price('bid',100,{},'model','test')
         assert broken.retry_after > 0
+
+
+def test_authentication_diagnostic_never_exposes_secret_or_response(caplog):
+    import streamlit as st
+    response = requests.Response(); response.status_code = 401
+    error = requests.HTTPError('SECRET_TOKEN_AND_SERVER_BODY', response=response)
+    with patch.dict(st.session_state, {}, clear=True):
+        _failure('visitor_write', error)
+        assert st.session_state['_analytics_status'] == 'visitor_write:authentication_401'
+    assert 'SECRET_TOKEN_AND_SERVER_BODY' not in caplog.text
+    assert 'stage=visitor_write code=authentication_401' in caplog.text
+
+
+def test_price_event_saves_linked_rows_and_only_marks_success_after_write():
+    import streamlit as st
+    s = LocalStore(); c = consent()
+    geo = dict(country='DE', city='Berlin', region='Berlin', geo_provider='GeoJS / MaxMind GeoLite')
+    with patch.dict(st.session_state, {'_analytics_consent':c}, clear=True), \
+         patch('pricing.analytics.configured', return_value=True), \
+         patch('pricing.analytics._store', return_value=s), \
+         patch('pricing.analytics._location', return_value=geo):
+        for _ in range(2):
+            assert record_price('ask', 12996, {'year':2015}, 'aft', 'calculator', event_key='same-request')
+        assert st.session_state['_analytics_status'] == 'price_saved'
+        assert s.db.execute('SELECT COUNT(*) FROM visitors').fetchone()[0] == 1
+        assert s.db.execute('SELECT COUNT(*) FROM pricing_queries').fetchone()[0] == 1
+        assert s.db.execute('SELECT country,city,price_usd FROM pricing_queries').fetchone() == ('DE','Berlin',12996)
