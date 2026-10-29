@@ -24,3 +24,8 @@ scipy>=1.11,<2
 
 # Optional local IP-to-country/city analytics; no remote IP lookup service.
 maxminddb>=2.6,<4
+
+# Deal Detective: local screenshot OCR and native share-card/QR rendering.
+Pillow>=10.4,<13
+pytesseract>=0.3.13,<0.4
+qrcode>=8,<9

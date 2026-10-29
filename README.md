@@ -1,3 +1,5 @@
+> **Deal Detective + social sharing:** import an advert/screenshot, compare a three-car shortlist, explore historical sales, play the price challenge, and download landscape/portrait PNG cards with QR links. Share through WhatsApp, LinkedIn, Facebook, Reddit, email or your device. Vehicle links are opt-in and omit seller text/visitor IDs. [Features, privacy, provenance and limitations](DEAL_DETECTIVE.md).
+
 > **New studio design and experimental Value over time panel.** Current-value Ask/Bid scenarios separate categorical depreciation from a release-aware market clock, with an interactive same-car timeline and optional annual mileage. The historical MiniLM+AFT Ask and quantile-0.5 Bid weights are unchanged. [Method, research projects, backtests and limitations](TIME_TRANSPORT.md).
 
 > **Default: MiniLM + CatBoost normal AFT for asking prices.**

@@ -1,0 +1,29 @@
+name: Deal Detective release checks
+on:
+  push:
+    paths: ['pricing/deal*', 'pricing/social/**', 'pricing/sale_feedback.py', 'pricing/analytics.py', 'data/deal-reference.json.gz', 'tests/test_deal*', 'tests/test_social*', 'tests/test_sale*', '.github/workflows/deal-detective-tests.yml']
+  pull_request:
+    paths: ['pricing/deal*', 'pricing/social/**', 'pricing/sale_feedback.py', 'pricing/analytics.py', 'data/deal-reference.json.gz', 'tests/test_deal*', 'tests/test_social*', 'tests/test_sale*']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            tests
+            data
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng fonts-dejavu-core
+      - run: pip install pytest requests pandas 'streamlit==1.66.1' 'Pillow>=10.4,<13' 'pytesseract>=0.3.13,<0.4' 'qrcode>=8,<9'
+      - run: python -m pytest tests/test_deal_tools.py tests/test_deal_ui.py tests/test_sale_feedback.py tests/test_analytics.py -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/test_social_share.mjs
+      - run: node --test tests/test_analytics_consent.mjs

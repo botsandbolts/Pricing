@@ -211,3 +211,8 @@ lawful deployment configuration remain deployment responsibilities.
 
 Protocol: https://docs.turso.tech/sdk/http/quickstart
 Component: https://docs.streamlit.io/develop/concepts/custom-components/components-v2/communicate
+
+
+## Optional private sale feedback
+
+Deal Detective uses separate `sale_outcomes` and `sale_evidence` tables after explicit form permission, independent of visitor analytics. There is no visitor-ID join and no public feedback dashboard. New records start unverified and are excluded from automatic training. Evidence is contributor-redacted, metadata-stripped JPEG; both tables are purged after 90 days when retention runs. Own-feedback deletion uses a private random key. See [feedback handling and operator review](DEAL_DETECTIVE.md).

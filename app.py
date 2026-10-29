@@ -100,7 +100,7 @@ def get_pipeline(location):
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
 st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
-value,compare,time_panel,how,results,laboratory,detective=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective'])
+value,compare,time_panel,how,results,laboratory,detective=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective'],key='studio_tabs',default='🕵️ Deal Detective' if st.query_params.get('garage') else '🚗 Price my car',on_change='rerun')
 with laboratory:
     from pricing.suite_ui import render
     render(Path(__file__).parent)
@@ -166,6 +166,8 @@ with value:
                 st.caption(f"{car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
                 st.metric('Estimated asking price',f"${result['price']:,.0f}")
                 st.caption('Historical advertised-price estimate. Seller optimism, with a statistical chaperone.')
+                from pricing.deal_detective import open_share
+                st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='open_share')
                 st.info('Want today’s value? Open 📅 Value over time for date-adjusted Ask/Bid scenarios and the interactive timeline.')
                 if result.get('range') is not None:
                     st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
@@ -254,8 +256,9 @@ with results:
         else:st.caption('The ensemble band is calibrated on historical validation residuals; no individual or future-market coverage guarantee is claimed.')
     else:st.info('This mode has no completed evaluation. Train MiniLM to enable it; baseline scores do not apply.')
 
-footer()
-
 with detective:
     from pricing.deal_detective import render as render_detective
-    render_detective()
+    from pricing.deal_runtime import bid_estimate
+    render_detective(lambda text,fields:get_pipeline(str(path)).predict(text,fields,explain=False),bid_estimate,str(path))
+
+footer()

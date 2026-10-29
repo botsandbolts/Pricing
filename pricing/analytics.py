@@ -168,6 +168,8 @@ def country_from_headers(headers, trusted_header=''):
 def _arg(value):
     if value is None:
         return {'type': 'null'}
+    if isinstance(value, bytes):
+        return {'type': 'blob', 'base64': base64.b64encode(value).decode('ascii')}
     if isinstance(value, (int, float)):
         return {'type': 'float', 'value': float(value)}
     return {'type': 'text', 'value': str(value)}
@@ -188,9 +190,12 @@ class TursoStore:
         self.last_purge = 0
 
     def execute(self, sql, args=()):
+        return self._send({'type':'execute','stmt':{'sql':sql,
+            'args':[_arg(v) for v in args], 'named_args':[], 'want_rows':True}})
+
+    def _send(self, request):
         response = requests.post(self.endpoint, headers={'Authorization': 'Bearer ' + self.token},
-            json={'baton': None, 'requests': [{'type': 'execute', 'stmt': {'sql': sql,
-                'args': [_arg(v) for v in args], 'named_args': [], 'want_rows': True}}, {'type': 'close'}]},
+            json={'baton': None, 'requests': [request, {'type': 'close'}]},
             timeout=(2, 3), allow_redirects=False)
         try:
             response.raise_for_status()
@@ -201,6 +206,20 @@ class TursoStore:
         if result.get('type') != 'ok':
             raise RuntimeError('Turso rejected analytics statement')
         return result['response']['result']
+
+    def atomic(self, statements):
+        """Hrana conditional batch: never commit after a failed statement."""
+        steps=[{'stmt':{'sql':'BEGIN IMMEDIATE'}}]
+        for sql,args in statements:
+            steps.append({'condition':{'type':'ok','step':len(steps)-1},
+                'stmt':{'sql':sql,'args':[_arg(v) for v in args]}})
+        commit=len(steps)
+        steps.append({'condition':{'type':'ok','step':commit-1},'stmt':{'sql':'COMMIT'}})
+        steps.append({'condition':{'type':'not','cond':{'type':'ok','step':commit}},'stmt':{'sql':'ROLLBACK'}})
+        result=self._send({'type':'batch','batch':{'steps':steps}})
+        if any(result.get('step_errors',[])) or not result.get('step_results',[None]*(commit+1))[commit]:
+            raise RuntimeError('Turso rejected transaction')
+        return result
 
     def initialize(self):
         if not self.ready:
@@ -213,6 +232,8 @@ class TursoStore:
         self.execute('DELETE FROM pricing_queries WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM visitors WHERE last_seen < ? AND NOT EXISTS '
                      '(SELECT 1 FROM pricing_queries q WHERE q.visitor_id=visitors.visitor_id)', [cutoff])
+        from pricing.sale_feedback import purge
+        purge(self)
 
     def visit(self, consent, location):
         now = utcnow()

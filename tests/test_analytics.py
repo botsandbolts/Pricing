@@ -27,6 +27,12 @@ class LocalStore(TursoStore):
     def execute(self, sql, args=()):
         return self.db.execute(sql, args)
 
+    def atomic(self, statements):
+        self.db.commit()
+        with self.db:
+            for sql, args in statements:
+                self.db.execute(sql, args)
+
 
 def test_consent_is_explicit_versioned_and_expiring():
     c = consent()
