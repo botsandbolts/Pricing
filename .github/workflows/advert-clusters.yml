@@ -1,9 +1,9 @@
 name: Advert cluster serving checks
 on:
   push:
-    paths: ['app.py', 'pricing/advert_cluster*', 'scripts/train_advert_clusters.py', 'models/advert-clusters/**', 'tests/test_advert_cluster*', 'requirements-clustering.txt', '.github/workflows/advert-clusters.yml']
+    paths: ['app.py', 'pricing/advert_cluster*', 'scripts/*advert_clusters.py', 'models/advert-clusters/**', 'tests/test_advert_cluster*', 'requirements-clustering.txt', '.github/workflows/advert-clusters.yml']
   pull_request:
-    paths: ['app.py', 'pricing/advert_cluster*', 'scripts/train_advert_clusters.py', 'models/advert-clusters/**', 'tests/test_advert_cluster*', 'requirements-clustering.txt']
+    paths: ['app.py', 'pricing/advert_cluster*', 'scripts/*advert_clusters.py', 'models/advert-clusters/**', 'tests/test_advert_cluster*', 'requirements-clustering.txt']
 permissions:
   contents: read
 jobs:

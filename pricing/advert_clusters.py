@@ -7,13 +7,15 @@ import html
 import io
 import json
 import re
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.preprocessing import OneHotEncoder, normalize
+from sklearn.preprocessing import normalize
+from urllib.parse import quote, unquote
 
 CATEGORIES = ('manufacturer', 'model', 'condition', 'cylinders', 'fuel',
               'title_status', 'transmission', 'drive', 'type', 'paint_color', 'state')
@@ -56,20 +58,33 @@ def category_frame(records):
                         for key in CATEGORIES}, index=records.index)
 
 
+def categorical_tokens(records):
+    """Field-qualified categorical values; preserve rare values and digits."""
+    return [[f'cat:{key}={quote(value, safe="")}' for key, value in row.items()
+             if value not in MISSING]
+            for row in category_frame(records).to_dict(orient='records')]
+
+
+def identity_tokens(tokens):
+    return tokens
+
+
+def token_documents(records, word_vectorizer):
+    analyzer = word_vectorizer.build_analyzer()
+    words = [analyzer(clean_description(text)) for text in records.text.fillna('')]
+    return [w+c for w,c in zip(words, categorical_tokens(records))]
+
+
 def encode(bundle, records):
-    texts = records['text'].fillna('').map(clean_description)
-    tfidf = bundle['vectorizer'].transform(texts).astype(np.float32)
-    categories = bundle['encoder'].transform(category_frame(records)).astype(np.float32)
+    documents = token_documents(records, bundle['word_vectorizer'])
+    tfidf = bundle['vectorizer'].transform(documents).astype(np.float32)
     numbers = numeric_block(bundle, records)
-    # L1-normalize blocks separately, preserving the explicit 65/20/15 balance.
-    # Hellinger internally normalizes the joint distribution. If no category is
-    # recognized, all available probability mass belongs to text.
+    # Categories share TF-IDF with language, with no separate dummy block.
     features = normalize(sparse.hstack([
-        normalize(tfidf, norm='l1') * bundle['text_weight'],
-        normalize(categories, norm='l1') * bundle['category_weight'],
+        normalize(tfidf, norm='l1') * bundle['tfidf_weight'],
         normalize(numbers, norm='l1') * bundle['numeric_weight']
     ], format='csr'), norm='l1').astype(np.float32)
-    usable = (texts.str.split().str.len().to_numpy() >= 5) & (tfidf.getnnz(axis=1) >= 2)
+    usable = tfidf.getnnz(axis=1) >= 2
     return features, tfidf, usable
 
 
@@ -97,6 +112,7 @@ def distinctive_terms(tfidf, labels, terms, limit=6):
                 break
         if not selected:
             selected = [str(terms[i]) for i in np.argsort(centroid)[-limit:][::-1]]
+        selected = [unquote(t[4:]).replace('=', ': ') if t.startswith('cat:') else t for t in selected]
         summaries[str(label)] = {'name': ' / '.join(t.title() for t in selected[:2]) + f' · C{label:03d}',
                                  'keywords': selected, 'size': int(rows.shape[0])}
     return summaries
@@ -136,31 +152,24 @@ class FrozenProjection:
             return reducer.transform(distances)
 
 
-def fit(records, *, seed=42, text_weight=.65, category_weight=.20, min_category_count=30,
-        min_category_fraction=.005, min_cluster_size=40, min_samples=10):
+def fit(records, *, seed=42, n_neighbors=10, n_components=5, min_dist=0.,
+        min_cluster_size=15, min_samples=1):
     import umap
     import hdbscan
-    if not (0 < text_weight < 1 and 0 < category_weight < 1-text_weight):
-        raise ValueError('Text/category weights must be positive and sum to less than one')
     if len(records) < 100:
         raise ValueError('At least 100 training descriptions are required')
     records = records.copy()
     records['text'] = records['text'].fillna('').map(clean_description)
-    records = records[records.text.str.split().str.len() >= 5].drop_duplicates('text')
-    threshold = max(min_category_count, int(np.ceil(len(records) * min_category_fraction)))
-    common = []
-    for key in CATEGORIES:
-        counts = category_frame(records)[key].value_counts()
-        values = sorted(str(v) for v in counts[counts >= threshold].index if v not in MISSING)
-        # An impossible sentinel keeps a wholly rare field dimensionally stable;
-        # every real value in that field still becomes all-zero (no rare bucket).
-        common.append(values or ['__no_common_value__'])
-    encoder = OneHotEncoder(categories=common, handle_unknown='ignore', dtype=np.float32)
-    encoder.fit(category_frame(records))
-    vectorizer = TfidfVectorizer(min_df=5, max_df=.95, max_features=16000,
+    word_vectorizer = TfidfVectorizer(min_df=5, max_df=.95, max_features=16000,
                                 ngram_range=(1, 2), stop_words='english',
                                 sublinear_tf=True, dtype=np.float32)
-    vectorizer.fit(records.text)
+    word_vectorizer.fit(records.text)
+    vocabulary = set(word_vectorizer.get_feature_names_out())
+    vocabulary.update(token for row in categorical_tokens(records) for token in row)
+    # Fixed vocabulary retains EVERY observed categorical level, including singletons.
+    vectorizer = TfidfVectorizer(analyzer=identity_tokens, vocabulary=sorted(vocabulary), lowercase=False,
+                                min_df=1, sublinear_tf=True, dtype=np.float32)
+    vectorizer.fit(token_documents(records, word_vectorizer))
     numeric_knots, numeric_quantiles = {}, {}
     for key in NUMERIC:
         values = numeric_values(records, key)
@@ -170,12 +179,12 @@ def fit(records, *, seed=42, text_weight=.65, category_weight=.20, min_category_
         knots = np.unique(quantiles)
         numeric_knots[key] = knots
         numeric_quantiles[key] = np.array([probabilities[np.flatnonzero(quantiles == k)[-1]] for k in knots])
-    bundle = dict(encoder=encoder, vectorizer=vectorizer, text_weight=text_weight,
-                  category_weight=category_weight, numeric_weight=1-text_weight-category_weight,
+    bundle = dict(word_vectorizer=word_vectorizer, vectorizer=vectorizer, tfidf_weight=.85,
+                  numeric_weight=.15,
                   numeric_knots=numeric_knots, numeric_quantiles=numeric_quantiles)
     features, tfidf, usable = encode(bundle, records)
     features = features[usable]; tfidf = tfidf[usable]
-    reducer = umap.UMAP(n_neighbors=30, n_components=10, min_dist=0,
+    reducer = umap.UMAP(n_neighbors=n_neighbors, n_components=n_components, min_dist=min_dist,
                         metric='hellinger', random_state=seed, transform_seed=seed,
                         n_jobs=1, low_memory=True)
     embedding = reducer.fit_transform(features)
@@ -194,16 +203,17 @@ def fit(records, *, seed=42, text_weight=.65, category_weight=.20, min_category_
         text = records.loc[usable, 'text'].iloc[representative]
         summary['representative_sha256'] = hashlib.sha256(text.encode()).hexdigest()
         summary['mean_membership_strength'] = float(clusterer.probabilities_[labels == int(label)].mean())
-    bundle.update(reducer=FrozenProjection(reducer), clusterer=clusterer, clusters=names, schema_version=1,
-                  min_strength=.30)
+    bundle.update(reducer=FrozenProjection(reducer), clusterer=clusterer, clusters=names, schema_version=2,
+                  min_strength=0.)
     report = dict(training_rows=int(len(labels)), clusters=names, cluster_count=len(names),
                   training_noise_fraction=float(np.mean(labels == -1)),
-                  category_min_count=threshold, common_categories={k:[v for v in vs if not v.startswith('__')]
-                      for k, vs in zip(CATEGORIES, common)}, text_weight=text_weight,
-                  category_weight=category_weight, numeric_weight=bundle['numeric_weight'],
+                  categorical_fields=list(CATEGORIES), category_min_count=1,
+                  categorical_token_count=sum(t.startswith('cat:') for t in vectorizer.vocabulary_),
+                  singleton_categorical_tokens=sum(count == 1 for count in Counter(t for row in categorical_tokens(records) for t in row).values()),
+                  tfidf_weight=.85, numeric_weight=bundle['numeric_weight'],
                   numeric_fields=list(NUMERIC), numeric_transform='training quantile rank encoded as [q, 1-q]',
                   distance='weighted block-normalized Hellinger',
-                  umap=dict(n_neighbors=30, n_components=10, min_dist=0, metric='hellinger', seed=seed),
+                  umap=dict(n_neighbors=n_neighbors, n_components=n_components, min_dist=min_dist, metric='hellinger', seed=seed),
                   hdbscan=dict(min_cluster_size=min_cluster_size, min_samples=min_samples),
                   naming='centroid TF-IDF × smoothed positive log lift; minimum 8% cluster term support',
                   minimum_assignment_strength=bundle['min_strength'])
@@ -216,12 +226,12 @@ def classify(bundle, text, fields):
     record = pd.DataFrame([{**fields, 'text': text}])
     features, _, usable = encode(bundle, record)
     if not usable[0]:
-        return {**empty, 'reason': 'Add a longer description with recognizable vehicle language.'}
+        return {**empty, 'reason': 'Add recognizable description words or more vehicle categories.'}
     embedding = bundle['reducer'].transform(features)
     labels, strength = hdbscan.approximate_predict(bundle['clusterer'], embedding)
     label, value = int(labels[0]), float(strength[0])
     if label < 0 or value < bundle['min_strength']:
-        return {**empty, 'strength': value, 'reason': 'No sufficiently strong match to the historical advert groups.'}
+        return {**empty, 'strength': value, 'reason': 'HDBSCAN found no matching density group in the historical adverts.'}
     group = bundle['clusters'][str(label)]
     return dict(cluster_id=label, name=group['name'], keywords=group['keywords'],
                 strength=value, training_members=group['size'], reason=None)

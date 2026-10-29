@@ -159,7 +159,7 @@ The **New model laboratory** compares default-sized Huber LightGBM, median quant
 ## Named advert types
 
 The asking calculator also shows named, unsupervised advert types after Estimate:
-TF-IDF + common one-hot categories + numeric year/mileage, weighted Hellinger
+TF-IDF descriptions and all observed categorical values (including rare ones), plus numeric year/mileage and weighted Hellinger
 distance, UMAP and HDBSCAN. See [ADVERT_CLUSTERS.md](ADVERT_CLUSTERS.md) for training,
 held-out coverage, naming, rejection and limitations. These are exploratory groups,
 not verified dealer/private labels, and do not change the pricing models.

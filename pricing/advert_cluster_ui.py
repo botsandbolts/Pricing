@@ -38,10 +38,18 @@ def render_advert_type(text, fields):
         else:
             st.caption('Group keywords: '+', '.join(result['keywords']))
             st.caption(f"Match strength: {result['strength']:.0%} · {result['training_members']:,} reference adverts. A language club, not a vehicle inspection.")
+            if result['strength'] < .30:
+                st.caption('Weak association: included for broader coverage. Treat this group as tentative.')
         with st.expander('How this advert type works'):
-            st.write('TF-IDF captures words and phrases. Common vehicle categories enter as one-hot fields; rare and unseen values are ignored. Model year and mileage become training-based percentile ranks. Weighted Hellinger distance combines 65% description, 20% categories and 15% numbers, then UMAP maps to 10 dimensions and HDBSCAN discovers groups. Missing blocks redistribute weight to the available information.')
-            st.write('The name comes from distinctive, well-supported TF-IDF phrases in the group. New adverts use the frozen UMAP transform and approximate HDBSCAN assignment. Weak matches stay unclassified. Match strength is not a calibrated probability.')
+            st.write('Descriptions and all 11 vehicle category fields share a TF-IDF vocabulary. Rare categorical values—including singletons—are retained as field-qualified tokens. There is no one-hot block. Values never observed during fitting are ignored by the fixed vocabulary. Year and mileage use training-based percentile ranks. Weighted Hellinger distance combines 85% TF-IDF and 15% numbers before UMAP and HDBSCAN.')
+            st.write('UMAP and HDBSCAN settings are selected using validation assignment coverage, with checks against a collapsed partition. The final test sample is evaluated after selection. The name comes from distinctive TF-IDF terms, including categorical terms where useful. Native HDBSCAN assignments are retained even when weak; density noise stays unclassified. There is no forced nearest-cluster assignment. Match strength is not a calibrated probability, and coverage is not classification accuracy.')
             st.caption('Exploratory historical Craigslist advert types—not verified dealer/private classifications, vehicle quality checks or pricing features. The AFT/MiniLM price model is unchanged. Grouping uses neither prices nor price residuals.')
+            report_file=FOLDER/'report.json'
+            if report_file.exists():
+                report=json.loads(report_file.read_text())
+                held=report.get('holdouts',{})
+                if all('coverage' in held.get(phase,{}) for phase in ('validation','test')):
+                    st.caption(f"Historical assignment coverage: validation {held['validation']['coverage']:.1%}, test {held['test']['coverage']:.1%}. These rates measure how many adverts receive a group—not whether that group is correct.")
     except Exception:
         logging.getLogger(__name__).exception('Advert clustering unavailable')
         st.caption('Advert grouping is temporarily unavailable. Your price estimate is unaffected.')

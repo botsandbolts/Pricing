@@ -1,8 +1,8 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "status": "ready",
-  "sha256": "1a60dbcef530a8e06430a1f594a1c78f69ff015c50e96f08ebc1dc555a4098b6",
-  "bytes": 24597136,
+  "sha256": "759bafc7080a1ec9f8dae7a60ec15aca609c5bc5e94f29a6c2156672c62d1730",
+  "bytes": 22615686,
   "versions": {
     "numpy": "2.3.5",
     "scipy": "1.17.0",
@@ -14,6 +14,6 @@
     "pynndescent": "0.7.0",
     "joblib": "1.5.3"
   },
-  "training_rows": 19998,
-  "cluster_count": 86
+  "training_rows": 20000,
+  "cluster_count": 48
 }
