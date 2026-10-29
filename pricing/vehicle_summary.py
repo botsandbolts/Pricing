@@ -33,7 +33,7 @@ SYSTEM = ('You summarize US used-car adverts for buyers. Use only the supplied l
 @dataclass(frozen=True)
 class SummaryConfig:
     max_new_tokens: int = 192
-    source_chunk_tokens: int = 2800
+    source_chunk_tokens: int = 1200
     version: str = 'vehicle-story-v1'
 
 

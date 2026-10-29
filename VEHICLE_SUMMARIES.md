@@ -37,7 +37,7 @@ Pinned repositories/revisions:
 - GGUF: `Qwen/Qwen2.5-0.5B-Instruct-GGUF` at `9217f5db79a29953eb74d5343926648285ec7e67`.
 - File: `qwen2.5-0.5b-instruct-q4_k_m.gguf` (approximately 491 MB).
 - Runtime: `llama-cpp-python==0.3.36`, official CPU wheel index.
-- Serving context: 4,096 tokens; generation: greedy, at most 192 new tokens,
+- Serving context: 2,048 tokens; generation: greedy, at most 192 new tokens,
   temperature 0, seed 42. The prompt requests at most 70 words / three sentences.
 
 The quantized weights download once from the official public Hugging Face repo
