@@ -6,6 +6,9 @@ from pricing.vehicle_summary import vehicle_story,input_fingerprint,summarize_ve
 
 @st.cache_resource(show_spinner=False)
 def get_summary_engine():
+    # Invalidate the shared resource when switching from the former 1.5B model.
+    # Keep this release marker inside the cached function.
+    release = 'qwen-0.5b-fast-v1'
     from pricing.summary_engines import CpuSummaryEngine
     return CpuSummaryEngine()
 
