@@ -328,7 +328,7 @@ def render_feedback(fields,estimate,model):
 
 def render(estimate_fn=None,bid_fn=None,model_id=''):
     st.markdown(STYLE,unsafe_allow_html=True)
-    st.markdown('<div class="deal-hero"><span class="deal-kicker">The group chat’s unofficial car expert</span><h2>Deal Detective</h2><p>Bring an advert. Question the price. Keep your mechanic.</p></div>',unsafe_allow_html=True)
+    st.markdown('<div class="deal-hero"><span class="deal-kicker">The group chat’s unofficial car expert</span><h2>Deal Detective</h2><p>US used cars · USD &amp; miles. Bring an advert. Keep your mechanic.</p></div>',unsafe_allow_html=True)
     # Apply OCR output before constructing the text widget on this run.
     if 'deal_ocr_pending' in st.session_state:
         st.session_state['deal_advert_text']=st.session_state.pop('deal_ocr_pending');draft_parse()

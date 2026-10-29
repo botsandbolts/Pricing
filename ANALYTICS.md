@@ -216,3 +216,14 @@ Component: https://docs.streamlit.io/develop/concepts/custom-components/componen
 ## Optional private sale feedback
 
 Deal Detective uses separate `sale_outcomes` and `sale_evidence` tables after explicit form permission, independent of visitor analytics. There is no visitor-ID join and no public feedback dashboard. New records start unverified and are excluded from automatic training. Evidence is contributor-redacted, metadata-stripped JPEG; both tables are purged after 90 days when retention runs. Own-feedback deletion uses a private random key. See [feedback handling and operator review](DEAL_DETECTIVE.md).
+
+
+## Google Analytics tag — 29 October 2026
+
+Measurement ID `G-YT533T36L8` is public configuration, not a secret. Override with `GOOGLE_ANALYTICS_ID` (empty string disables Google). It follows the existing configured analytics switch and explicit acceptance. Consent version v2 requests a fresh choice because Google is an additional recipient. Basic consent mode blocks the library before acceptance; no cookieless pre-consent pings are intentionally sent. Ads, ad-user-data, ad-personalization and Google signals remain disabled.
+
+The component inserts gtag.js once into its own app document and queues one generic page_view per document/acceptance cycle. Rerenders do not duplicate it. Google cookies are host-only with a 90-day configured lifetime. Withdrawal immediately disables this measurement ID, updates consent to denied, and expires host-level _ga cookies. It cannot retract earlier requests or delete server-held Google data. No pricing events, seller text, vehicle fields, share-token queries, referrers, feedback IDs or Turso visitor/session IDs are forwarded. Location/title/referrer parameters are overridden with generic constants. Google still receives IP and browser connection information and processes it separately from Turso; do not describe all analytics as anonymous or covered by Turso retention.
+
+In GA Admin for this stream, keep Enhanced Measurement off if only this explicit page_view is desired; avoid adding automatic form/search/click collection, User-ID, Google signals or custom fields containing user content. Google property event retention and deletion are administered separately (not controlled by the Turso purge job). Network/privacy blockers may prevent delivery. A loaded script or a local test does not prove a Realtime report received events. The integration does not provide access to the owner’s Google Analytics reports.
+
+References: https://developers.google.com/tag-platform/security/guides/consent?consentmode=basic and https://developers.google.com/analytics/devguides/collection/ga4/reference/config

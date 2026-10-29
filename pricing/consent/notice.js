@@ -1,3 +1,63 @@
+// Basic consent mode: the Google library is never requested before acceptance.
+function pricingGoogleAnalytics(data, allowed, root) {
+  const id = data.google_tag_id;
+  if (!/^G-[A-Z0-9]+$/.test(id || '')) return;
+  const flag = 'ga-disable-' + id;
+  const status = root.querySelector('#google-status');
+  const clearCookies = () => {
+    for (const pair of document.cookie.split('; ')) {
+      const name = pair.split('=')[0];
+      if (/^_ga(?:_|$)/.test(name))
+        document.cookie = name + '=; Path=/; Max-Age=0; SameSite=Lax; Secure';
+    }
+  };
+  let state = window.__pricingGoogleAnalytics;
+  if (!allowed) {
+    window[flag] = true;
+    if (state?.allowed) {
+      state.allowed = false;
+      window.gtag?.('consent', 'update', {analytics_storage:'denied',
+        ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied'});
+    }
+    clearCookies();
+    status.textContent = 'Google Analytics: off until you accept.';
+    return;
+  }
+  window[flag] = false;
+  if (!state) {
+    state = window.__pricingGoogleAnalytics = {id, allowed:false};
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function(){window.dataLayer.push(arguments);};
+    window.gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',
+      ad_user_data:'denied',ad_personalization:'denied'});
+    window.gtag('js',new Date());
+    // Never send a garage query, seller text, referrer, visitor ID or receipt key.
+    window.gtag('set',{page_location:'https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/',
+      page_referrer:'',page_title:'Car Price Studio | US used cars'});
+    window.gtag('config',id,{send_page_view:false,allow_google_signals:false,
+      allow_ad_personalization_signals:false,cookie_domain:'none',cookie_path:'/',
+      cookie_expires:7776000,cookie_update:false,ignore_referrer:true});
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=' + id;
+    script.referrerPolicy = 'no-referrer';
+    script.onload = () => {state.loaded = true;};
+    script.onerror = () => {state.failed = true;};
+    document.head.appendChild(script);
+  }
+  if (!state.allowed) {
+    state.allowed = true;
+    window.gtag('consent','update',{analytics_storage:'granted',ad_storage:'denied',
+      ad_user_data:'denied',ad_personalization:'denied'});
+    window.gtag('event','page_view',{send_to:id,
+      page_location:'https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/',
+      page_referrer:'',page_title:'Car Price Studio | US used cars'});
+  }
+  status.textContent = state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
+    : state.loaded ? 'Google Analytics: tag loaded after acceptance.'
+    : 'Google Analytics: requested after acceptance; delivery is not yet confirmed.';
+}
+
 export default function(component) {
   const {parentElement: root, data, setStateValue, setTriggerValue} = component;
   const dialog = root.querySelector('dialog');
@@ -21,6 +81,7 @@ export default function(component) {
   if (!pref || pref.version !== data.version || !(age >= 0 && age < 90*86400000) ||
       !['accepted','rejected'].includes(pref.choice)) pref = null;
   if (!pref || pref.choice !== 'accepted' || !data.enabled) clearIdentity();
+  pricingGoogleAnalytics(data, pref?.choice === 'accepted' && data.enabled, root);
   root.querySelector('#operator').textContent = 'Operator: '+data.controller+'. Contact: '+data.contact+'.';
   root.querySelector('#status').textContent = data.enabled ? '' : 'Optional analytics are off. No analytics visitor ID is active. You can use every pricing tool normally.';
   root.querySelector('#status').hidden = data.enabled;
@@ -92,6 +153,7 @@ export default function(component) {
       pref={choice,version:data.version,at:new Date().toISOString()};
       write(prefName,JSON.stringify(pref),90);
       if(choice==='rejected')clearIdentity();
+      pricingGoogleAnalytics(data, choice==='accepted' && data.enabled, root);
       publish();dialog.close();
     };
   }

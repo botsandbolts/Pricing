@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 import requests
 
-CONSENT_VERSION = '2026-10-28-v1'
+CONSENT_VERSION = '2026-10-29-v2'
 RETENTION_DAYS = 90
 SCHEMA = [
     '''CREATE TABLE IF NOT EXISTS visitors (
@@ -393,6 +393,7 @@ def _render_privacy_impl():
     _persist_visit(consent, retry=bool(previous.get('check_connection')))
     result = component(key='pricing_privacy', data={'enabled': enabled, 'version': CONSENT_VERSION,
         'current': consent,
+        'google_tag_id': _setting('GOOGLE_ANALYTICS_ID', 'G-YT533T36L8'),
         'geo_mode': _setting('ANALYTICS_GEO_MODE', 'geojs'),
         'backend_status': st.session_state.get('_analytics_status', 'pending'),
         'controller': _setting('ANALYTICS_CONTROLLER_NAME', 'Car Price Studio operator'),
