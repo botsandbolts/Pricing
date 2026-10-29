@@ -22,7 +22,7 @@ a guarantee of complete personal-data removal. The pricing calculator's existing
 
 ## Model and inference
 
-Use the official **Qwen2.5-1.5B-Instruct**, quantized **Q4_K_M GGUF**, with
+Use the official **Qwen2.5-0.5B-Instruct**, quantized **Q4_K_M GGUF**, with
 `llama-cpp-python` CPU inference on the application server. The model is an
 instruction-following causal transformer, producing an abstractive paragraph
 rather than selecting keywords or cluster labels. Its instruction-following and
@@ -33,9 +33,9 @@ benchmark was supplied.
 
 Pinned repositories/revisions:
 
-- Base: `Qwen/Qwen2.5-1.5B-Instruct` at `989aa7980e4cf806f80c7fef2b1adb7bc71aa306`.
-- GGUF: `Qwen/Qwen2.5-1.5B-Instruct-GGUF` at `91cad51170dc346986eccefdc2dd33a9da36ead9`.
-- File: `qwen2.5-1.5b-instruct-q4_k_m.gguf` (approximately 1.12 GB).
+- Base: `Qwen/Qwen2.5-0.5B-Instruct` at `7ae557604adf67be50417f59c2c2f167def9a775`.
+- GGUF: `Qwen/Qwen2.5-0.5B-Instruct-GGUF` at `9217f5db79a29953eb74d5343926648285ec7e67`.
+- File: `qwen2.5-0.5b-instruct-q4_k_m.gguf` (approximately 491 MB).
 - Runtime: `llama-cpp-python==0.3.36`, official CPU wheel index.
 - Serving context: 4,096 tokens; generation: greedy, at most 192 new tokens,
   temperature 0, seed 42. The prompt requests at most 70 words / three sentences.
@@ -77,7 +77,7 @@ existing public description examples; these establish serving behavior, not
 semantic accuracy or corpus-wide performance. No fake summary is substituted if
 the model cannot run: the price stays visible with a brief unavailable message.
 
-[Official model card](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF)
+[Official model card](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF)
 (Apache 2.0). [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)
 retains its own license. Project software remains MIT © Amit Steinberg. Existing
 example descriptions retain their original dataset attribution and license.
@@ -87,3 +87,7 @@ python -m pip install -r requirements-summary.txt
 python -m pytest tests/test_vehicle_summary.py tests/test_summary_ui.py -q
 python -m streamlit run app.py
 ```
+
+## Fast GUI release
+
+Replaces the 1.5B model with the official 0.5B Q4_K_M model to reduce CPU work and cold download size. This favors responsiveness over language-model capacity; factual safeguards remain enabled. Actual latency depends on hosting load and description length. Pricing models are unchanged.

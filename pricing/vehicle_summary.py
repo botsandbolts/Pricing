@@ -9,11 +9,11 @@ import math
 import re
 from dataclasses import dataclass
 
-MODEL_ID = 'Qwen/Qwen2.5-1.5B-Instruct'
-MODEL_REVISION = '989aa7980e4cf806f80c7fef2b1adb7bc71aa306'
-GGUF_ID = 'Qwen/Qwen2.5-1.5B-Instruct-GGUF'
-GGUF_REVISION = '91cad51170dc346986eccefdc2dd33a9da36ead9'
-GGUF_FILE = 'qwen2.5-1.5b-instruct-q4_k_m.gguf'
+MODEL_ID = 'Qwen/Qwen2.5-0.5B-Instruct'
+MODEL_REVISION = '7ae557604adf67be50417f59c2c2f167def9a775'
+GGUF_ID = 'Qwen/Qwen2.5-0.5B-Instruct-GGUF'
+GGUF_REVISION = '9217f5db79a29953eb74d5343926648285ec7e67'
+GGUF_FILE = 'qwen2.5-0.5b-instruct-q4_k_m.gguf'
 FIELDS = {'manufacturer':'make', 'model':'model and trim', 'year':'model year',
           'odometer':'mileage in miles', 'condition':'listed condition',
           'cylinders':'cylinders', 'fuel':'fuel', 'title_status':'listed title status',

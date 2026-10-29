@@ -32,5 +32,5 @@ def render_vehicle_summary(fields,description):
     st.caption('AI summary of unverified listing information. Claims are not inspection findings or reasons for the predicted price.')
     with st.expander('Read the full supplied story · model & limitations'):
         st.text(result['story'])
-        st.caption('Qwen2.5-1.5B-Instruct · Q4_K_M · runs locally on the application server. No Kaggle job or external AI API is used. The same summarize_vehicle function processes every estimate.')
+        st.caption('Qwen2.5-0.5B-Instruct · Q4_K_M · runs locally on the application server. No Kaggle job or external AI API is used. The same summarize_vehicle function processes every estimate.')
         st.caption('All available car facts and the stored description are considered. Long stories are summarized in chunks and merged. No price targets or residuals enter the prompt. A numeric consistency check catches some invented numbers; it cannot prove factual correctness. The price model continues to read the original description.')
