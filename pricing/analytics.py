@@ -1,5 +1,6 @@
 """Private, opt-in Turso analytics. Never imported by model training/inference."""
 import json
+import logging
 import math
 import os
 import re
@@ -29,6 +30,25 @@ SCHEMA = [
 VEHICLE_FIELDS = {'year', 'manufacturer', 'model', 'odometer', 'type', 'fuel',
                   'transmission', 'drive', 'condition', 'title_status', 'cylinders',
                   'paint_color', 'state', 'auction_condition'}
+
+
+def _failure(stage, error):
+    """Safe diagnostics: never log exception text, request bodies or credentials."""
+    import streamlit as st
+    code = 'internal'
+    if isinstance(error, requests.HTTPError):
+        status = error.response.status_code if error.response is not None else 0
+        code = 'authentication' if status in (401, 403) else 'http_' + str(status)
+    elif isinstance(error, requests.Timeout):
+        code = 'timeout'
+    elif isinstance(error, requests.ConnectionError):
+        code = 'network'
+    elif isinstance(error, ValueError):
+        code = 'configuration'
+    elif isinstance(error, RuntimeError):
+        code = 'database_statement'
+    st.session_state['_analytics_status'] = stage + ':' + code
+    logging.getLogger(__name__).warning('Analytics unavailable stage=%s code=%s', stage, code)
 
 
 def utcnow():
@@ -221,8 +241,9 @@ def record_price(side, price, fields, model, source, valuation_date=None, event_
         if len(done) > 1000:
             done.clear()
         return True
-    except Exception:
+    except Exception as error:
         # Do not put credentials, fields, URLs or server error payloads in logs/UI.
+        _failure('price_write', error)
         if 'store' in locals():
             store.retry_after = time.monotonic() + 60
         return False
@@ -233,8 +254,9 @@ def render_privacy():
     import streamlit as st
     try:
         _render_privacy_impl()
-    except Exception:
+    except Exception as error:
         st.session_state['_analytics_consent'] = None
+        _failure('consent_component', error)
 
 
 def _render_privacy_impl():
@@ -248,11 +270,14 @@ def _render_privacy_impl():
     result = component(key='pricing_privacy', data={'enabled': enabled, 'version': CONSENT_VERSION,
         'current': (st.session_state.get('pricing_privacy') or {}).get('consent'),
         'geo_mode': _setting('ANALYTICS_GEO_MODE', 'geojs'),
+        'backend_status': st.session_state.get('_analytics_status', 'pending'),
         'controller': _setting('ANALYTICS_CONTROLLER_NAME', 'Car Price Studio operator'),
         'contact': _setting('ANALYTICS_CONTROLLER_CONTACT', 'Contact the studio operator')},
         on_consent_change=lambda: None)
     consent = result.consent
     st.session_state['_analytics_consent'] = consent if valid_consent(consent) and enabled else None
+    if consent and not valid_consent(consent) and consent.get('choice') == 'accepted':
+        st.session_state['_analytics_status'] = 'consent:invalid'
     if not enabled or not valid_consent(consent):
         return
     try:
@@ -264,9 +289,11 @@ def _render_privacy_impl():
             store.initialize()
             store.visit(consent, _location())
             st.session_state['_analytics_visit'] = marker
+            st.session_state['_analytics_status'] = 'visitor_saved'
         if time.monotonic() - store.last_purge > 3600:
             store.purge()
             store.last_purge = time.monotonic()
-    except Exception:
+    except Exception as error:
+        _failure('visitor_write', error)
         if 'store' in locals():
             store.retry_after = time.monotonic() + 60

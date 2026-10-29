@@ -24,6 +24,7 @@ export default function(component) {
   root.querySelector('#operator').textContent = 'Operator: '+data.controller+'. Contact: '+data.contact+'.';
   root.querySelector('#status').textContent = data.enabled ? '' : 'Optional analytics are off. No analytics visitor ID is active. You can use every pricing tool normally.';
   root.querySelector('#status').hidden = data.enabled;
+  root.querySelector('#delivery').textContent = 'Collection status: '+(data.backend_status || 'pending')+'.';
   root.querySelector('#consent-info').hidden = !data.enabled;
   root.querySelector('.actions').hidden = !data.enabled;
   root.querySelector('#geo-short').textContent = data.geo_mode === 'geojs'
