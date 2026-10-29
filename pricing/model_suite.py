@@ -11,13 +11,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-import lightgbm as lgb
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import Ridge
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from pricing.label_quality import cleanlab_inliers
 from carbids.common import metrics
 from marketbridge.structural import prepare, IndexPanel, known_pricing_vins
 
@@ -75,6 +68,7 @@ def bounds(prices,lower=None,upper=None):
 def fit(name,x,y,lower=None,upper=None):
     y=np.asarray(y,float)
     if name.startswith('lgb_'):
+        import lightgbm as lgb
         kwargs={'objective':'huber'} if name=='lgb_huber' else {'objective':'quantile','alpha':.5}
         # All statistical hyperparameters remain library defaults (100 trees, lr .1).
         model=lgb.LGBMRegressor(**kwargs,n_jobs=4,random_state=42,verbosity=-1)
@@ -88,6 +82,11 @@ def fit(name,x,y,lower=None,upper=None):
         d.set_float_info('label_lower_bound',lo);d.set_float_info('label_upper_bound',hi)
         return xgb.train({'objective':'survival:aft','aft_loss_distribution':'normal',
             'aft_loss_distribution_scale':1.,'tree_method':'hist','seed':42,'nthread':4},d,num_boost_round=100)
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import OneHotEncoder, StandardScaler
     cats=list(x.select_dtypes('category'));nums=[c for c in x if c not in cats]
     preprocess=ColumnTransformer([
         ('numeric',make_pipeline(SimpleImputer(strategy='median',keep_empty_features=True),StandardScaler()),nums),
@@ -118,6 +117,8 @@ def save(model,name,path):
 
 def comparisons(validation,test,observed=None):
     """All pairs share row identities. Direction is response = intercept + beta*predictor."""
+    from sklearn.linear_model import Ridge
+    from sklearn.preprocessing import StandardScaler
     if validation.columns.tolist()!=test.columns.tolist() or not np.isfinite(validation.to_numpy()).all() or not np.isfinite(test.to_numpy()).all():
         raise ValueError('Finite aligned prediction columns required')
     rho=test.corr(method='spearman');pairs=[]
@@ -158,6 +159,7 @@ def load_cohort(path):
 
 
 def train_side(frame,side,out,panel,text=None):
+    from pricing.label_quality import cleanlab_inliers
     out.mkdir(parents=True,exist_ok=True)
     x,valid,dates=predictors(frame,side)
     ratio,_=panel.ratios(dates)

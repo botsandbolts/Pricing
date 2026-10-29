@@ -5,3 +5,9 @@ backgroundColor = "#f7f5ef"
 secondaryBackgroundColor = "#eeebfa"
 textColor = "#241d35"
 font = "sans serif"
+
+[server]
+# Production: avoid unloading modules while another visitor is importing them.
+# Restart the deployment after code updates instead of hot-reloading ML modules.
+fileWatcherType = "none"
+runOnSave = false

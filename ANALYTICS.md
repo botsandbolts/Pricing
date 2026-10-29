@@ -41,6 +41,22 @@ calculator is slow or fails while loading models. Database checks still require
 consent. It is not a substitute for looking at linked query rows after a real
 price request.
 
+### Deployment startup
+
+The 29 October cloud logs showed `KeyError: pricing.model_suite` inside Python's
+import machinery, followed by Streamlit health checks failing to reach port 8501.
+The module is present. This traceback is consistent with a concurrent module
+eviction during hot reload; the screenshots alone do not establish the cause of
+the later server exit. Production config now disables source file watching
+(`server.fileWatcherType = "none"`, `server.runOnSave = false`). Restart the
+deployment to apply these server settings and clear partially imported modules.
+After subsequent source updates, restart the deployment instead of relying on hot
+reload. Training-only imports in `model_suite.py` are deferred until training or
+comparison functions are called; prediction logic and model weights are unchanged.
+The connection-check route remains independent of model imports.
+
+Reference: https://github.com/streamlit/streamlit/issues/6404
+
 The privacy details show a safe collection status for the current session only;
 no database records or credentials are displayed. `pending` is not a success.
 `visitor_saved` confirms an acknowledged visitor upsert; `price_saved` confirms
