@@ -71,6 +71,8 @@ def test_bound_http_protocol_and_no_redirects():
         TursoStore('libsql://test.turso.io','secret').execute('SELECT ?',["x');DROP TABLE visitors;--"])
     args=request.call_args.kwargs
     assert args['allow_redirects'] is False
+    assert args['json']['baton'] is None
+    assert args['json']['requests'][0]['stmt']['want_rows'] is True
     assert args['json']['requests'][0]['stmt']['sql'] == 'SELECT ?'
     assert args['json']['requests'][0]['stmt']['args'][0]['type'] == 'text'
     assert args['headers']['Authorization'] == 'Bearer secret'

@@ -39,6 +39,17 @@ def _failure(stage, error):
     if isinstance(error, requests.HTTPError):
         status = error.response.status_code if error.response is not None else 0
         code = 'authentication_' + str(status) if status in (401, 403) else 'http_' + str(status)
+        if status == 400 and error.response is not None:
+            # Classify locally; never expose the provider's raw error message.
+            body = error.response.text[:4096].lower()
+            if any(word in body for word in ('jwt', 'token', 'authorization', 'authentication')):
+                code = 'authentication_400'
+            elif 'want_rows' in body:
+                code = 'protocol_want_rows'
+            elif 'baton' in body:
+                code = 'protocol_baton'
+            elif any(word in body for word in ('deserialize', 'json', 'missing field')):
+                code = 'protocol_json'
     elif isinstance(error, requests.Timeout):
         code = 'timeout'
     elif isinstance(error, requests.ConnectionError):
@@ -123,15 +134,15 @@ class TursoStore:
                 parsed.path not in ('', '/')):
             raise ValueError('Expected a Turso HTTPS/libsql database origin')
         self.endpoint = 'https://' + parsed.netloc + '/v2/pipeline'
-        self.token = token
+        self.token = str(token).strip()
         self.ready = False
         self.retry_after = 0
         self.last_purge = 0
 
     def execute(self, sql, args=()):
         response = requests.post(self.endpoint, headers={'Authorization': 'Bearer ' + self.token},
-            json={'requests': [{'type': 'execute', 'stmt': {'sql': sql,
-                'args': [_arg(v) for v in args]}}, {'type': 'close'}]},
+            json={'baton': None, 'requests': [{'type': 'execute', 'stmt': {'sql': sql,
+                'args': [_arg(v) for v in args], 'named_args': [], 'want_rows': True}}, {'type': 'close'}]},
             timeout=(2, 3), allow_redirects=False)
         response.raise_for_status()
         result = response.json()['results'][0]
