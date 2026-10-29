@@ -1,0 +1,22 @@
+name: Vehicle story summary checks
+on:
+  push:
+    paths: ['pricing/falconsai_summary.py', 'pricing/vehicle_narrative.py', 'tests/test_falconsai_summary.py', '.github/workflows/story-summary.yml']
+  pull_request:
+    paths: ['pricing/falconsai_summary.py', 'pricing/vehicle_narrative.py', 'tests/test_falconsai_summary.py', '.github/workflows/story-summary.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            tests
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pytest
+      - run: python -m pytest tests/test_falconsai_summary.py -q

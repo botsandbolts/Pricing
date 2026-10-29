@@ -33,3 +33,6 @@ qrcode>=8,<9
 # Release 3: author attribution and MIT footer; runtime dependencies unchanged.
 
 # GA4 feature analytics v3: reload consent policy and server completion hooks.
+
+# Falconsai T5-small story summaries; direct seq2seq loading, no pipeline API.
+sentencepiece>=0.2,<1
