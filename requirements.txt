@@ -2,7 +2,8 @@ numpy>=1.26,<3
 pandas>=2.1,<3
 scikit-learn>=1.4,<2
 lightgbm>=4.5,<5
-streamlit>=1.51,<2
+# Pin the runtime used by the connection-page and consent tests.
+streamlit==1.66.1
 requests>=2.31,<3
 
 plotly>=5.24,<7
