@@ -24,11 +24,26 @@ The privacy notice is public; the records are private.
 5. Administrator health check: with credentials in environment, run
    `python -m scripts.analytics_admin check`. It prints counts only.
 
-The database and tables have been provisioned. On 29 October 2026, a live
-consented visit reached the backend but Turso rejected authentication. The running
-calculator and enabled consent dialog do **not** prove that records were saved.
-Correct the deployment credential and verify both tables before calling collection
-operational. Events that failed before being stored cannot be reconstructed by
+### Verified deployment — 29 October 2026
+
+After replacing the incomplete claims-only credential with the complete token,
+the live connection check returned `visitor_saved`. The private Turso editor
+confirmed one visitor and four linked pricing queries (two Ask and two Bid).
+An aggregate SQL check confirmed the real calculator outputs were stored,
+including $12,996.17 Ask and $11,476.37 Bid for the 2015 Toyota Corolla SE test.
+Country was present in all four queries; city was unavailable (NULL) for this
+test browser. This verifies writes and country persistence, not city coverage
+for every visitor. No city is invented when the lookup supplies none.
+
+After rejecting analytics, a new 2016-car prediction completed successfully,
+while the database query counts remained two Ask and two Bid. Thus this live
+test also verified withdrawal stopping new price-query writes. Records remain
+private and absent from the pricing GUI. The scheduled retention workflow still
+requires separate GitHub secret configuration; app-side opportunistic cleanup
+does not establish that the scheduled job is active.
+
+A running calculator and enabled consent dialog alone do **not** prove records
+were saved. Events that failed before being stored cannot be reconstructed by
 this app (there is deliberately no visitor-data buffer).
 
 ### Delivery diagnostics
