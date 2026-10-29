@@ -1,5 +1,6 @@
 // Basic consent mode: the Google library is never requested before acceptance.
 function pricingGoogleAnalytics(data, allowed, root) {
+  const interactions = installPricingInteractions();
   const id = data.google_tag_id;
   if (!/^G-[A-Z0-9]+$/.test(id || '')) return;
   const flag = 'ga-disable-' + id;
@@ -20,6 +21,7 @@ function pricingGoogleAnalytics(data, allowed, root) {
         ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied'});
     }
     clearCookies();
+    interactions.consentChanged();
     status.textContent = 'Google Analytics: off until you accept.';
     return;
   }
@@ -53,6 +55,7 @@ function pricingGoogleAnalytics(data, allowed, root) {
       page_location:'https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/',
       page_referrer:'',page_title:'Car Price Studio | US used cars'});
   }
+  interactions.consentChanged();
   status.textContent = state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
     : state.loaded ? 'Google Analytics: tag loaded after acceptance.'
     : 'Google Analytics: requested after acceptance; delivery is not yet confirmed.';

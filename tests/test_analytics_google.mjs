@@ -7,7 +7,7 @@ function fixture() {
  const cookies=new Map(),scripts=[],window={},status={textContent:''};
  const document={head:{appendChild:s=>scripts.push(s)},createElement:()=>({})};
  Object.defineProperty(document,'cookie',{get:()=>[...cookies].map(([k,v])=>k+'='+v).join('; '),set:s=>{const pair=s.split(';')[0],i=pair.indexOf('=');if(s.includes('Max-Age=0'))cookies.delete(pair.slice(0,i));else cookies.set(pair.slice(0,i),pair.slice(i+1));}});
- const ctx=vm.createContext({window,document});
+ const ctx=vm.createContext({installPricingInteractions:()=>({consentChanged(){}}),window,document});
  vm.runInContext(code,ctx);
  const root={querySelector:()=>status},data={google_tag_id:'G-YT533T36L8'};
  return {window,cookies,scripts,status,run:allowed=>ctx.pricingGoogleAnalytics(data,allowed,root)};

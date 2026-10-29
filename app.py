@@ -261,4 +261,6 @@ with detective:
     from pricing.deal_runtime import bid_estimate
     render_detective(lambda text,fields:get_pipeline(str(path)).predict(text,fields,explain=False),bid_estimate,str(path))
 
+from pricing.ga_events import render_events
+render_events()
 footer()

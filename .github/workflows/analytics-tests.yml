@@ -1,9 +1,9 @@
 name: Analytics privacy checks
 on:
   push:
-    paths: ['pricing/analytics.py', 'pricing/geo.py', 'pricing/consent/**', 'tests/test_analytics*', '.github/workflows/analytics-tests.yml']
+    paths: ['pricing/ga_events.py', 'pricing/analytics.py', 'pricing/geo.py', 'pricing/consent/**', 'tests/test_ga_events.py', 'tests/ga_interactions.cjs', 'tests/test_analytics*', '.github/workflows/analytics-tests.yml']
   pull_request:
-    paths: ['pricing/analytics.py', 'pricing/geo.py', 'pricing/consent/**', 'tests/test_analytics*', '.github/workflows/analytics-tests.yml']
+    paths: ['pricing/ga_events.py', 'pricing/analytics.py', 'pricing/geo.py', 'pricing/consent/**', 'tests/test_ga_events.py', 'tests/ga_interactions.cjs', 'tests/test_analytics*', '.github/workflows/analytics-tests.yml']
 permissions:
   contents: read
 jobs:
@@ -19,8 +19,10 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install pytest requests 'streamlit>=1.51,<2'
-      - run: python -m pytest tests/test_analytics.py -q
+      - run: python -m pytest tests/test_analytics.py tests/test_ga_events.py -q
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: node --test tests/test_analytics*.mjs
+
+      - run: node tests/ga_interactions.cjs

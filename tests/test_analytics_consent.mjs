@@ -20,7 +20,7 @@ function fixture(enabled=true) {
     return nodes.get(key);
   }};
   let fetches=0, outputs=[], triggers=[];
-  const context=vm.createContext({document,sessionStorage:{getItem:k=>storage.get(k)||null,
+  const context=vm.createContext({installPricingInteractions:()=>({consentChanged(){}}),document,sessionStorage:{getItem:k=>storage.get(k)||null,
     setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     crypto:globalThis.crypto,navigator:{userAgent:'Chrome/123 Mobi'},AbortSignal,
     fetch:async()=>{fetches++;return {ok:true,json:async()=>({country_code:'DE',city:'Berlin',region:'Berlin',ip:'SECRET_IP',latitude:'SECRET_COORDINATE'})}},

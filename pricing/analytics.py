@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 import requests
 
-CONSENT_VERSION = '2026-10-29-v2'
+CONSENT_VERSION = '2026-10-29-v3'
 RETENTION_DAYS = 90
 SCHEMA = [
     '''CREATE TABLE IF NOT EXISTS visitors (
@@ -301,6 +301,13 @@ def record_price(side, price, fields, model, source, valuation_date=None, event_
     """Best effort, opt-in only. A failed analytics request never breaks pricing."""
     import streamlit as st
     consent = st.session_state.get('_analytics_consent')
+    try:
+        valid_price = math.isfinite(float(price)) and float(price) > 0
+    except (ValueError, TypeError):
+        valid_price = False
+    if valid_price and valid_consent(consent):
+        from pricing.ga_events import queue_estimate
+        queue_estimate(side, source, event_key)
     if not configured() or not valid_consent(consent):
         return False
     if side not in {'ask', 'bid'}:
@@ -383,7 +390,7 @@ def _render_privacy_impl():
     import streamlit.components.v2 as components
     folder = Path(__file__).parent / 'consent'
     component = components.component('pricing_consent', html=(folder/'notice.html').read_text(),
-        js=(folder/'notice.js').read_text(), css=(folder/'notice.css').read_text())
+        js=(folder/'interactions.js').read_text()+'\n'+(folder/'notice.js').read_text(), css=(folder/'notice.css').read_text())
     enabled = configured()
     previous = st.session_state.get('pricing_privacy') or {}
     consent = previous.get('consent')
