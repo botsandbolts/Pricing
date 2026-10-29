@@ -26,7 +26,7 @@ function fixture(enabled=true) {
     fetch:async()=>{fetches++;return {ok:true,json:async()=>({country_code:'DE',city:'Berlin',region:'Berlin',ip:'SECRET_IP',latitude:'SECRET_COORDINATE'})}},
     data:{enabled,version:'v1',geo_mode:'geojs',controller:'Test operator',contact:'Test contact'},root,
     send:(key,value)=>outputs.push(value),trigger:(key,value)=>triggers.push({key,value})});
-  vm.runInContext(code+'\nrender({parentElement:root,data,setStateValue:send,setTriggerValue:trigger});',context);
+  vm.runInContext(code.slice(code.indexOf('function pricingGoogleAnalytics'))+'\nrender({parentElement:root,data,setStateValue:send,setTriggerValue:trigger});',context);
   return {cookies,storage,nodes,get fetches(){return fetches},get outputs(){return outputs},triggers,context};
 }
 

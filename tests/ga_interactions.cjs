@@ -4,7 +4,7 @@ const document={hidden:false,body:{},querySelectorAll:()=>selected,
  addEventListener:(n,f)=>{(handlers[n]??=[]).push(f);},removeEventListener:()=>{}};
 const ctx={window:{gtag:(...args)=>events.push(args)},document,
  performance:{now:()=>now},MutationObserver:class{observe(){}},requestAnimationFrame:f=>f(),setInterval:()=>{},setTimeout:()=>{}};
-vm.createContext(ctx);vm.runInContext(fs.readFileSync('pricing/consent/interactions.js','utf8'),ctx);
+vm.createContext(ctx);vm.runInContext(fs.readFileSync('pricing/consent/notice.js','utf8').split('function pricingGoogleAnalytics')[0],ctx);
 const t=vm.runInContext('installPricingInteractions()',ctx);
 const node=(text,role='button')=>({textContent:text,getAttribute:n=>n==='role'?role:null,
  matches:s=>s!=='summary',getClientRects:()=>[1]});

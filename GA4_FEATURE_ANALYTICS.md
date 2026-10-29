@@ -61,7 +61,7 @@ credentials or Measurement Protocol secret are embedded in the repository.
 
 ## Implementation and verification
 
-- `consent/interactions.js`: one global delegated listener set, finite maps, consent
+- `consent/notice.js`: one global delegated listener set, finite maps, consent
   gating, visible-panel heartbeat and nested tabs; no third-party recorder.
 - `ga_events.py` + `consent/events.js`: consent-gated, bounded completion queue;
   stable request IDs deduplicate rerenders without transmitting those IDs. Passive

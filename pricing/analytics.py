@@ -390,7 +390,7 @@ def _render_privacy_impl():
     import streamlit.components.v2 as components
     folder = Path(__file__).parent / 'consent'
     component = components.component('pricing_consent', html=(folder/'notice.html').read_text(),
-        js=(folder/'interactions.js').read_text()+'\n'+(folder/'notice.js').read_text(), css=(folder/'notice.css').read_text())
+        js=(folder/'notice.js').read_text(), css=(folder/'notice.css').read_text())
     enabled = configured()
     previous = st.session_state.get('pricing_privacy') or {}
     consent = previous.get('consent')
