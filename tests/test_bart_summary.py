@@ -50,3 +50,14 @@ def test_contacts_and_empty():
     _,text=narrative({},'<b>New brakes.</b> https://example.com a@b.com 212-555-1234')
     assert '<b>' not in text and 'a@b.com' not in text and '212-555-1234' not in text
     assert summarize_story('',Engine())['status']=='empty'
+
+def test_cross_panel_story_includes_historical_evidence_without_contacts():
+    from pricing.valuation_story import extend_report
+    report=extend_report({'valuation_date':'2026-10-30'},'/nonexistent',
+                         {'manufacturer':'Ford','model':'Focus'},
+                         {'predicted_text_price':8300,'explanation':{'features':[{'feature':'age','value':11,'contribution':-.25}]}},
+                         {},None,None,None)
+    story=build_valuation_story({'manufacturer':'Ford','model':'Focus'},'Email a@b.com',report)
+    for text in ['Description branch','8,300.00','TreeSHAP','age=11','Craigslist','Used Car Auction Prices','not the Cars & Bids','Deal Detective']:
+        assert text in story
+    assert 'a@b.com' not in story

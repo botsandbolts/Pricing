@@ -8,12 +8,16 @@ from pricing.suite_storage import read_model_file
 
 
 def model_root(root):
+    from pricing.iterative_release import completed
+    if completed(root):return Path(root)/'models/iterative-catboost'
     for name in ['minilm-catboost-aft','catboost-aft','residual-trimmed-xgb']:
         folder=Path(root)/'models'/name
         if all((folder/side/'manifest.json').exists() and json.loads((folder/side/'manifest.json').read_text()).get('status')=='ready' for side in ['ask','bid']):return folder
     return Path(root)/'models/catboost-aft'
 
 def bid_folder(root):
+    from pricing.iterative_release import completed
+    if completed(root):return Path(root)/'models/iterative-catboost/bid'
     candidate=Path(root)/'models/bid-quantile-cleaned';mf=candidate/'manifest.json'
     if mf.exists() and json.loads(mf.read_text()).get('status')=='ready':return candidate
     return model_root(root)/'bid'
@@ -48,7 +52,7 @@ def load(path,version):
 
 
 def render_bid(root,fields):
-    default=bid_folder(root);previous=model_root(root)/'bid'
+    default=bid_folder(root);previous=model_root(root)/('bid-aft' if model_root(root).name=='iterative-catboost' else 'bid')
     options={'CatBoost log-median · quantile 0.5 (default)':default,'CatBoost normal AFT · previous':previous} if default!=previous else {'CatBoost normal AFT':previous}
     price_slot=st.container()
     details=st.expander('Auction model · controls & technical receipt')
@@ -67,7 +71,9 @@ def render_bid(root,fields):
         render_market_price('bid',value,'2021-05-01',adjusted=True)
     with details:
         st.write('CatBoost log-median · quantile 0.5' if record['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT')
-        st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {('Exactly ceil(25%) per phase removed by a separate log-quantile CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline']=='catboost-log-quantile' else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')} These are historical wholesale equivalents, not guaranteed bids.")
+        if record.get('training_regime')=='five-stage-catboost-residual':
+            st.caption('Five fresh CatBoost residual rounds, each removing ceil(5% of survivors) independently per phase. Both quantile and AFT share the resulting cohort. Filtered scores are optimistic.')
+        else:st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {('Exactly ceil(25%) per phase removed by a separate log-quantile CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline']=='catboost-log-quantile' else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')} These are historical wholesale equivalents, not guaranteed bids.")
         if record['pipeline']=='catboost-log-quantile':
             selection=record.get('selection_imr',{})
             st.caption('Cleaner-only IMR: '+selection.get('status','unavailable')+'. '+selection.get('reason','Lambda is excluded from the final price model.'))
@@ -75,6 +81,9 @@ def render_bid(root,fields):
 
 def render_assessment(root):
     folder=model_root(root)
+    if folder.name=='iterative-catboost':
+        from pricing.iterative_release import render_release
+        render_release(root)
     st.subheader('Default models · asking AFT and auction log-median')
     st.warning('The requested residual filtering uses validation/test prices to select easier cars. Filtered scores are optimistic selected-cohort results. Original test scores are also shown, but this test has already informed filtering-rule development; a new external test is needed for an unbiased comparison.')
     rows=[]
@@ -83,6 +92,14 @@ def render_assessment(root):
         r=json.loads((active/'evaluation.json').read_text())
         for cohort,m in r['assessment'].items():rows.append({'Market':side,'Estimator':r.get('parameters',{}).get('loss_function','historical'),'Dataset':'Craigslist Used Cars' if side=='ask' else 'Used Car Auction Prices (Kaggle / tunguz)','Cohort':cohort,**m})
     st.dataframe(pd.DataFrame(rows),hide_index=True)
+    if folder.name=='iterative-catboost':
+        st.markdown('#### Five pit stops · survivor counts')
+        counts=[]
+        for side in ['ask','bid']:
+            r=json.loads((folder/(side+'-cleaning')/'filter-report.json').read_text())
+            for stage in r['stages']:
+                counts.extend({'Market':side,'Stage':stage['stage'],**row} for row in stage['counts'])
+        st.dataframe(pd.DataFrame(counts),hide_index=True)
     with st.expander('Filter counts, training recipe and limitations'):
         for side in ['ask','bid']:
             active=folder/'ask' if side=='ask' else bid_folder(root)

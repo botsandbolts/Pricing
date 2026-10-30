@@ -7,7 +7,7 @@ import streamlit as st
 CSS = """
 <style>
 :root { --garage-ink:#241d35; --garage-purple:#6351e8; --garage-lime:#d9fb77; --garage-coral:#ff997d; --garage-paper:#f7f5ef; }
-[data-testid="stAppViewContainer"] { background:var(--garage-paper); color:var(--garage-ink); }
+[data-testid="stAppViewContainer"] { background:radial-gradient(ellipse at 95% 0%,#e9e0ff 0%,transparent 35%),radial-gradient(ellipse at 0% 30%,#ecf7d2 0%,transparent 30%),var(--garage-paper); color:var(--garage-ink); }
 [data-testid="stHeader"] { background:rgba(247,245,239,.94); }
 [data-testid="stMainBlockContainer"] { max-width:1320px; padding:2rem 2.5rem 4rem; }
 [data-testid="stSidebar"] { background:#eeebfa; border-right:1px solid #dcd6ed; }
@@ -47,11 +47,19 @@ input,textarea { color:var(--garage-ink)!important; }
 .garage-wordmark strong { font-size:1.4rem; font-weight:850; letter-spacing:-.065em; }
 .garage-wordmark small { font-size:.65rem; font-weight:750; text-transform:uppercase; letter-spacing:.17em; color:#776789; }
 .garage-nav-note { font-size:.72rem; text-transform:uppercase; letter-spacing:.12em; color:#70677d; font-weight:700; }
-.garage-hero { display:grid; grid-template-columns:1.2fr 1fr; gap:2rem; align-items:center; padding:2.6rem 3rem; background:#e7e2fb; border:1px solid #d8d0ef; border-radius:28px; overflow:hidden; margin-bottom:1.2rem; }
+.garage-hero { box-shadow:0 18px 50px #6351e811; display:grid; grid-template-columns:1.2fr 1fr; gap:2rem; align-items:center; padding:2.6rem 3rem; background:#e7e2fb; border:1px solid #d8d0ef; border-radius:28px; overflow:hidden; margin-bottom:1.2rem; }
 .garage-eyebrow { display:flex; gap:.55rem; align-items:center; font-size:.68rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; margin-bottom:1rem; }
 .garage-eyebrow b { background:var(--garage-ink); color:var(--garage-lime); padding:6px 10px; border-radius:40px; }
 .garage-hero h1 { font-family:Arial,Helvetica,sans-serif; font-size:clamp(2.5rem,5.3vw,4.8rem); line-height:.98; font-weight:900; letter-spacing:-.07em; margin:0 0 1rem; padding:0; }
 .garage-hero h1 .garage-accent { color:#6351d7; }
+.st-key-story_receipt { background:linear-gradient(120deg,#ffffff,#f0edff);border:1px solid #d8ccef;border-radius:24px;padding:1.7rem 2rem;margin:1.5rem 0;box-shadow:0 12px 30px #3a285208; }
+.formula-release { display:flex;gap:1.25rem;align-items:center;background:#271e3b;color:#faf7ff;border-radius:22px;padding:1.5rem 1.8rem;margin:.3rem 0 1.2rem;position:relative;overflow:hidden; }
+.formula-release h2 { color:#e1fc9b;font-size:1.6rem;line-height:1.1;margin:0 0 .55rem; }
+.formula-release p { font-size:.86rem;line-height:1.5;margin:0;color:#e0d8ec;max-width:750px; }
+.formula-badge { font-size:.65rem;letter-spacing:.1em;font-weight:800;padding:8px 12px;border:1px solid #a9a0c2;border-radius:50px;white-space:nowrap;align-self:flex-start; }
+.formula-number { font-size:4rem;font-weight:900;line-height:.85;color:#c7b6ff;margin-left:auto;text-align:center; }
+.formula-number span { display:block;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;margin-top:.6rem;white-space:nowrap; }
+@media(max-width:760px) { .formula-release { flex-wrap:wrap;padding:1.3rem;gap:.8rem; }.formula-release h2 {font-size:1.45rem}.formula-number {display:none}.st-key-story_receipt {padding:1.2rem} }
 .garage-hero p { color:#534a63; font-size:1rem; max-width:420px; line-height:1.6; margin:0 0 1.4rem; }
 .garage-cta { display:inline-block; background:var(--garage-ink); color:#fff!important; padding:13px 21px; border-radius:12px; font-size:.9rem; font-weight:750; text-decoration:none!important; box-shadow:0 4px 0 #b7a7db; }
 .garage-cta:hover { background:#45346b; }

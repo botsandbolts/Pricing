@@ -1,0 +1,26 @@
+name: Iterative CatBoost and valuation story
+on:
+  push:
+    paths: ['scripts/train_iterative_catboost.py', 'pricing/iterative_release.py', 'pricing/valuation_story.py', 'pricing/model_suite.py', 'tests/test_iterative_cleaning.py', 'tests/test_valuation_story.py', '.github/workflows/iterative-catboost.yml']
+  pull_request:
+    paths: ['scripts/train_iterative_catboost.py', 'pricing/iterative_release.py', 'pricing/valuation_story.py', 'pricing/model_suite.py', 'tests/test_iterative_cleaning.py', 'tests/test_valuation_story.py', '.github/workflows/iterative-catboost.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts
+            pricing
+            carbids
+            marketbridge
+            tests
+            models/time-transport
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pytest numpy pandas scipy scikit-learn requests lightgbm catboost==1.2.10
+      - run: python -m pytest tests/test_iterative_cleaning.py tests/test_valuation_story.py tests/test_bart_summary.py -q

@@ -46,3 +46,5 @@ qrcode>=8,<9
 # Full valuation BART prose: refresh cached summary module on deployment.
 
 # Valuation BART overview: numeric-token guard refresh.
+
+# Full-page BART briefing and five-stage CatBoost release: refresh imported UI modules.

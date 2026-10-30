@@ -85,8 +85,33 @@ def build_valuation_story(fields,description,valuation=None):
     for side in valuation.get('unavailable_markets',[]):sentences.append(f'The {side} estimate is unavailable; no price is invented.')
     sentences.append('The market source is '+str(valuation.get('market_source'))+', observed through '+str(valuation.get('latest_observed_month'))+'.')
     sentences.append('Asking and auction prices have different economic targets; their difference is not dealer profit. Date-adjusted estimates extrapolate historical data and are not verified current sales. No validated individual prediction interval is available.')
+    for section in valuation.get('sections',[]):
+        sentences.append(section['title']+': '+section['text'])
     if seller:sentences.append('The seller says, without independent verification: '+seller)
     return '\n'.join(sentences)
+
+
+def qualitative_report_source(fields,description,valuation):
+    """Readable cross-panel briefing; exact numeric tables stay in the source report."""
+    facts,seller=narrative({**fields,'year':None,'odometer':None},description)
+    facts+=' The exact model year and mileage are in the vehicle profile.'
+    parts=[
+        'The car valuation report separates the seller advertised asking price from the wholesale auction sale estimate. Their gap is not dealer profit or a guaranteed discount.',
+        'Historical price models are adjusted to the selected date using vehicle ageing and a public monthly used-car market index. Past same-car prices are reconstructed scenarios, not observed sales. Mileage is held constant for the report; the interactive timeline can instead assume annual driving.',
+        'The index can require a short-horizon forecast beyond its latest observation. Sparse trims use pooled depreciation when flagged. Newer auction generations require an explicit analogue assumption. Current individual-car prices remain experimental without validated prediction intervals.',
+        'The supplied vehicle profile follows. '+facts,
+    ]
+    for section in valuation.get('sections',[]):
+        title=section['title']
+        if title=='Description branch':parts.append('The description branch uses MiniLM to supply a text-price feature to the asking model. The auction dataset has no descriptions.')
+        elif title=='Feature contributions':parts.append('Native feature-contribution charts explain the historical model response. Separate waterfalls explain ageing and market adjustments in dollars. Phrase analysis is available on request. Explanations describe model associations, not causal effects.')
+        elif title.endswith('model & evaluation'):parts.append(title+': historical tests report errors on the whole original test population and on the retained cohort. Filtering by actual outcomes makes the retained scores optimistic. An independent new cohort is required to establish increased accuracy.')
+        elif title=='Market clock backtests':parts.append('The market forecast has rolling-origin backtests. Component tests do not establish the accuracy of the whole current-car valuation.')
+        elif title.endswith('depreciation evidence'):parts.append(title+': separately fitted depreciation components have historical validation evidence, with their own limitations.')
+        elif title=='Other studio tools':parts.append(section['text'])
+        elif title=='Price targets & datasets':parts.append('The sources are historical Craigslist advertised prices and reported wholesale auction selling prices, covering different years and market segments.')
+    if seller:parts.append('The seller states, without independent verification: '+seller)
+    return '\n'.join(parts)
 
 
 def render_story(fields,description,valuation=None):
@@ -96,13 +121,15 @@ def render_story(fields,description,valuation=None):
     def get_engine(model_id,revision):
         return SummaryEngine()
     story=build_valuation_story(fields,description,valuation)
-    fingerprint=hashlib.sha256(str(('qualitative-valuation-v1',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story)).encode()).hexdigest()
+    summary_source=qualitative_report_source(fields,description,valuation) if valuation else story
+    fingerprint=hashlib.sha256(str(('cross-panel-valuation-v3',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
     st.markdown('#### 📖 Your car & price story · BART summary' if valuation else '#### 📖 The car’s story · AI summary')
+    if valuation:st.caption('Your car, both markets, historical scenarios, model drivers and evaluation evidence — one briefing. BART is the narrator; the receipts keep the numbers honest.')
     saved=st.session_state.get('_bart_summary',{})
     if saved.get('fingerprint')!=fingerprint:
         try:
             with st.spinner('Condensing the car’s story…'):
-                result=summarize_story(story,get_engine(MODEL_ID,REVISION),qualitative=bool(valuation))
+                result=summarize_story(summary_source,get_engine(MODEL_ID,REVISION),qualitative=bool(valuation))
             saved={'fingerprint':fingerprint,'result':result}
             st.session_state['_bart_summary']=saved
         except Exception as error:
@@ -113,8 +140,12 @@ def render_story(fields,description,valuation=None):
     if result['status']=='ready':st.write(result['summary'])
     elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
     else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
-    if valuation:st.caption('BART gives a qualitative overview. Exact figures and dates remain in the price cards and full supplied story; numeric output tokens are disabled to reduce invented amounts. This does not guarantee factual correctness.')
+    if valuation:st.caption('AI overview, not a valuation calculation. BART receives a qualitative briefing covering the report’s topics; exact figures remain in the cards and source report. The overview disables numeric output tokens; it can still omit or misstate facts.')
     st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
     with st.expander('Full supplied story · model & limitations'):
-        st.text(story)
+        st.markdown(story.replace('\n','\n\n'))
+        if valuation:
+            with st.expander('Qualitative briefing supplied to BART'):
+                st.text(summary_source)
+            st.download_button('Download full valuation story',story,'car-valuation-story.txt','text/plain',key='download_valuation_story')
         st.caption('BART-base-CNN runs locally on CPU, using greedy decoding and a shared cached model. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')

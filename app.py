@@ -16,6 +16,8 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
+from pricing.iterative_release import render_release
+render_release(Path(__file__).parent)
 from pricing.analytics import render_privacy, record_price
 render_privacy()
 from pricing.dataset_sources import render_sources
@@ -49,12 +51,14 @@ aft_ready=(aft_path/'manifest.json').exists() and json.loads((aft_path/'manifest
 if aft_ready:choices.insert(0,aft_label)
 from pricing.residual_ui import ready as robust_aft_ready,model_root
 _default_root=model_root(Path('.'))
-robust_aft_label=('MiniLM + CatBoost AFT' if _default_root.name=='minilm-catboost-aft' else 'CatBoost AFT' if _default_root.name=='catboost-aft' else 'XGBoost AFT')+' · residual-trimmed (default)'
+robust_aft_label=('MiniLM + CatBoost AFT' if _default_root.name in ['minilm-catboost-aft','iterative-catboost'] else 'CatBoost AFT' if _default_root.name=='catboost-aft' else 'XGBoost AFT')+(' · five-stage cleaning (default)' if _default_root.name=='iterative-catboost' else ' · residual-trimmed (default)')
 if robust_aft_ready(Path('.')):choices.insert(0,robust_aft_label)
 tabular_catboost_label='CatBoost AFT · tabular comparison'
 if _default_root.name=='minilm-catboost-aft' and Path('models/catboost-aft/ask/manifest.json').exists():choices.append(tabular_catboost_label)
+iterative_quantile_label='MiniLM + CatBoost quantile 0.5 · five-stage comparison'
+if _default_root.name=='iterative-catboost':choices.append(iterative_quantile_label)
 mode=st.sidebar.selectbox('Pricing model',choices,index=0,key='pricing_model')
-locations={tabular_catboost_label:Path('models/catboost-aft/ask'),robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
+locations={iterative_quantile_label:Path('models/iterative-catboost/ask-quantile'),tabular_catboost_label:Path('models/catboost-aft/ask'),robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
            'Unfiltered trained ensemble':Path('models/robust-asking'),
@@ -62,8 +66,11 @@ locations={tabular_catboost_label:Path('models/catboost-aft/ask'),robust_aft_lab
 path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
-uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft'] and selected_manifest.get('text_feature',False))
+uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft','catboost-log-quantile'] and selected_manifest.get('text_feature',False))
 with st.sidebar.expander('Active model · technical receipt'):
+    if selected_manifest.get('training_regime')=='five-stage-catboost-residual':
+        st.info('MiniLM description-price stacking + CatBoost. Five cleaner rounds remove ceil(5% of survivors) per phase; the final estimator is newly fitted afterward.')
+        st.caption('Native categorical features. Both AFT and log-median quantile alternatives are assessed. Filtering held-out outcomes gives optimistic selected-cohort scores; original test diagnostics remain visible.')
     if selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
         st.info('MiniLM reads the seller description, then regularized CatBoost normal AFT combines its predicted_text_price with vehicle facts.' if uses_text else 'CatBoost normal AFT · tabular-only comparison; this model does not use the description.')
         st.warning('Filtered validation/test scores are optimistic because their labels select retained cars. See Evaluation for original unfiltered-test errors too.')
@@ -74,7 +81,7 @@ with st.sidebar.expander('Active model · technical receipt'):
         st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
     if uses_text:
         if selected_manifest.get('pipeline')=='catboost-aft':
-            st.caption('MiniLM supplies one dynamic description-price feature. CatBoost learned this feature from out-of-fold text predictions. Make and model remain native categorical fields. Highest-residual 25% per split plus OutlierTree flags were excluded; filtered scores are optimistic. The neural mechanic reads the advert; the tree committee checks the paperwork.')
+            st.caption(('Five CatBoost cleaner rounds precede final fitting. ' if selected_manifest.get('training_regime')=='five-stage-catboost-residual' else '')+'MiniLM supplies one dynamic description-price feature. CatBoost learned this feature from out-of-fold text predictions. Make and model remain native categorical fields. Filtered scores are optimistic; see the active bundle for the exact cleaning method. The neural mechanic reads the advert; the tree committee checks the paperwork.')
         elif selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
             st.caption('MiniLM reads the description. Cleanlab audited suspected training price-label errors using vehicle facts, internal cross-validation and uncertainty estimation. It does not filter the car you enter. Validation and test rows remain intact.')
         else:
@@ -217,30 +224,32 @@ with value:
                 with st.expander('What did the description contribute?'):
                     st.metric('Description-price feature',f"${saved[1]['predicted_text_price']:,.0f}")
                     st.caption('MiniLM’s description-only scalar enters the asking model alongside vehicle facts. It is not an independent offer or a word-level explanation.')
-            with st.container(key='story_receipt'):
-                from pricing.bart_summary import render_story
-                report={
-                    'valuation_date':str(valuation_date),
-                    'vehicle_facts':saved[2],
-                    'market_estimates':{side:{
-                        'estimated_price_usd':round(r['price'],2),
-                        'vehicle_age_years':round(r['age'],2),
-                        'age_multiplier':round(r['age_factor'],4),
-                        'market_multiplier':round(r['market_factor'],4),
-                        'historical_anchor_usd':round(r['anchor_price_reference_usd'],2),
-                        'market_index_status':r['market'],
-                        'pooled_depreciation':not r['model_known_to_curve'],
-                        'newer_generation_analogue':r['generation_analogue']
-                    } for side,r in dated_receipts.items()},
-                    'unavailable_markets':[s for s in ['ask','bid'] if s not in dated_receipts],
-                    'market_source':'BLS/FRED CUUR0000SETA02',
-                    'latest_observed_month':transport.clock.meta['latest_observation'] if transport else None,
-                    'scope':'Experimental date-adjusted estimates; no validated current-car prediction interval.'
-                }
-                render_story(saved[2],saved[3],valuation=report)
         else:
             st.markdown('<div class="garage-science-note"><strong>Curious what moves the price?</strong><br>After estimating, explore feature contributions, mileage scenarios and all six explanation graphs below.</div>',unsafe_allow_html=True)
     if saved and saved[0]==str(path):
+        report={
+            'valuation_date':str(valuation_date),
+            'vehicle_facts':saved[2],
+            'market_estimates':{side:{
+                'estimated_price_usd':round(r['price'],2),
+                'vehicle_age_years':round(r['age'],2),
+                'age_multiplier':round(r['age_factor'],4),
+                'market_multiplier':round(r['market_factor'],4),
+                'historical_anchor_usd':round(r['anchor_price_reference_usd'],2),
+                'market_index_status':r['market'],
+                'pooled_depreciation':not r['model_known_to_curve'],
+                'newer_generation_analogue':r['generation_analogue']
+            } for side,r in dated_receipts.items()},
+            'unavailable_markets':[s for s in ['ask','bid'] if s not in dated_receipts],
+            'market_source':'BLS/FRED CUUR0000SETA02',
+            'latest_observed_month':transport.clock.meta['latest_observation'] if transport else None,
+            'scope':'Experimental date-adjusted estimates; no validated current-car prediction interval.'
+        }
+        from pricing.valuation_story import extend_report
+        report=extend_report(report,Path(__file__).parent,saved[2],saved[1],dated_receipts,transport,path,locals().get('bid_path'))
+        with st.container(key='story_receipt'):
+            from pricing.bart_summary import render_story
+            render_story(saved[2],saved[3],valuation=report)
         if dated_result:
             render_market_clock(transport,valuation_date,refresh_error)
             render_time_evidence(transport,dated_receipts)
@@ -312,7 +321,7 @@ with results:
                 st.text(f"Description-only test MAE: ${e['description_only']['mae_usd']:,.0f} · MiniLM + LightGBM test MAE: ${e['stacked']['mae_usd']:,.0f}.")
                 st.info('The installed MiniLM model is the default studio model. Its filter is recorded in the model manifest. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
                 st.download_button('Download MiniLM assessment',json.dumps(e,indent=2),'minilm-assessment.json','application/json')
-        if selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft']:
+        if selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft','catboost-log-quantile']:
             st.caption('AFT point estimate only. Its assumed log-normal distribution is not a validated individual prediction interval.')
         elif selected_manifest.get('band80_log_radius') is None and uses_text:
             st.caption('The original evaluation recorded interval coverage, but its calibration radius was not persisted. This installation serves point estimates only.')

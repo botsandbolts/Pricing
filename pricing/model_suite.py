@@ -21,8 +21,8 @@ NAMES=['lgb_huber','lgb_quantile_50','xgb_aft_normal','ridge_baseline']
 
 def predictors(frame, side):
     prepared=frame.copy()
-    if side=='bid' and 'condition' not in prepared and 'auction_condition' in prepared:
-        prepared['condition']=prepared['auction_condition']
+    if side=='bid' and 'condition' not in prepared:
+        prepared['condition']=prepared['auction_condition'] if 'auction_condition' in prepared else np.nan
     shape,keys,valid,dates=prepare(prepared,training=side=='bid')
     x=shape[NUMS].copy()
     for col in CATS:
