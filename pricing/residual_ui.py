@@ -112,15 +112,15 @@ def render_calculator(root,key_prefix='robust_pair'):
     st.subheader('Advertised asking price vs wholesale auction sale')
     render_market_guide()
     st.caption('Asking model: MiniLM + CatBoost AFT. Auction model: CatBoost log-median 0.5.' if json.loads((model_root(root)/'ask/manifest.json').read_text()).get('text_feature') else 'Tabular CatBoost comparison models.')
+    from pricing.current_value import clock_controls
+    date,allow=clock_controls(key_prefix)
     with st.form(key_prefix+'_form'):
         a,b,c=st.columns(3)
         year=a.number_input('Year',1900,2021,2015,key=key_prefix+'_year')
         make=b.text_input('Make','Toyota',key=key_prefix+'_make');name=c.text_input('Model / trim','Corolla',key=key_prefix+'_model')
         miles=a.number_input('Miles',0,2000000,95000,key=key_prefix+'_miles');body=b.selectbox('Body',['sedan','suv','truck','coupe','wagon','van','hatchback','convertible'],key=key_prefix+'_body');state=c.text_input('State','ca',key=key_prefix+'_state')
         from marketbridge.time_engine import today
-        transmission=a.selectbox('Transmission',['automatic','manual','unknown'],key=key_prefix+'_transmission');fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','unknown'],key=key_prefix+'_fuel');from pricing.current_value import month_end
-        date=c.date_input('Valuation date · month end by default',month_end(),key=key_prefix+'_date')
-        allow=st.checkbox('Allow auction generation analogues for 2016–2021 cars',value=True,key=key_prefix+'_analogue_v2')
+        transmission=a.selectbox('Transmission',['automatic','manual','unknown'],key=key_prefix+'_transmission');fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','unknown'],key=key_prefix+'_fuel')
         grade=a.selectbox('Actual auction grade',[None,1.,2.,3.,4.,5.],format_func=lambda g:'Unknown' if g is None else str(g),key=key_prefix+'_grade')
         description=st.text_area('Seller description · MiniLM asking-price signal',max_chars=8000,key=key_prefix+'_description')
         submit=st.form_submit_button('Price it in both markets')
