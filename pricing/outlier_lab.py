@@ -116,6 +116,16 @@ def render(root):
         st.warning('Validation and test labels are used to choose retained cars, making selected-cohort scores optimistic. The full original test remains intact for reporting, but this historical test has informed development. A genuinely new external cohort is required for an unbiased improvement claim. The post-assessment all-retained-data refit has no new independent score.')
     st.markdown('### The sensible next experiment')
     st.write('Freeze a new external test before touching its outcomes. Compare training-only trimming, robust losses without row deletion, and down-weighting instead of exclusion. Audit expensive, damaged and rare-car groups separately. Let the evidence choose the cleaner; the broom does not get a vote.')
+    with st.expander('Installed model properties · exact settings & features'):
+        for name in ['ask','bid','ask-quantile','bid-aft']:
+            folder=Path(root)/'models/iterative-catboost'/name
+            if not (folder/'manifest.json').exists():continue
+            meta=json.loads((folder/'manifest.json').read_text())
+            st.markdown('**'+name+'** · '+str(meta['selected_boosting_rounds'])+' trees · '+format(meta['trained_rows'],',')+' retained cars')
+            st.write('Features: '+', '.join(meta['feature_names']))
+            st.json(meta['parameters'],expanded=False)
+            st.caption('Text feature: '+str(meta['text_feature'])+' · CatBoost '+meta['library_version']+' · source SHA256 '+meta['source_sha256'])
+        st.markdown('[Complete production model card](https://github.com/botsandbolts/Pricing/blob/main/FIVE_STAGE_MODEL_CARD.md)')
     st.caption(report['source']+' · Saved experiment evidence; no retraining occurs when you open this tab.')
     st.link_button('Open saved Kaggle experiment',report['run_url'])
     st.download_button('Download experiment evidence · JSON',json.dumps(report,indent=2),'five-stage-outlier-evidence.json','application/json',key='outlier_evidence_download')

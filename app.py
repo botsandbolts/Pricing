@@ -80,7 +80,7 @@ with st.sidebar.expander('Active model · technical receipt'):
     if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
         st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
     if uses_text:
-        if selected_manifest.get('pipeline')=='catboost-aft':
+        if selected_manifest.get('pipeline') in ['catboost-aft','catboost-log-quantile']:
             st.caption(('Five CatBoost cleaner rounds precede final fitting. ' if selected_manifest.get('training_regime')=='five-stage-catboost-residual' else '')+'MiniLM supplies one dynamic description-price feature. CatBoost learned this feature from out-of-fold text predictions. Make and model remain native categorical fields. Filtered scores are optimistic; see the active bundle for the exact cleaning method. The neural mechanic reads the advert; the tree committee checks the paperwork.')
         elif selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
             st.caption('MiniLM reads the description. Cleanlab audited suspected training price-label errors using vehicle facts, internal cross-validation and uncertainty estimation. It does not filter the car you enter. Validation and test rows remain intact.')
@@ -273,7 +273,9 @@ with time_panel:
     if time_saved and time_saved[0]!=str(path):time_saved=None
     render_time_studio(Path(__file__).parent,time_saved,get_pipeline(str(path)) if time_saved else None)
 with how:
-    st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction default is tabular CatBoost quantile 0.5 on log prices, fitted after a separate quantile-residual cleaner removes the highest-residual 25% per original phase. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. Ask preserves its existing highest-residual quartile plus OutlierTree masks. Bid uses its new quantile-residual top-quarter cut only, without additional OutlierTree flags. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Only its cleaner can optionally use an IMR fitted from a genuine sold/unsold listing population; such data are currently unavailable. Earlier models remain available for comparison.')
+    if _default_root.name=='iterative-catboost':
+        st.success('Active default: five-stage CatBoost cleaning; MiniLM + asking AFT and wholesale log-median quantile 0.5. Full model card and all measured trade-offs are in Outlier lab. The older methods described below remain comparison experiments.')
+    if _default_root.name!='iterative-catboost':st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction default is tabular CatBoost quantile 0.5 on log prices, fitted after a separate quantile-residual cleaner removes the highest-residual 25% per original phase. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. Ask preserves its existing highest-residual quartile plus OutlierTree masks. Bid uses its new quantile-residual top-quarter cut only, without additional OutlierTree flags. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Only its cleaner can optionally use an IMR fitted from a genuine sold/unsold listing population; such data are currently unavailable. Earlier models remain available for comparison.')
     st.subheader('A pricing committee with thousands of small opinions')
     st.write('LightGBM learns lots of small decision trees, each correcting earlier mistakes. Huber loss softens the influence of large errors: one wildly ambitious seller does not get to chair the committee. The fitted tree count and exact drivers appear after an estimate.')
     st.write('Make and model enter LightGBM as ordinary categorical fields. Their transformer and separate neural price head have been removed.')
@@ -303,7 +305,7 @@ with results:
                 if not e['promoted']:st.info('This is the completed filtered experiment. The Best trained ensemble option selects the unfiltered ensemble because its benchmark errors are lower.')
             st.download_button('Download selected ensemble assessment',json.dumps(e,indent=2),'asking-ensemble-evaluation.json','application/json')
             with st.expander('All training candidates · technical details'):st.json(e['grid'])
-        elif selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
+        elif selected_manifest.get('training_regime') in ['five-stage-catboost-residual','residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
             from pricing.residual_ui import render_assessment
             render_assessment(Path('.'))
         elif selected_manifest.get('pipeline')=='modest-model-suite':
@@ -325,7 +327,7 @@ with results:
                 st.info('The installed MiniLM model is the default studio model. Its filter is recorded in the model manifest. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
                 st.download_button('Download MiniLM assessment',json.dumps(e,indent=2),'minilm-assessment.json','application/json')
         if selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft','catboost-log-quantile']:
-            st.caption('AFT point estimate only. Its assumed log-normal distribution is not a validated individual prediction interval.')
+            st.caption('Point estimate only. Neither the AFT distribution nor quantile loss provides a validated current-car prediction interval here.')
         elif selected_manifest.get('band80_log_radius') is None and uses_text:
             st.caption('The original evaluation recorded interval coverage, but its calibration radius was not persisted. This installation serves point estimates only.')
         elif 'band80_test_coverage' in e:st.write(f"Indicative 80% band test coverage: {e['band80_test_coverage']:.1%}")

@@ -1,0 +1,179 @@
+{
+  "algorithm": "Iterative CatBoost residual cleaning",
+  "stages": [
+    {
+      "stage": 1,
+      "fraction_of_remaining": 0.05,
+      "counts": [
+        {
+          "phase": "train",
+          "before": 384198,
+          "removed": 19210,
+          "retained": 364988,
+          "minimum_removed_absolute_log_residual": 0.5659190640126273
+        },
+        {
+          "phase": "validation",
+          "before": 82380,
+          "removed": 4119,
+          "retained": 78261,
+          "minimum_removed_absolute_log_residual": 0.6142379094165751
+        },
+        {
+          "phase": "test",
+          "before": 83603,
+          "removed": 4181,
+          "retained": 79422,
+          "minimum_removed_absolute_log_residual": 0.525185023342857
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "fraction_of_remaining": 0.05,
+      "counts": [
+        {
+          "phase": "train",
+          "before": 364988,
+          "removed": 18250,
+          "retained": 346738,
+          "minimum_removed_absolute_log_residual": 0.3975967081143068
+        },
+        {
+          "phase": "validation",
+          "before": 78261,
+          "removed": 3914,
+          "retained": 74347,
+          "minimum_removed_absolute_log_residual": 0.4213232701381493
+        },
+        {
+          "phase": "test",
+          "before": 79422,
+          "removed": 3972,
+          "retained": 75450,
+          "minimum_removed_absolute_log_residual": 0.3666029554369121
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "fraction_of_remaining": 0.05,
+      "counts": [
+        {
+          "phase": "train",
+          "before": 346738,
+          "removed": 17337,
+          "retained": 329401,
+          "minimum_removed_absolute_log_residual": 0.3196055666131894
+        },
+        {
+          "phase": "validation",
+          "before": 74347,
+          "removed": 3718,
+          "retained": 70629,
+          "minimum_removed_absolute_log_residual": 0.3391444327172639
+        },
+        {
+          "phase": "test",
+          "before": 75450,
+          "removed": 3773,
+          "retained": 71677,
+          "minimum_removed_absolute_log_residual": 0.30125822294172444
+        }
+      ]
+    },
+    {
+      "stage": 4,
+      "fraction_of_remaining": 0.05,
+      "counts": [
+        {
+          "phase": "train",
+          "before": 329401,
+          "removed": 16471,
+          "retained": 312930,
+          "minimum_removed_absolute_log_residual": 0.2714998579190162
+        },
+        {
+          "phase": "validation",
+          "before": 70629,
+          "removed": 3532,
+          "retained": 67097,
+          "minimum_removed_absolute_log_residual": 0.28754039652057806
+        },
+        {
+          "phase": "test",
+          "before": 71677,
+          "removed": 3584,
+          "retained": 68093,
+          "minimum_removed_absolute_log_residual": 0.26012242103067074
+        }
+      ]
+    },
+    {
+      "stage": 5,
+      "fraction_of_remaining": 0.05,
+      "counts": [
+        {
+          "phase": "train",
+          "before": 312930,
+          "removed": 15647,
+          "retained": 297283,
+          "minimum_removed_absolute_log_residual": 0.23997808308410384
+        },
+        {
+          "phase": "validation",
+          "before": 67097,
+          "removed": 3355,
+          "retained": 63742,
+          "minimum_removed_absolute_log_residual": 0.2665981842258951
+        },
+        {
+          "phase": "test",
+          "before": 68093,
+          "removed": 3405,
+          "retained": 64688,
+          "minimum_removed_absolute_log_residual": 0.2459316458340446
+        }
+      ]
+    }
+  ],
+  "stage_count": 5,
+  "fraction_per_stage": 0.05,
+  "remaining_rule": "ceil(5% of current survivors) independently per original phase",
+  "original_rows": 550181,
+  "retained_rows": 425713,
+  "removed_rows": 124468,
+  "removed_fraction": 0.22623100397869064,
+  "cleaner_parameters": {
+    "loss_function": "Quantile:alpha=0.5",
+    "iterations": 400,
+    "depth": 6,
+    "learning_rate": 0.05,
+    "l2_leaf_reg": 10.0,
+    "random_strength": 1.0,
+    "bootstrap_type": "Bayesian",
+    "bagging_temperature": 1.0,
+    "random_seed": 42,
+    "thread_count": 4,
+    "allow_writing_files": false,
+    "task_type": "GPU",
+    "devices": "0"
+  },
+  "cleaner_features": [
+    "age",
+    "log_miles",
+    "auction_grade",
+    "manufacturer",
+    "model",
+    "type",
+    "transmission",
+    "state",
+    "fuel",
+    "drive",
+    "title_status",
+    "cylinders",
+    "paint_color"
+  ],
+  "text_feature_in_cleaner": false,
+  "warning": "Filtered validation/test use their outcomes to select easier cars and are optimistic. Original unfiltered-test scores are diagnostic: this historical test has informed development. A new external cohort is required for an unbiased improvement claim. Sequential selection is adaptive; cleaner cross-fitting is not nested cross-validation of the entire selection pipeline. Large residuals are not verified data errors; rare genuine cars can be excluded."
+}

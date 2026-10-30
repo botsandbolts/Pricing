@@ -1,0 +1,121 @@
+{
+  "bytes": 11372327,
+  "sha256": "ba05141b8d934a5446ea304a46d5a98012cc8e36dbfd6ac1912b2aef3a83a406",
+  "parts": [
+    {
+      "file": "catboost_aft.cbm.gz.000.part",
+      "bytes": 500000,
+      "sha256": "47f61a51ada7c4d6e850f6e3213a6574cab2731389ef3dd0907adb93be7494d2"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.001.part",
+      "bytes": 500000,
+      "sha256": "4f0becff51a5389861b5e19f4e16043eb935cbaceed36e78c79240b9a7013a32"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.002.part",
+      "bytes": 500000,
+      "sha256": "274efc6beba50f9bf0057fcea606187f7f0a82737eb64b986ccfe3b732cf0913"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.003.part",
+      "bytes": 500000,
+      "sha256": "e1b3ca43f705d73cc94de9c2153d08734aa12a663052ef5599dc7302cd8b3a79"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.004.part",
+      "bytes": 500000,
+      "sha256": "6f978736e31e86f4dd1c4be3ba017a6e64d9e531931e09ecd8e8275127ef01aa"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.005.part",
+      "bytes": 500000,
+      "sha256": "7ca27cd97ac08fba9e93398acc52e59d3b79a4db52fbebc78b646c50a5fa02a5"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.006.part",
+      "bytes": 500000,
+      "sha256": "c60ed436a5b913e1e8a278602b60b0ccc2f0c475932ebcb5afa245b114915b8a"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.007.part",
+      "bytes": 500000,
+      "sha256": "c26323e1d76eef3f31ba215efb4d7921fc0eaacb0294ca36037c33059969f4a5"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.008.part",
+      "bytes": 500000,
+      "sha256": "443159b3fadfa73cad676735d5edbb692db0c9780b7b0956c57c6a319cde06aa"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.009.part",
+      "bytes": 500000,
+      "sha256": "94a83d462398b0bd0743b506211aa7889c4d33c9bc0c2170243fcda432fb5e19"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.010.part",
+      "bytes": 500000,
+      "sha256": "dd2039b9dffe62a6995dc5e3eed9918fcb9477465479fc4dec07a0b3400b78fd"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.011.part",
+      "bytes": 500000,
+      "sha256": "37fdc88f3aeb9464095a4927b9fa0ad3bf7b60a8eefc83bb7c474f8ba7ddf19f"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.012.part",
+      "bytes": 500000,
+      "sha256": "d62bdc3be53ae71e84fe92b5fd35d52f318117eb788582b3d6a28da8f59907d8"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.013.part",
+      "bytes": 500000,
+      "sha256": "af0db460ac202477c14d9d80193f849d2659c9ebb0f1dfc386e944f6c59963ab"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.014.part",
+      "bytes": 500000,
+      "sha256": "72e43135042913df9b3a637f747a494c2fa3a19412d0165a79bb02154c608dcb"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.015.part",
+      "bytes": 500000,
+      "sha256": "5e6d006d69ff412ede78d3f60ea763e372edb36bb8d1bc5ec10af23cd1766678"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.016.part",
+      "bytes": 500000,
+      "sha256": "a31b5b62a51992cf4ece25977bf7ee1287e1d4bf43165180698192d670dc1f8c"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.017.part",
+      "bytes": 500000,
+      "sha256": "ceb5a6de23d026c34bfa8c66f41de52d553f43cfc4ca1d03c56d24822e06115e"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.018.part",
+      "bytes": 500000,
+      "sha256": "3193fcd56d8d81c6dced907eabab78a0f08355d05357b77c9bf879e794514d26"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.019.part",
+      "bytes": 500000,
+      "sha256": "a7deb7528d3c10fb1b431e8a5ef4a105a775b4d7ff99c0fe1b7412ecd4ba58ea"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.020.part",
+      "bytes": 500000,
+      "sha256": "fdb763a1cfb47d7e46ff90cab94642c8200400afd86f8c7ea77ec10d401b18f2"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.021.part",
+      "bytes": 500000,
+      "sha256": "f5c1a3e2b8f5bac1e077a4dcf80e71efa697989e264afe6c29359b50062924cb"
+    },
+    {
+      "file": "catboost_aft.cbm.gz.022.part",
+      "bytes": 372327,
+      "sha256": "473cab3ceace7c3e422ef6281ed1fcc53d8bd62bc1169ae9e77304226536141f"
+    }
+  ]
+}

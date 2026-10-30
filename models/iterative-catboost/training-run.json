@@ -1,0 +1,8 @@
+{
+  "source": "Kaggle saved version 2",
+  "run_url": "https://www.kaggle.com/code/botsandbolts/car-price-studio-five-stage-catboost?scriptVersionId=363794926",
+  "package_sha256": "a9dedc53079264bc6e6d097c0c7d6e9658bdbc01742463b034fac91cf844d7fc",
+  "source_bundle_sha256": "add9b321f5e1536b5d1c271d70398d863d5a6aa1a9a822fdc78ad93c700d1d14",
+  "promotion": "User-requested five-stage default; not selected for better original-test MAE",
+  "audit": "Assessment weights, full stage masks and original-test predictions remain in the saved Kaggle package."
+}

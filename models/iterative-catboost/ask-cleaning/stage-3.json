@@ -1,0 +1,27 @@
+{
+  "stage": 3,
+  "fraction_of_remaining": 0.05,
+  "counts": [
+    {
+      "phase": "train",
+      "before": 133368,
+      "removed": 6669,
+      "retained": 126699,
+      "minimum_removed_absolute_log_residual": 0.4633324245650954
+    },
+    {
+      "phase": "validation",
+      "before": 28579,
+      "removed": 1429,
+      "retained": 27150,
+      "minimum_removed_absolute_log_residual": 0.5194241609826964
+    },
+    {
+      "phase": "test",
+      "before": 28592,
+      "removed": 1430,
+      "retained": 27162,
+      "minimum_removed_absolute_log_residual": 0.5286586910573661
+    }
+  ]
+}

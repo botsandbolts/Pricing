@@ -43,8 +43,8 @@ def show_prices(result,auction_date):
 def render_comparison(root):
     from pricing.residual_ui import ready as residual_ready,render_calculator,render_assessment
     if residual_ready(root):
-        mode=st.selectbox('Two-market pricing models',['CatBoost AFT defaults','Original models and structural experiments'],key='robust_integrated_mode')
-        if mode=='CatBoost AFT defaults':
+        mode=st.selectbox('Two-market pricing models',['Five-stage defaults · asking AFT + auction median','Original models and structural experiments'],key='robust_integrated_mode')
+        if mode=='Five-stage defaults · asking AFT + auction median':
             render_calculator(root,key_prefix='integrated_new');render_assessment(root);return
     if (Path(root)/'models/price-model-suite/comparison.json').exists():
         mode=st.selectbox('Two-market comparison mode',['AFT defaults','Historical structural experiments'],key='integrated_comparison_mode')

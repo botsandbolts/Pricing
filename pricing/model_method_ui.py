@@ -5,6 +5,9 @@ import streamlit as st
 
 
 def render_methods(root):
+    from pricing.iterative_release import completed
+    from pricing.residual_ui import bid_folder,model_root
+    iterative=completed(root)
     with st.expander('Why asking AFT, auction median regression, and a separate cleaning model?'):
         simple,technical=st.tabs(['Explain it without a statistics degree','Technical · losses, censoring and selection'])
         with simple:
@@ -20,22 +23,23 @@ def render_methods(root):
             st.latex(r'\log P=f(X)+\sigma\varepsilon,\quad\varepsilon\sim N(0,1)')
             st.write('Bid cleaner and final estimator both use CatBoost Quantile:alpha=0.5 with log dollar targets. Prices retain the existing 2015-reference CPI normalization before fitting and date transport afterward. The pinball loss at 0.5 is half the absolute log error. Monotonic exponentiation maps a log-price median to a price median; this does not target mean dollars or minimize squared dollar error.')
             st.latex(r'\rho_{0.5}(u)=\tfrac12|u|,\quad u=\log P-\widehat{\log P},\quad\widehat P=\exp(f(X))')
-            st.write('Original training cleaner predictions use three-fold cross-fitting. Validation/test cleaner fits never use their price targets. Subsequently using those targets to rank and remove ceil(0.25*n_phase) cars still selects the evaluation sample. Ties are broken by row_id. This new bid cut does not union the old OutlierTree or Isolation Forest flags. Assessment fits retained training only; a separate final deployment refit uses all retained phases.')
+            if iterative:st.write('Five rounds each remove ceil(5% of remaining cars) per original phase. Training residuals use three-fold cross-fitting; held-out predictions use training-only fits. No other outlier flags are unioned. A fresh assessment fit uses retained training; deployment separately refits all retained phases. This adaptive selection is not nested cross-validation.')
+            else:st.write('Original training cleaner predictions use three-fold cross-fitting. Validation/test cleaner fits never use their price targets. Subsequently using those targets to rank and remove ceil(0.25*n_phase) cars still selects the evaluation sample. Ties are broken by row_id. This new bid cut does not union the old OutlierTree or Isolation Forest flags. Assessment fits retained training only; a separate final deployment refit uses all retained phases.')
             st.latex(r'\Pr(S=1\mid Z)=\Phi(Z\gamma),\qquad\lambda_{sold}(Z)=\frac{\phi(Z\gamma)}{\Phi(Z\gamma)}')
             st.write('Optional selection fitting uses Probit on same-market sold AND observed unsold listings, using pre-sale predictors only. Its fit excludes validation/test phases and the cleaner’s OOF-held sold cars/VINs. The normal IMR formula follows the Probit index; plugging a logistic index into this formula is not equivalent. A price column is never a selection-model feature. Lambda is supplied only to the residual-cleaning CatBoost and omitted from the final median estimator.')
             st.write('Adding lambda to a flexible quantile cleaner is not the classical Heckman two-step mean regression and does not by itself identify population prices. Population coverage, selection assumptions and credible exclusion restrictions still matter. With only S=1, the selection equation is unidentified; the implementation rejects one-class inputs.')
-            file=Path(root)/'models/bid-quantile-cleaned/manifest.json'
+            file=bid_folder(root)/'manifest.json'
             if file.exists():st.json(json.loads(file.read_text()).get('selection_imr',{}))
-            current=Path(root)/'models/bid-quantile-cleaned/evaluation.json'
-            previous=Path(root)/'models/minilm-catboost-aft/bid/evaluation.json'
+            current=bid_folder(root)/'evaluation.json'
+            previous=(model_root(root)/'bid-aft/evaluation.json') if iterative else Path(root)/'models/minilm-catboost-aft/bid/evaluation.json'
             if current.exists() and previous.exists():
                 import pandas as pd
                 records=[]
-                for name,path in [('Requested default · log quantile 0.5',current),('Previous · normal AFT',previous)]:
+                for name,path in [('Requested default · log quantile 0.5',current),('Same-cleaning normal AFT' if iterative else 'Previous · normal AFT',previous)]:
                     r=json.loads(path.read_text());m=r['assessment']['original_unfiltered_test']
                     records.append({'Model':name,'Original test cars':m['rows'],'MAE USD':m['mae_usd'],'RMSE USD':m['rmse_usd'],'Spearman':m['spearman']})
                 st.subheader('Measured trade-off on the same original auction test')
                 st.dataframe(pd.DataFrame(records),hide_index=True)
-                st.caption('The requested quantile model has higher recorded original-test MAE than the previous AFT model. It is the user-requested default, not a promotion based on improved accuracy. This historical test has already informed design decisions. Filtered scores select different easier cars and are not a paired accuracy comparison.')
+                st.caption('The default follows the requested cleaning and loss choices. The table reports actual full-test errors; selected-cohort scores do not establish better generalization. This historical test has informed development.')
             st.link_button('CatBoost objectives: Quantile and SurvivalAft','https://catboost.ai/docs/en/concepts/loss-functions-regression')
             st.link_button('Stata: Probit selection and inverse Mills ratio','https://www.stata.com/support/faqs/statistics/inverse-mills-ratio/')

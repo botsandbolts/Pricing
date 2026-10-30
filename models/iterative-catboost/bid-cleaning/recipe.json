@@ -1,0 +1,21 @@
+{
+  "row_ids_sha256": "b366bbb53872f6058d9228781a6ed9ed8df681708d5234c223068ec19ec36be2",
+  "price_sha256": "a57e85bad8e2ac203ff9866520d143420aeb637e7c9fb29a8c0a6bbe55e2dbe2",
+  "parameters": {
+    "loss_function": "Quantile:alpha=0.5",
+    "iterations": 400,
+    "depth": 6,
+    "learning_rate": 0.05,
+    "l2_leaf_reg": 10.0,
+    "random_strength": 1.0,
+    "bootstrap_type": "Bayesian",
+    "bagging_temperature": 1.0,
+    "random_seed": 42,
+    "thread_count": 4,
+    "allow_writing_files": false,
+    "task_type": "GPU",
+    "devices": "0"
+  },
+  "stages": 5,
+  "fraction": 0.05
+}

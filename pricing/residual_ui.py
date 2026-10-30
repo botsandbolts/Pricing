@@ -53,7 +53,7 @@ def load(path,version):
 
 def render_bid(root,fields):
     default=bid_folder(root);previous=model_root(root)/('bid-aft' if model_root(root).name=='iterative-catboost' else 'bid')
-    options={'CatBoost log-median · quantile 0.5 (default)':default,'CatBoost normal AFT · previous':previous} if default!=previous else {'CatBoost normal AFT':previous}
+    options={'CatBoost log-median · quantile 0.5 (default)':default,('CatBoost normal AFT · same five-stage cleaning' if model_root(root).name=='iterative-catboost' else 'CatBoost normal AFT · previous'):previous} if default!=previous else {'CatBoost normal AFT':previous}
     price_slot=st.container()
     details=st.expander('Auction model · controls & technical receipt')
     with details:

@@ -52,3 +52,5 @@ qrcode>=8,<9
 # Restore BART-base-CNN after Pegasus exceeded the serving host budget.
 
 # Outlier lab: restart imported UI modules for the completed experiment report.
+
+# Install verified five-stage defaults and refresh shared serving/UI routes.
