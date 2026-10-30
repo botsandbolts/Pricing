@@ -66,3 +66,5 @@ qrcode>=8,<9
 # Deploy hierarchical residual laboratory and private Turso estimation table.
 # Hierarchical panel: automatic group-held-out CatBoost residual generation and polished UX.
 # Hierarchical residual export: separate session data from download widget state.
+
+# Original-cohort hierarchical and SGD-Huber comparison: reload installed research results.

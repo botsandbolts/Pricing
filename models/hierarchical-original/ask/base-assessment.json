@@ -1,0 +1,122 @@
+{
+  "method": "fresh_group_cross_fitted_sgd_huber_log_price",
+  "side": "ask",
+  "model": {
+    "method": "sgd_huber_log_residuals",
+    "loss": "huber",
+    "epsilon_log": 0.1,
+    "min_category_count": 20,
+    "max_categories_per_field": 50,
+    "scaling": "numeric StandardScaler fitted on calibration only",
+    "unknown_categories": "infrequent bucket if fitted; otherwise all-zero encoding",
+    "parameters": {
+      "alpha": 0.001,
+      "average": true,
+      "early_stopping": false,
+      "epsilon": 0.1,
+      "eta0": 0.01,
+      "fit_intercept": true,
+      "l1_ratio": 0.05,
+      "learning_rate": "invscaling",
+      "loss": "huber",
+      "max_iter": 3000,
+      "n_iter_no_change": 5,
+      "penalty": "elasticnet",
+      "power_t": 0.25,
+      "random_state": 42,
+      "shuffle": true,
+      "tol": 1e-05,
+      "validation_fraction": 0.1,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "feature_count": 204,
+    "iterations_completed": 29,
+    "largest_coefficients": [
+      {
+        "feature": "numeric__age",
+        "coefficient": -0.5093692334469978
+      },
+      {
+        "feature": "numeric__log_miles",
+        "coefficient": -0.4211452142609103
+      },
+      {
+        "feature": "categorical__fuel_diesel",
+        "coefficient": 0.3410812171640749
+      },
+      {
+        "feature": "numeric__mileage_missing",
+        "coefficient": -0.1975577162493195
+      },
+      {
+        "feature": "categorical__manufacturer_lexus",
+        "coefficient": 0.16961568846253747
+      },
+      {
+        "feature": "categorical__cylinders_8 cylinders",
+        "coefficient": 0.15814538375971113
+      },
+      {
+        "feature": "categorical__type_hatchback",
+        "coefficient": -0.14326348407028824
+      },
+      {
+        "feature": "categorical__model_corvette",
+        "coefficient": 0.13572727075385302
+      },
+      {
+        "feature": "categorical__drive_4wd",
+        "coefficient": 0.1278377043622518
+      },
+      {
+        "feature": "categorical__type_pickup",
+        "coefficient": 0.12654363518791123
+      },
+      {
+        "feature": "categorical__model_wrangler",
+        "coefficient": 0.12017839187968253
+      },
+      {
+        "feature": "categorical__type_convertible",
+        "coefficient": 0.1104169894380473
+      },
+      {
+        "feature": "categorical__manufacturer_mitsubishi",
+        "coefficient": -0.10913853257536289
+      },
+      {
+        "feature": "categorical__type_truck",
+        "coefficient": 0.10729134502761015
+      },
+      {
+        "feature": "categorical__drive_fwd",
+        "coefficient": -0.1052353286035108
+      },
+      {
+        "feature": "categorical__manufacturer_nissan",
+        "coefficient": -0.10312765244259647
+      },
+      {
+        "feature": "categorical__manufacturer_mercedes-benz",
+        "coefficient": 0.09769280003705834
+      },
+      {
+        "feature": "categorical__type_sedan",
+        "coefficient": -0.09641223856817496
+      },
+      {
+        "feature": "categorical__title_status_salvage",
+        "coefficient": -0.09499330469401225
+      },
+      {
+        "feature": "categorical__model_focus",
+        "coefficient": -0.0898909181604329
+      }
+    ],
+    "warning": "Coefficients concern log residuals; numerical coefficients use standardized units. Not causal effects. USD outputs are clipped to 1\u201310 million."
+  },
+  "calibration_folds": 3,
+  "text_branch": false,
+  "warning": "Separate SGD-Huber log-price assessment on the full eligible original cohort. No CatBoost or random forest in this experiment. MiniLM and five-stage production cleaning are excluded. Held-out labels never fit the base model or hierarchy."
+}

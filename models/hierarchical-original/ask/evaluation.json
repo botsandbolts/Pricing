@@ -1,0 +1,207 @@
+{
+  "side": "ask",
+  "method": "sequential_empirical_bayes_log_residuals",
+  "calibration_rows": 147777,
+  "cohorts": {
+    "validation": {
+      "base": {
+        "mae_usd": 7447.364393476258,
+        "rmse_usd": 20126.859782435105,
+        "mae_log": 0.5093715780986707,
+        "bias_usd": 592.620068549456,
+        "rows": 31668
+      },
+      "hierarchical": {
+        "mae_usd": 6227.167276308778,
+        "rmse_usd": 20310.30080639787,
+        "mae_log": 0.38217026685582534,
+        "bias_usd": 804.9925049748906,
+        "rows": 31668
+      },
+      "mae_change_usd": -1220.19711716748,
+      "mae_change_95_group_bootstrap": [
+        -1317.6071398369784,
+        -1117.3584284543815
+      ]
+    },
+    "test": {
+      "base": {
+        "mae_usd": 7702.437824399833,
+        "rmse_usd": 20342.885485275678,
+        "mae_log": 0.5016745088737569,
+        "bias_usd": 407.9971004805027,
+        "rows": 31682
+      },
+      "hierarchical": {
+        "mae_usd": 6568.903492526203,
+        "rmse_usd": 20527.164643352527,
+        "mae_log": 0.3851604022037217,
+        "bias_usd": 579.2792029161737,
+        "rows": 31682
+      },
+      "mae_change_usd": -1133.5343318736298,
+      "mae_change_95_group_bootstrap": [
+        -1226.5585040952985,
+        -1045.244182968608
+      ]
+    }
+  },
+  "base_assessment": {
+    "method": "fresh_group_cross_fitted_sgd_huber_log_price",
+    "side": "ask",
+    "model": {
+      "method": "sgd_huber_log_residuals",
+      "loss": "huber",
+      "epsilon_log": 0.1,
+      "min_category_count": 20,
+      "max_categories_per_field": 50,
+      "scaling": "numeric StandardScaler fitted on calibration only",
+      "unknown_categories": "infrequent bucket if fitted; otherwise all-zero encoding",
+      "parameters": {
+        "alpha": 0.001,
+        "average": true,
+        "early_stopping": false,
+        "epsilon": 0.1,
+        "eta0": 0.01,
+        "fit_intercept": true,
+        "l1_ratio": 0.05,
+        "learning_rate": "invscaling",
+        "loss": "huber",
+        "max_iter": 3000,
+        "n_iter_no_change": 5,
+        "penalty": "elasticnet",
+        "power_t": 0.25,
+        "random_state": 42,
+        "shuffle": true,
+        "tol": 1e-05,
+        "validation_fraction": 0.1,
+        "verbose": 0,
+        "warm_start": false
+      },
+      "feature_count": 204,
+      "iterations_completed": 29,
+      "largest_coefficients": [
+        {
+          "feature": "numeric__age",
+          "coefficient": -0.5093692334469978
+        },
+        {
+          "feature": "numeric__log_miles",
+          "coefficient": -0.4211452142609103
+        },
+        {
+          "feature": "categorical__fuel_diesel",
+          "coefficient": 0.3410812171640749
+        },
+        {
+          "feature": "numeric__mileage_missing",
+          "coefficient": -0.1975577162493195
+        },
+        {
+          "feature": "categorical__manufacturer_lexus",
+          "coefficient": 0.16961568846253747
+        },
+        {
+          "feature": "categorical__cylinders_8 cylinders",
+          "coefficient": 0.15814538375971113
+        },
+        {
+          "feature": "categorical__type_hatchback",
+          "coefficient": -0.14326348407028824
+        },
+        {
+          "feature": "categorical__model_corvette",
+          "coefficient": 0.13572727075385302
+        },
+        {
+          "feature": "categorical__drive_4wd",
+          "coefficient": 0.1278377043622518
+        },
+        {
+          "feature": "categorical__type_pickup",
+          "coefficient": 0.12654363518791123
+        },
+        {
+          "feature": "categorical__model_wrangler",
+          "coefficient": 0.12017839187968253
+        },
+        {
+          "feature": "categorical__type_convertible",
+          "coefficient": 0.1104169894380473
+        },
+        {
+          "feature": "categorical__manufacturer_mitsubishi",
+          "coefficient": -0.10913853257536289
+        },
+        {
+          "feature": "categorical__type_truck",
+          "coefficient": 0.10729134502761015
+        },
+        {
+          "feature": "categorical__drive_fwd",
+          "coefficient": -0.1052353286035108
+        },
+        {
+          "feature": "categorical__manufacturer_nissan",
+          "coefficient": -0.10312765244259647
+        },
+        {
+          "feature": "categorical__manufacturer_mercedes-benz",
+          "coefficient": 0.09769280003705834
+        },
+        {
+          "feature": "categorical__type_sedan",
+          "coefficient": -0.09641223856817496
+        },
+        {
+          "feature": "categorical__title_status_salvage",
+          "coefficient": -0.09499330469401225
+        },
+        {
+          "feature": "categorical__model_focus",
+          "coefficient": -0.0898909181604329
+        }
+      ],
+      "warning": "Coefficients concern log residuals; numerical coefficients use standardized units. Not causal effects. USD outputs are clipped to 1\u201310 million."
+    },
+    "calibration_folds": 3,
+    "text_branch": false,
+    "warning": "Separate SGD-Huber log-price assessment on the full eligible original cohort. No CatBoost or random forest in this experiment. MiniLM and five-stage production cleaning are excluded. Held-out labels never fit the base model or hierarchy."
+  },
+  "provenance": {
+    "side": "ask",
+    "source": "Craigslist Used Cars / Tom / Zenodo 10457828",
+    "source_url": "https://zenodo.org/records/10457828",
+    "license": "CC-BY-4.0",
+    "fraction_of_eligible_original": 1.0,
+    "canonical_rows": 211844,
+    "eligible_rows": 211127,
+    "cross_source_vin_exclusions": 0,
+    "splits": {
+      "calibration": 147777,
+      "test": 31682,
+      "validation": 31668
+    },
+    "date_min": "2021-04-04 07:00:25+00:00",
+    "date_max": "2021-05-05 04:12:08+00:00",
+    "source_archive_sha256": "eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f",
+    "canonical_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+    "source_preparation": {
+      "raw_rows": 426880,
+      "fraction": 1.0,
+      "sampled_raw_rows": 426880,
+      "canonical_rows": 211844,
+      "pilot": false,
+      "counts": {
+        "train": 148290,
+        "validation": 31777,
+        "test": 31777
+      },
+      "preparation": "memory-bounded SQLite; deterministic random-priority text/VIN deduplication"
+    },
+    "price_basis": "2021 advertised asking USD",
+    "residual_trimming": false,
+    "scope": "Fresh SGD-Huber log-price assessment; excludes MiniLM and five-stage production cleaning. All eligible original rows, not a sample. Chronological held-out cohorts; calibration OOF folds grouped by vehicle.",
+    "ask_eligibility": "Existing full-cohort recipe: $1k\u2013150k, cleaned description >=80 characters, dated, deduplicated text/VIN; valid year and mileage. Text is used for eligibility/deduplication only, not as a feature."
+  }
+}

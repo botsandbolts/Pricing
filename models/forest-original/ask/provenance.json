@@ -1,0 +1,36 @@
+{
+  "side": "ask",
+  "source": "Craigslist Used Cars / Tom / Zenodo 10457828",
+  "source_url": "https://zenodo.org/records/10457828",
+  "license": "CC-BY-4.0",
+  "fraction_of_eligible_original": 1.0,
+  "canonical_rows": 211844,
+  "eligible_rows": 211127,
+  "cross_source_vin_exclusions": 0,
+  "splits": {
+    "calibration": 147777,
+    "test": 31682,
+    "validation": 31668
+  },
+  "date_min": "2021-04-04 07:00:25+00:00",
+  "date_max": "2021-05-05 04:12:08+00:00",
+  "source_archive_sha256": "eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f",
+  "canonical_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "source_preparation": {
+    "raw_rows": 426880,
+    "fraction": 1.0,
+    "sampled_raw_rows": 426880,
+    "canonical_rows": 211844,
+    "pilot": false,
+    "counts": {
+      "train": 148290,
+      "validation": 31777,
+      "test": 31777
+    },
+    "preparation": "memory-bounded SQLite; deterministic random-priority text/VIN deduplication"
+  },
+  "price_basis": "2021 advertised asking USD",
+  "residual_trimming": false,
+  "scope": "Fresh forest log-price assessment; excludes MiniLM and five-stage production cleaning. All eligible original rows, not a sample. Chronological held-out cohorts; calibration OOF folds grouped by vehicle.",
+  "ask_eligibility": "Existing full-cohort recipe: $1k\u2013150k, cleaned description >=80 characters, dated, deduplicated text/VIN; valid year and mileage. Text is used for eligibility/deduplication only, not as a feature."
+}

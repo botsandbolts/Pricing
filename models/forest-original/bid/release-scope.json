@@ -1,0 +1,18 @@
+{
+  "scope": "Full-cohort forest evaluation, hierarchy weights and display examples. Large base forests and complete row-level RF residuals are generated offline by the reproduction command; they are not loaded or installed for live forest inference.",
+  "reproduce": "python -m scripts.train_original_residual_comparison --engine forest --output training-cache/forest-assessment-fit --side bid",
+  "source_artifacts": {
+    "base-assessment.ubj": {
+      "bytes": 21154294,
+      "sha256": "0a08e414e156a6246f091e32ccbf5a7fe7085049321f49fe8f5a8b239df14989"
+    },
+    "residuals.csv.gz": {
+      "bytes": 58130533,
+      "sha256": "b556d7a861bf23c76ab688a4e1046be370482972d51d88966ad8b5b901511f3e"
+    },
+    "test_predictions.csv.gz": {
+      "bytes": 11075256,
+      "sha256": "91766dc73fc791bb7ce4e1a6b1f3a4e57317b5d7dc02c9908e1766e665918f59"
+    }
+  }
+}

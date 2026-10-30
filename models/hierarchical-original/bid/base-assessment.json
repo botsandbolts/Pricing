@@ -1,0 +1,122 @@
+{
+  "method": "fresh_group_cross_fitted_sgd_huber_log_price",
+  "side": "bid",
+  "model": {
+    "method": "sgd_huber_log_residuals",
+    "loss": "huber",
+    "epsilon_log": 0.1,
+    "min_category_count": 20,
+    "max_categories_per_field": 50,
+    "scaling": "numeric StandardScaler fitted on calibration only",
+    "unknown_categories": "infrequent bucket if fitted; otherwise all-zero encoding",
+    "parameters": {
+      "alpha": 0.001,
+      "average": true,
+      "early_stopping": false,
+      "epsilon": 0.1,
+      "eta0": 0.01,
+      "fit_intercept": true,
+      "l1_ratio": 0.05,
+      "learning_rate": "invscaling",
+      "loss": "huber",
+      "max_iter": 3000,
+      "n_iter_no_change": 5,
+      "penalty": "elasticnet",
+      "power_t": 0.25,
+      "random_state": 42,
+      "shuffle": true,
+      "tol": 1e-05,
+      "validation_fraction": 0.1,
+      "verbose": 0,
+      "warm_start": false
+    },
+    "feature_count": 206,
+    "iterations_completed": 21,
+    "largest_coefficients": [
+      {
+        "feature": "numeric__age",
+        "coefficient": -0.5234453602226371
+      },
+      {
+        "feature": "categorical__manufacturer_lexus",
+        "coefficient": 0.3587949665916358
+      },
+      {
+        "feature": "categorical__type_crew cab",
+        "coefficient": 0.35710015594222067
+      },
+      {
+        "feature": "categorical__manufacturer_mercedes-benz",
+        "coefficient": 0.34376294559598664
+      },
+      {
+        "feature": "categorical__manufacturer_bmw",
+        "coefficient": 0.3245070018378377
+      },
+      {
+        "feature": "categorical__manufacturer_kia",
+        "coefficient": -0.2767894485352921
+      },
+      {
+        "feature": "categorical__type_hatchback",
+        "coefficient": -0.2480533703144978
+      },
+      {
+        "feature": "categorical__model_maxima",
+        "coefficient": 0.17359540468252654
+      },
+      {
+        "feature": "categorical__type_supercrew",
+        "coefficient": 0.17199536440889257
+      },
+      {
+        "feature": "categorical__manufacturer_audi",
+        "coefficient": 0.16706007737470768
+      },
+      {
+        "feature": "categorical__manufacturer_infiniti",
+        "coefficient": 0.16652352380343644
+      },
+      {
+        "feature": "categorical__type_sedan",
+        "coefficient": -0.16215158032120539
+      },
+      {
+        "feature": "categorical__manufacturer_mitsubishi",
+        "coefficient": -0.15185055121632654
+      },
+      {
+        "feature": "categorical__type_wagon",
+        "coefficient": -0.14147573309282724
+      },
+      {
+        "feature": "categorical__type_g coupe",
+        "coefficient": 0.1371817827186003
+      },
+      {
+        "feature": "categorical__manufacturer_acura",
+        "coefficient": 0.13487350154714633
+      },
+      {
+        "feature": "categorical__model_focus",
+        "coefficient": -0.1265849701973016
+      },
+      {
+        "feature": "categorical__model_tahoe",
+        "coefficient": 0.12648040271358651
+      },
+      {
+        "feature": "categorical__model_300",
+        "coefficient": 0.11585017249180349
+      },
+      {
+        "feature": "categorical__transmission_manual",
+        "coefficient": -0.1146217960891648
+      }
+    ],
+    "warning": "Coefficients concern log residuals; numerical coefficients use standardized units. Not causal effects. USD outputs are clipped to 1\u201310 million."
+  },
+  "calibration_folds": 3,
+  "text_branch": false,
+  "warning": "Separate SGD-Huber log-price assessment on the full eligible original cohort. No CatBoost or random forest in this experiment. MiniLM and five-stage production cleaning are excluded. Held-out labels never fit the base model or hierarchy."
+}

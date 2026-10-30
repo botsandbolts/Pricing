@@ -11,12 +11,12 @@ REQUIRED = ['row_id','vehicle_group','split','prediction_kind','base_fold',
             'manufacturer','model','age','observed_price','base_price','base_model_id','price_basis']
 
 
-def validate(frame):
+def validate(frame,*,max_rows=100000):
     missing=set(REQUIRED)-set(frame)
     if missing:raise ValueError('Missing columns: '+', '.join(sorted(missing)))
     d=frame[REQUIRED].copy()
     if d.isna().any().any():raise ValueError('Required fields cannot be missing.')
-    if len(d)>100000:raise ValueError('Use at most 100,000 rows per experiment.')
+    if len(d)>max_rows:raise ValueError(f'Use at most {max_rows:,} rows per experiment.')
     if d.row_id.astype(str).duplicated().any():raise ValueError('Duplicate row identities.')
     if not set(d.split).issubset({'calibration','validation','test'}):raise ValueError('Unknown split.')
     for split,minimum in [('calibration',30),('validation',10),('test',10)]:
@@ -30,13 +30,15 @@ def validate(frame):
     for col in ['age','observed_price','base_price']:
         d[col]=pd.to_numeric(d[col],errors='raise')
         if not np.isfinite(d[col]).all():raise ValueError('Nonfinite numeric data.')
-    if not d.age.between(0,40).all():raise ValueError('Age must be 0–40 years.')
+    if not d.age.between(0,150).all():raise ValueError('Age must be 0–150 years.')
     if not d[['observed_price','base_price']].gt(0).all().all():raise ValueError('Prices must be positive.')
     if not d[['observed_price','base_price']].le(1e7).all().all():raise ValueError('Unsupported price magnitude.')
     for col in ['base_model_id','price_basis']:
         if d[col].astype(str).nunique()!=1:raise ValueError('Use a single base-model identity and price basis per file.')
     for col in ['manufacturer','model']:
         d[col]=d[col].astype(str).str.strip().str.lower().str.slice(0,120)
+    for col in ['odometer','auction_grade','type','transmission','state','fuel','drive','title_status','cylinders','paint_color']:
+        if col in frame:d[col]=frame[col]
     return d
 
 
@@ -103,15 +105,25 @@ def scores(y,p):
             'bias_usd':float(np.mean(p-y)),'rows':len(y)}
 
 
-def experiment(frame,side):
+def experiment(frame,side,*,max_rows=100000,sgd_path=None,include_sgd=True):
     if side not in {'ask','bid'}:raise ValueError('Choose ask or bid.')
-    d=validate(frame);cal=d[d.split=='calibration'];bundle=fit(cal)
+    d=validate(frame,max_rows=max_rows);cal=d[d.split=='calibration'];bundle=fit(cal)
     bundle['side']=side
+    bundle['fingerprint']=hashlib.sha256(json.dumps(bundle,sort_keys=True).encode()).hexdigest()
+    if include_sgd:
+        from pricing.sgd_residuals import fit as fit_sgd,predict as predict_sgd,describe
+        sgd=fit_sgd(cal);bundle['sgd_huber']=describe(sgd)
+        if sgd_path:
+            import joblib
+            joblib.dump(sgd,sgd_path,compress=3)
     bundle['fingerprint']=hashlib.sha256(json.dumps(bundle,sort_keys=True).encode()).hexdigest()
     report={'side':side,'method':bundle['method'],'calibration_rows':len(cal),'cohorts':{}}
     test_predictions=None
     for split in ['validation','test']:
         held=d[d.split==split];p=predict(bundle,held)
+        if include_sgd:
+            p['sgd_price']=predict_sgd(sgd,held)
+            p['sgd_delta_log']=np.log(p.sgd_price/p.base_price)
         difference=np.abs(held.observed_price-p.corrected_price)-np.abs(held.observed_price-p.base_price)
         rng=np.random.default_rng(42)
         # Group-level bootstrap preserves repeated observations of the same vehicle.
@@ -124,5 +136,16 @@ def experiment(frame,side):
             'hierarchical':scores(held.observed_price,p.corrected_price),
             'mae_change_usd':float(difference.mean()),
             'mae_change_95_group_bootstrap':np.quantile(means,[.025,.975]).tolist()}
+        if include_sgd:
+            sgd_difference=np.abs(held.observed_price-p.sgd_price)-np.abs(held.observed_price-p.base_price)
+            grouped_sgd=pd.DataFrame({'group':held.vehicle_group,'difference':sgd_difference}).groupby('group').difference.agg(['sum','count'])
+            sgd_means=[]
+            rng=np.random.default_rng(42)
+            for _ in range(300):
+                sample=grouped_sgd.iloc[rng.integers(0,len(grouped_sgd),len(grouped_sgd))]
+                sgd_means.append(float(sample['sum'].sum()/sample['count'].sum()))
+            report['cohorts'][split].update(sgd_huber=scores(held.observed_price,p.sgd_price),
+                sgd_mae_change_usd=float(sgd_difference.mean()),
+                sgd_mae_change_95_group_bootstrap=np.quantile(sgd_means,[.025,.975]).tolist())
         if split=='test':test_predictions=pd.concat([held.reset_index(drop=True),p.drop(columns='base_price').reset_index(drop=True)],axis=1)
     return bundle,report,test_predictions
