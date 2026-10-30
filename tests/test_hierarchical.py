@@ -58,3 +58,33 @@ def test_database_schema_and_consent(monkeypatch):
     with patch.dict(st.session_state,{},clear=True),patch('pricing.analytics._store') as store:
         assert record('bid',{}, {},'request') is False
         store.assert_not_called()
+
+
+def test_consented_audit_deduplicates_and_expiry_respects_foreign_keys():
+    import sqlite3,uuid
+    from datetime import datetime,timezone,timedelta
+    from unittest.mock import patch
+    import streamlit as st
+    from pricing.analytics import TursoStore,CONSENT_VERSION
+    from pricing.hierarchical_store import record
+    class Store(TursoStore):
+        def __init__(self):
+            super().__init__('libsql://test.turso.io','test');self.db=sqlite3.connect(':memory:');self.db.execute('PRAGMA foreign_keys=ON')
+        def execute(self,sql,args=()):return self.db.execute(sql,args)
+        def atomic(self,statements):
+            for sql,args in statements:self.execute(sql,args)
+    store=Store();c=dict(choice='accepted',version=CONSENT_VERSION,
+        consent_at=datetime.now(timezone.utc).isoformat(),visitor_id=str(uuid.uuid4()),session_id=str(uuid.uuid4()))
+    bundle,_,rows=experiment(fixture(),'bid')
+    location=dict(country='DE',city='Hamburg',region=None,geo_provider=None)
+    with patch.dict(st.session_state,{'_analytics_consent':c},clear=True),patch('pricing.analytics.configured',return_value=True),patch('pricing.analytics._store',return_value=store),patch('pricing.analytics._location',return_value=location):
+        assert record('bid',rows.iloc[0],bundle,'same_request')
+        assert record('bid',rows.iloc[0],bundle,'same_request')
+    assert store.execute('SELECT count(*) FROM hierarchical_estimations').fetchone()[0]==1
+    assert store.execute('SELECT city FROM hierarchical_estimations').fetchone()[0]=='Hamburg'
+    old=(datetime.now(timezone.utc)-timedelta(days=100)).isoformat()
+    store.execute('UPDATE visitors SET last_seen=?',[old]);store.purge()
+    assert store.execute('SELECT count(*) FROM visitors').fetchone()[0]==1
+    store.execute('UPDATE hierarchical_estimations SET timestamp=?',[old]);store.purge()
+    assert store.execute('SELECT count(*) FROM hierarchical_estimations').fetchone()[0]==0
+    assert store.execute('SELECT count(*) FROM visitors').fetchone()[0]==0
