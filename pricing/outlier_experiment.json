@@ -1,0 +1,63 @@
+{
+  "source": "Kaggle saved run 363794926, version 2; completed 2026-10-30",
+  "run_url": "https://www.kaggle.com/code/botsandbolts/car-price-studio-five-stage-catboost?scriptVersionId=363794926",
+  "status": "completed_experiment",
+  "stages": 5,
+  "fraction": 0.05,
+  "cohorts": {
+    "ask": {
+      "label": "Craigslist asking listings",
+      "counts": {
+        "train": 147777,
+        "validation": 31668,
+        "test": 31682
+      }
+    },
+    "bid": {
+      "label": "Wholesale auction sales",
+      "counts": {
+        "train": 384198,
+        "validation": 82380,
+        "test": 83603
+      }
+    }
+  },
+  "models": [
+    {
+      "side": "ask",
+      "loss": "Normal AFT",
+      "baseline": 3097.0538855308373,
+      "original": 3402.3823899846666,
+      "filtered": 2002.3838071884857,
+      "excluded": 8188.542119622041,
+      "trees": 1490
+    },
+    {
+      "side": "ask",
+      "loss": "Median · quantile 0.5",
+      "baseline": 2969.833840266431,
+      "original": 3342.528680383626,
+      "filtered": 1969.8052006889081,
+      "excluded": 8035.443315568691,
+      "trees": 1372
+    },
+    {
+      "side": "bid",
+      "loss": "Normal AFT",
+      "baseline": 2058.749099815017,
+      "original": 2255.124622695309,
+      "filtered": 1411.3510724017056,
+      "excluded": 5140.772173390133,
+      "trees": 1500
+    },
+    {
+      "side": "bid",
+      "loss": "Median · quantile 0.5",
+      "baseline": 1863.2317406641803,
+      "original": 2235.219864689439,
+      "filtered": 1443.2604718819605,
+      "excluded": 4943.666557892197,
+      "trees": 825
+    }
+  ]
+}

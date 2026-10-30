@@ -107,7 +107,10 @@ def get_pipeline(location):
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
 st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
-value,compare,time_panel,how,results,laboratory,detective=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective'],key='studio_tabs',default='🕵️ Deal Detective' if st.query_params.get('garage') else '🚗 Price my car',on_change='rerun')
+value,compare,time_panel,how,results,laboratory,detective,outlier_lab=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab'],key='studio_tabs',default='🕵️ Deal Detective' if st.query_params.get('garage') else '🚗 Price my car',on_change='rerun')
+with outlier_lab:
+    from pricing.outlier_lab import render as render_outlier_lab
+    render_outlier_lab(Path(__file__).parent)
 with laboratory:
     from pricing.suite_ui import render
     render(Path(__file__).parent)

@@ -24,12 +24,12 @@ def completed(root):
 def render_release(root):
     import streamlit as st
     active=completed(root)
-    title='New formula. Five passes. Full receipts.' if active else 'Next formula: five passes before the test drive.'
-    badge='LIVE · 5 × 5%' if active else 'TRAINING · KAGGLE'
+    title='New formula. Five passes. Full receipts.' if active else 'Five-stage experiment: the results are in.'
+    badge='LIVE · 5 × 5%' if active else 'EXPERIMENT · COMPLETED'
     text=('Both markets now use iterative CatBoost residual cleaning before final training. '
           'MiniLM still reads your asking-price description. More scrutiny; no crystal-ball warranty.') if active else (
-          'The new five-stage CatBoost experiment is being trained. Current estimates still use the installed models. '
-          'We publish the comparison before making accuracy claims.')
+          'The five-stage CatBoost experiment finished on Kaggle. Its weights are not installed here; estimates still use the previous models. '
+          'Open the Outlier lab tab for the full-test results and trade-offs. No increased accuracy claim is made.')
     st.markdown(f'<aside class="formula-release" aria-label="Model release status"><div class="formula-badge">{badge}</div><div><h2>{title}</h2><p>{text}</p></div><div class="formula-number" aria-hidden="true">5<span>pit stops</span></div></aside>',unsafe_allow_html=True)
     with st.expander('What changes in the formula? · plain English + technical receipt'):
         st.write('A separate CatBoost cleaner is refitted five times. Each pass removes the highest absolute log-price residuals: ceil(5% of the remaining cars), separately in train, validation and test. Roughly 77.4% survive, with small rounding differences. The bouncer does five rounds; the final estimator starts fresh afterward.')

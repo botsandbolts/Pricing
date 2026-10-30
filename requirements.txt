@@ -50,3 +50,5 @@ qrcode>=8,<9
 # Full-page BART briefing and five-stage CatBoost release: refresh imported UI modules.
 
 # Restore BART-base-CNN after Pegasus exceeded the serving host budget.
+
+# Outlier lab: restart imported UI modules for the completed experiment report.
