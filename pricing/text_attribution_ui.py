@@ -26,7 +26,11 @@ def render_text_attribution(result, fields, notes, pipeline):
     detail = st.radio('Phrase analysis detail', list(DETAILS), horizontal=True,
                       key='phrase_shap_detail', help='Quick: up to 8 groups and 4 sampled orders. Closer: up to 12 groups and 8 orders. Short descriptions use exact group Shapley values.')
     st.caption('Asking estimate only · same car facts throughout · compared with a blank description. Runs only when you press the button; long adverts take longer on CPU.')
-    key = signature(pipeline.manifest, fields, text, detail, id(pipeline), result['price'])
+    date = result.get('valuation_date')
+    if date:
+        st.info('Phrase effects explain the date-adjusted asking estimate for '+date+'. Vehicle ageing and the market clock are included in every prediction.')
+    key = signature(pipeline.manifest, fields, text, detail,
+                    getattr(pipeline,'explanation_identity',id(pipeline)), result['price'])
     if st.button('🔎 Reveal my advert’s price drivers', key='build_phrase_shap', type='primary'):
         st.session_state.pop('_phrase_shap_result', None)
         bar = st.progress(0., text='Reading phrase combinations…')
@@ -73,7 +77,7 @@ def render_text_attribution(result, fields, notes, pipeline):
             st.dataframe(pd.DataFrame(rows).sort_values('Allocated effect USD', key=abs, ascending=False),
                          hide_index=True, width='stretch')
     with technical:
-        st.write('**Direct grouped Shapley attribution in served dollars.** Missing phrase groups are deleted. Every combination reruns the same MiniLM → text-price feature → final asking model, with structured car inputs fixed. No TF-IDF surrogate is trained. Inverse target transforms and prediction clipping remain inside the prediction function.')
+        st.write('**Direct grouped Shapley attribution in served dollars.** Missing phrase groups are deleted. Every combination reruns the same MiniLM → text-price feature → final asking model, with structured car inputs fixed. When the receipt is date-adjusted, the same ageing and market adjustment is applied to each combination. No TF-IDF surrogate is trained. Inverse target transforms and prediction clipping remain inside the prediction function.')
         st.write('Exact group Shapley values for at most four groups; otherwise deterministic random permutations paired with their reverse. The quick budget is up to 30 unique coalition predictions; closer look up to 90. Groups prefer sentence boundaries, splitting long chunks and merging short neighbours to fit the budget; unpunctuated text uses balanced word chunks. These are not discovered semantic concepts. Each path telescopes from blank text to the submitted estimate.')
         st.write({'Groups': len(p['groups']), 'Orders': p['orders'], 'Model evaluations': p['evaluations'],
                   'Exact for these groups': p['exact'], 'Reconstruction error USD': p['error'],

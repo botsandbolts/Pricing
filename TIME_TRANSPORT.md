@@ -1,5 +1,40 @@
 # A release-aware clock for the same car
 
+## Main-calculator release · 30 October 2026
+
+The main **Price my car** calculator and default **Two-market garage** now use
+today rather than May 2021. The automatic clock follows Europe/Berlin on each
+rerun; an optional control selects another date. Enter mileage and condition at
+that selected date: no assumed annual driving is added to a single valuation.
+The existing Value over time panel retains its explicit annual-driving option.
+
+Both main price cards carry the same valuation date and say **date-adjusted
+estimate**. Below them the interface identifies the last published market month,
+publication date, forecast method and horizon, and whether the live refresh or
+saved snapshot was used. A guarded auction generation-analogue option stays off
+by default. Unavailable/out-of-scope dates do not silently display 2021 prices.
+
+A visible dollar waterfall decomposes historical anchor, vehicle ageing,
+market movement and selected-date total below the two prices. It is a
+mathematical decomposition, not causal SHAP. Detailed rolling-origin market
+reports and assumptions remain in the adjacent evidence expander.
+Main price analytics and share cards/captions/JSON now carry the actual selected
+valuation date. Deal Detective's verdict and share output follow that main
+receipt; its saved-car comparison, historical challenge and outcome-feedback
+reference remain explicitly historical benchmark tools.
+
+The phrase-attribution panel reruns **the same date-adjusted asking function**,
+including time multipliers, for every coalition. Its values reconstruct the
+displayed selected-date price. Native tree diagnostics and the old reference-car
+graphs remain inside an explicitly labelled **May 2021 historical base-model**
+expander and are never relabelled as current-dollar feature contributions.
+
+No new current-transaction validation is claimed. The current FRED observation
+is September 2026, released 14 October; the October 30 scenario therefore forecasts
+the aggregate October index by one month. Depreciation and source-channel
+transport add further uncertainty. Even a low index forecast error cannot be
+called the MAE of a particular car's current sale price.
+
 The original asking model learns **2021 Craigslist advertised prices**. The auction model learns **2014–2015 reported wholesale sales**. They are different markets and different calendar periods. The new **Value over time** panel adds experimental present-date scenarios to the existing MiniLM + CatBoost AFT Ask and CatBoost quantile-0.5 Bid. Their trained weights and their historical evaluation records are unchanged.
 
 ## What changed

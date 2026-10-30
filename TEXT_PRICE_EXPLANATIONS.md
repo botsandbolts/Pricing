@@ -16,6 +16,13 @@ LightGBM use their existing prediction paths. No TF-IDF or surrogate is trained.
 Tabular-only models show an explanation of why this panel is unavailable.
 The wholesale auction dataset has no descriptions and is not explained here.
 
+The main calculator defaults to today's date. Its `DateAdjustedAsking` wrapper
+reruns the original text/tree prediction and applies the selected-date vehicle
+age and market transport for every text coalition. The phrase explanation
+therefore reconstructs the displayed current-date scenario, rather than showing
+historical dollars beside a current receipt. The manifest/signature includes
+valuation date, information date and market snapshot, invalidating stale results.
+
 The baseline is **the same vehicle with an empty description**, including the
 actual nonzero text-regression output for empty text. It is neither an average
 car nor a zero text-feature ablation. Result labels distinguish the baseline,

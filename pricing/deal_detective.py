@@ -124,19 +124,19 @@ def social_component(url,text,png,title):
     widget(key='deal_social_buttons',data={'url':url,'caption':text,'png':base64.b64encode(png).decode(),'title':title})
 
 
-def render_share(fields,estimate,model):
+def render_share(fields,estimate,model,reference_date=REFERENCE_DATE,time_adjusted=False):
     st.markdown('### 📣 Send the verdict to the group chat')
     tone=st.radio('Caption personality',['Playful','Professional','Challenge'],horizontal=True,key='share_tone')
     include=st.checkbox('Include these vehicle details in a public link',key='share_include',help='Year, make/model, mileage and selected vehicle characteristics. Anyone with the link can read them. No seller description, price prediction, visitor ID or location tracking is included.')
     with st.expander('Preview exactly what goes in the public link'):
         st.json(safe_fields(fields) if include else {'destination':'Pricing home page only'})
     url=share_link([fields]) if include else APP_URL
-    text=caption(fields,estimate,tone)
+    text=caption(fields,estimate,tone,reference_date,time_adjusted)
     portrait=st.radio('Card format',['Landscape · 1200 × 630','Portrait · 1080 × 1350'],horizontal=True,key='share_format').startswith('Portrait')
-    signature=hashlib.sha256(json.dumps([safe_fields(fields),estimate,url,portrait],sort_keys=True).encode()).hexdigest()
+    signature=hashlib.sha256(json.dumps([safe_fields(fields),estimate,url,portrait,reference_date,time_adjusted],sort_keys=True).encode()).hexdigest()
     cached=st.session_state.get('deal_card_cache',{})
     if cached.get('signature')!=signature:
-        cached={'signature':signature,'png':card_png(fields,estimate,url,portrait)};st.session_state['deal_card_cache']=cached
+        cached={'signature':signature,'png':card_png(fields,estimate,url,portrait,reference_date,time_adjusted)};st.session_state['deal_card_cache']=cached
     png=cached['png']
     preview,controls=st.columns([1.2,1])
     with preview:st.image(png,caption='Ready for social media. Reference date stays on the image.',width='stretch')
@@ -150,7 +150,7 @@ def render_share(fields,estimate,model):
         st.caption('LinkedIn/Facebook share the link; paste the caption and attach the PNG if wanted. For Instagram, use your phone’s image-share menu or download and attach the portrait card. You choose the audience and confirm posting.')
     st.text_area('Caption · select/copy if your browser blocks the copy button',value=text+'\n'+url,height=150,key='caption_'+signature[:12]+'_'+tone)
     st.text_input('Share link · select/copy',value=url,key='url_'+signature[:12])
-    receipt={'vehicle':safe_fields(fields),'asking_estimate_usd':round(estimate,2),'reference_date':REFERENCE_DATE,'generated_on':date.today().isoformat(),'model':model,'notes':'Historical asking estimate. Seller description excluded; facts-only links may recompute differently. No validated individual prediction interval.'}
+    receipt={'vehicle':safe_fields(fields),'asking_estimate_usd':round(estimate,2),'reference_date':str(reference_date),'time_adjusted':time_adjusted,'generated_on':date.today().isoformat(),'model':model,'notes':('Date-adjusted asking scenario. Vehicle ageing plus market extrapolation. Not validated against current individual-car outcomes. ' if time_adjusted else 'Historical asking estimate. ')+'Seller description excluded; facts-only links may recompute differently. No validated individual prediction interval.'}
     st.download_button('Valuation facts · JSON',json.dumps(receipt,indent=2),'valuation.json','application/json')
 
 
@@ -345,19 +345,24 @@ def render(estimate_fn=None,bid_fn=None,model_id=''):
             with tab:st.info('Estimate a car in Price my car first, or import an advert here. Your detective needs a suspect.')
         return
     model,prediction,fields,description=saved;estimate=float(prediction['price'])
+    displayed=st.session_state.get('last_displayed_price')
+    active=displayed if displayed and displayed[0]==saved[0] and displayed[2:]==saved[2:] else saved
+    active_prediction=active[1];active_price=float(active_prediction['price'])
+    adjusted=active_prediction.get('prediction_kind')=='date_adjusted_scenario'
+    valuation_date=active_prediction.get('valuation_date',REFERENCE_DATE)
     with tabs[1]:
         st.subheader(car_title(fields))
-        st.warning('US historical asking estimate · May 2021 reference. For today’s seller price, use Value over time to align dates first. No validated individual prediction interval is available.')
+        st.warning(('Date-adjusted asking estimate for '+valuation_date+'. Ageing + market extrapolation; not a verified current sale price. ' if adjusted else 'US historical asking estimate · May 2021 reference. ')+'No validated individual prediction interval is available.')
         seller=st.number_input('Seller asking price · USD',min_value=0.,step=100.,key='detective_seller')
-        aligned=st.checkbox('This seller price refers to the same May 2021 market date',key='detective_aligned')
-        a,b,c=st.columns(3);a.metric('Historical asking estimate',f'${estimate:,.0f}')
+        aligned=st.checkbox('This seller price refers to '+valuation_date if adjusted else 'This seller price refers to the same May 2021 market date',key='detective_aligned_'+valuation_date)
+        a,b,c=st.columns(3);a.metric('Date-adjusted asking estimate' if adjusted else 'Historical asking estimate',f'${active_price:,.0f}')
         if seller and aligned:
-            gap=seller-estimate;b.metric('Advert minus estimate',f'${gap:+,.0f}');c.metric('Relative difference',f'{gap/estimate:+.1%}')
+            gap=seller-active_price;b.metric('Advert minus estimate',f'${gap:+,.0f}');c.metric('Relative difference',f'{gap/active_price:+.1%}')
             st.write('Seller optimism: comes with ambition as standard.' if gap>estimate*.15 else 'The price has entered the conversation. The inspection still gets the final word.')
-        elif seller:st.info('A present-day quote and a 2021 estimate are different dates. Comparing them directly would be time travel with a calculator.')
+        elif seller:st.info('Confirm that the seller quote refers to the displayed valuation date before comparing. No time travel with a calculator.')
         st.caption('The price gap is descriptive, not proof of a good deal, negotiating room, mechanical quality or profit. Model differences are not prediction intervals.')
         st.button('Open Value over time →',on_click=move_to,args=('📅 Value over time',))
-    with tabs[2]:render_share(fields,estimate,model)
+    with tabs[2]:render_share(fields,active_price,model,valuation_date,adjusted)
     with tabs[3]:render_garage(fields,description,estimate,model_id or model,st.session_state.get('detective_seller',0),estimate_fn,bid_fn)
     with tabs[4]:render_evidence(fields)
     with tabs[6]:render_briefing(fields,description)

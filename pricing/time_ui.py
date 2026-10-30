@@ -3,14 +3,9 @@ import json
 from pathlib import Path
 import pandas as pd
 import streamlit as st
-from marketbridge.market_clock import MarketClock,fetch_snapshot
+from marketbridge.market_clock import MarketClock
 from marketbridge.time_engine import TimeTransport,today
-
-
-@st.cache_data(ttl=21600,show_spinner=False)
-def live_index():
-    try:return fetch_snapshot(),None
-    except Exception as exc:return None,str(exc)
+from pricing.current_value import live_index
 
 
 @st.cache_resource

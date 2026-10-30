@@ -56,14 +56,14 @@ def render_market_price(side, value, reference_date, *, adjusted=False, scenario
     asking = side == 'ask'
     st.markdown('**' + ('ASK · SELLER\'S ADVERTISED PRICE' if asking else 'AUCTION · WHOLESALE SALE ESTIMATE') + '**')
     if scenario:
-        basis = 'Date-adjusted scenario · ' + date_label(reference_date)
+        basis = 'Estimated for ' + date_label(reference_date) + ' · age + market adjusted'
     elif asking:
         basis = 'Historical asking market · May 2021'
     else:
         basis = ('Age/index-adjusted to ' if adjusted else 'Historical auction basis · ') + date_label(reference_date)
     st.markdown(STYLE + '<div class="price-basis">' + escape(basis) + '</div>', unsafe_allow_html=True)
     available = value is not None and isfinite(float(value))
-    label = ('Seller asking price' if asking else 'Wholesale auction sale price') + (' · scenario' if scenario else ' · estimate')
+    label = ('Seller asking price' if asking else 'Wholesale auction sale price') + (' · date-adjusted estimate' if scenario else ' · estimate')
     st.metric(label, f'${float(value):,.0f}' if available else 'Unavailable')
     st.write('What a seller might advertise — not what a buyer necessarily pays.' if asking else
              'What a wholesale auction sale might achieve — not a live bid, dealer offer or retail sale quote.')

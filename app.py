@@ -110,6 +110,9 @@ with compare:
 with value:
     from pricing.price_meaning import render_market_guide,render_market_price
     render_market_guide()
+    from pricing.current_value import (clock_controls,current_transport,DateAdjustedAsking,
+        render_market_clock,render_adjustment,render_time_evidence)
+    valuation_date,allow_newer_auction=clock_controls()
     for key,default in {'year':2015,'manufacturer':'Toyota','model':'Corolla SE','odometer':95000,'state':'ca'}.items():
         st.session_state.setdefault('vehicle_'+key,default)
     editor,receipt=st.columns([1.65,1],gap='large')
@@ -142,7 +145,7 @@ with value:
                 notes=st.text_area('Seller description — free text',key='seller_description',height=165,max_chars=MAX_CHARACTERS,disabled=not uses_text,
                     placeholder='Service history? Fresh tyres? That mysterious rattle? Tell the model the whole story.' if uses_text else 'Choose a MiniLM model in the sidebar to include your description.')
                 submitted=st.form_submit_button('Estimate asking price',disabled=not ready,type='primary',use_container_width=True)
-            st.caption('Historical data, not today’s market. 2021 asking listings + age/CPI-transported auction records. Estimates, not guaranteed transactions.')
+            st.caption('Your mileage and condition are interpreted at the selected valuation date. Historical models are adjusted for vehicle age and market movement; completed-sale values remain unverified.')
     if submitted:
         if len(notes)>8000:
             st.warning('Please keep the description within 8,000 characters.')
@@ -156,29 +159,60 @@ with value:
                 st.session_state['last_explained_price']=(str(path),p,fields,notes)
                 import uuid
                 st.session_state['_price_request_id']=str(uuid.uuid4())
-                record_price('ask',p['price'],fields,mode,'calculator','2021-05-01',st.session_state['_price_request_id'])
             except Exception as exc:
                 st.error(f'Model unavailable: {exc}')
     saved=st.session_state.get('last_explained_price')
+    dated_result=dated_pipeline=transport=None
+    dated_receipts={};date_error=None;refresh_error=None
+    st.session_state.pop('last_displayed_price',None)
+    if saved and saved[0]==str(path):
+        try:
+            with st.spinner('Moving the price clock to your selected date…'):
+                transport,refresh_error=current_transport(Path(__file__).parent)
+                dated_pipeline=DateAdjustedAsking(get_pipeline(str(path)),transport,valuation_date)
+                dated_result=dated_pipeline.adjust(saved[1],saved[2])
+                dated_receipts['ask']=dated_result['time_adjustment']
+                st.session_state['last_displayed_price']=(saved[0],dated_result,saved[2],saved[3])
+            request=st.session_state.get('_price_request_id','')
+            record_price('ask',dated_result['price'],saved[2],mode+' · date adjusted','calculator',str(valuation_date),request+':ask:'+str(valuation_date))
+        except (ValueError,OSError,KeyError) as exc:
+            date_error=str(exc)
     with receipt:
         with st.container(key='price_receipt'):
-            if saved and saved[0]==str(path):
-                result=saved[1];car=saved[2]
+            if dated_result:
+                result=dated_result;car=saved[2]
                 section('03 / Your price receipt','The numbers are in.')
                 st.caption(f"{car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
-                render_market_price('ask',result['price'],'2021-05-01')
-                if result.get('range') is not None:
-                    st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
-                else:st.caption('Point estimate only. No validated individual prediction interval is available.')
+                render_market_price('ask',result['price'],valuation_date,scenario=True)
+                render_adjustment(dated_receipts['ask'])
+                st.caption('Point estimate only. No validated individual prediction interval is available.')
+            elif date_error:
+                st.error('Date-adjusted asking estimate unavailable: '+date_error)
+                st.caption('No historical price is substituted under today’s date. Change the date or vehicle assumptions to a supported scenario.')
             else:empty_receipt()
         if saved and saved[0]==str(path):
             with st.container(key='auction_receipt'):
-                from marketbridge.ui import render_auction_companion
-                render_auction_companion(Path(__file__).parent,saved[2])
-            st.info('The difference is not dealer profit or a promised discount. Both prices use historical models; open Value over time for date-adjusted scenarios.')
-            from pricing.deal_detective import open_share
-            st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='open_share')
-            st.info('Want today’s value? Open 📅 Value over time for date-adjusted Ask/Auction scenarios and the interactive timeline.')
+                try:
+                    if transport is None:raise ValueError('The date-adjustment layer is unavailable.')
+                    from pricing.residual_ui import bid_folder,load
+                    bid_path=bid_folder(Path(__file__).parent)
+                    bid,_,_=load(str(bid_path),(bid_path/'manifest.json').stat().st_mtime_ns)
+                    from marketbridge.time_engine import today
+                    r=transport.estimate(bid,'',saved[2],valuation_date,'bid',allow_newer_auction,as_of=today())
+                    dated_receipts['bid']=r
+                    render_market_price('bid',r['price'],valuation_date,scenario=True)
+                    render_adjustment(r)
+                    request=st.session_state.get('_price_request_id','')
+                    record_price('bid',r['price'],saved[2],'date-adjusted auction','calculator',str(valuation_date),request+':bid:'+str(valuation_date)+':'+str(allow_newer_auction))
+                except (ValueError,OSError,KeyError) as exc:
+                    st.warning('Date-adjusted auction estimate unavailable: '+str(exc))
+                    if saved[2].get('year',0)>2015 and not allow_newer_auction:
+                        st.caption('The optional newer-generation assumption is in “Valuation date & auction coverage” above. It is off by default because these generations were not observed.')
+            st.info('Same valuation date, different markets. The gap is not dealer profit or a promised discount.')
+            if dated_result:
+                from pricing.deal_detective import open_share
+                st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='open_share')
+            st.caption('Open 📅 Value over time for the interactive timeline and mileage scenarios.')
             if saved[1].get('predicted_text_price') is not None:
                 with st.expander('What did the description contribute?'):
                     st.metric('Description-price feature',f"${saved[1]['predicted_text_price']:,.0f}")
@@ -189,15 +223,20 @@ with value:
         else:
             st.markdown('<div class="garage-science-note"><strong>Curious what moves the price?</strong><br>After estimating, explore feature contributions, mileage scenarios and all six explanation graphs below.</div>',unsafe_allow_html=True)
     if saved and saved[0]==str(path):
-        from pricing.text_attribution_ui import render_text_attribution
-        render_text_attribution(saved[1],saved[2],saved[3],get_pipeline(str(path)))
+        if dated_result:
+            render_market_clock(transport,valuation_date,refresh_error)
+            render_time_evidence(transport,dated_receipts)
+            from pricing.text_attribution_ui import render_text_attribution
+            render_text_attribution(dated_result,saved[2],saved[3],dated_pipeline)
         st.divider()
         section('The receipts / Explainable machine learning','Pop the bonnet. Question everything.')
-        st.caption('Your estimate, explained. Contributions describe the model—not causal effects or guaranteed dollar discounts.')
-        from pricing.explanations import render_explanation
-        render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
-        from pricing.explanation_ui import render_visual_explanations
-        render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
+        st.caption('The current-date price and phrase effects are above. The historical model diagnostics below explain the original May 2021 anchor, before time adjustment.')
+        with st.expander('Historical base-model diagnostics · May 2021, before time adjustment'):
+            st.metric('Original historical asking anchor · May 2021',f"${saved[1]['price']:,.0f}")
+            from pricing.explanations import render_explanation
+            render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
+            from pricing.explanation_ui import render_visual_explanations
+            render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
 with time_panel:
     from pricing.time_ui import render_time_studio
     time_saved=st.session_state.get('last_explained_price')

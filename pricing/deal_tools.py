@@ -66,12 +66,14 @@ def read_share(token):
         raise ValueError('This share link is invalid or unsupported.') from None
 
 
-def caption(fields,price,tone='Playful'):
+def caption(fields,price,tone='Playful',reference_date=REFERENCE_DATE,time_adjusted=False):
     price=float(price)
     if not math.isfinite(price) or price<=0: raise ValueError('Positive finite estimate required.')
     hook = {'Playful':'My car has met the maths. The maths has questions.',
             'Professional':'Transparent car pricing, with the assumptions included.',
             'Challenge':'What would YOU pay? Guess before opening the garage.'}[tone]
+    if time_adjusted:
+        return f'{hook}\n{car_title(fields)} · ${price:,.0f} date-adjusted asking estimate.\nValuation date: {reference_date}. Vehicle age + market extrapolation; not a verified sale price.\n#CarPriceStudio #UsedCars #MachineLearning'
     return f'{hook}\n{car_title(fields)} · ${price:,.0f} historical asking estimate.\nUS market reference: May 2021. Not a current sale guarantee.\n#CarPriceStudio #UsedCars #MachineLearning'
 
 
@@ -165,7 +167,7 @@ def font(size):
     return ImageFont.load_default(size=size)
 
 
-def card_png(fields,price,url,portrait=False):
+def card_png(fields,price,url,portrait=False,reference_date=REFERENCE_DATE,time_adjusted=False):
     from PIL import Image,ImageDraw
     import qrcode
     price=float(price)
@@ -178,15 +180,15 @@ def card_png(fields,price,url,portrait=False):
     y=130
     for line in textwrap.wrap(car_title(fields),35)[:3]:
         draw.text((55,y),line,font=font(42),fill='white');y+=54
-    draw.text((55,y+12),'HISTORICAL ASKING ESTIMATE',font=font(22),fill='#cbbef1')
+    draw.text((55,y+12),'DATE-ADJUSTED ASKING ESTIMATE' if time_adjusted else 'HISTORICAL ASKING ESTIMATE',font=font(22),fill='#cbbef1')
     draw.text((50,y+58),f'${price:,.0f}',font=font(100),fill='#d9fb77')
     if portrait:
         y+=230
         for line in ['Serious maths.','Zero tyre-kicking.']:
             draw.text((55,y),line,font=font(54),fill='#ff997d');y+=68
     bottom=h-145
-    draw.text((55,bottom),'US market reference: May 2021',font=font(24),fill='white')
-    draw.text((55,bottom+40),'Estimate, not a current sale guarantee.',font=font(20),fill='#cbbef1')
+    draw.text((55,bottom),'Valuation date: '+str(reference_date) if time_adjusted else 'US market reference: May 2021',font=font(24),fill='white')
+    draw.text((55,bottom+40),'Age + market extrapolation. Not a sale guarantee.' if time_adjusted else 'Estimate, not a current sale guarantee.',font=font(20),fill='#cbbef1')
     draw.text((55,bottom+75),('Scan to open vehicle details.' if '?garage=' in url else 'Scan to try Car Price Studio.'),font=font(20),fill='#cbbef1')
     qr=qrcode.QRCode(border=4,error_correction=qrcode.constants.ERROR_CORRECT_M);qr.add_data(url);qr.make(fit=True)
     qrimage=qr.make_image(fill_color='#241d35',back_color='white').convert('RGB')

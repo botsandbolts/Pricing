@@ -1,0 +1,109 @@
+"""Current-date serving, explanation parity and explicit extrapolation contracts."""
+from datetime import date
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from marketbridge.time_engine import TimeTransport
+from pricing.current_value import DateAdjustedAsking, adjustment_chart
+from pricing.text_attribution import explain_text, signature
+
+ROOT = Path(__file__).resolve().parents[1]
+CAR = {'year':2015, 'manufacturer':'toyota', 'model':'corolla', 'type':'sedan',
+       'odometer':95000, 'transmission':'automatic', 'state':'ca'}
+
+
+class Anchor:
+    manifest = {'pipeline':'fixture', 'feature_names':[], 'text_feature':True}
+    text_model = True
+    def __init__(self):self.calls = 0
+    def predict(self, text, fields, explain=False):
+        self.calls += 1
+        assert fields == CAR
+        return {'price':20000+100*len(text.split()), 'predicted_text_price':10000,
+                'range':[18000,22000]}
+
+
+def test_adjustment_uses_actual_vehicle_age_and_separate_market_multiplier():
+    t = TimeTransport(ROOT);base = Anchor()
+    wrapper = DateAdjustedAsking(base, t, date(2026,10,30), as_of=date(2026,10,30))
+    original = base.predict('Clean car', CAR)
+    adjusted = wrapper.adjust(original, CAR)
+    assert base.calls == 1  # Reuse the existing prediction; no duplicate transformer call.
+    r = adjusted['time_adjustment']
+    assert r['age'] > 11
+    assert r['anchor_age'] < 7
+    assert r['market']['kind'] == 'forecast_monthly_index'
+    assert r['market']['horizon'] == 1
+    assert adjusted['price'] == pytest.approx(original['price']*r['age_factor']*r['market_factor'])
+    assert adjusted['price'] != original['price']
+    assert original['price'] == 20200 and original['range'] == [18000,22000]
+    assert adjusted['range'] is None
+    assert adjusted['valuation_date'] == '2026-10-30'
+    assert r['target_coverage_validated'] is False
+
+
+def test_phrase_explanations_reconstruct_the_date_adjusted_receipt():
+    t = TimeTransport(ROOT);base = Anchor()
+    wrapper = DateAdjustedAsking(base,t,'2026-10-30',as_of='2026-10-30')
+    p = explain_text(lambda text:wrapper.predict(text,CAR)['price'], 'Clean car')
+    displayed = wrapper.predict('Clean car',CAR)
+    assert p['prediction'] == pytest.approx(displayed['price'])
+    assert p['base']+sum(p['values']) == pytest.approx(displayed['price'])
+    factor = displayed['time_adjustment']['age_factor']*displayed['time_adjustment']['market_factor']
+    np.testing.assert_allclose(p['values'], [100*factor,100*factor])
+    new_wrapper = DateAdjustedAsking(base,t,'2026-10-30',as_of='2026-10-30')
+    args = [wrapper.manifest,CAR,'Clean car','Quick look',wrapper.explanation_identity,displayed['price']]
+    other = [new_wrapper.manifest,CAR,'Clean car','Quick look',new_wrapper.explanation_identity,displayed['price']]
+    assert signature(*args) == signature(*other)
+    tomorrow = DateAdjustedAsking(base,t,'2026-10-31',as_of='2026-10-31')
+    assert tomorrow.manifest != wrapper.manifest
+
+
+def test_stale_clock_and_new_generation_do_not_fall_back_to_historical_prices():
+    t = TimeTransport(ROOT);base = Anchor()
+    with pytest.raises(ValueError,match='six months'):
+        DateAdjustedAsking(base,t,'2028-10-30',as_of='2028-10-30').adjust({'price':20000},CAR)
+    with pytest.raises(ValueError,match='generation-analogue'):
+        t.estimate(base,'',{**CAR,'year':2020},'2026-10-30','bid',as_of='2026-10-30')
+    with pytest.raises(ValueError,match='Only the historical asking'):
+        t.estimate(base,'',CAR,'2026-10-30','bid',as_of='2026-10-30',anchor_price=20000)
+
+
+def test_time_waterfall_preserves_exact_adjusted_total():
+    w = DateAdjustedAsking(Anchor(),TimeTransport(ROOT),'2026-10-30',as_of='2026-10-30')
+    r = w.predict('Clean car',CAR)['time_adjustment']
+    fig = adjustment_chart({'ask':r})
+    assert sum(fig.data[0].y) == pytest.approx(r['price'])
+    assert list(fig.data[0].measure) == ['absolute','relative','relative','total']
+
+
+def test_today_control_advances_without_a_frozen_date_widget(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    import pricing.current_value as current
+    monkeypatch.setattr(current,'today',lambda:date(2026,10,30))
+    app = AppTest.from_string('''
+import streamlit as st
+from pricing.current_value import clock_controls
+day,allow=clock_controls('fixture')
+st.text(str(day))
+''').run()
+    assert not app.exception
+    assert app.text[0].value == '2026-10-30'
+    monkeypatch.setattr(current,'today',lambda:date(2026,10,31))
+    app.run()
+    assert app.text[0].value == '2026-10-31'
+    app.radio[0].set_value('Choose a date').run()
+    app.date_input[0].set_value(date(2026,9,12)).run()
+    assert app.text[0].value == '2026-09-12'
+
+
+def test_current_share_caption_and_card_carry_the_actual_date():
+    from pricing.deal_tools import caption, card_png, APP_URL
+    from PIL import Image
+    import io
+    text = caption(CAR,15000,reference_date='2026-10-30',time_adjusted=True)
+    assert '2026-10-30' in text and 'date-adjusted' in text and 'May 2021' not in text
+    png = card_png(CAR,15000,APP_URL,reference_date='2026-10-30',time_adjusted=True)
+    assert Image.open(io.BytesIO(png)).size == (1200,630)

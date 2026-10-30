@@ -100,23 +100,31 @@ def render_calculator(root,key_prefix='robust_pair'):
         year=a.number_input('Year',1900,2021,2015,key=key_prefix+'_year')
         make=b.text_input('Make','Toyota',key=key_prefix+'_make');name=c.text_input('Model / trim','Corolla',key=key_prefix+'_model')
         miles=a.number_input('Miles',0,2000000,95000,key=key_prefix+'_miles');body=b.selectbox('Body',['sedan','suv','truck','coupe','wagon','van','hatchback','convertible'],key=key_prefix+'_body');state=c.text_input('State','ca',key=key_prefix+'_state')
-        transmission=a.selectbox('Transmission',['automatic','manual','unknown'],key=key_prefix+'_transmission');fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','unknown'],key=key_prefix+'_fuel');date=c.date_input('Valuation date',pd.Timestamp('2021-05-01').date(),key=key_prefix+'_date')
+        from marketbridge.time_engine import today
+        transmission=a.selectbox('Transmission',['automatic','manual','unknown'],key=key_prefix+'_transmission');fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','unknown'],key=key_prefix+'_fuel');date=c.date_input('Valuation date',today(),key=key_prefix+'_date')
+        allow=st.checkbox('Allow auction generation analogues for 2016–2021 cars',value=False,key=key_prefix+'_analogue')
         grade=a.selectbox('Actual auction grade',[None,1.,2.,3.,4.,5.],format_func=lambda g:'Unknown' if g is None else str(g),key=key_prefix+'_grade')
         description=st.text_area('Seller description · MiniLM asking-price signal',max_chars=8000,key=key_prefix+'_description')
         submit=st.form_submit_button('Price it in both markets')
     if submit:
         raw=pd.DataFrame([{'year':year,'manufacturer':make,'model':name,'odometer':miles,'type':body,'state':state,'transmission':transmission,'fuel':fuel,'as_of':str(date),'auction_condition':grade,'text':description}]);rows=[]
+        from pricing.current_value import current_transport,render_market_clock,render_adjustment
+        try:transport,refresh_error=current_transport(root)
+        except (ValueError,OSError,KeyError) as exc:st.warning('Date adjustment unavailable: '+str(exc));return
         for side in ['ask','bid']:
             folder=model_root(root)/'ask' if side=='ask' else bid_folder(root);mf=folder/'manifest.json';model,schema,record=load(str(folder),mf.stat().st_mtime_ns)
-            x,valid,dates=predictors(raw,side);ratios,_=IndexPanel(Path(root)/'models/structural-transfer/used-car-index.csv').ratios(dates)
-            if not valid.all() or (side=='bid' and ratios.isna().any()):st.error('Unsupported vehicle/date');return
-            value=float(estimate(model,schema,record,raw,side)[0])
-            if side=='bid':value*=float(ratios.iloc[0])
+            try:
+                receipt=transport.estimate(model,description,raw.iloc[0].to_dict(),date,side,allow,as_of=today())
+                value=receipt['price']
+            except ValueError as exc:
+                st.warning(side.upper()+' estimate unavailable: '+str(exc));continue
             rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'CatBoost log-median 0.5' if record['pipeline']=='catboost-log-quantile' else 'Tabular CatBoost AFT'})
             from pricing.analytics import record_price
             record_price(side,value,raw.iloc[0].to_dict(),str(folder),key_prefix,str(date))
         prices={r['Market']:r['Price USD'] for r in rows}
-        render_price_pair(prices.get('ask'),prices.get('bid'),str(date))
+        render_price_pair(prices.get('ask'),prices.get('bid'),str(date),asking_date=str(date),scenario=True)
+        try:render_market_clock(transport,date,refresh_error)
+        except ValueError as exc:st.warning(str(exc))
         with st.expander('Model names and exact outputs'):
             st.dataframe(pd.DataFrame(rows),hide_index=True)
-        st.caption('Asking prices retain their historical listing-market target; auctions are CPI transported wholesale estimates. Neither is a verified current retail transaction. MiniLM reads descriptions for the combined asking model. Auction data have no descriptions, so the bid model uses vehicle facts.')
+        st.caption('Both estimates use the selected date, with separate vehicle-age and market adjustments. Asking is advertised price; auction is wholesale sale price. Neither is a verified current retail transaction. MiniLM reads asking descriptions; auction training has no descriptions.')

@@ -1,9 +1,9 @@
 name: Direct text attribution checks
 on:
   push:
-    paths: ['pricing/text_attribution*.py', 'tests/test_text_attribution.py', 'scripts/common.py', '.github/workflows/text-attribution.yml']
+    paths: ['pricing/text_attribution*.py', 'pricing/current_value.py', 'marketbridge/time_engine.py', 'tests/test_text_attribution.py', 'tests/test_current_value.py', 'scripts/common.py', '.github/workflows/text-attribution.yml']
   pull_request:
-    paths: ['pricing/text_attribution*.py', 'tests/test_text_attribution.py', 'scripts/common.py', '.github/workflows/text-attribution.yml']
+    paths: ['pricing/text_attribution*.py', 'pricing/current_value.py', 'marketbridge/time_engine.py', 'tests/test_text_attribution.py', 'tests/test_current_value.py', 'scripts/common.py', '.github/workflows/text-attribution.yml']
 permissions:
   contents: read
 jobs:
@@ -16,8 +16,10 @@ jobs:
             pricing
             tests
             scripts
+            marketbridge
+            models/time-transport
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pytest 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scikit-learn>=1.4,<2' 'streamlit==1.66.1' 'plotly>=5.24,<7'
-      - run: python -m pytest tests/test_text_attribution.py -q
+      - run: pip install pytest 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scikit-learn>=1.4,<2' 'scipy>=1.11,<2' 'streamlit==1.66.1' 'plotly>=5.24,<7' 'Pillow>=10.4,<13' 'qrcode>=8,<9' 'requests>=2.31,<3'
+      - run: python -m pytest tests/test_text_attribution.py tests/test_current_value.py tests/test_time_transport.py -q

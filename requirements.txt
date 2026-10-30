@@ -39,3 +39,5 @@ qrcode>=8,<9
 # Price-target UX: clean restart to refresh all imported asking/auction UI modules.
 
 # Direct phrase explanations: refresh UI imports; no additional dependencies.
+
+# Today's valuation default: reload date-aware receipts and matching explanations.

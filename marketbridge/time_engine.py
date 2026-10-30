@@ -29,7 +29,8 @@ class TimeTransport:
         if not 0<=age<=30:raise ValueError('This depreciation scenario supports vehicle ages 0–30 years; collector and pre-production cases need another model.')
         if not np.isfinite(miles) or not 0<=miles<=2_000_000:raise ValueError('Mileage must be between 0 and 2,000,000 miles')
         return year,age,miles
-    def estimate(self,pipeline,text,fields,date,side='ask',allow_newer_bid=False,as_of=None,text_price=None):
+    def estimate(self,pipeline,text,fields,date,side='ask',allow_newer_bid=False,as_of=None,text_price=None,anchor_price=None):
+        if side not in ('ask','bid'):raise ValueError('Unknown market target')
         year,age,miles=self.validate(fields,date)
         if side=='bid' and year>2015 and not allow_newer_bid:raise ValueError('Auction training ends with model year 2015. Enable the explicit generation-analogue assumption for 2016–2021 cars.')
         ref='2021-05-01' if side=='ask' else '2015-01-01'
@@ -40,7 +41,11 @@ class TimeTransport:
             # The bid tree uses age, not raw year/calendar features. Ask it about an
             # age-five comparable in its saved reference-dollar unit, not a future year.
             anchor_fields.update(as_of=f'{year+5}-01-01',condition=None)
-        if text_price is not None and getattr(pipeline,'aft',None) is not None:
+        if anchor_price is not None:
+            if side!='ask':raise ValueError('Only the historical asking anchor can be supplied')
+            base=float(anchor_price)
+            if not np.isfinite(base) or not 0<base<=1e7:raise ValueError('Invalid historical asking anchor')
+        elif text_price is not None and getattr(pipeline,'aft',None) is not None:
             base=float(pipeline.aft.predict_frame(pd.DataFrame([anchor_fields]),text_price)[0])
         else:base=float(pipeline.predict(text if side=='ask' else '',anchor_fields)['price'])
         shape=pd.DataFrame([{**fields,'age':age,'odometer':miles}])
