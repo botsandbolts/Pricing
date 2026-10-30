@@ -54,3 +54,5 @@ qrcode>=8,<9
 # Outlier lab: restart imported UI modules for the completed experiment report.
 
 # Install verified five-stage defaults and refresh shared serving/UI routes.
+
+# Restart serving process for automatic month-end Holt valuation controls.
