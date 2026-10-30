@@ -1,5 +1,16 @@
 from pricing.vehicle_narrative import narrative
 from pricing.bart_summary import summarize_story,CHUNK_TOKENS
+from pricing.bart_summary import build_valuation_story
+
+def test_valuation_story_includes_both_targets_time_and_limitations():
+    r={'estimated_price_usd':8237,'historical_anchor_usd':12892,'age_multiplier':.623,'market_multiplier':1.026,'vehicle_age_years':11.83,'market_index_status':{'kind':'forecast_monthly_index','month':'2026-10','horizon':1,'method':'damped_holt'},'pooled_depreciation':True}
+    story=build_valuation_story({'year':2015,'manufacturer':'Toyota','model':'Corolla'},'Small dent.',{'valuation_date':'2026-10-30','market_estimates':{'ask':r,'bid':{**r,'estimated_price_usd':5760}},'market_source':'BLS/FRED','latest_observed_month':'2026-09'})
+    for text in ['8,237.00','5,760.00','asking price','auction sale price','2026-10-30','Small dent','not dealer profit','forecast 1 months','pooled']:assert text in story
+    assert 'estimated_price_usd' not in story
+
+def test_missing_auction_never_creates_a_price():
+    story=build_valuation_story({},'',{'unavailable_markets':['bid']})
+    assert 'bid estimate is unavailable' in story
 
 class Engine:
     def __init__(self):self.calls=[]
