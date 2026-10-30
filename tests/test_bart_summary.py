@@ -12,6 +12,16 @@ def test_missing_auction_never_creates_a_price():
     story=build_valuation_story({},'',{'unavailable_markets':['bid']})
     assert 'bid estimate is unavailable' in story
 
+def test_qualitative_generation_requests_numeric_constraint():
+    engine=Engine()
+    calls=[]
+    def generate(text,forbid_numbers=False):
+        calls.append(forbid_numbers)
+        return 'A car valuation based on historical data.'
+    engine.generate=generate
+    result=summarize_story('The estimate is 8237 dollars.',engine,qualitative=True)
+    assert calls==[True] and result['status']=='ready'
+
 class Engine:
     def __init__(self):self.calls=[]
     def encode(self,text):return text.split()
