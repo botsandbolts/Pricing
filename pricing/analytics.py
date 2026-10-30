@@ -28,6 +28,9 @@ SCHEMA = [
     'CREATE INDEX IF NOT EXISTS queries_visitor ON pricing_queries(visitor_id)',
     'CREATE INDEX IF NOT EXISTS queries_timestamp ON pricing_queries(timestamp)',
 ]
+from pricing.hierarchical_store import SCHEMA as HIERARCHICAL_SCHEMA
+SCHEMA += HIERARCHICAL_SCHEMA
+
 VEHICLE_FIELDS = {'year', 'manufacturer', 'model', 'odometer', 'type', 'fuel',
                   'transmission', 'drive', 'condition', 'title_status', 'cylinders',
                   'paint_color', 'state', 'auction_condition'}
@@ -229,9 +232,11 @@ class TursoStore:
 
     def purge(self):
         cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).isoformat(timespec='seconds')
+        self.execute('DELETE FROM hierarchical_estimations WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM pricing_queries WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM visitors WHERE last_seen < ? AND NOT EXISTS '
-                     '(SELECT 1 FROM pricing_queries q WHERE q.visitor_id=visitors.visitor_id)', [cutoff])
+                     '(SELECT 1 FROM pricing_queries q WHERE q.visitor_id=visitors.visitor_id) AND NOT EXISTS '
+                     '(SELECT 1 FROM hierarchical_estimations h WHERE h.visitor_id=visitors.visitor_id)', [cutoff])
         from pricing.sale_feedback import purge
         purge(self)
 

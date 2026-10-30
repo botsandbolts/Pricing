@@ -62,3 +62,5 @@ qrcode>=8,<9
 # Refresh ARIA radio-group context for control analytics.
 # Refresh label-activated radio and dropdown events.
 # Refresh nested-tab visibility guard for GA attribution.
+
+# Deploy hierarchical residual laboratory and private Turso estimation table.

@@ -4,7 +4,7 @@ function installPricingInteractions() {
   const panels = new Map([
     ['🚗 Price my car','calculator'],['↔ Two-market garage','two_market'],
     ['📅 Value over time','value_over_time'],['🧠 The science','science'],
-    ['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
+    ['🌳 Hierarchical model','hierarchical_model'],['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
   ]);
   const subpanels = new Map([
     ['📸 Import advert','import_advert'],['🕵️ Price verdict','price_verdict'],
@@ -43,6 +43,10 @@ function installPricingInteractions() {
     ['Download correlations and Ridge coefficients',['download_requested','model_comparison']],
     ['Save private submission/deletion receipt',['download_requested','feedback_receipt']]
   ]);
+  actions.set('Fit and evaluate hierarchical correction',['hierarchical_action','fit_requested']);
+  actions.set('Compare hierarchical estimate',['hierarchical_action','compare_requested']);
+  actions.set('Download residual-data template',['download_requested','hierarchical_template']);
+  actions.set('Download hierarchical experiment',['download_requested','hierarchical_report']);
   const settings = new Map([
     ['Pricing model','pricing_model'],['Asking model','asking_model'],['Bid / auction model','bid_model'],
     ['Auction pricing option','auction_model'],['Browse 400 real car descriptions — type to search','example_description'],

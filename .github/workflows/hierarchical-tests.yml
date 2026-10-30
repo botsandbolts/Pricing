@@ -1,0 +1,22 @@
+name: Hierarchical model checks
+on:
+  push:
+    paths: ['pricing/hierarchical*.py', 'tests/test_hierarchical.py', '.github/workflows/hierarchical-tests.yml']
+  pull_request:
+    paths: ['pricing/hierarchical*.py', 'tests/test_hierarchical.py', '.github/workflows/hierarchical-tests.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            tests
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy pandas pytest requests streamlit
+      - run: python -m pytest tests/test_hierarchical.py tests/test_analytics.py -q
