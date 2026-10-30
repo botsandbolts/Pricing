@@ -219,7 +219,25 @@ with value:
                     st.caption('MiniLM’s description-only scalar enters the asking model alongside vehicle facts. It is not an independent offer or a word-level explanation.')
             with st.container(key='story_receipt'):
                 from pricing.bart_summary import render_story
-                render_story(saved[2],saved[3])
+                report={
+                    'valuation_date':str(valuation_date),
+                    'vehicle_facts':saved[2],
+                    'market_estimates':{side:{
+                        'estimated_price_usd':round(r['price'],2),
+                        'vehicle_age_years':round(r['age'],2),
+                        'age_multiplier':round(r['age_factor'],4),
+                        'market_multiplier':round(r['market_factor'],4),
+                        'historical_anchor_usd':round(r['anchor_price_reference_usd'],2),
+                        'market_index_status':r['market'],
+                        'pooled_depreciation':not r['model_known_to_curve'],
+                        'newer_generation_analogue':r['generation_analogue']
+                    } for side,r in dated_receipts.items()},
+                    'unavailable_markets':[s for s in ['ask','bid'] if s not in dated_receipts],
+                    'market_source':'BLS/FRED CUUR0000SETA02',
+                    'latest_observed_month':transport.clock.meta['latest_observation'] if transport else None,
+                    'scope':'Experimental date-adjusted estimates; no validated current-car prediction interval.'
+                }
+                render_story(saved[2],saved[3],valuation=report)
         else:
             st.markdown('<div class="garage-science-note"><strong>Curious what moves the price?</strong><br>After estimating, explore feature contributions, mileage scenarios and all six explanation graphs below.</div>',unsafe_allow_html=True)
     if saved and saved[0]==str(path):
