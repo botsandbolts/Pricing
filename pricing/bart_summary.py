@@ -1,11 +1,11 @@
-"""Local Pegasus CNN/DailyMail abstractive summaries; no LexRank or external inference."""
+"""Local BART-base-CNN abstractive summaries; no LexRank or external inference."""
 import hashlib
 import re
 import threading
 from pricing.vehicle_narrative import narrative
 
-MODEL_ID='google/pegasus-cnn_dailymail'
-REVISION='40d588fdab0cc077b80d950b300bf66ad3c75b92'
+MODEL_ID='ainize/bart-base-cnn'
+REVISION='b90bc9a7c93de6449a8c531ed5f957d84649b99a'
 CHUNK_TOKENS=960
 OUTPUT_TOKENS=128
 PROMPT=''
@@ -14,22 +14,11 @@ PROMPT_SUFFIX=''
 
 class SummaryEngine:
     def __init__(self):
-        # Avoid killing the whole Streamlit process on memory-limited hosts.
-        from pathlib import Path
-        limits=[('/sys/fs/cgroup/memory.max','/sys/fs/cgroup/memory.current'),
-                ('/sys/fs/cgroup/memory/memory.limit_in_bytes','/sys/fs/cgroup/memory/memory.usage_in_bytes')]
-        for limit_path,usage_path in limits:
-            try:
-                limit=Path(limit_path).read_text().strip()
-                if limit!='max' and int(limit)-int(Path(usage_path).read_text()) < 3*1024**3:
-                    raise RuntimeError('Pegasus requires at least 3 GiB available RAM for safe CPU loading')
-                break
-            except (OSError,ValueError):continue
         import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
         torch.set_num_threads(min(2,torch.get_num_threads()))
         self.torch=torch
-        self.tokenizer=AutoTokenizer.from_pretrained(MODEL_ID,revision=REVISION,use_fast=False)
+        self.tokenizer=AutoTokenizer.from_pretrained(MODEL_ID,revision=REVISION,use_fast=True)
         self.model=AutoModelForSeq2SeqLM.from_pretrained(MODEL_ID,revision=REVISION,
                                                        use_safetensors=False,weights_only=True,trust_remote_code=False,dtype=torch.float32).to('cpu').eval()
         self.lock=threading.RLock()
@@ -133,9 +122,9 @@ def render_story(fields,description,valuation=None):
         return SummaryEngine()
     story=build_valuation_story(fields,description,valuation)
     summary_source=qualitative_report_source(fields,description,valuation) if valuation else story
-    fingerprint=hashlib.sha256(str(('cross-panel-pegasus-v1',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
-    st.markdown('#### 📖 Your car & price story · Pegasus summary' if valuation else '#### 📖 The car’s story · AI summary')
-    if valuation:st.caption('Your car, both markets, historical scenarios, model drivers and evaluation evidence — one briefing. Pegasus is the narrator; the receipts keep the numbers honest.')
+    fingerprint=hashlib.sha256(str(('cross-panel-valuation-v3',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
+    st.markdown('#### 📖 Your car & price story · BART summary' if valuation else '#### 📖 The car’s story · AI summary')
+    if valuation:st.caption('Your car, both markets, historical scenarios, model drivers and evaluation evidence — one briefing. BART is the narrator; the receipts keep the numbers honest.')
     saved=st.session_state.get('_bart_summary',{})
     if saved.get('fingerprint')!=fingerprint:
         try:
@@ -145,18 +134,18 @@ def render_story(fields,description,valuation=None):
             st.session_state['_bart_summary']=saved
         except Exception as error:
             import logging
-            logging.getLogger(__name__).warning('Pegasus summary unavailable: %s',type(error).__name__)
+            logging.getLogger(__name__).warning('BART summary unavailable: %s',type(error).__name__)
             saved={'fingerprint':fingerprint,'result':{'status':'unavailable','summary':''}}
     result=saved['result']
     if result['status']=='ready':st.write(result['summary'])
     elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
-    else:st.caption('Pegasus is unavailable on this host (model loading, memory or generation limit). Your price estimate is still ready; read the complete supplied story below.')
-    if valuation:st.caption('AI overview, not a valuation calculation. Pegasus receives a qualitative briefing covering the report’s topics; exact figures remain in the cards and source report. The overview disables numeric output tokens; it can still omit or misstate facts.')
-    st.caption('google/pegasus-cnn_dailymail · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
+    else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
+    if valuation:st.caption('AI overview, not a valuation calculation. BART receives a qualitative briefing covering the report’s topics; exact figures remain in the cards and source report. The overview disables numeric output tokens; it can still omit or misstate facts.')
+    st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
     with st.expander('Full supplied story · model & limitations'):
         st.markdown(story.replace('\n','\n\n'))
         if valuation:
-            with st.expander('Qualitative briefing supplied to Pegasus'):
+            with st.expander('Qualitative briefing supplied to BART'):
                 st.text(summary_source)
             st.download_button('Download full valuation story',story,'car-valuation-story.txt','text/plain',key='download_valuation_story')
-        st.caption('Pegasus CNN/DailyMail runs locally on CPU, using greedy decoding and a shared cached model. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')
+        st.caption('BART-base-CNN runs locally on CPU, using greedy decoding and a shared cached model. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')
