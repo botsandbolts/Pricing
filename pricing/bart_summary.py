@@ -22,6 +22,7 @@ class SummaryEngine:
         self.model=AutoModelForSeq2SeqLM.from_pretrained(MODEL_ID,revision=REVISION,
                                                        use_safetensors=False,weights_only=True,trust_remote_code=False,dtype=torch.float32).to('cpu').eval()
         self.lock=threading.RLock()
+        self.numeric_tokens=[[i] for token,i in self.tokenizer.get_vocab().items() if re.search(r'\d',token)]
 
     def encode(self,text):
         return self.tokenizer.encode(text,add_special_tokens=False)
@@ -29,12 +30,13 @@ class SummaryEngine:
     def decode(self,tokens):
         return self.tokenizer.decode(tokens,skip_special_tokens=True)
 
-    def generate(self,text):
+    def generate(self,text,forbid_numbers=False):
         inputs=self.tokenizer(PROMPT+text+PROMPT_SUFFIX,return_tensors='pt',truncation=False)
         if inputs.input_ids.shape[1]>1024:raise ValueError('Summary input exceeds token budget')
         with self.lock,self.torch.inference_mode():
             output=self.model.generate(**inputs,max_new_tokens=OUTPUT_TOKENS,num_beams=1,min_new_tokens=0,forced_eos_token_id=None,
-                                       do_sample=False,use_cache=True,no_repeat_ngram_size=3)
+                                       do_sample=False,use_cache=True,no_repeat_ngram_size=3,
+                                       bad_words_ids=self.numeric_tokens if forbid_numbers else None)
         if output[0,-1].item()!=self.tokenizer.eos_token_id:
             raise ValueError('Summary output did not finish within its token budget')
         return self.tokenizer.decode(output[0],skip_special_tokens=True).strip()
@@ -45,18 +47,19 @@ def build_story(fields,description):
     return facts+('\nSeller description (unverified):\n'+text if text else '')
 
 
-def summarize_story(story,engine):
+def summarize_story(story,engine,qualitative=False):
     """Map/reduce every token; long descriptions are never silently truncated."""
     ids=engine.encode(story)
     if not ids:return {'summary':'','chunks':0,'status':'empty'}
     chunks=[engine.decode(ids[i:i+CHUNK_TOKENS]) for i in range(0,len(ids),CHUNK_TOKENS)]
-    summaries=[engine.generate(c) for c in chunks]
+    generate=(lambda c:engine.generate(c,forbid_numbers=True)) if qualitative else engine.generate
+    summaries=[generate(c) for c in chunks]
     if any(not s for s in summaries):raise ValueError('Model returned an empty summary')
     for _ in range(8):
         if len(summaries)==1:break
         merged=engine.encode(' '.join(summaries))
         groups=[engine.decode(merged[i:i+CHUNK_TOKENS]) for i in range(0,len(merged),CHUNK_TOKENS)]
-        summaries=[engine.generate(c) for c in groups]
+        summaries=[generate(c) for c in groups]
     else:raise ValueError('Summary reduction did not converge')
     summary=summaries[0]
     numbers=lambda text:set(re.findall(r'\d+(?:\.\d+)?',text.replace(',','')))
@@ -93,13 +96,13 @@ def render_story(fields,description,valuation=None):
     def get_engine(model_id,revision):
         return SummaryEngine()
     story=build_valuation_story(fields,description,valuation)
-    fingerprint=hashlib.sha256(str((MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story)).encode()).hexdigest()
+    fingerprint=hashlib.sha256(str(('qualitative-valuation-v1',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story)).encode()).hexdigest()
     st.markdown('#### 📖 Your car & price story · BART summary' if valuation else '#### 📖 The car’s story · AI summary')
     saved=st.session_state.get('_bart_summary',{})
     if saved.get('fingerprint')!=fingerprint:
         try:
             with st.spinner('Condensing the car’s story…'):
-                result=summarize_story(story,get_engine(MODEL_ID,REVISION))
+                result=summarize_story(story,get_engine(MODEL_ID,REVISION),qualitative=bool(valuation))
             saved={'fingerprint':fingerprint,'result':result}
             st.session_state['_bart_summary']=saved
         except Exception as error:
@@ -110,6 +113,7 @@ def render_story(fields,description,valuation=None):
     if result['status']=='ready':st.write(result['summary'])
     elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
     else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
+    if valuation:st.caption('BART gives a qualitative overview. Exact figures and dates remain in the price cards and full supplied story; numeric output tokens are disabled to reduce invented amounts. This does not guarantee factual correctness.')
     st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
     with st.expander('Full supplied story · model & limitations'):
         st.text(story)
