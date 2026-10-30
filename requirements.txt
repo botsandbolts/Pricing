@@ -42,3 +42,5 @@ qrcode>=8,<9
 
 # Today's valuation default: reload date-aware receipts and matching explanations.
 # Time evidence: separate asking and auction waterfalls with labelled dollar steps.
+
+# Full valuation BART prose: refresh cached summary module on deployment.
