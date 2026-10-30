@@ -77,6 +77,10 @@ def test_time_waterfall_preserves_exact_adjusted_total():
     fig = adjustment_chart({'ask':r})
     assert sum(fig.data[0].y) == pytest.approx(r['price'])
     assert list(fig.data[0].measure) == ['absolute','relative','relative','total']
+    pair = adjustment_chart({'ask':r,'bid':{**r,'side':'bid'}})
+    assert len(pair.data) == 2
+    assert pair.data[0].yaxis != pair.data[1].yaxis
+    assert pair.data[0].totals.marker.color != pair.data[1].totals.marker.color
 
 
 def test_today_control_advances_without_a_frozen_date_widget(monkeypatch):

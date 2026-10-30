@@ -100,17 +100,28 @@ def render_adjustment(receipt):
 def adjustment_chart(receipts):
     """Dollar changes telescope; this is a time decomposition, not SHAP."""
     import plotly.graph_objects as go
-    fig = go.Figure()
-    for side, r in receipts.items():
+    from plotly.subplots import make_subplots
+    titles = [('Seller asking' if side=='ask' else 'Wholesale auction')+
+              ' · adjusted to '+r['date'] for side,r in receipts.items()]
+    fig = make_subplots(rows=len(receipts), cols=1, subplot_titles=titles,
+                        vertical_spacing=.22 if len(receipts)>1 else .05)
+    for row, (side, r) in enumerate(receipts.items(),1):
         base = r['anchor_price_reference_usd']
         aged = base*r['age_factor']
+        amounts = [base, aged-base, r['price']-aged, r['price']]
+        anchor = 'May 2021 anchor' if side=='ask' else '2015 reference anchor'
         fig.add_trace(go.Waterfall(name='Seller asking' if side=='ask' else 'Wholesale auction',
-            x=['Historical anchor', 'Vehicle ageing', 'Market movement', 'Selected date'],
+            x=[anchor, 'Vehicle ageing', 'Market movement', 'Selected date'],
             y=[base, aged-base, r['price']-aged, 0],
+            text=[f'${v:,.0f}' if i in (0,3) else f'{v:+,.0f} USD' for i,v in enumerate(amounts)],
+            textposition='outside',
             measure=['absolute', 'relative', 'relative', 'total'],
-            hovertemplate='%{x}<br>%{y:,.2f} USD<extra>%{fullData.name}</extra>'))
-    fig.update_layout(height=360, waterfallgroupgap=.3, yaxis_title='USD',
-        margin=dict(l=10,r=10,t=15,b=25), legend=dict(orientation='h',y=-.2))
+            totals=dict(marker_color='#6351e8' if side=='ask' else '#416529'),
+            increasing=dict(marker_color='#309574'),decreasing=dict(marker_color='#ce6347'),
+            hovertemplate='%{x}<br>%{y:,.2f} USD<extra>%{fullData.name}</extra>'),row=row,col=1)
+        fig.update_yaxes(title_text='USD',tickprefix='$',tickformat=',.0f',rangemode='tozero',row=row,col=1)
+    fig.update_layout(height=600 if len(receipts)>1 else 350, showlegend=False,
+        margin=dict(l=15,r=15,t=50,b=35),font=dict(size=13))
     return fig
 
 

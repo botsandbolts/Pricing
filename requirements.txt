@@ -41,3 +41,4 @@ qrcode>=8,<9
 # Direct phrase explanations: refresh UI imports; no additional dependencies.
 
 # Today's valuation default: reload date-aware receipts and matching explanations.
+# Time evidence: separate asking and auction waterfalls with labelled dollar steps.
