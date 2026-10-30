@@ -65,17 +65,34 @@ def summarize_story(story,engine):
             'status':'review_required' if unexpected else 'ready'}
 
 
+def build_valuation_story(fields,description,valuation=None):
+    """Give the news-trained summarizer readable prose, not raw JSON keys."""
+    facts,seller=narrative(fields,description)
+    if not valuation:return build_story(fields,description)
+    sentences=[facts, 'This valuation is for '+str(valuation.get('valuation_date','an unspecified date'))+'.']
+    for side,r in valuation.get('market_estimates',{}).items():
+        target='seller advertised asking price' if side=='ask' else 'wholesale auction sale price'
+        sentences.append(f"The estimated {target} is {float(r['estimated_price_usd']):,.2f} US dollars.")
+        sentences.append(f"Its historical model anchor is {float(r['historical_anchor_usd']):,.2f} dollars, multiplied by {r['age_multiplier']} for vehicle ageing and {r['market_multiplier']} for market movement. Vehicle age at valuation is {r['vehicle_age_years']} years.")
+        market=r.get('market_index_status',{})
+        if market.get('kind')=='forecast_monthly_index':
+            sentences.append(f"The market index for {market.get('month')} is forecast {market.get('horizon')} months beyond observed data, using {market.get('method')}.")
+        if r.get('pooled_depreciation'):sentences.append('Sparse or unseen trim uses pooled make and body depreciation.')
+        if r.get('newer_generation_analogue'):sentences.append('The auction estimate assumes an unobserved newer-generation analogue.')
+    for side in valuation.get('unavailable_markets',[]):sentences.append(f'The {side} estimate is unavailable; no price is invented.')
+    sentences.append('The market source is '+str(valuation.get('market_source'))+', observed through '+str(valuation.get('latest_observed_month'))+'.')
+    sentences.append('Asking and auction prices have different economic targets; their difference is not dealer profit. Date-adjusted estimates extrapolate historical data and are not verified current sales. No validated individual prediction interval is available.')
+    if seller:sentences.append('The seller says, without independent verification: '+seller)
+    return '\n'.join(sentences)
+
+
 def render_story(fields,description,valuation=None):
     import streamlit as st
     # Define lazily: unit tests can import orchestration without loading Streamlit/torch.
     @st.cache_resource(show_spinner=False)
     def get_engine(model_id,revision):
         return SummaryEngine()
-    story=build_story(fields,description)
-    if valuation:
-        import json
-        story += '\nValuation report (model estimates, not verified sales):\n'+json.dumps(valuation,ensure_ascii=False,default=str)
-        story += '\nAsking means a seller advertised price; auction means a wholesale sale estimate. Their difference is not dealer profit. Current-date estimates extrapolate historical data and are not validated current transactions. Seller statements remain unverified.'
+    story=build_valuation_story(fields,description,valuation)
     fingerprint=hashlib.sha256(str((MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story)).encode()).hexdigest()
     st.markdown('#### 📖 Your car & price story · BART summary' if valuation else '#### 📖 The car’s story · AI summary')
     saved=st.session_state.get('_bart_summary',{})
