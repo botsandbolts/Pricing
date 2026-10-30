@@ -46,6 +46,7 @@ function installPricingInteractions() {
   actions.set('Fit and evaluate hierarchical correction',['hierarchical_action','fit_requested']);
   actions.set('Compare hierarchical estimate',['hierarchical_action','compare_requested']);
   actions.set('Download residual-data template',['download_requested','hierarchical_template']);
+  actions.set('Download CatBoost residuals',['download_requested','catboost_residuals']);
   actions.set('Download hierarchical experiment',['download_requested','hierarchical_report']);
   const settings = new Map([
     ['Pricing model','pricing_model'],['Asking model','asking_model'],['Bid / auction model','bid_model'],

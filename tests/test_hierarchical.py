@@ -88,3 +88,17 @@ def test_consented_audit_deduplicates_and_expiry_respects_foreign_keys():
     store.execute('UPDATE hierarchical_estimations SET timestamp=?',[old]);store.purge()
     assert store.execute('SELECT count(*) FROM hierarchical_estimations').fetchone()[0]==0
     assert store.execute('SELECT count(*) FROM visitors').fetchone()[0]==0
+
+
+@pytest.mark.parametrize('side',['ask','bid'])
+def test_catboost_residual_generator_excludes_heldout_labels(side):
+    from pricing.catboost_residuals import generate
+    d=fixture();d['odometer']=50000
+    first,meta=generate(d,side,iterations=8)
+    second=d.copy();second.loc[second.split=='test','observed_price']*=2
+    other,_=generate(second,side,iterations=8)
+    np.testing.assert_allclose(first.base_price,other.base_price)
+    assert first.loc[first.split=='calibration','base_fold'].nunique()==3
+    assert first.loc[first.split!='calibration','prediction_kind'].eq('heldout').all()
+    np.testing.assert_allclose(first.signed_residual_log,np.log(first.observed_price/first.base_price))
+    assert meta['text_branch'] is False

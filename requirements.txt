@@ -64,3 +64,4 @@ qrcode>=8,<9
 # Refresh nested-tab visibility guard for GA attribution.
 
 # Deploy hierarchical residual laboratory and private Turso estimation table.
+# Hierarchical panel: automatic group-held-out CatBoost residual generation and polished UX.

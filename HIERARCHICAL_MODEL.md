@@ -31,3 +31,9 @@ Rows expire after 90 days in existing visit/daily retention jobs. Visitor deleti
 ## GUI and analytics
 
 An explanation, readiness status and template precede the experiment upload. Results show paired evaluation before the per-car comparison, support counts and additive log corrections. There is no claimed current-price accuracy. GA uses `panel_name=hierarchical_model`, bounded `hierarchical_action` and download events. Uploaded fields are never forwarded to GA.
+
+## Automatic CatBoost residual generation
+
+The workbench accepts raw observation columns `row_id,vehicle_group,split,manufacturer,model,age,odometer,observed_price,price_basis`. It generates three-fold group-held-out calibration predictions and validation/test predictions from a calibration-only CatBoost fit. Ask uses normal AFT with exact positive price bounds; bid uses quantile 0.5 on natural log prices. Fixed parameters: 250 rounds, depth 6, learning rate .05, L2 10, seed 42, two CPU threads. No early stopping or test-driven selection. All supplied rows are kept. Signed dollar and log residuals are downloadable.
+
+This is an explicitly separate tabular assessment pilot, not a claimed evaluation of existing all-phase deployment weights. It excludes MiniLM: genuine end-to-end OOF for the text branch would require nested encoder/head refitting inside each base fold. The existing-residual route can accept properly nested text/base predictions when available. No source training cohorts are bundled in the web deployment. CPU pilot limit is 10,000 uploaded rows. The same helper is available offline: `python -m scripts.generate_hierarchical_residuals --observations cars.csv --side bid --output models/hierarchical/bid`.
