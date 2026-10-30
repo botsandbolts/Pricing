@@ -58,3 +58,4 @@ qrcode>=8,<9
 # Restart serving process for automatic month-end Holt valuation controls.
 
 # Refresh consented GA v4 panel and action instrumentation.
+# Refresh Streamlit expander label handling verified in the live DOM.

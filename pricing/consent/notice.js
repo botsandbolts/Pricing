@@ -127,7 +127,7 @@ function installPricingInteractions() {
     if(current && !state.allowed) {state.allowed=true;state.since=performance.now();state.suppress=true;selectedPanels();state.suppress=false;pageView();}
     if(!current) {state.allowed=false;state.seen.clear();state.since=performance.now();}
   }
-  const label = node => (node?.getAttribute?.('aria-label') || node?.textContent || '').trim().replace(/\s+/g,' ');
+  const label = node => (node?.getAttribute?.('aria-label') || node?.querySelector?.('[data-testid="stMarkdownContainer"]')?.textContent || node?.textContent || '').trim().replace(/\s+/g,' ');
   const visible = node => !!node?.getClientRects?.().length;
   function selectedPanels() {
     const tabs=[...document.querySelectorAll('[role="tab"][aria-selected="true"]')].filter(visible);
@@ -145,7 +145,7 @@ function installPricingInteractions() {
     }
     let holder=node;
     for(let i=0;i<8 && holder;i++,holder=holder.parentElement) {
-      text=holder.querySelector?.('label,[data-testid="stWidgetLabel"]')?.textContent?.trim();
+      text=label(holder.querySelector?.('label,[data-testid="stWidgetLabel"]'));
       if(settings.has(text))return settings.get(text);
     }
     return null;

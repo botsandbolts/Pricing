@@ -57,3 +57,8 @@ assert.equal(events.at(-1)[1],'section_toggled');assert.equal(events.at(-1)[2].a
 assert.equal(events.at(-1)[2].expanded,'true');
 assert(!JSON.stringify(events).includes('555-1234'));
 console.log('All eight tabs, virtual page views, keyboard navigation, named controls and sections passed');
+
+// Streamlit summaries prepend a material icon to textContent.
+const iconSummary={...section,textContent:'keyboard_arrow_downExact survivor counts · no disappearing-car magic',querySelector:()=>({textContent:'Exact survivor counts · no disappearing-car magic'})};
+handlers.click[0]({composedPath:()=>[iconSummary]});
+assert.equal(events.at(-1)[2].action_name,'survivor_counts');
