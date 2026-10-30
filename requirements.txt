@@ -48,3 +48,6 @@ qrcode>=8,<9
 # Valuation BART overview: numeric-token guard refresh.
 
 # Full-page BART briefing and five-stage CatBoost release: refresh imported UI modules.
+
+# Pegasus CNN/DailyMail tokenizer and clean summary-engine restart.
+sentencepiece>=0.2,<0.3
