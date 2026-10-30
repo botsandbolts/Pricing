@@ -102,6 +102,6 @@ def render(root):
         st.bar_chart(pd.DataFrame({'Log-price correction':[row.global_effect,row.make_effect,row.model_effect,row.age_effect]},index=['Market','Make','Model','Age']))
         st.write(f"Make support: {int(row.make_n):,} calibration rows · model support: {int(row.model_n):,} · model pooling weight: {row.model_weight:.1%}.")
         st.caption(f'Approximate correction standard error: {row.correction_sd_log:.4f} log units. It excludes base-model error, hyperparameter uncertainty and market-date uncertainty.')
-    st.download_button('Download CatBoost residuals',st.session_state.get('hierarchy_residual_export',''),'catboost-residuals.csv','text/csv',key='hierarchy_residual_export')
+    st.download_button('Download CatBoost residuals',st.session_state.get('hierarchy_residual_export',''),'catboost-residuals.csv','text/csv',key='hierarchy_residual_download')
     st.download_button('Download hierarchical experiment',json.dumps({'model':bundle,'evaluation':report},indent=2),'hierarchical-experiment.json','application/json',key='hierarchy_export')
     st.caption('Uploaded rows stay in this Streamlit session; they are not added to the training repository. Only explicitly requested, consented comparison summaries are saved privately to Turso, with 90-day retention. GA receives bounded panel/action names, never the uploaded rows or model labels.')
