@@ -74,3 +74,21 @@ credentials or Measurement Protocol secret are embedded in the repository.
 GA itself can collect standard automatic/enhanced events according to property
 settings; this document describes the additional explicit app events. Review
 Enhanced Measurement settings separately if enabling outbound URL/form tracking.
+
+
+## 30 October 2026 correction (tracking v4)
+
+All eight main panels now map to stable names, including `outlier_lab`. Each actual main/nested tab transition emits `panel_view` plus a virtual GA `page_view`: title `Car Price Studio | evaluation | none`, location `/panels/evaluation`. These are analytics-only paths, not real app routes. This makes panels visible in Pages and screens and page paths without first creating custom definitions. The initial generic site page view is still recorded once. Re-clicking the current tab and Streamlit rerenders do not count as navigation. Mouse, touch click activation, keyboard and selected-tab mutations are supported.
+
+Named expanders emit `section_toggled` with bounded `action_name` and string `expanded=true/false`; this records toggle intent, not reading. New phrase-driver, outlier-download, date-clock, generation-analogue, radio and sharing controls are mapped. Change events contain only the field category, never entered text or option text. Duplicate click/change callbacks within 500 ms are suppressed. Unknown labels are ignored rather than uploaded.
+
+Visible-panel engagement also sets GA's `engagement_time_msec`. The last queued safe event is available on the app document's `data-pricing-ga-last-event` attribute for DOM testing. This is a browser queue diagnostic, not proof of Google's receipt. No raw input is put in that attribute. The tag status displays tracking v4 after the Google script loads.
+
+### Where the owner sees this
+
+- Reports → Engagement → Pages and screens: choose Page title and screen class or Page path and screen class. Look for `Car Price Studio | …` or `/panels/…`.
+- Reports → Realtime: event names and incoming event parameters.
+- Admin → Custom definitions: Event-scoped `panel_name`, `subpanel_name`, `action_name`, `market_side`, `feature_name`, `model_family`, `expanded`, `tracking_version`. Create only missing definitions. Optional custom metric `duration_seconds`, unit seconds.
+- Explore → Free form: rows `panel_name`, `subpanel_name`, `action_name`, Event name; values Event count and Total users. Filter `section_toggled` / `expanded=true` for opens. Use `estimate_requested` vs `estimate_completed` for start/success, not generic clicks alone.
+
+Custom definitions require access to the GA property and were not registered by this code deployment. Previously missed activity cannot be recovered. Consented and unblocked visitors only; GA is not a recording of every person's session. A loaded tag or queued event does not certify ingestion or report availability.

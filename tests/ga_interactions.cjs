@@ -13,8 +13,9 @@ click('Estimate asking price');assert.equal(events.length,0);
 ctx.window.__pricingGoogleAnalytics={allowed:true,featureConsent:true,id:'G-TEST'};t.consentChanged();
 assert.equal(events[0][1],'panel_view');
 now=5000;click('📊 Evaluation');assert.equal(t.state.panel,'evaluation');
-assert.equal(events[1][1],'panel_engagement');assert.equal(events[1][2].duration_seconds,5);
-click('PRIVATE SELLER TEXT 555-1234');assert.equal(events.length,3);
+const dwell=events.find(x=>x[1]==='panel_engagement');assert(dwell);assert.equal(dwell[2].duration_seconds,5);
+assert.equal(events.at(-1)[1],'page_view');assert.match(events.at(-1)[2].page_location,/panels\/evaluation$/);
+click('PRIVATE SELLER TEXT 555-1234');assert.equal(events.length,5);
 click('Build all explanation graphs');assert.equal(events.at(-1)[1],'explanation_requested');
 click('LinkedIn');assert.equal(events.at(-1)[2].method,'LinkedIn');
 const before=events.length;vm.runInContext('installPricingInteractions()',ctx);
@@ -31,3 +32,28 @@ vm.runInContext('deliverComponent(component)',ctx);assert(!events.some(x=>x[1]==
 t.state.panel='calculator';vm.runInContext('deliverComponent(component)',ctx);vm.runInContext('deliverComponent(component)',ctx);
 assert.equal(events.filter(x=>x[1]==='estimate_completed').length,1);
 console.log('GA interaction consent, navigation, dwell, privacy, hidden panels and deduplication checks passed');
+
+// Every main panel is bounded, including Outlier lab. Repeated clicks are not views.
+click('📊 Evaluation');
+for(const name of ['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab']) {
+ click(name);const count=events.length;click(name);assert.equal(events.length,count);
+ assert.equal(events.at(-1)[1],'page_view');
+ assert.match(events.at(-1)[2].page_location,/\/panels\/[a-z_]+$/);
+}
+click('🔎 Reveal my advert’s price drivers');assert.equal(events.at(-1)[2].action_name,'phrase_drivers');
+click('Download experiment evidence · JSON');assert.equal(events.at(-1)[2].action_name,'outlier_evidence');
+// Keyboard/programmatic tab changes are discovered from selected tabs too.
+selected=[node('📅 Value over time','tab')];
+handlers.visibilitychange[0]();assert.equal(t.state.panel,'value_over_time');
+// Labelled control changes record the category, never the entered value.
+const control={getAttribute:n=>n==='aria-label'?'Make':null,matches:()=>true,value:'PRIVATE PHONE 555-1234'};
+handlers.change[0]({composedPath:()=>[control]});
+assert.equal(events.at(-1)[1],'setting_changed');assert.equal(events.at(-1)[2].action_name,'vehicle_make');
+const changedCount=events.length;handlers.change[0]({composedPath:()=>[control]});assert.equal(events.length,changedCount);
+// Bounded expander identities distinguish sections and open/close intent.
+const section={textContent:'Valuation date & auction coverage',parentElement:{open:false},getAttribute:()=>null,matches:()=>true};
+handlers.click[0]({composedPath:()=>[section]});
+assert.equal(events.at(-1)[1],'section_toggled');assert.equal(events.at(-1)[2].action_name,'valuation_clock');
+assert.equal(events.at(-1)[2].expanded,'true');
+assert(!JSON.stringify(events).includes('555-1234'));
+console.log('All eight tabs, virtual page views, keyboard navigation, named controls and sections passed');

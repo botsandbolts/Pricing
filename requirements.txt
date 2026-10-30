@@ -56,3 +56,5 @@ qrcode>=8,<9
 # Install verified five-stage defaults and refresh shared serving/UI routes.
 
 # Restart serving process for automatic month-end Holt valuation controls.
+
+# Refresh consented GA v4 panel and action instrumentation.

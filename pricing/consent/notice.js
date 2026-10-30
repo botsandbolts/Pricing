@@ -4,7 +4,7 @@ function installPricingInteractions() {
   const panels = new Map([
     ['🚗 Price my car','calculator'],['↔ Two-market garage','two_market'],
     ['📅 Value over time','value_over_time'],['🧠 The science','science'],
-    ['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
+    ['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
   ]);
   const subpanels = new Map([
     ['📸 Import advert','import_advert'],['🕵️ Price verdict','price_verdict'],
@@ -54,46 +54,121 @@ function installPricingInteractions() {
     ['Body type','body_type'],['Condition','condition'],['Fuel','fuel'],['Transmission','transmission'],
     ['Drive','drive'],['Title status','title_status'],['Cylinders','cylinders'],['Paint color','paint_colour']
   ]);
+  const sections = new Map([
+    ['Valuation date & auction coverage','valuation_clock'],
+    ['Fine-tune the details · condition, engine & more','vehicle_details'],
+    ['What did the description contribute?','text_price_feature'],
+    ['Historical base-model diagnostics · May 2021, before time adjustment','historical_diagnostics'],
+    ['How did we get from then to now? · evidence & backtests','time_evidence'],
+    ['Time model · evidence, decomposition & limitations','time_evidence'],
+    ['Datasets & provenance','datasets'],['Active model · technical receipt','active_model'],
+    ['What changes in the formula? · plain English + technical recipe','training_recipe'],
+    ['What changes in the formula? · plain English + technical receipt','training_recipe'],
+    ['Reference cars and calculation settings','reference_settings'],
+    ['Read every phrase and its signed dollar effect','phrase_effects'],
+    ['Exact survivor counts · no disappearing-car magic','survivor_counts'],
+    ['Try the residual ruler · an illustration, not a trained prediction','residual_ruler'],
+    ['How this differs from the earlier cleaning methods','cleaning_comparison'],
+    ['Technical receipt · cross-fitting, losses and the test-set catch','cleaning_technical'],
+    ['Installed model properties · exact settings & features','model_properties'],
+    ['Evidence provenance and limitations','evidence_provenance'],
+    ['Ownership budget · editable assumptions, not a model forecast','ownership_budget'],
+    ['Preview exactly what goes in the public link','share_preview'],
+    ['Full supplied story · model & limitations','bart_source_story']
+  ]);
+  actions.set('🔎 Reveal my advert’s price drivers',['explanation_requested','phrase_drivers']);
+  actions.set('Download experiment evidence · JSON',['download_requested','outlier_evidence']);
+  for(const [name,id] of [['Download plot as a PNG','chart_download'],['Zoom','chart_zoom'],['Pan','chart_pan'],['Zoom in','chart_zoom_in'],['Zoom out','chart_zoom_out'],['Autoscale','chart_autoscale'],['Reset axes','chart_reset'],['Fullscreen','chart_fullscreen']])actions.set(name,['chart_interaction',id]);
+  actions.set('Clear text and extracted details',['import_action','clear_draft']);
+  for (const [name,id] of [
+    ['Price date','valuation_clock_mode'],['Estimate for','valuation_date'],
+    ['Valuation clock','valuation_clock_mode'],['Mileage through time','mileage_scenario'],
+    ['Allow auction generation analogues for 2016–2021 cars','generation_analogue'],
+    ['Phrase analysis detail','phrase_detail'],['Show every phrase separately','all_phrases'],
+    ['Choose a market','outlier_market'],['Caption personality','share_tone'],
+    ['Card format','share_format'],['Actual auction grade','auction_grade'],
+    ['Miles','vehicle_mileage'],['State','vehicle_state'],['Body','body_type'],
+    ['Include these vehicle details in a public link','public_link_details']
+  ]) settings.set(name,id);
   const state = {panel:'calculator',subpanel:'none',since:performance.now(),active:!document.hidden,
-    allowed:false,seen:new Set(),lastChange:new Map()};
+    allowed:false,lastSetting:null,seen:new Set(),lastChange:new Map()};
   const allowed = () => window.__pricingGoogleAnalytics?.allowed === true && window.__pricingGoogleAnalytics?.featureConsent === true;
   function send(name, params={}) {
-    if (!allowed() || document.hidden || !window.gtag) return;
+    if (state.suppress || !allowed() || document.hidden || !window.gtag) return false;
     window.gtag('event',name,{send_to:window.__pricingGoogleAnalytics.id,
-      panel_name:state.panel,subpanel_name:state.subpanel,...params});
+      panel_name:state.panel,subpanel_name:state.subpanel,tracking_version:'2026_10_30_v4',...params});
+    if(document.documentElement)document.documentElement.setAttribute('data-pricing-ga-last-event',JSON.stringify({event:name,panel:state.panel,subpanel:state.subpanel,action:params.action_name||null,version:'v4'}));
+    const badge=document.querySelector?.('#google-status');
+    if(badge)badge.setAttribute('data-last-ga-event',JSON.stringify({event:name,panel:state.panel,action:params.action_name||null}));
+    return true;
   }
   function dwell() {
     if (state.active && state.allowed) {
       const seconds=Math.min(1800,Math.floor((performance.now()-state.since)/1000));
-      if(seconds>0) send('panel_engagement',{duration_seconds:seconds});
+      if(seconds>0) send('panel_engagement',{duration_seconds:seconds,engagement_time_msec:seconds*1000});
     }
     state.since=performance.now();
+  }
+  function pageView() {
+    send('panel_view');
+    send('page_view',{
+      page_title:'Car Price Studio | '+state.panel+' | '+state.subpanel,
+      page_location:'https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/panels/'+state.panel+(state.subpanel==='none'?'':'/'+state.subpanel),
+      page_referrer:''
+    });
   }
   function switchPanel(panel, subpanel='none') {
     if(panel===state.panel && subpanel===state.subpanel) return;
     dwell();state.panel=panel;state.subpanel=subpanel;
-    send('panel_view');
+    pageView();
   }
   function consentChanged() {
     const current=allowed();
-    if(current && !state.allowed) {state.allowed=true;state.since=performance.now();send('panel_view');}
+    if(current && !state.allowed) {state.allowed=true;state.since=performance.now();state.suppress=true;selectedPanels();state.suppress=false;pageView();}
     if(!current) {state.allowed=false;state.seen.clear();state.since=performance.now();}
   }
   const label = node => (node?.getAttribute?.('aria-label') || node?.textContent || '').trim().replace(/\s+/g,' ');
   const visible = node => !!node?.getClientRects?.().length;
   function selectedPanels() {
-    for(const tab of document.querySelectorAll('[role="tab"][aria-selected="true"]')) {
-      if(visible(tab) && panels.has(label(tab))) {
-        const p=panels.get(label(tab));
-        if(p!==state.panel) switchPanel(p);
-      }
-    }
+    const tabs=[...document.querySelectorAll('[role="tab"][aria-selected="true"]')].filter(visible);
+    const main=tabs.find(tab=>panels.has(label(tab)));
+    const nested=tabs.find(tab=>subpanels.has(label(tab)));
+    switchPanel(main?panels.get(label(main)):state.panel,nested?subpanels.get(label(nested)):'none');
   }
+  function setting(node) {
+    let text=node?.getAttribute?.('aria-label') || '';
+    if(settings.has(text))return settings.get(text);
+    const ids=(node?.getAttribute?.('aria-labelledby')||'').split(/\s+/);
+    for(const id of ids) {
+      text=document.getElementById?.(id)?.textContent?.trim();
+      if(settings.has(text))return settings.get(text);
+    }
+    let holder=node;
+    for(let i=0;i<8 && holder;i++,holder=holder.parentElement) {
+      text=holder.querySelector?.('label,[data-testid="stWidgetLabel"]')?.textContent?.trim();
+      if(settings.has(text))return settings.get(text);
+    }
+    return null;
+  }
+  function changed(action_name) {
+    if(!action_name)return;
+    const now=performance.now();
+    if(now-(state.lastChange.get(action_name)??-Infinity)<500)return;
+    state.lastChange.set(action_name,now);send('setting_changed',{action_name});
+  }
+  document.addEventListener('focusin',event=>{
+    state.lastSetting=setting(event.composedPath()[0]);
+  },true);
   document.addEventListener('click',event=>{
     const node=event.composedPath().find(n=>n?.matches?.('button,[role="tab"],[role="option"],summary,a'));
-    if(!node || !allowed()) return;
+    if(!allowed())return;
+    const control=event.composedPath().find(n=>n?.matches?.('input,[role="radio"],[role="switch"],[role="slider"]'));
+    if(control && control.getAttribute('type')!=='text')changed(setting(control));
+    if(!node)return;
+    if(node.disabled || node.getAttribute('aria-disabled')==='true')return;
     const text=label(node);
     if(node.getAttribute('role')==='option') {
+      changed(state.lastSetting);
       const family=text.includes('CatBoost')?'catboost':text.includes('LightGBM')?'lightgbm':text.includes('XGBoost')?'xgboost':text.includes('ensemble')?'ensemble':null;
       if(family)send('model_selected',{model_family:family});
       return;
@@ -105,21 +180,16 @@ function installPricingInteractions() {
     const method=networks.find(n=>text===n || text===`Share comparison on ${n}`);
     if(method) {send('share',{method,content_type:'valuation'});return;}
     // Expanders are counted by a bounded section identifier, never their text.
-    if(node.matches('summary') || node.getAttribute('data-testid')==='stExpanderToggleIcon')
-      send('explanation_opened',{action_name:'expand_section'});
+    if(node.matches('summary')) {
+      const action_name=sections.get(text);
+      if(action_name)send('section_toggled',{action_name,expanded:node.parentElement?.open?'false':'true'});
+    }
   },true);
   document.addEventListener('change',event=>{
     if(!allowed())return;
     const node=event.composedPath().find(n=>n?.matches?.('input,select,textarea,[role="combobox"],[role="slider"]'));
     if(!node)return;
-    let text=node.getAttribute('aria-label') || '';
-    if(!settings.has(text)) {
-      const holder=node.closest('[data-testid]');
-      text=holder?.querySelector('label')?.textContent?.trim() || text;
-    }
-    const action_name=settings.get(text);if(!action_name)return;
-    const now=performance.now();if(now-(state.lastChange.get(action_name)||-Infinity)<500)return;
-    state.lastChange.set(action_name,now);send('setting_changed',{action_name});
+    changed(setting(node));
   },true);
   document.addEventListener('visibilitychange',()=>{
     // Flush while leaving a visible page; gtag uses its normal transport.
@@ -128,7 +198,7 @@ function installPricingInteractions() {
         const seconds=Math.min(1800,Math.floor((performance.now()-state.since)/1000));
         if(seconds>0 && allowed())window.gtag('event','panel_engagement',{
           send_to:window.__pricingGoogleAnalytics.id,panel_name:state.panel,
-          subpanel_name:state.subpanel,duration_seconds:seconds});
+          subpanel_name:state.subpanel,duration_seconds:seconds,engagement_time_msec:seconds*1000});
       }
       state.active=false;
     } else {state.active=true;state.since=performance.now();selectedPanels();}
@@ -202,10 +272,11 @@ function pricingGoogleAnalytics(data, allowed, root) {
       page_location:'https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/',
       page_referrer:'',page_title:'Car Price Studio | US used cars'});
   }
+  state.trackingVersion = '2026_10_30_v4';
   state.featureConsent = data.version === '2026-10-29-v3';
   interactions.consentChanged();
   status.textContent = state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
-    : state.loaded ? 'Google Analytics: tag loaded after acceptance.'
+    : state.loaded ? 'Google Analytics: tag loaded after acceptance · panel/action tracking v4.'
     : 'Google Analytics: requested after acceptance; delivery is not yet confirmed.';
 }
 

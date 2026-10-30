@@ -15,8 +15,8 @@ export default function(component) {
       if(feature!==tracker.state.panel)continue;
       // Do not lose a completion just because its panel was hidden at delivery time.
       if(document.hidden)continue;
-      tracker.send('estimate_completed',{market_side:side,feature_name:feature});
-      tracker.state.seen.add(event.id);
+      if(tracker.send('estimate_completed',{market_side:side,feature_name:feature})!==false)
+        tracker.state.seen.add(event.id);
     }
     if(tracker.state.seen.size>2000)tracker.state.seen.clear();
   };
