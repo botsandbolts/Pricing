@@ -66,3 +66,7 @@ assert.equal(events.at(-1)[2].action_name,'survivor_counts');
 const radio={getAttribute:()=>null,matches:()=>true,parentElement:{getAttribute:n=>n==='aria-label'?'Choose a market':null}};
 now+=1000;handlers.change[0]({composedPath:()=>[radio]});
 assert.equal(events.at(-1)[2].action_name,'outlier_market');
+
+// Default subtabs inside a collapsed expander must not steal panel attribution.
+selected=[node('🚗 Price my car','tab'),{...node('Explain it like I buy cars','tab'),closest:()=>({})}];
+handlers.visibilitychange[0]();assert.equal(t.state.panel,'calculator');assert.equal(t.state.subpanel,'none');

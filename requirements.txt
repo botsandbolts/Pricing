@@ -61,3 +61,4 @@ qrcode>=8,<9
 # Refresh Streamlit expander label handling verified in the live DOM.
 # Refresh ARIA radio-group context for control analytics.
 # Refresh label-activated radio and dropdown events.
+# Refresh nested-tab visibility guard for GA attribution.

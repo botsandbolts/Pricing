@@ -128,7 +128,9 @@ function installPricingInteractions() {
     if(!current) {state.allowed=false;state.seen.clear();state.since=performance.now();}
   }
   const label = node => (node?.getAttribute?.('aria-label') || node?.querySelector?.('[data-testid="stMarkdownContainer"]')?.textContent || node?.textContent || '').trim().replace(/\s+/g,' ');
-  const visible = node => !!node?.getClientRects?.().length;
+  const visible = node => !!node?.getClientRects?.().length
+    && !node.closest?.('details:not([open]),[hidden],[aria-hidden="true"]')
+    && (typeof node.checkVisibility!=='function' || node.checkVisibility({checkVisibilityCSS:true}));
   function selectedPanels() {
     const tabs=[...document.querySelectorAll('[role="tab"][aria-selected="true"]')].filter(visible);
     const main=tabs.find(tab=>panels.has(label(tab)));
