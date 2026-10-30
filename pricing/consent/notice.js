@@ -159,12 +159,13 @@ function installPricingInteractions() {
     state.lastChange.set(action_name,now);send('setting_changed',{action_name});
   }
   document.addEventListener('focusin',event=>{
-    state.lastSetting=setting(event.composedPath()[0]);
+    const category=setting(event.composedPath()[0]);
+    if(category)state.lastSetting=category;
   },true);
   document.addEventListener('click',event=>{
     const node=event.composedPath().find(n=>n?.matches?.('button,[role="tab"],[role="option"],summary,a'));
     if(!allowed())return;
-    const control=event.composedPath().find(n=>n?.matches?.('input,[role="radio"],[role="switch"],[role="slider"]'));
+    const control=event.composedPath().find(n=>n?.matches?.('input,label,[role="radio"],[role="switch"],[role="slider"]'));
     if(control && control.getAttribute('type')!=='text')changed(setting(control));
     if(!node)return;
     if(node.disabled || node.getAttribute('aria-disabled')==='true')return;

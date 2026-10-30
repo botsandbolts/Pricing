@@ -60,3 +60,4 @@ qrcode>=8,<9
 # Refresh consented GA v4 panel and action instrumentation.
 # Refresh Streamlit expander label handling verified in the live DOM.
 # Refresh ARIA radio-group context for control analytics.
+# Refresh label-activated radio and dropdown events.
