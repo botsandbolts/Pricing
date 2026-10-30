@@ -52,20 +52,29 @@ class DateAdjustedAsking:
         return self.adjust(self.base.predict(text, fields, explain=explain), fields)
 
 
+def month_end(day=None):
+    """Calendar month end; no frozen October date after the calendar advances."""
+    import calendar
+    day = day or today()
+    return day.replace(day=calendar.monthrange(day.year, day.month)[1])
+
+
 def clock_controls(prefix='main'):
     """Today follows Berlin's calendar on every app rerun, never a frozen widget."""
     day = today()
     with st.expander('Valuation date & auction coverage', expanded=False):
-        mode = st.radio('Price date', ['Today · follows the calendar', 'Choose a date'],
-                        horizontal=True, key=prefix+'_clock_mode')
-        if mode.startswith('Today'):
+        mode = st.radio('Price date', ['End of this month · market nowcast', 'Today · follows the calendar', 'Choose a date'],
+                        horizontal=True, key=prefix+'_clock_mode_v2')
+        if mode.startswith('End of'):
+            selected = month_end(day)
+        elif mode.startswith('Today'):
             selected = day
         else:
             selected = st.date_input('Estimate for', day, key=prefix+'_clock_date')
         allow = st.checkbox('Allow auction generation analogues for 2016–2021 cars',
-            value=False, key=prefix+'_allow_analogue', help='Auction training ends at model year 2015. This optional assumption cannot recover the unobserved newer generation.')
+            value=True, key=prefix+'_allow_analogue_v2', help='Auction training ends at model year 2015. This optional assumption cannot recover the unobserved newer generation.')
     st.markdown(f'**Valuation date: {selected:%d %b %Y}** · '+
-                ('Today, automatically updated on refresh.' if selected == day else 'Selected-date estimate.'))
+                ('Month-end scenario, automatically updated each month.' if mode.startswith('End of') else 'Today, automatically updated on refresh.' if selected == day else 'Selected-date estimate.'))
     st.caption('Enter the mileage and condition at that date. Ageing and market movement are adjusted separately; no extra mileage is silently added.')
     return selected, allow
 
@@ -94,7 +103,7 @@ def render_adjustment(receipt):
     if not receipt['model_known_to_curve']:
         st.caption('Sparse or unseen trim: pooled make/body depreciation is used.')
     if receipt['generation_analogue']:
-        st.warning('Newer-generation auction analogue: this generation was not observed in auction training.')
+        st.warning('Auction analogue scenario · model year 2016–2021. The market index is adjusted to the displayed date, but this vehicle generation was not observed in auction training. Holt forecasts the market, not a new generation.')
 
 
 def adjustment_chart(receipts):

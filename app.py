@@ -217,7 +217,7 @@ with value:
                 except (ValueError,OSError,KeyError) as exc:
                     st.warning('Date-adjusted auction estimate unavailable: '+str(exc))
                     if saved[2].get('year',0)>2015 and not allow_newer_auction:
-                        st.caption('The optional newer-generation assumption is in “Valuation date & auction coverage” above. It is off by default because these generations were not observed.')
+                        st.caption('The optional newer-generation assumption is in “Valuation date & auction coverage” above. You have disabled it; enable it for an explicitly labelled newer-generation scenario.')
             st.info('Same valuation date, different markets. The gap is not dealer profit or a promised discount.')
             if dated_result:
                 from pricing.deal_detective import open_share

@@ -118,8 +118,9 @@ def render_calculator(root,key_prefix='robust_pair'):
         make=b.text_input('Make','Toyota',key=key_prefix+'_make');name=c.text_input('Model / trim','Corolla',key=key_prefix+'_model')
         miles=a.number_input('Miles',0,2000000,95000,key=key_prefix+'_miles');body=b.selectbox('Body',['sedan','suv','truck','coupe','wagon','van','hatchback','convertible'],key=key_prefix+'_body');state=c.text_input('State','ca',key=key_prefix+'_state')
         from marketbridge.time_engine import today
-        transmission=a.selectbox('Transmission',['automatic','manual','unknown'],key=key_prefix+'_transmission');fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','unknown'],key=key_prefix+'_fuel');date=c.date_input('Valuation date',today(),key=key_prefix+'_date')
-        allow=st.checkbox('Allow auction generation analogues for 2016–2021 cars',value=False,key=key_prefix+'_analogue')
+        transmission=a.selectbox('Transmission',['automatic','manual','unknown'],key=key_prefix+'_transmission');fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','unknown'],key=key_prefix+'_fuel');from pricing.current_value import month_end
+        date=c.date_input('Valuation date · month end by default',month_end(),key=key_prefix+'_date')
+        allow=st.checkbox('Allow auction generation analogues for 2016–2021 cars',value=True,key=key_prefix+'_analogue_v2')
         grade=a.selectbox('Actual auction grade',[None,1.,2.,3.,4.,5.],format_func=lambda g:'Unknown' if g is None else str(g),key=key_prefix+'_grade')
         description=st.text_area('Seller description · MiniLM asking-price signal',max_chars=8000,key=key_prefix+'_description')
         submit=st.form_submit_button('Price it in both markets')
@@ -133,6 +134,7 @@ def render_calculator(root,key_prefix='robust_pair'):
             try:
                 receipt=transport.estimate(model,description,raw.iloc[0].to_dict(),date,side,allow,as_of=today())
                 value=receipt['price']
+                if receipt['generation_analogue']:render_adjustment(receipt)
             except ValueError as exc:
                 st.warning(side.upper()+' estimate unavailable: '+str(exc));continue
             rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'CatBoost log-median 0.5' if record['pipeline']=='catboost-log-quantile' else 'Tabular CatBoost AFT'})

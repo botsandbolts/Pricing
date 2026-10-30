@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 from marketbridge.market_clock import MarketClock
 from marketbridge.time_engine import TimeTransport,today
-from pricing.current_value import live_index
+from pricing.current_value import live_index, clock_controls
 
 
 @st.cache_resource
@@ -22,9 +22,7 @@ def render_time_studio(root,saved,ask_pipeline):
         from pricing.price_meaning import render_market_guide,render_market_price
         render_market_guide()
         st.caption('Experimental present-date estimates. Historical accuracy scores do not validate these transported prices.')
-        mode=st.radio('Valuation clock',['Today · follows the calendar','Choose a date'],horizontal=True,key='time_clock_mode')
-        date=today() if mode.startswith('Today') else st.date_input('Valuation date',today(),key='time_valuation_date')
-        allow=st.checkbox('Allow generation analogues for 2016–2021 auction cars',value=False,key='time_allow_analogue',help='Auction training contains model years through 2015. This is an explicit unsupported-generation assumption; never a measured bid for the newer generation.')
+        date,allow=clock_controls('time')
         if not saved:
             st.info('Estimate a car first. Then compare today’s Ask and Bid, and draw its value through time.');return
         _,result,car,text=saved

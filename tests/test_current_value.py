@@ -94,6 +94,9 @@ day,allow=clock_controls('fixture')
 st.text(str(day))
 ''').run()
     assert not app.exception
+    assert app.text[0].value == '2026-10-31'
+    assert app.checkbox[0].value is True
+    app.radio[0].set_value('Today · follows the calendar').run()
     assert app.text[0].value == '2026-10-30'
     monkeypatch.setattr(current,'today',lambda:date(2026,10,31))
     app.run()
@@ -111,3 +114,19 @@ def test_current_share_caption_and_card_carry_the_actual_date():
     assert '2026-10-30' in text and 'date-adjusted' in text and 'May 2021' not in text
     png = card_png(CAR,15000,APP_URL,reference_date='2026-10-30',time_adjusted=True)
     assert Image.open(io.BytesIO(png)).size == (1200,630)
+
+
+def test_month_end_calendar_and_october_nowcast():
+    from pricing.current_value import month_end
+    assert month_end(date(2026,10,30)) == date(2026,10,31)
+    assert month_end(date(2028,2,4)) == date(2028,2,29)
+    t=TimeTransport(ROOT)
+    class Bid:
+        manifest={'feature_names':[]}
+        def predict(self,text,fields):return {'price':20000.}
+    r=t.estimate(Bid(),'',{**CAR,'year':2018},'2026-10-31','bid',True,as_of='2026-10-30')
+    assert r['date']=='2026-10-31' and r['price']>0
+    assert r['generation_analogue'] is True
+    assert r['market']['month']=='2026-10'
+    assert r['market']['method']=='damped_holt'
+    assert r['market']['kind']=='forecast_monthly_index'
