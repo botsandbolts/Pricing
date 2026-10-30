@@ -35,3 +35,5 @@ qrcode>=8,<9
 # GA4 feature analytics v3: reload consent policy and server completion hooks.
 
 # BART-base-CNN story summaries; rebuild to release the prior summary model.
+
+# Price-target UX: clean restart to refresh all imported asking/auction UI modules.
