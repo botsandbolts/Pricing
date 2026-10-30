@@ -52,7 +52,7 @@ def render_visual_explanations(result,fields,notes,pipeline):
     a=saved['payload'];local=a['local'];native=a['native']
     st.caption(f"{len(a['reference'])} reference cars · member {member+1} · native plot units: {a['unit']}. Reference choice changes the question being explained.")
     if a['conditional_text']:
-        st.info('The submitted MiniLM description-price signal is held fixed across reference and scenario cars. The dollar graph explains structured fields conditional on that description. Native plots can attribute the scalar signal, but none of these charts explain individual words.')
+        st.info('The submitted MiniLM description-price signal is held fixed across reference and scenario cars. These graphs explain vehicle facts and the scalar text signal. The separate “Which words moved my estimate?” panel above reruns the complete asking model with phrase combinations; these graphs do not explain words.')
     waterfall,swarm,effects,compare,heat,technical=st.tabs(['Why this price?','Across reference cars','Feature effects','Compare cars','Year × mileage','Technical receipt'])
     with waterfall:
         st.write('Start at the average prediction for eight reference cars. Each step allocates credit to a group of car facts until we reach your estimate. Red raises it; blue lowers it. Your paintwork has a vote, not a casting vote.')

@@ -27,7 +27,7 @@ def render_explanation(p,fields,notes,pipeline):
         unit='log(price)' if aft else 'log(1 + price)' if e['target']=='log1p' else 'dollars'
         st.caption(f'Right of zero raises the fitted score; left lowers it. Bar units: {unit}. Zero means no allocated contribution for this prediction.')
         if e['target'] in ['log1p','log']:st.info('The model works on a log-price scale. The bars add on that scale; they are not separate dollar discounts. Mileage and model year often share information, so their credit can move between them.')
-        st.write('**The description branch:** '+('MiniLM reads your notes and produces one text-price signal. The tree model explains that signal as a single feature; this chart does not explain individual words.' if p.get('predicted_text_price') is not None else 'This baseline uses structured fields only. Your prose cannot sweet-talk it into a higher price.'))
+        st.write('**The description branch:** '+('MiniLM reads your notes and produces one text-price signal. This tree chart explains that signal as a single feature. Open “Which words moved my estimate?” above for a separate direct phrase analysis of the complete asking model.' if p.get('predicted_text_price') is not None else 'This baseline uses structured fields only. Your prose cannot sweet-talk it into a higher price.'))
         if p.get('range') is not None:
             st.write('**The error band:** a historical error guide, not an 80% guarantee for this particular car. Rust is still allowed to surprise us.')
         else:

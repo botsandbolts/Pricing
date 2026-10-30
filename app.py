@@ -189,6 +189,8 @@ with value:
         else:
             st.markdown('<div class="garage-science-note"><strong>Curious what moves the price?</strong><br>After estimating, explore feature contributions, mileage scenarios and all six explanation graphs below.</div>',unsafe_allow_html=True)
     if saved and saved[0]==str(path):
+        from pricing.text_attribution_ui import render_text_attribution
+        render_text_attribution(saved[1],saved[2],saved[3],get_pipeline(str(path)))
         st.divider()
         section('The receipts / Explainable machine learning','Pop the bonnet. Question everything.')
         st.caption('Your estimate, explained. Contributions describe the model—not causal effects or guaranteed dollar discounts.')
