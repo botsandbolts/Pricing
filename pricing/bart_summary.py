@@ -65,15 +65,19 @@ def summarize_story(story,engine):
             'status':'review_required' if unexpected else 'ready'}
 
 
-def render_story(fields,description):
+def render_story(fields,description,valuation=None):
     import streamlit as st
     # Define lazily: unit tests can import orchestration without loading Streamlit/torch.
     @st.cache_resource(show_spinner=False)
     def get_engine(model_id,revision):
         return SummaryEngine()
     story=build_story(fields,description)
+    if valuation:
+        import json
+        story += '\nValuation report (model estimates, not verified sales):\n'+json.dumps(valuation,ensure_ascii=False,default=str)
+        story += '\nAsking means a seller advertised price; auction means a wholesale sale estimate. Their difference is not dealer profit. Current-date estimates extrapolate historical data and are not validated current transactions. Seller statements remain unverified.'
     fingerprint=hashlib.sha256(str((MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story)).encode()).hexdigest()
-    st.markdown('#### 📖 The car’s story · AI summary')
+    st.markdown('#### 📖 Your car & price story · BART summary' if valuation else '#### 📖 The car’s story · AI summary')
     saved=st.session_state.get('_bart_summary',{})
     if saved.get('fingerprint')!=fingerprint:
         try:
