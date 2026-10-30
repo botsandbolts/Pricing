@@ -44,3 +44,5 @@ qrcode>=8,<9
 # Time evidence: separate asking and auction waterfalls with labelled dollar steps.
 
 # Full valuation BART prose: refresh cached summary module on deployment.
+
+# Valuation BART overview: numeric-token guard refresh.
