@@ -70,6 +70,7 @@ def render(root,key_prefix="suite"):
         bid_choice=c.selectbox('Bid / auction model',NAMES,index=NAMES.index('xgb_aft_normal'),format_func=LABELS.get,key=f'{key_prefix}_bid')
         submit=st.form_submit_button('Let the pricing committee argue')
     if submit:
+        from pricing.price_meaning import render_price_pair
         fields={'year':year,'manufacturer':make,'model':model,'odometer':miles,'type':body,'state':state,
             'transmission':transmission,'fuel':fuel,'as_of':str(date),'auction_condition':grade}
         raw=pd.DataFrame([fields]);results=[];text_price=None
@@ -89,7 +90,10 @@ def render(root,key_prefix="suite"):
             results.append({'Side':'Historical asking' if side=='ask' else 'Transported wholesale auction','Model':LABELS[choice],'Price USD':p})
             from pricing.analytics import record_price
             record_price(side,p,fields,LABELS[choice],key_prefix,str(date))
-        st.dataframe(pd.DataFrame(results),hide_index=True)
+        values={r['Side']:r['Price USD'] for r in results}
+        render_price_pair(values.get('Historical asking'),values.get('Transported wholesale auction'),str(date))
+        with st.expander('Historical benchmark model names and exact outputs'):
+            st.dataframe(pd.DataFrame(results),hide_index=True)
         st.caption('Asking prices describe the 2021 listing market. Auction prices are CPI- and age-transported historical wholesale estimates, not a promised bid or verified retail sale.')
     rows=[]
     for side in ['ask','bid']:
@@ -129,5 +133,6 @@ def render_bid_companion(root,fields):
     st.subheader('Cleanlab auction companion · May 2021')
     choice=st.selectbox('Auction pricing option',NAMES[:3],index=NAMES[:3].index('xgb_aft_normal'),format_func=LABELS.get,key='cleanlab_auction_companion')
     value=float(predict(models[choice],choice,encode(x,schema))[0]*ratios.iloc[0])
-    st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
+    from pricing.price_meaning import render_market_price
+    render_market_price('bid',value,'2021-05-01',adjusted=True)
     st.caption('Newly fitted after Cleanlab auditing. Age and lagged CPI transport a historical wholesale model; this is not a guaranteed bid or calibrated retail sale price. Auction descriptions are unavailable, so no text feature is invented.')

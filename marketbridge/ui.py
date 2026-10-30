@@ -16,11 +16,10 @@ def comparison(root):
     version=tuple((str(p.relative_to(root)),p.stat().st_mtime_ns,p.stat().st_size) for p in manifests)
     return _cached_comparison(str(root),version)
 
-def show_prices(result):
-    a,b=st.columns(2)
-    a.metric('Pricing · 2021 asking estimate',f"${result['asking_price_usd']:,.0f}")
+def show_prices(result,auction_date):
+    from pricing.price_meaning import render_price_pair
     price=result['transported_auction_price_usd']
-    b.metric('CarBids · age- and market-adjusted auction equivalent',f'${price:,.0f}' if np.isfinite(price) else 'Unavailable')
+    render_price_pair(result['asking_price_usd'],price,auction_date)
     if result.get('asking_model_kind')=='regularized_lightgbm_ensemble':
         st.caption('Active Pricing model: the larger validation-selected, regularized LightGBM ensemble. Original baseline: '+f"${result['baseline_asking_price_usd']:,.0f}"+'.')
     elif result.get('robust_asking_price_usd') is not None:
@@ -54,6 +53,8 @@ def render_comparison(root):
             render(root,key_prefix='integrated')
             return
     st.subheader('The car got older. The model should notice.')
+    from pricing.price_meaning import render_market_guide
+    render_market_guide()
     st.write('CarBids supplies depreciation and relative-value structure. Pricing supplies the asking-market model. A BLS index anchors market movement; it does not magically turn wholesale prices into retail transactions.')
     try:engine=comparison(str(root))
     except Exception as exc:st.error(f'Transfer models unavailable: {exc}');return
@@ -82,7 +83,7 @@ def render_comparison(root):
         if saved:
             fields,result=saved
             st.caption(f"Submitted: {fields['year']} {fields['manufacturer']} {fields['model']} · {fields['odometer']:,} miles · valuation {fields['as_of']}. Submit again after edits.")
-            show_prices(result)
+            show_prices(result,fields['as_of'])
             if np.isfinite(result['transported_auction_price_usd']):
                 st.subheader('Follow the money, without inventing a time machine')
                 steps=pd.DataFrame(engine.structural.decompose(fields));steps['multiplicative_effect']=np.exp(steps.log_effect)
@@ -174,13 +175,13 @@ def render_auction_companion(root,fields):
         return
     try:
         fields={**fields,'as_of':'2021-05-01'}
-        st.subheader('CarBids structural companion · evaluated for May 2021')
-        show_prices(comparison(str(root)).predict_frame(pd.DataFrame([fields])).iloc[0].to_dict())
+        st.subheader('Historical two-market comparison · May 2021')
+        show_prices(comparison(str(root)).predict_frame(pd.DataFrame([fields])).iloc[0].to_dict(),fields['as_of'])
     except Exception as exc:st.warning(f'Structural companion unavailable: {exc}')
 
 def render_asking_companion(root,fields):
     try:
         fields=dict(fields);fields['auction_condition']=fields.get('condition');fields['condition']=None
         st.subheader('Pricing + structural CarBids companion')
-        show_prices(comparison(str(root)).predict_frame(pd.DataFrame([fields])).iloc[0].to_dict())
+        show_prices(comparison(str(root)).predict_frame(pd.DataFrame([fields])).iloc[0].to_dict(),fields.get('as_of','Date not supplied'))
     except Exception as exc:st.warning(f'Structural companion unavailable: {exc}')

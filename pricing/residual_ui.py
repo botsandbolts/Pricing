@@ -63,9 +63,8 @@ def render_bid(root,fields):
     if request:
         record_price('bid',value,fields,selected,'calculator-companion','2021-05-01',request+':'+selected)
     with price_slot:
-        st.markdown('**WHOLESALE / THE OTHER SIDE OF THE DEAL**')
-        st.metric('Transported wholesale auction estimate',f'${value:,.0f}')
-        st.caption('A historical auction equivalent, age/CPI transported to May 2021. Not a live bid or a retail-sale quote.')
+        from pricing.price_meaning import render_market_price
+        render_market_price('bid',value,'2021-05-01',adjusted=True)
     with details:
         st.write('CatBoost log-median · quantile 0.5' if record['pipeline']=='catboost-log-quantile' else 'CatBoost normal AFT')
         st.caption(f"{record['selected_boosting_rounds']:,} trees; {record['trained_rows']:,} retained cars. {('Exactly ceil(25%) per phase removed by a separate log-quantile CatBoost residual cleaner; no extra OutlierTree cuts.' if record['pipeline']=='catboost-log-quantile' else 'Highest-residual 25% per phase plus OutlierTree flags excluded.')} These are historical wholesale equivalents, not guaranteed bids.")
@@ -92,8 +91,10 @@ def render_assessment(root):
 
 
 def render_calculator(root,key_prefix='robust_pair'):
-    st.subheader('Ask: MiniLM + CatBoost AFT · Auction: CatBoost log-median 0.5' if json.loads((model_root(root)/'ask/manifest.json').read_text()).get('text_feature') else 'Ask + auction pricing · tabular CatBoost AFT')
-    st.caption('Two market estimates. One car. The dealer and the auctioneer are still allowed to disagree.')
+    from pricing.price_meaning import render_market_guide,render_price_pair
+    st.subheader('Advertised asking price vs wholesale auction sale')
+    render_market_guide()
+    st.caption('Asking model: MiniLM + CatBoost AFT. Auction model: CatBoost log-median 0.5.' if json.loads((model_root(root)/'ask/manifest.json').read_text()).get('text_feature') else 'Tabular CatBoost comparison models.')
     with st.form(key_prefix+'_form'):
         a,b,c=st.columns(3)
         year=a.number_input('Year',1900,2021,2015,key=key_prefix+'_year')
@@ -114,5 +115,8 @@ def render_calculator(root,key_prefix='robust_pair'):
             rows.append({'Market':side,'Price USD':value,'Model':'MiniLM + CatBoost AFT' if record.get('text_feature') else 'CatBoost log-median 0.5' if record['pipeline']=='catboost-log-quantile' else 'Tabular CatBoost AFT'})
             from pricing.analytics import record_price
             record_price(side,value,raw.iloc[0].to_dict(),str(folder),key_prefix,str(date))
-        st.dataframe(pd.DataFrame(rows),hide_index=True)
+        prices={r['Market']:r['Price USD'] for r in rows}
+        render_price_pair(prices.get('ask'),prices.get('bid'),str(date))
+        with st.expander('Model names and exact outputs'):
+            st.dataframe(pd.DataFrame(rows),hide_index=True)
         st.caption('Asking prices retain their historical listing-market target; auctions are CPI transported wholesale estimates. Neither is a verified current retail transaction. MiniLM reads descriptions for the combined asking model. Auction data have no descriptions, so the bid model uses vehicle facts.')

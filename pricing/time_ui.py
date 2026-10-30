@@ -24,6 +24,8 @@ def render_time_studio(root,saved,ask_pipeline):
         st.info('The date-aware transport experiment is being fitted. Historical prices remain available.');return
     with st.container(border=True,key='time_machine'):
         st.subheader('The time garage · what about today?')
+        from pricing.price_meaning import render_market_guide,render_market_price
+        render_market_guide()
         st.caption('Experimental present-date estimates. Historical accuracy scores do not validate these transported prices.')
         mode=st.radio('Valuation clock',['Today · follows the calendar','Choose a date'],horizontal=True,key='time_clock_mode')
         date=today() if mode.startswith('Today') else st.date_input('Valuation date',today(),key='time_valuation_date')
@@ -48,14 +50,15 @@ def render_time_studio(root,saved,ask_pipeline):
                     from pricing.analytics import record_price
                     request=st.session_state.get('_price_request_id','')
                     record_price(side,r['price'],car,'time-transport/'+side,'time-scenario',str(date),request+':'+str(date)+':'+str(allow))
-                    st.metric(('Current asking scenario' if side=='ask' else 'Current auction scenario')+f' · {date:%d %b %Y}',f"${r['price']:,.0f}")
+                    render_market_price(side,r['price'],date,scenario=True)
                     st.caption(f"Age {r['age']:.2f} years · age factor ×{r['age_factor']:.3f} · market factor ×{r['market_factor']:.3f}")
                     if not r['model_known_to_curve']:st.caption('Sparse/unseen model: pooled manufacturer/body depreciation applies.')
                     if r['generation_analogue']:st.warning('Generation analogue enabled. Auction-era generation effects are unobserved.')
                 except ValueError as exc:st.warning(str(exc))
         st.caption(f"Market source: BLS/FRED CUUR0000SETA02 · latest snapshot month {current.clock.meta['latest_observation']} · published {current.clock.meta['latest_release_date']}. {current.clock.live_status}. Monthly index, not a daily transaction feed.")
         if error:st.caption('Live refresh unavailable; using the dated saved snapshot. Forecast-horizon limits still apply.')
-        st.caption('Ask uses a 2021 advertised-price anchor. Bid uses its 2015 reference-dollar model and an age-five anchor. Both use separately fitted depreciation; the common retail CPI is an explicit wholesale-transport assumption.')
+        st.info('Same selected date, different markets. These scenario prices still do not reveal dealer profit, a retail transaction price or a guaranteed discount.')
+        st.caption('Ask uses a 2021 advertised-price anchor. Auction uses its 2015 reference-dollar model and an age-five anchor. Both use separately fitted depreciation; the common retail CPI is an explicit wholesale-transport assumption.')
         st.markdown('#### Same car. Different date. No time machine.')
         mileage_mode=st.radio('Mileage through time',['Hold mileage constant','Assume annual driving'],horizontal=True,key='time_mileage_mode')
         annual=st.slider('Assumed miles per year',0,30000,12000,1000,key='time_annual_miles') if mileage_mode=='Assume annual driving' else 0

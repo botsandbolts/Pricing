@@ -108,6 +108,8 @@ with compare:
     from marketbridge.ui import render_comparison
     render_comparison(Path(__file__).parent)
 with value:
+    from pricing.price_meaning import render_market_guide,render_market_price
+    render_market_guide()
     for key,default in {'year':2015,'manufacturer':'Toyota','model':'Corolla SE','odometer':95000,'state':'ca'}.items():
         st.session_state.setdefault('vehicle_'+key,default)
     editor,receipt=st.columns([1.65,1],gap='large')
@@ -164,25 +166,26 @@ with value:
                 result=saved[1];car=saved[2]
                 section('03 / Your price receipt','The numbers are in.')
                 st.caption(f"{car['year']} {car['manufacturer']} {car['model']} · {car['odometer']:,} miles")
-                st.metric('Estimated asking price',f"${result['price']:,.0f}")
-                st.caption('Historical advertised-price estimate. Seller optimism, with a statistical chaperone.')
-                from pricing.bart_summary import render_story
-                render_story(car, saved[3])
-                from pricing.deal_detective import open_share
-                st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='open_share')
-                st.info('Want today’s value? Open 📅 Value over time for date-adjusted Ask/Bid scenarios and the interactive timeline.')
+                render_market_price('ask',result['price'],'2021-05-01')
                 if result.get('range') is not None:
                     st.write(f"Indicative 80% band: ${result['range'][0]:,.0f}–${result['range'][1]:,.0f}")
                 else:st.caption('Point estimate only. No validated individual prediction interval is available.')
-                if result.get('predicted_text_price') is not None:
-                    with st.expander('What did the description contribute?'):
-                        st.metric('Description-price feature',f"${result['predicted_text_price']:,.0f}")
-                        st.caption('MiniLM’s description-only scalar enters the asking model alongside vehicle facts. It is not an independent offer or a word-level explanation.')
             else:empty_receipt()
         if saved and saved[0]==str(path):
             with st.container(key='auction_receipt'):
                 from marketbridge.ui import render_auction_companion
                 render_auction_companion(Path(__file__).parent,saved[2])
+            st.info('The difference is not dealer profit or a promised discount. Both prices use historical models; open Value over time for date-adjusted scenarios.')
+            from pricing.deal_detective import open_share
+            st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='open_share')
+            st.info('Want today’s value? Open 📅 Value over time for date-adjusted Ask/Auction scenarios and the interactive timeline.')
+            if saved[1].get('predicted_text_price') is not None:
+                with st.expander('What did the description contribute?'):
+                    st.metric('Description-price feature',f"${saved[1]['predicted_text_price']:,.0f}")
+                    st.caption('MiniLM’s description-only scalar enters the asking model alongside vehicle facts. It is not an independent offer or a word-level explanation.')
+            with st.container(key='story_receipt'):
+                from pricing.bart_summary import render_story
+                render_story(saved[2],saved[3])
         else:
             st.markdown('<div class="garage-science-note"><strong>Curious what moves the price?</strong><br>After estimating, explore feature contributions, mileage scenarios and all six explanation graphs below.</div>',unsafe_allow_html=True)
     if saved and saved[0]==str(path):

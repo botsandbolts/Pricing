@@ -170,6 +170,8 @@ def remove_car(identity):
 
 
 def render_garage(fields,text,estimate,model,seller,estimate_fn,bid_fn):
+    from pricing.price_meaning import render_market_guide
+    render_market_guide()
     st.markdown('### 🚗 Three cars enter. Your spreadsheet retires.')
     st.caption('A session-only shortlist. Every displayed estimate is anchored to May 2021. Seller quotes may refer to another date; they are not treated as model targets.')
     st.button('Park this estimate',on_click=park,args=(fields,text,estimate,model,seller),type='primary')
@@ -179,7 +181,7 @@ def render_garage(fields,text,estimate,model,seller,estimate_fn,bid_fn):
     for col,car in zip(st.columns(max(1,len(garage))),garage):
         with col,st.container(border=True):
             st.markdown('**'+car_title(car['fields'])+'**')
-            st.metric('Saved historical asking estimate',f"${car['estimate']:,.0f}")
+            st.metric('Saved seller asking estimate · May 2021',f"${car['estimate']:,.0f}")
             st.caption(f"{car['fields'].get('odometer',0):,} miles")
             st.button('Inspect this car',key='inspect_'+car['id'],on_click=apply_vehicle,args=(car['fields'],car['text'],car['seller_price']))
             st.button('Value through time',key='timeline_'+car['id'],on_click=apply_vehicle,args=(car['fields'],car['text'],car['seller_price'],'📅 Value over time'))
@@ -202,8 +204,9 @@ def render_garage(fields,text,estimate,model,seller,estimate_fn,bid_fn):
         st.dataframe(compared['rows'],hide_index=True,width='stretch')
         import pandas as pd
         chart=pd.DataFrame(compared['rows']).set_index('Car')[['Ask · May 2021 USD','Bid · May 2021 USD']]
+        chart=chart.rename(columns={'Ask · May 2021 USD':'Seller asking estimate · May 2021 USD','Bid · May 2021 USD':'Wholesale auction sale estimate · May 2021 USD'})
         st.bar_chart(chart,color=['#6351e8','#72a23d'])
-        st.caption('Ask and Bid are different markets. The spread is not guaranteed profit. No intervals are implied by these bars.')
+        st.caption('Both bars use a May 2021 price basis. Asking is an advertised price, not a completed retail sale; auction is a transported wholesale-sale estimate, not a live bid. Their difference is not dealer profit or a guaranteed discount. No intervals are implied by these bars.')
     if garage:
         if st.checkbox('Create a public comparison link containing only these cars’ vehicle facts',key='share_garage_consent'):
             url=share_link(garage);st.text_input('Comparison link',url)
