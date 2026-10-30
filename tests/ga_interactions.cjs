@@ -62,3 +62,7 @@ console.log('All eight tabs, virtual page views, keyboard navigation, named cont
 const iconSummary={...section,textContent:'keyboard_arrow_downExact survivor counts · no disappearing-car magic',querySelector:()=>({textContent:'Exact survivor counts · no disappearing-car magic'})};
 handlers.click[0]({composedPath:()=>[iconSummary]});
 assert.equal(events.at(-1)[2].action_name,'survivor_counts');
+
+const radio={getAttribute:()=>null,matches:()=>true,parentElement:{getAttribute:n=>n==='aria-label'?'Choose a market':null}};
+now+=1000;handlers.change[0]({composedPath:()=>[radio]});
+assert.equal(events.at(-1)[2].action_name,'outlier_market');

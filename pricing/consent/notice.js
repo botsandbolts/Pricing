@@ -145,6 +145,8 @@ function installPricingInteractions() {
     }
     let holder=node;
     for(let i=0;i<8 && holder;i++,holder=holder.parentElement) {
+      text=holder.getAttribute?.('aria-label');
+      if(settings.has(text))return settings.get(text);
       text=label(holder.querySelector?.('label,[data-testid="stWidgetLabel"]'));
       if(settings.has(text))return settings.get(text);
     }
