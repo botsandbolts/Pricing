@@ -102,3 +102,14 @@ def test_catboost_residual_generator_excludes_heldout_labels(side):
     assert first.loc[first.split!='calibration','prediction_kind'].eq('heldout').all()
     np.testing.assert_allclose(first.signed_residual_log,np.log(first.observed_price/first.base_price))
     assert meta['text_branch'] is False
+
+
+def test_completed_panel_keeps_export_data_separate_from_widget_state():
+    from streamlit.testing.v1 import AppTest
+    source="from pricing.hierarchical_ui import render\nrender('.')"
+    app=AppTest.from_string(source)
+    app.session_state['studio_tabs']='🌳 Hierarchical model'
+    app.session_state['hierarchy_experiment']=experiment(fixture(),'ask')
+    app.session_state['hierarchy_residual_export']='synthetic smoke test'
+    app.run(timeout=30)
+    assert not app.exception
