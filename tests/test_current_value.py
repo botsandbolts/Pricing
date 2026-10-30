@@ -119,6 +119,7 @@ def test_current_share_caption_and_card_carry_the_actual_date():
 def test_month_end_calendar_and_october_nowcast():
     from pricing.current_value import month_end
     assert month_end(date(2026,10,30)) == date(2026,10,31)
+    assert month_end(date(2026,11,1)) == date(2026,11,30)
     assert month_end(date(2028,2,4)) == date(2028,2,29)
     t=TimeTransport(ROOT)
     class Bid:
