@@ -48,6 +48,7 @@ def render_briefing(root,fields,notes,date,results):
         st.download_button('Download valuation report',json.dumps(report,indent=2,default=str),'valuation-report.json','application/json')
     identity=json.dumps([fields,notes,report],sort_keys=True,default=str)
     if st.button('Generate BART overview',key='current_bart_requested'):
+        st.session_state.pop('_bart_summary',None)
         st.session_state['_current_bart_report']=identity
     if st.session_state.get('_current_bart_report')==identity:
         render_story(fields,notes,valuation=report)

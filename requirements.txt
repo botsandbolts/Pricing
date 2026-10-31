@@ -94,3 +94,5 @@ tokenizers>=0.23.1,<0.24
 # Manifest-driven MiniLM replacement and advert-first BART briefing.
 
 # Cold restart: isolate release-contract helper and refresh all serving/explanation imports.
+
+# Final MiniLM release: memory-bounded BART generation and refreshed runtime imports.

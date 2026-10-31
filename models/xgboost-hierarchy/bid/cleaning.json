@@ -1,6 +1,6 @@
 {
   "name": "The Mini Lemon Squeezer",
-  "source": "fresh five-fold MiniLM XGBoost group OOF log residuals",
+  "source": "fresh five-fold structured-only XGBoost group OOF log residuals; auction data have no descriptions",
   "removed_training_rows": 96050,
   "original_training_rows": 384198,
   "fraction": 0.25,

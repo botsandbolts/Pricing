@@ -120,6 +120,11 @@ def render_story(fields,description,valuation=None):
     saved=st.session_state.get('_bart_summary',{})
     if saved.get('fingerprint')!=fingerprint:
         try:
+            # Keep pricing posteriors and the BART weights out of RAM together.
+            from pricing.hierarchy_sparse_live import _load
+            _load.clear()
+            import gc
+            gc.collect()
             with st.spinner('Condensing the car’s story…'):
                 result=summarize_story(summary_source,get_engine(MODEL_ID,REVISION),qualitative=bool(valuation))
             saved={'fingerprint':fingerprint,'result':result}
@@ -128,6 +133,11 @@ def render_story(fields,description,valuation=None):
             import logging
             logging.getLogger(__name__).warning('BART summary unavailable: %s',type(error).__name__)
             saved={'fingerprint':fingerprint,'result':{'status':'unavailable','summary':''}}
+            st.session_state['_bart_summary']=saved
+        finally:
+            get_engine.clear()
+            import gc
+            gc.collect()
     result=saved['result']
     if result['status']=='ready':st.write(result['summary'])
     elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
@@ -140,4 +150,4 @@ def render_story(fields,description,valuation=None):
             with st.expander('Qualitative briefing supplied to BART'):
                 st.text(summary_source)
             st.download_button('Download full valuation story',story,'car-valuation-story.txt','text/plain',key='download_valuation_story')
-        st.caption('BART-base-CNN runs locally on CPU, using greedy decoding and a shared cached model. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')
+        st.caption('BART-base-CNN runs locally on CPU, using greedy decoding. Pricing model caches are released before generation; BART weights are released afterward. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')
