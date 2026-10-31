@@ -1,0 +1,31 @@
+{
+  "market": "ask",
+  "objective": "survival:aft",
+  "folds": 5,
+  "iterations": 300,
+  "n": 174182,
+  "residual_unit": "log(observed/reference prediction)",
+  "training": "calibration group OOF; calibration-only final refit",
+  "description_features": "ask: fold-fitted sparse TF-IDF, 2000 features, no UMAP; bid: structured only",
+  "transformer_feature": true,
+  "scores": {
+    "calibration": {
+      "n": 110832,
+      "mae_usd": 1943.6351191059618,
+      "rmse_log": 0.15895263356043543,
+      "median_signed_log_residual": 0.000589756584470736
+    },
+    "validation": {
+      "n": 31668,
+      "mae_usd": 3400.5873159177527,
+      "rmse_log": 0.40665833444518973,
+      "median_signed_log_residual": 0.016136687477014043
+    },
+    "test": {
+      "n": 31682,
+      "mae_usd": 3585.3987263294866,
+      "rmse_log": 0.41070418391656055,
+      "median_signed_log_residual": 0.017623802960551528
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "bytes": 14798614,
+  "sha256": "67c864573b8e23bfc4e07bc8db13663be62bd3b71e211f49e28511a9704d1fae",
+  "parts": [
+    {
+      "file": "calibration-refit.ubj.000.part",
+      "bytes": 8388608,
+      "sha256": "dc78a30f4e605bd2e0d87d354c3d9c9acf1ab100902ab4d6b2fa4075625e2455"
+    },
+    {
+      "file": "calibration-refit.ubj.001.part",
+      "bytes": 6410006,
+      "sha256": "acfca7e05914c022343f4e31b88d632cd8cdc351f969a0228cf6ed4c665ef219"
+    }
+  ]
+}

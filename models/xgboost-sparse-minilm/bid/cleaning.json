@@ -1,0 +1,9 @@
+{
+  "name": "The Sparse Lemon Squeezer",
+  "source": "fresh five-fold sparse TF-IDF XGBoost group OOF log residuals",
+  "removed_training_rows": 96050,
+  "original_training_rows": 384198,
+  "fraction": 0.25,
+  "validation_test_filtered": false,
+  "selection_limit": "Fixed OOF selection precedes refitting. Later OOF scores are conditional diagnostics, not nested CV of selection. Full original validation/test remain unchanged."
+}
