@@ -2,6 +2,8 @@
 
 The command below trains **five group-held-out models per market**, plus a calibration-only refit for the chronological validation and test cohorts. It writes one log-dollar residual per vehicle, held-out dollar MAE and log RMSE. Native CatBoost categorical handling is used; no one-hot or target encoding is fitted.
 
+Craigslist ask includes cleaned seller descriptions. Each ask fold fits a new TF–IDF unigram/bigram vocabulary (up to 12,000 terms) and eight-dimensional cosine UMAP **only on that fold's calibration training rows**. The validation fold is transformed afterward. A separate calibration-only TF–IDF/UMAP fit transforms the chronological validation and test rows. Each CatBoost ask model therefore consumes vehicle facts plus eight text coordinates. The auction bid model remains vehicle-facts only. Each matching `*-tfidf-umap.joblib` artifact must be kept with its CatBoost model for inference; do not pair them across folds.
+
 ```
 python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 4
 python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl
