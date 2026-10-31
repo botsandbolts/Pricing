@@ -43,7 +43,10 @@ def render_briefing(root,fields,notes,date,results):
     with st.expander('Read the complete report · facts, evidence and limitations'):
         st.text(build_valuation_story(fields,notes,report))
         st.download_button('Download valuation report',json.dumps(report,indent=2,default=str),'valuation-report.json','application/json')
+    identity=json.dumps([fields,notes,report],sort_keys=True,default=str)
     if st.button('Generate BART overview',key='current_bart_requested'):
+        st.session_state['_current_bart_report']=identity
+    if st.session_state.get('_current_bart_report')==identity:
         render_story(fields,notes,valuation=report)
 
 def render_timeline(root):
@@ -85,7 +88,10 @@ def render_timeline(root):
 def render_drivers(root,fields,notes,results,bayesian):
     st.markdown('### Why this estimate?')
     st.caption('Explain the installed XGBoost model, not a substitute model. Feature associations are not causal effects or an inspection.')
-    if not st.button('Show current model price drivers',key='current_native_drivers'):return
+    identity=json.dumps([fields,notes,results,bayesian],sort_keys=True,default=str)
+    if st.button('Show current model price drivers',key='current_native_drivers'):
+        st.session_state['_current_driver_report']=identity
+    if st.session_state.get('_current_driver_report')!=identity:return
     import numpy as np
     import pandas as pd
     import plotly.express as px
@@ -125,7 +131,9 @@ def render_minilm(root,notes):
     if not notes.strip():
         st.info('Add a seller description and estimate the car to investigate its wording.');return
     st.caption('Runs only on request, locally on CPU. The encoder reads up to 128 tokens; phrase removal can change truncation. Highlights allocate model response, not causal market premiums.')
-    if not st.button('Analyse description with MiniLM',key='current_minilm_phrases'):return
+    requested=st.button('Analyse description with MiniLM',key='current_minilm_phrases')
+    cached=st.session_state.get('_current_minilm_analysis',{})
+    if not requested and cached.get('notes')!=notes:return
     folder=Path(root)/'models/xgboost-sparse-minilm/ask'
     @st.cache_resource(show_spinner=False,max_entries=1)
     def encoder(path):
@@ -134,10 +142,13 @@ def render_minilm(root,notes):
     try:
         from pricing.minilm_signal import price
         from pricing.text_attribution import explain_text,highlight_html,contribution_chart
-        head=json.loads((folder/'minilm-head.json').read_text())
-        model=encoder(str(folder/'minilm'))
-        with st.spinner('Comparing phrase combinations with the compact MiniLM encoder…'):
-            payload=explain_text(lambda text:float(price(head,model.encode([text]))[0]),notes,limit=6,pairs=2)
+        if requested:
+            head=json.loads((folder/'minilm-head.json').read_text())
+            model=encoder(str(folder/'minilm'))
+            with st.spinner('Comparing phrase combinations with the compact MiniLM encoder…'):
+                payload=explain_text(lambda text:float(price(head,model.encode([text]))[0]),notes,limit=6,pairs=2)
+            st.session_state['_current_minilm_analysis']={'notes':notes,'payload':payload}
+        else:payload=cached['payload']
         a,b,c=st.columns(3)
         a.metric('Blank-description historical signal',f"${payload['base']:,.0f}")
         b.metric('Full-description historical signal',f"${payload['prediction']:,.0f}")
