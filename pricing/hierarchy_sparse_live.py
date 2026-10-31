@@ -116,11 +116,6 @@ def render(root,*,bayesian=True):
             with st.spinner('Reading the advert and consulting the Bayesian family tree…'):
                 results,_,_=estimate(root,{**fields,'text':notes},date,allow)
             st.session_state['hierarchy_sparse_result']={'signature':signature,'results':results,'date':str(date),'fields':fields,'notes':notes,'request_id':__import__('uuid').uuid4().hex,'allow':allow,'model_version':version}
-            next_panel=st.session_state.pop('_after_estimate_panel',None)
-            if next_panel:
-                st.session_state['_current_pricing_mode']=bayesian
-                st.session_state['_navigate_to']=next_panel
-                st.rerun()
         except (ValueError,OSError,KeyError,MemoryError) as exc:st.error(str(exc))
     saved=st.session_state.get('hierarchy_sparse_result')
     if not saved:
@@ -180,6 +175,10 @@ def render(root,*,bayesian=True):
 
     from pricing.current_tools import publish_receipt, render_briefing
     publish_receipt(root,fields,notes,date,results,saved,bayesian)
+    next_panel=st.session_state.pop('_after_estimate_panel',None)
+    if next_panel:
+        st.session_state['_navigate_to']=next_panel
+        st.rerun()
     if 'ask' in results and 'error' not in results['ask']:
         from pricing.deal_detective import open_share
         st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='current_share')

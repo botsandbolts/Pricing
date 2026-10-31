@@ -78,3 +78,13 @@ def test_vehicle_and_description_survive_navigation(studio):
     assert next(x.value for x in at.text_input if x.label=='Model / trim')=='Focus'
     assert at.text_area[0].value=='Service history and new tires.'
     assert len(at.metric)==2
+
+
+def test_parked_car_timeline_shortcut_saves_the_valuation_before_navigation(studio):
+    at=studio
+    at.session_state['_after_estimate_panel']='📅 Value over time'
+    at.button[0].click().run()
+    assert not at.exception
+    assert at.get('pills')[0].value=='📅 Value over time'
+    assert len(at.get('plotly_chart'))==1
+    assert at.session_state['last_displayed_price'][1]['prediction_kind']=='date_adjusted_scenario'
