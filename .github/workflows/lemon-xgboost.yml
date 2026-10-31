@@ -1,17 +1,17 @@
-name: Deploy XGBoost Bayesian pricing
+name: Lemon Squeezer XGBoost training and deployment
 on:
   workflow_dispatch:
   push:
     paths:
-      - scripts/deploy_fivefold_live.py
-      - .github/workflows/deploy-fivefold-live.yml
+      - scripts/train_lemon_xgboost.py
+      - .github/workflows/lemon-xgboost.yml
 permissions:
   contents: write
   actions: read
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,6 +38,11 @@ jobs:
           echo 'acfe086790275ce843700303f0701446f5326852be1ee11d9d2e9407d0301e8d  training-cache/bid.zip' | sha256sum -c -
           python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 4
           python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl
+      - name: Squeeze training residuals and refit five XGBoost folds
+        run: |
+          mv training-cache/xgb-source training-cache/original-xgb
+          python -m scripts.train_lemon_xgboost --market ask --iterations 1000 --output training-cache/xgb-source --residual-source training-cache/original-xgb/ask/predictions.csv.gz
+          python -m scripts.train_lemon_xgboost --market bid --iterations 1000 --output training-cache/xgb-source --residual-source training-cache/original-xgb/bid/predictions.csv.gz
       - name: Fit matching Bayesian posteriors
         run: |
           python -m scripts.fit_fivefold_bayes --base-kind xgboost --market ask --cohort training-cache/full-cohort.jsonl --predictions training-cache/xgb-source/ask/predictions.csv.gz --output training-cache/xgb-source/ask/bayesian
@@ -48,7 +53,7 @@ jobs:
           python -m scripts.deploy_fivefold_live
       - uses: actions/upload-artifact@v4
         with:
-          name: xgboost-bayesian-serving
+          name: lemon-xgboost-bayesian-serving
           path: models/fivefold-live/
           retention-days: 90
       - name: Install verified weights for Streamlit
@@ -56,6 +61,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add models/fivefold-live/
-          git commit -m 'Deploy verified XGBoost refits and matching Bayesian posteriors'
+          git commit -m 'Deploy Lemon Squeezer XGBoost models with matching Bayesian hierarchy'
           git pull --rebase origin main
           git push origin HEAD:main

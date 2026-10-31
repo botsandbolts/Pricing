@@ -16,6 +16,11 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
+if (Path(__file__).parent/'models/fivefold-live/release.json').exists() and json.loads((Path(__file__).parent/'models/fivefold-live/release.json').read_text()).get('method')=='lemon-squeezer-25':
+    from pricing.lemon_studio import render
+    render(Path(__file__).parent)
+    footer()
+    st.stop()
 st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
 <strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
 An uncommon make or trim has fewer close comparisons. Explore the separate hierarchical asking and wholesale estimates, their historical ranges, and how similar cars lend evidence.

@@ -8,7 +8,7 @@ def main():
     for side in ['ask','bid']:
         source=Path('training-cache/xgb-source')/side
         dest=root/side;dest.mkdir(parents=True,exist_ok=True)
-        for name in ['calibration-refit.ubj','category-schema.json','evaluation.json']+(['calibration-refit-tfidf-umap.joblib'] if side=='ask' else []):
+        for name in ['calibration-refit.ubj','category-schema.json','evaluation.json','cleaning.json']+(['calibration-refit-tfidf-umap.joblib'] if side=='ask' else []):
             shutil.copy2(source/name,dest/name)
         shutil.copytree(source/'bayesian',dest/'bayesian',dirs_exist_ok=True)
         for name in ['calibration-refit.ubj','calibration-refit-tfidf-umap.joblib']:
@@ -23,5 +23,5 @@ def main():
         lo,hi=interval(bp,meta['interval']['multiplier'])
         assert 0<lo[0]<=bp.corrected_price.iloc[0]<=hi[0]
         print(side,'SMOKE OK',base,report,flush=True)
-    (root/'release.json').write_text(json.dumps({'model':'xgboost-fivefold + matching Bayesian log residuals','ask_run':41189327994,'bid_run':41190411926}))
+    (root/'release.json').write_text(json.dumps({'method':'lemon-squeezer-25','model':'XGBoost trained after 25% OOF residual cleaning + matching Bayesian log residuals','ask_run':41189327994,'bid_run':41190411926}))
 if __name__=='__main__':main()
