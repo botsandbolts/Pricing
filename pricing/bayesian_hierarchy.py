@@ -107,6 +107,9 @@ def fit(calibration, *, warmup=180, draws=160, seeds=(2718, 3141)):
 
 def predict(metadata, arrays, frame, *, batch=512):
     """Integrate joint parameter draws; return log predictive SD incl. car noise."""
+    if metadata.get('method')=='robust_cross_classified_gibbs_v1':
+        from pricing.robust_hierarchy import predict as robust_predict
+        return robust_predict(metadata,arrays,frame,batch=batch)
     make_index = pd.Index(metadata['makes']).get_indexer(frame.manufacturer.astype(str).str.lower())
     model_keys = frame.manufacturer.astype(str).str.lower() + '::' + frame.model.astype(str).str.lower()
     model_index = pd.Index(metadata['models']).get_indexer(model_keys)
@@ -135,7 +138,8 @@ def predict(metadata, arrays, frame, *, batch=512):
 
 
 def interval(prediction, multiplier):
-    width=np.asarray(prediction.predictive_sd_log)*multiplier
+    scale=np.asarray(prediction.interval_multiplier) if 'interval_multiplier' in prediction else multiplier
+    width=np.asarray(prediction.predictive_sd_log)*scale
     price=np.asarray(prediction.corrected_price)
     return np.maximum(1,price*np.exp(-width)), np.minimum(1e7,price*np.exp(width))
 
