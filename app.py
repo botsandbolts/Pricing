@@ -350,8 +350,9 @@ if _workspace=='📊 Evaluation':
 
 if _workspace=='🕵️ Deal Detective':
     from pricing.deal_detective import render as render_detective
-    from pricing.deal_runtime import bid_estimate
-    render_detective(lambda text,fields:get_pipeline(str(path)).predict(text,fields,explain=False),bid_estimate,str(path))
+    from pricing.deal_runtime import current_callbacks
+    ask_callback,bid_callback,callback_model=current_callbacks(Path(__file__).parent)
+    render_detective(ask_callback,bid_callback,callback_model)
 
 from pricing.ga_events import render_events
 render_events()

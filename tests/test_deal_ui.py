@@ -27,5 +27,5 @@ def test_complete_estimate_render_park_and_compare():
     assert not at.exception and len(at.session_state['detective_garage'])==1
     next(b for b in at.button if b.label=='Compare all with the selected model').click().run()
     assert not at.exception
-    assert at.session_state['garage_comparison']['rows'][0]['Bid · May 2021 USD']==9000
+    assert at.session_state['garage_comparison']['rows'][0]['Bid · 2021-05-01 USD']==9000
     assert any(d.label=='⬇ Download image card · PNG' for d in at.get('download_button'))

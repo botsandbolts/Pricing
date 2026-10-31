@@ -5,7 +5,9 @@ import streamlit as st
 from pricing.pricing_comparison import selected_receipt
 
 def publish_receipt(root,fields,notes,date,results,saved,bayesian):
-    model='XGBoost Lemon Squeezer'+(' + Bayesian correction' if bayesian else '')
+    from pricing.description_features import label
+    from pricing.hierarchy_sparse_live import release_identity
+    model='XGBoost Lemon Squeezer · '+label(root)+(' + Bayesian correction' if bayesian else '')
     request=saved['request_id']+':'+str(bayesian)
     from pricing.analytics import record_price
     for side,r in results.items():
@@ -13,7 +15,7 @@ def publish_receipt(root,fields,notes,date,results,saved,bayesian):
             record_price(side,r['price'],fields,model,'current_pricing',str(date),request+':'+side)
     ask=results.get('ask',{})
     if 'price' in ask:
-        prediction={'price':ask['price'],'valuation_date':str(date),'prediction_kind':'date_adjusted_scenario','reference_date':str(date)}
+        prediction={'price':ask['price'],'valuation_date':str(date),'prediction_kind':'date_adjusted_scenario','reference_date':str(date),'model_version':release_identity(root)}
         receipt=(model,prediction,fields,notes)
         st.session_state['last_explained_price']=receipt
         st.session_state['last_displayed_price']=receipt
@@ -95,6 +97,9 @@ def render_timeline(root):
         from pricing.deal_detective import move_to
         st.button('Go to Price my car',on_click=move_to,args=('🚗 Price my car',))
         return
+    from pricing.hierarchy_sparse_live import release_identity
+    if saved.get('model_version') is not None and saved['model_version']!=release_identity(root):
+        st.info('The installed models changed. Re-estimate your saved car in Price my car to refresh the timeline.');return
     fields=saved.get('fields')
     if not fields:
         try:fields=json.loads(saved['signature'])[0]
@@ -124,9 +129,10 @@ def render_timeline(root):
 
 
 def render_drivers(root,fields,notes,results,bayesian):
+    from pricing.hierarchy_sparse_live import release_identity
     st.markdown('### Why this estimate?')
     st.caption('Explain the installed XGBoost model, not a substitute model. Feature associations are not causal effects or an inspection.')
-    identity=json.dumps([fields,notes,results,bayesian],sort_keys=True,default=str)
+    identity=json.dumps([fields,notes,results,bayesian,release_identity(root)],sort_keys=True,default=str)
     if st.button('Show current model price drivers',key='current_native_drivers'):
         st.session_state['_current_driver_report']=identity
     if st.session_state.get('_current_driver_report')!=identity:return
@@ -164,13 +170,14 @@ def render_drivers(root,fields,notes,results,bayesian):
             st.download_button('Download '+side+' current feature contributions',frame.to_csv(index=False),side+'-current-shap.csv','text/csv')
 
 def render_minilm(root,notes,fields=None,date=None,results=None,bayesian=False):
+    from pricing.hierarchy_sparse_live import release_identity
     from pricing.description_features import kind
     current=kind(root) in {'minilm-price','minilm-embeddings'} and fields is not None and results is not None and 'error' not in results.get('ask',{'error':'unavailable'})
     st.markdown('### 🖍 Which phrases move my asking estimate?' if current else '### 🖍 MiniLM · description-only comparison')
     st.caption('Direct grouped Shapley attribution of your current asking-price function, including MiniLM, XGBoost, date adjustment and the selected Bayesian correction. No surrogate is trained.' if current else 'Separate historical MiniLM/Ridge experiment. It is NOT an input to the current TF-IDF estimate. These dollar effects do not explain today’s valuation.')
     if not notes.strip():st.info('Add a seller description and estimate the car to investigate its wording.');return
     st.caption('On request · CPU · up to 128 tokens after the existing text cleanup. Removing phrases can alter negation and truncation; these are model reactions, not causal price premiums.')
-    identity=json.dumps([notes,fields,str(date),bayesian,current,results.get('ask',{}).get('price') if results else None],sort_keys=True,default=str)
+    identity=json.dumps([notes,fields,str(date),bayesian,current,results.get('ask',{}).get('price') if results else None,release_identity(root)],sort_keys=True,default=str)
     requested=st.button('Analyse description with MiniLM',key='current_minilm_phrases')
     cached=st.session_state.get('_current_minilm_analysis',{})
     if not requested and cached.get('identity')!=identity:return

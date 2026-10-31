@@ -90,12 +90,24 @@ def estimate(root,fields,date,allow=False):
         except (ValueError,OSError,KeyError,MemoryError) as exc:results[side]={'error':str(exc)}
     return results,transport,error
 
+def release_identity(root):
+    import hashlib
+    folder=Path(root)/'models/xgboost-hierarchy'
+    paths=[folder/'release.json',folder/'ask/features.json',folder/'ask/evaluation.json',folder/'bid/evaluation.json',folder/'ask/minilm-heads.json']
+    digest=hashlib.sha256()
+    for path in paths:
+        if path.exists():digest.update(path.read_bytes())
+    return digest.hexdigest()
+
 def render(root,*,bayesian=True):
     from pricing.forest_form import render as form
     from pricing.description_features import kind,label
     feature_kind=kind(root)
     fields,notes,date,allow,submitted=form(description_sensitive=feature_kind)
-    signature=json.dumps([fields,notes,str(date),allow],sort_keys=True)
+    version=release_identity(root)
+    signature=json.dumps([fields,notes,str(date),allow,version],sort_keys=True)
+    if st.session_state.get('_after_estimate_panel'):
+        st.info('Estimate this parked car once; its value timeline will then open automatically.')
     if submitted:
         st.session_state.pop('hierarchy_sparse_result',None)
         st.session_state.pop('last_explained_price',None)
@@ -103,13 +115,18 @@ def render(root,*,bayesian=True):
         try:
             with st.spinner('Reading the advert and consulting the Bayesian family tree…'):
                 results,_,_=estimate(root,{**fields,'text':notes},date,allow)
-            st.session_state['hierarchy_sparse_result']={'signature':signature,'results':results,'date':str(date),'fields':fields,'notes':notes,'request_id':__import__('uuid').uuid4().hex}
+            st.session_state['hierarchy_sparse_result']={'signature':signature,'results':results,'date':str(date),'fields':fields,'notes':notes,'request_id':__import__('uuid').uuid4().hex,'allow':allow,'model_version':version}
+            next_panel=st.session_state.pop('_after_estimate_panel',None)
+            if next_panel:
+                st.session_state['_current_pricing_mode']=bayesian
+                st.session_state['_navigate_to']=next_panel
+                st.rerun()
         except (ValueError,OSError,KeyError,MemoryError) as exc:st.error(str(exc))
     saved=st.session_state.get('hierarchy_sparse_result')
     if not saved:
         st.info('Fill in your car, then press Estimate asking + auction prices. No spreadsheet required.');return
     if saved['signature']!=signature:
-        st.info('Car details or date changed. Press Estimate asking + auction prices to refresh both estimates.');return
+        st.info('Car details, date or installed models changed. Press Estimate asking + auction prices to refresh both estimates.');return
     from pricing.pricing_comparison import selected_receipt
     results={side:selected_receipt(r,bayesian) for side,r in saved['results'].items()}
     st.markdown('### '+('Bayesian estimates · with family evidence' if bayesian else 'Regular XGBoost estimates'))

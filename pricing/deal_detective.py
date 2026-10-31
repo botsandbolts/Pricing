@@ -37,11 +37,16 @@ def apply_vehicle(fields,text='',seller=None,tab='🚗 Price my car'):
         st.session_state['vehicle_'+k]=v
         st.session_state['forest_car_'+k]=v
     st.session_state['forest_description']=text[:8000]
+    st.session_state['forest_live_grade']=f.get('auction_grade')
+    st.session_state['_forest_editor']={'fields':f,'notes':text[:8000],'allow':st.session_state.get('_forest_editor',{}).get('allow',True)}
     st.session_state.pop('hierarchy_sparse_result',None)
     st.session_state['seller_description']=text[:8000]
     if seller is not None:st.session_state['detective_seller']=float(seller)
     st.session_state.pop('last_explained_price',None)
     st.session_state.pop('pricing_visual_explanation',None)
+    if tab=='📅 Value over time':
+        st.session_state['_after_estimate_panel']=tab
+        tab='🚗 Price my car'
     st.session_state['studio_tabs']=tab
     st.session_state['_navigate_to']=tab
 
@@ -160,11 +165,11 @@ def render_share(fields,estimate,model,reference_date=REFERENCE_DATE,time_adjust
     st.download_button('Valuation facts · JSON',json.dumps(receipt,indent=2),'valuation.json','application/json')
 
 
-def park(fields,text,estimate,model,seller):
+def park(fields,text,estimate,model,seller,reference_date=REFERENCE_DATE):
     garage=st.session_state.setdefault('detective_garage',[])
-    identity=hashlib.sha256(json.dumps([safe_fields(fields),text,model],sort_keys=True).encode()).hexdigest()[:16]
+    identity=hashlib.sha256(json.dumps([safe_fields(fields),text,model,str(reference_date)],sort_keys=True).encode()).hexdigest()[:16]
     existing=next((i for i,c in enumerate(garage) if c['id']==identity),None)
-    entry={'id':identity,'fields':safe_fields(fields),'text':text,'estimate':estimate,'model':model,'seller_price':seller or None}
+    entry={'id':identity,'fields':safe_fields(fields),'text':text,'estimate':estimate,'model':model,'seller_price':seller or None,'reference_date':str(reference_date)}
     if existing is not None:garage[existing]=entry
     elif len(garage)<3:garage.append(entry)
     else:st.session_state['garage_full']=True
@@ -175,19 +180,20 @@ def remove_car(identity):
     st.session_state.pop('garage_full',None)
 
 
-def render_garage(fields,text,estimate,model,seller,estimate_fn,bid_fn):
+def render_garage(fields,text,estimate,model,seller,estimate_fn,bid_fn,reference_date=REFERENCE_DATE):
     from pricing.price_meaning import render_market_guide
     render_market_guide()
     st.markdown('### 🚗 Three cars enter. Your spreadsheet retires.')
-    st.caption('A session-only shortlist. Every displayed estimate is anchored to May 2021. Seller quotes may refer to another date; they are not treated as model targets.')
-    st.button('Park this estimate',on_click=park,args=(fields,text,estimate,model,seller),type='primary')
+    st.caption('A session-only shortlist. Saved cards retain their own valuation dates. Recalculated comparisons use the selected date shown below. Seller quotes are not model targets.')
+    st.caption('Comparison valuation date: '+str(reference_date))
+    st.button('Park this estimate',on_click=park,args=(fields,text,estimate,model,seller,reference_date),type='primary')
     if st.session_state.get('garage_full'):st.info('Your three-car garage is full. Remove a car to park another.')
     garage=st.session_state.get('detective_garage',[])
     if not garage:st.info('Park a car, change its details in the calculator, then park another. Up to three.')
     for col,car in zip(st.columns(max(1,len(garage))),garage):
         with col,st.container(border=True):
             st.markdown('**'+car_title(car['fields'])+'**')
-            st.metric('Saved seller asking estimate · May 2021',f"${car['estimate']:,.0f}")
+            st.metric('Saved seller asking estimate · '+car.get('reference_date','legacy date unspecified'),f"${car['estimate']:,.0f}")
             st.caption(f"{car['fields'].get('odometer',0):,} miles")
             st.button('Inspect this car',key='inspect_'+car['id'],on_click=apply_vehicle,args=(car['fields'],car['text'],car['seller_price']))
             st.button('Value through time',key='timeline_'+car['id'],on_click=apply_vehicle,args=(car['fields'],car['text'],car['seller_price'],'📅 Value over time'))
@@ -196,28 +202,27 @@ def render_garage(fields,text,estimate,model,seller,estimate_fn,bid_fn):
         rows=[]
         with st.spinner('Assembling the committee of tiny decision trees…'):
             for car in garage:
-                f=car['fields'];row={'Car':car_title(f),'Mileage':f.get('odometer'),'Ask · May 2021 USD':None,'Bid · May 2021 USD':None,'Model':model}
-                try:row['Ask · May 2021 USD']=round(float(estimate_fn(car['text'],f)['price']),2)
+                f=car['fields'];row={'Car':car_title(f),'Mileage':f.get('odometer'),'Ask · '+str(reference_date)+' USD':None,'Bid · '+str(reference_date)+' USD':None,'Model':model}
+                try:row['Ask · '+str(reference_date)+' USD']=round(float(estimate_fn(car['text'],f)['price']),2)
                 except Exception:row['Ask status']='Unsupported or unavailable'
-                if f.get('year',2022)>2015:row['Bid status']='Outside auction-era model years'
-                elif bid_fn:
-                    try:row['Bid · May 2021 USD']=round(float(bid_fn(f,REFERENCE_DATE)),2)
+                if bid_fn:
+                    try:row['Bid · '+str(reference_date)+' USD']=round(float(bid_fn(f,reference_date)),2)
                     except Exception:row['Bid status']='Unsupported or unavailable'
                 rows.append(row)
-        st.session_state['garage_comparison']={'signature':json.dumps([(c['id'],c['seller_price']) for c in garage])+model,'rows':rows}
+        st.session_state['garage_comparison']={'signature':json.dumps([(c['id'],c['seller_price']) for c in garage])+model+str(reference_date),'rows':rows}
     compared=st.session_state.get('garage_comparison')
-    if compared and compared['signature']==json.dumps([(c['id'],c['seller_price']) for c in garage])+model:
+    if compared and compared['signature']==json.dumps([(c['id'],c['seller_price']) for c in garage])+model+str(reference_date):
         st.dataframe(compared['rows'],hide_index=True,width='stretch')
         import pandas as pd
-        chart=pd.DataFrame(compared['rows']).set_index('Car')[['Ask · May 2021 USD','Bid · May 2021 USD']]
-        chart=chart.rename(columns={'Ask · May 2021 USD':'Seller asking estimate · May 2021 USD','Bid · May 2021 USD':'Wholesale auction sale estimate · May 2021 USD'})
+        chart=pd.DataFrame(compared['rows']).set_index('Car')[['Ask · '+str(reference_date)+' USD','Bid · '+str(reference_date)+' USD']]
+        chart=chart.rename(columns={'Ask · '+str(reference_date)+' USD':'Seller asking estimate · '+str(reference_date)+' USD','Bid · '+str(reference_date)+' USD':'Wholesale auction sale estimate · '+str(reference_date)+' USD'})
         st.bar_chart(chart,color=['#6351e8','#72a23d'])
-        st.caption('Both bars use a May 2021 price basis. Asking is an advertised price, not a completed retail sale; auction is a transported wholesale-sale estimate, not a live bid. Their difference is not dealer profit or a guaranteed discount. No intervals are implied by these bars.')
+        st.caption('Both bars use the comparison valuation date shown above. Auction model years after 2015 require the explicitly allowed generation analogue. Asking is an advertised price, not a completed retail sale; auction is a transported wholesale-sale estimate, not a live bid. Their difference is not dealer profit or a guaranteed discount. No intervals are implied by these bars.')
     if garage:
         if st.checkbox('Create a public comparison link containing only these cars’ vehicle facts',key='share_garage_consent'):
             url=share_link(garage);st.text_input('Comparison link',url)
             st.link_button('Share comparison on WhatsApp',social_links(url,'Which would you buy? Three cars. One group chat. No peace.')['WhatsApp'])
-        public=[{'fields':c['fields'],'historical_asking_estimate_usd':c['estimate'],'reference_date':REFERENCE_DATE,'model':c['model']} for c in garage]
+        public=[{'fields':c['fields'],'historical_asking_estimate_usd':c['estimate'],'reference_date':c.get('reference_date'),'model':c['model']} for c in garage]
         st.download_button('Export shortlist · no seller text',json.dumps(public,indent=2),'car-shortlist.json','application/json')
     with st.expander('Ownership budget · editable assumptions, not a model forecast'):
         annual=st.number_input('Annual driving · miles',0,50000,12000,step=1000)
@@ -343,6 +348,11 @@ def render(estimate_fn=None,bid_fn=None,model_id=''):
         st.session_state['deal_advert_text']=st.session_state.pop('deal_ocr_pending');draft_parse()
     render_shared()
     saved=st.session_state.get('last_explained_price')
+    if saved and saved[1].get('model_version'):
+        from pricing.hierarchy_sparse_live import release_identity
+        if saved[1]['model_version']!=release_identity(Path(__file__).resolve().parents[1]):
+            st.info('The installed pricing models changed. Estimate your saved car again to refresh its sharing and comparison receipt.')
+            return
     tabs=st.tabs(['📸 Import advert','🕵️ Price verdict','📤 Share & go viral','🚗 Compare cars','🔎 Evidence','🎯 Beat the model','🧰 Buyer briefing','🧾 Sale feedback'],key='detective_tabs',on_change='rerun')
     with tabs[0]:render_importer()
     with tabs[5]:render_game(bid_fn)
@@ -369,7 +379,7 @@ def render(estimate_fn=None,bid_fn=None,model_id=''):
         st.caption('The price gap is descriptive, not proof of a good deal, negotiating room, mechanical quality or profit. Model differences are not prediction intervals.')
         st.button('Open Value over time →',on_click=move_to,args=('📅 Value over time',))
     with tabs[2]:render_share(fields,active_price,model,valuation_date,adjusted)
-    with tabs[3]:render_garage(fields,description,estimate,model_id or model,st.session_state.get('detective_seller',0),estimate_fn,bid_fn)
+    with tabs[3]:render_garage(fields,description,active_price,model_id or model,st.session_state.get('detective_seller',0),estimate_fn,bid_fn,valuation_date)
     with tabs[4]:render_evidence(fields)
     with tabs[6]:render_briefing(fields,description)
     with tabs[7]:render_feedback(fields,estimate,model)

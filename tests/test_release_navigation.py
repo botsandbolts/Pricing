@@ -61,3 +61,20 @@ def test_timeline_stays_visible_after_assumption_changes_and_rerun(studio):
     at.run()
     assert not at.exception
     assert len(at.get('plotly_chart'))==1
+
+
+def test_vehicle_and_description_survive_navigation(studio):
+    at=studio
+    for field in at.text_input:
+        if field.label=='Make':field.set_value('Ford')
+        if field.label=='Model / trim':field.set_value('Focus')
+    at.text_area[0].set_value('Service history and new tires.')
+    at.button[0].click().run()
+    assert not at.exception
+    at.get('pills')[0].set_value('📊 Evaluation').run()
+    at.get('pills')[0].set_value('🚗 Price my car').run()
+    assert not at.exception
+    assert next(x.value for x in at.text_input if x.label=='Make')=='Ford'
+    assert next(x.value for x in at.text_input if x.label=='Model / trim')=='Focus'
+    assert at.text_area[0].value=='Service history and new tires.'
+    assert len(at.metric)==2
