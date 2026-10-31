@@ -16,6 +16,11 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
+st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
+<strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
+An uncommon make or trim has fewer close comparisons. Explore the separate hierarchical asking and wholesale estimates, their historical ranges, and how similar cars lend evidence.
+</div>''',unsafe_allow_html=True)
+st.link_button('Explore rare-car estimates and uncertainty ↗','?hierarchy=1',type='primary')
 from pricing.iterative_release import render_release
 render_release(Path(__file__).parent)
 from pricing.analytics import render_privacy, record_price
@@ -107,7 +112,7 @@ def get_pipeline(location):
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
 st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
-value,compare,time_panel,how,results,laboratory,detective,outlier_lab,hierarchical_panel=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🌳 Hierarchical model'],key='studio_tabs',default='🕵️ Deal Detective' if st.query_params.get('garage') else '🚗 Price my car',on_change='rerun')
+value,compare,time_panel,how,results,laboratory,detective,outlier_lab,hierarchical_panel=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🌳 Hierarchical model'],key='studio_tabs',default='🌳 Hierarchical model' if st.query_params.get('hierarchy') else '🕵️ Deal Detective' if st.query_params.get('garage') else '🚗 Price my car',on_change='rerun')
 with hierarchical_panel:
     from pricing.hierarchical_ui import render as render_hierarchical
     render_hierarchical(Path(__file__).parent)
