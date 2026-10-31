@@ -1,0 +1,52 @@
+name: Prepare matched Bayesian redesign evidence
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/bayesian-data.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy requests
+      - uses: actions/download-artifact@v4
+        with:
+          name: minilm-cleaning-and-evaluation-evidence
+          run-id: 41225149395
+          github-token: ${{ github.token }}
+          path: evidence
+      - name: Restore original facts and join genuine OOF predictions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd, requests, subprocess, sys
+          from scripts.restore_kaggle_pricing import download
+          download('pricing/training-cache/full-cohort.jsonl','training-cache/full-cohort.jsonl')
+          r=requests.get('https://www.kaggle.com/api/v1/datasets/download/tunguz/used-car-auction-prices',timeout=300);r.raise_for_status()
+          Path('training-cache/bid.zip').write_bytes(r.content)
+          subprocess.run([sys.executable,'-m','carbids.data','--input','training-cache/bid.zip','--output','training-cache/bid-cohort.jsonl'],check=True)
+          output=Path('bayesian-evidence');output.mkdir()
+          columns=['row_id','manufacturer','model','year','date','odometer','auction_condition','condition','type','transmission','state','fuel','drive','title_status','cylinders','paint_color']
+          for side,cohort in [('ask','full'),('bid','bid')]:
+              facts=pd.concat([c[[k for k in columns if k in c]] for c in pd.read_json('training-cache/'+cohort+'-cohort.jsonl',lines=True,chunksize=10000)],ignore_index=True)
+              facts['row_id']=facts.row_id.astype(str)
+              for stage in ['minilm-cleaned','minilm-oof']:
+                  path=next(Path('evidence').glob('**/'+stage+'/'+side+'/predictions.csv.gz'))
+                  pred=pd.read_csv(path,dtype={'row_id':str})
+                  data=pred.merge(facts,on='row_id',validate='one_to_one')
+                  assert len(data)==len(pred)
+                  data.to_csv(output/(side+'-'+stage+'.csv.gz'),index=False)
+                  print(side,stage,len(data),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: matched-bayesian-redesign-data
+          path: bayesian-evidence/
+          retention-days: 90
