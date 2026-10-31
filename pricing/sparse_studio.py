@@ -15,7 +15,7 @@ def render(root):
         live(root)
     with pages[1]:
         st.markdown('### Business English')
-        st.write('Each training car is priced by a model that did not train on that car. We rank the gap between its recorded and predicted log price, remove the largest 25% of training misses, and train fresh XGBoost models. This may remove errors, but can also remove valid unusual cars. The original validation and test cars stay in the exam.')
+        st.write('Each training car is priced by a fresh TF-IDF XGBoost model that did not train on that car. We rank the gap between its recorded and predicted log price, remove the largest 25% of training misses, and train fresh XGBoost models. This may remove errors, but can also remove valid unusual cars. The original validation and test cars stay in the exam.')
         st.write('The asking model reads the advert through sparse TF-IDF directly. The auction model estimates a typical wholesale sale using median regression. Bayesian make and model effects borrow evidence for rare cars and provide historical outcome ranges. Today’s prices additionally use the existing ageing and market-index scenario.')
         st.markdown('### Technical English')
         st.write('Selection: absolute log(observed/predicted), from five vehicle-group-held-out XGBoost folds; ceil(25% of eligible calibration rows) removed once per market. Ask: normal survival:aft, exact [price,price] bounds. Bid: reg:quantileerror, alpha=0.5, log-dollar labels. Both use 300 boosting rounds, max depth 5, two CPU threads and native categorical splits. Asking descriptions use a fold-fitted 2,000-feature sparse TF-IDF vocabulary. No UMAP, dense text matrix or neural model is loaded.')

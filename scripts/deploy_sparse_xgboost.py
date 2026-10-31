@@ -26,5 +26,5 @@ def main():
     size=sum(p.stat().st_size for p in root.rglob('*') if p.is_file())
     assert size<100*1024*1024, 'Serving weights exceed 100 MiB budget'
     print('SERVING BYTES',size,flush=True)
-    (root/'release.json').write_text(json.dumps({'method':'sparse-lemon-squeezer-25','model':'XGBoost trained after 25% OOF residual cleaning + matching Bayesian log residuals','ask_run':41189327994,'bid_run':41190411926}))
+    (root/'release.json').write_text(json.dumps({'residual_source':'fresh-tfidf-fivefold','method':'sparse-lemon-squeezer-25','model':'XGBoost trained after 25% OOF residual cleaning + matching Bayesian log residuals','ask_run':41189327994,'bid_run':41190411926}))
 if __name__=='__main__':main()

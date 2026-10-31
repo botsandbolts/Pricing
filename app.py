@@ -16,7 +16,7 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
-if (Path(__file__).parent/'models/xgboost-sparse/release.json').exists():
+if (Path(__file__).parent/'models/xgboost-sparse/release.json').exists() and json.loads((Path(__file__).parent/'models/xgboost-sparse/release.json').read_text()).get('residual_source')=='fresh-tfidf-fivefold':
     from pricing.sparse_studio import render
     render(Path(__file__).parent)
     footer()
