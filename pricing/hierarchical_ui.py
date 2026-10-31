@@ -11,6 +11,26 @@ def installed(root,side):return load(root,side)
 
 
 def render(root):
+    from pathlib import Path
+    if (Path(root)/'models/fivefold-live/release.json').exists():
+        from pricing.fivefold_live import render as live
+        st.markdown('## The Bayesian family tree')
+        st.caption('New XGBoost pricing · five-fold residual calibration · shared evidence for rare cars')
+        live(root)
+        with st.expander('How it works · business English'):
+            st.write('First, XGBoost estimates a historical price from the vehicle details. The asking model also reads the advert. The Bayesian layer learns recurring pricing errors for makes and models. Rare cars borrow evidence from their make and the broader market, with wider uncertainty for unseen groups.')
+        with st.expander('Technical recipe and measured accuracy'):
+            st.write('1,000 boosting rounds; ask normal AFT, bid log-price median quantile loss. Five group-held-out folds produce log(observed/predicted) residuals. A Gaussian hierarchical posterior models the intercept, age slope, make and model-within-make effects with two blocked Gibbs chains. Separate ask and bid posteriors; this release does not pool the two markets. Validation calibrates 90% historical outcome ranges. Test measures coverage and dollar MAE. AFT uses exact [price, price] labels because actual censoring bounds are unavailable.')
+            for market in ['ask','bid']:
+                folder=Path(root)/'models/fivefold-live'/market
+                report=json.loads((folder/'bayesian/bayesian-evaluation.json').read_text())
+                st.markdown('**'+market.title()+' · historical test**')
+                a,b,c=st.columns(3)
+                a.metric('Base MAE',f"${report['base_test_mae_usd']:,.0f}")
+                b.metric('Bayesian MAE',f"${report['point_scores']['mae_usd']:,.0f}")
+                c.metric('90% range coverage',f"{report['test_coverage']:.1%}")
+                st.json(report,expanded=False)
+        return
     hero="""
 <style>
 .hierarchy-hero{background:linear-gradient(125deg,#eee8ff 0%,#f8f5eb 75%,#e6ffac 100%);border:1px solid #d4caef;border-radius:28px;padding:clamp(24px,4vw,48px);color:#272037;margin:12px 0 24px}
