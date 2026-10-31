@@ -6,7 +6,10 @@ function installPricingInteractions() {
     ['📅 Value over time','value_over_time'],['🧠 The science','science'],
     ['🌳 Hierarchical model','calculator'],['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
   ]);
+  for(const [name,id] of [...panels])panels.set(name.replace(/^[^\p{L}\p{N}]+/u,''),id);
   const subpanels = new Map([
+    ['🚗 Regular pricing','regular_pricing'],['🌳 Bayesian pricing','bayesian_pricing'],
+    ['📊 Accuracy comparison','accuracy_comparison'],['🧠 How it works','model_recipe'],
     ['📸 Import advert','import_advert'],['🕵️ Price verdict','price_verdict'],
     ['📤 Share & go viral','sharing'],['🚗 Compare cars','compare_cars'],['🔎 Evidence','evidence'],
     ['🎯 Beat the model','price_game'],['🧰 Buyer briefing','buyer_briefing'],['🧾 Sale feedback','sale_feedback'],
@@ -136,12 +139,12 @@ function installPricingInteractions() {
     if(current && !state.allowed) {state.allowed=true;state.since=performance.now();state.suppress=true;selectedPanels();state.suppress=false;pageView();}
     if(!current) {state.allowed=false;state.seen.clear();state.since=performance.now();}
   }
-  const label = node => (node?.getAttribute?.('aria-label') || node?.querySelector?.('[data-testid="stMarkdownContainer"]')?.textContent || node?.textContent || '').trim().replace(/\s+/g,' ');
+  const label = node => (node?.getAttribute?.('aria-label') || (node?.matches?.('input[type="radio"]') ? node.closest('label')?.textContent : '') || node?.querySelector?.('[data-testid="stMarkdownContainer"]')?.textContent || node?.textContent || '').trim().replace(/\s+/g,' ');
   const visible = node => !!node?.getClientRects?.().length
     && !node.closest?.('details:not([open]),[hidden],[aria-hidden="true"]')
     && (typeof node.checkVisibility!=='function' || node.checkVisibility({checkVisibilityCSS:true}));
   function selectedPanels() {
-    const tabs=[...document.querySelectorAll('[role="tab"][aria-selected="true"],button[aria-pressed="true"],[role="radio"][aria-checked="true"]')].filter(visible);
+    const tabs=[...document.querySelectorAll('[role="tab"][aria-selected="true"],button[aria-pressed="true"],[role="radio"][aria-checked="true"],input[type="radio"]:checked')].filter(visible);
     const main=tabs.find(tab=>panels.has(label(tab)));
     const nested=tabs.find(tab=>subpanels.has(label(tab)));
     switchPanel(main?panels.get(label(main)):state.panel,nested?subpanels.get(label(nested)):'none');
@@ -221,7 +224,7 @@ function installPricingInteractions() {
   new MutationObserver(()=>{
     if(scheduled)return;scheduled=true;
     requestAnimationFrame(()=>{scheduled=false;selectedPanels();});
-  }).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-selected']});
+  }).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['aria-selected','aria-checked','aria-pressed','checked']});
   // A bounded heartbeat records visible-panel time even during long sessions.
   setInterval(()=>{if(allowed() && state.active)dwell();},30000);
   window.__pricingInteractions={send,consentChanged,state};
