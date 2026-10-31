@@ -103,10 +103,10 @@ def render(root,*,bayesian=True):
             with st.container(border=True):
                 st.markdown('#### '+title);r=results[side]
                 if 'error' in r:st.warning(r['error']);continue
-                st.metric('Date-adjusted scenario',f"${r['price']:,.0f}");st.caption(meaning)
+                st.metric(f"Estimated value · {date:%d %b %Y}",f"${r['price']:,.0f}");st.caption(meaning)
                 if bayesian:st.markdown(f"**Historical 90% range, date-adjusted · USD {r['interval_low']:,.0f}–{r['interval_high']:,.0f}**")
                 st.caption(f"{date:%d %b %Y} · "+("XGBoost + Bayesian correction" if bayesian else "Regular XGBoost · TF-IDF asking AFT / auction median"))
-                if r['analogue']:st.warning('Unobserved newer generation: analogue assumption enabled.')
+                if r['analogue']:st.warning('Auction estimate uses a generation analogue: auction training ends at model year 2015. This 2016–2021 vehicle generation was not observed; the date adjustment does not validate that assumption.')
                 if bayesian and r['model_support']==0:st.caption('Unseen model/trim: the correction borrows from its make and broader market.')
                 if r['unknown_categories']:st.caption('Unseen categorical inputs: '+', '.join(r['unknown_categories'])+'. Native missing-value routing applies.')
     st.info('The gap is not dealer profit or a promised discount. These models describe different markets and vehicle populations.')
