@@ -139,7 +139,7 @@ function installPricingInteractions() {
     if(current && !state.allowed) {state.allowed=true;state.since=performance.now();state.suppress=true;selectedPanels();state.suppress=false;pageView();}
     if(!current) {state.allowed=false;state.seen.clear();state.since=performance.now();}
   }
-  const label = node => (node?.getAttribute?.('aria-label') || (node?.matches?.('input[type="radio"]') ? node.closest('label')?.textContent : '') || node?.querySelector?.('[data-testid="stMarkdownContainer"]')?.textContent || node?.textContent || '').trim().replace(/\s+/g,' ');
+  const label = node => (node?.getAttribute?.('aria-label') || (node?.matches?.('input[type="radio"]') ? node.closest?.('label')?.textContent : '') || node?.querySelector?.('[data-testid="stMarkdownContainer"]')?.textContent || node?.textContent || '').trim().replace(/\s+/g,' ');
   const visible = node => !!node?.getClientRects?.().length
     && !node.closest?.('details:not([open]),[hidden],[aria-hidden="true"]')
     && (typeof node.checkVisibility!=='function' || node.checkVisibility({checkVisibilityCSS:true}));
