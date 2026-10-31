@@ -16,11 +16,21 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
-if (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
+_feature_pages=['🚗 Current regular & Bayesian pricing','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective & sharing','🧹 Outlier lab','🌳 Hierarchical model']
+with st.sidebar:
+    st.markdown('## The whole garage')
+    st.caption('Every tool has its parking space. Nothing hidden under the bonnet.')
+    _workspace=st.selectbox('Open a studio panel',_feature_pages,key='full_studio_workspace')
+if _workspace==_feature_pages[0] and (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
     from pricing.hierarchy_sparse_studio import render
     render(Path(__file__).parent)
+    from pricing.ga_events import render_events
+    render_events()
     footer()
     st.stop()
+_target='🕵️ Deal Detective' if _workspace=='🕵️ Deal Detective & sharing' else _workspace
+st.session_state['studio_tabs']=_target
+st.info('Full feature studio · historical comparisons retain their original model names and recorded scores. Current regular and Bayesian pricing is in the sidebar.')
 st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
 <strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
 An uncommon make or trim has fewer close comparisons. Explore the separate hierarchical asking and wholesale estimates, their historical ranges, and how similar cars lend evidence.
@@ -29,8 +39,7 @@ if st.button('Explore rare-car estimates and uncertainty ↗',type='primary',key
     st.query_params['hierarchy']='1'
     st.session_state['studio_tabs']='🌳 Hierarchical model'
     st.rerun()
-from pricing.iterative_release import render_release
-render_release(Path(__file__).parent)
+
 from pricing.analytics import render_privacy, record_price
 render_privacy()
 from pricing.dataset_sources import render_sources
@@ -70,7 +79,7 @@ tabular_catboost_label='CatBoost AFT · tabular comparison'
 if _default_root.name=='minilm-catboost-aft' and Path('models/catboost-aft/ask/manifest.json').exists():choices.append(tabular_catboost_label)
 iterative_quantile_label='MiniLM + CatBoost quantile 0.5 · five-stage comparison'
 if _default_root.name=='iterative-catboost':choices.append(iterative_quantile_label)
-mode=st.sidebar.selectbox('Pricing model',choices,index=0,key='pricing_model')
+mode=st.sidebar.selectbox('Pricing model',choices,index=choices.index('Trained tabular baseline'),key='pricing_model')
 locations={iterative_quantile_label:Path('models/iterative-catboost/ask-quantile'),tabular_catboost_label:Path('models/catboost-aft/ask'),robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
            'Isolation Forest trained ensemble':filtered,
