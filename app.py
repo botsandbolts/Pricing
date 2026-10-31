@@ -17,10 +17,9 @@ from pricing.studio_design import install_style,render_hero,section,empty_receip
 install_style()
 render_hero()
 _feature_pages=['🚗 Current regular & Bayesian pricing','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective & sharing','🧹 Outlier lab','🌳 Hierarchical model']
-with st.sidebar:
-    st.markdown('## The whole garage')
-    st.caption('Every tool has its parking space. Nothing hidden under the bonnet.')
-    _workspace=st.selectbox('Open a studio panel',_feature_pages,key='full_studio_workspace')
+st.markdown('### Explore the studio')
+_workspace=st.pills('Studio panels',_feature_pages,selection_mode='single',default=_feature_pages[0],key='landing_studio_workspace',label_visibility='collapsed') or _feature_pages[0]
+st.markdown('<style>.st-key-studio_tabs [role="tablist"]{display:none}</style>',unsafe_allow_html=True)
 if _workspace==_feature_pages[0] and (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
     from pricing.hierarchy_sparse_studio import render
     render(Path(__file__).parent)
@@ -30,7 +29,7 @@ if _workspace==_feature_pages[0] and (Path(__file__).parent/'models/xgboost-hier
     st.stop()
 _target='🕵️ Deal Detective' if _workspace=='🕵️ Deal Detective & sharing' else _workspace
 st.session_state['studio_tabs']=_target
-st.info('Full feature studio · historical comparisons retain their original model names and recorded scores. Current regular and Bayesian pricing is in the sidebar.')
+st.info('Full feature studio · historical comparisons retain their original model names and recorded scores. Current regular and Bayesian pricing is in the first panel above.')
 st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
 <strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
 An uncommon make or trim has fewer close comparisons. Explore the separate hierarchical asking and wholesale estimates, their historical ranges, and how similar cars lend evidence.
