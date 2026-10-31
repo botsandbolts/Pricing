@@ -11,7 +11,10 @@ def download(name,dest):
         r.raise_for_status()
         with tmp.open('wb') as f:
             for chunk in r.iter_content(1024*1024):f.write(chunk)
-    if zipfile.is_zipfile(tmp):
+    # NPZ is itself a ZIP container; it is the requested file, not an outer archive.
+    if dest.suffix=='.npz':
+        tmp.replace(dest)
+    elif zipfile.is_zipfile(tmp):
         with zipfile.ZipFile(tmp) as z:
             matches=[n for n in z.namelist() if n==name or n.rsplit('/',1)[-1]==dest.name]
             if len(matches)!=1:raise ValueError('Ambiguous Kaggle download archive')
