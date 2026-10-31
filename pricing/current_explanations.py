@@ -31,7 +31,8 @@ class CurrentView:
         data=csr_matrix((values.ravel(),np.tile(np.arange(k),n),np.arange(0,(n+1)*k,k)),shape=(n,k))
         if self.projector is not None:
             t=self.projector.transform([self.notes]*len(cars));data=hstack([data,t],format='csr');types+=['q']*t.shape[1]
-            display['Description (all text dimensions)']=self.notes[:100] or '(blank)'
+            if t.shape[1]==1:display['MiniLM description price']=np.asarray(t.toarray()).ravel()
+            else:display['Description (all text dimensions)']=self.notes[:100] or '(blank)'
         return xgb.DMatrix(data,feature_names=self.model.feature_names,feature_types=types,enable_categorical=True,nthread=2),display,age
     def native(self,cars):
         matrix,display,_=self.matrix(cars)

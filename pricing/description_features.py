@@ -18,16 +18,32 @@ class MiniLMFeatures:
         return csr_matrix((values.ravel(),np.tile(np.arange(k),n),np.arange(0,(n+1)*k,k)),shape=(n,k))
     def get_feature_names_out(self):return np.array([f'MiniLM dimension {i+1}' for i in range(384)])
 
+class MiniLMPriceFeatures(MiniLMFeatures):
+    def __init__(self,folder):
+        folder=Path(folder)
+        super().__init__(folder/'minilm')
+        self.heads=json.loads((folder/'minilm-heads.json').read_text())['heads']
+    def transform(self,texts):
+        from pricing.minilm_signal import mean_price
+        from scipy.sparse import csr_matrix
+        # The 384 encoder dimensions stay internal; trees receive one scalar.
+        values=mean_price(self.heads,super().transform(texts).toarray()).reshape(-1,1)
+        return csr_matrix(values)
+    def get_feature_names_out(self):return np.array(['MiniLM description price'])
+
 def kind(root):
     path=Path(root)/'models/xgboost-hierarchy/ask/features.json'
     return json.loads(path.read_text())['kind'] if path.exists() else 'tfidf'
 
-def label(root):return 'MiniLM embeddings' if kind(root)=='minilm-embeddings' else 'TF-IDF'
+def label(root):
+    return {'minilm-price':'MiniLM averaged description price','minilm-embeddings':'MiniLM embeddings','tfidf':'TF-IDF'}[kind(root)]
 
 def projector(folder):
     folder=Path(folder)
     if (folder/'features.json').exists():
-        if json.loads((folder/'features.json').read_text())['kind']!='minilm-embeddings':raise ValueError('Unknown description-feature contract')
-        return MiniLMFeatures(folder/'minilm')
+        feature=json.loads((folder/'features.json').read_text())['kind']
+        if feature=='minilm-price':return MiniLMPriceFeatures(folder)
+        if feature=='minilm-embeddings':return MiniLMFeatures(folder/'minilm')
+        raise ValueError('Unknown description-feature contract')
     import joblib
     return joblib.load(folder/'tfidf.joblib')

@@ -12,4 +12,4 @@ jobs:
       - run: python -m compileall -q marketbridge pricing carbids app.py
       - run: OMP_NUM_THREADS=4 pytest -q tests/test_marketbridge.py tests/test_robust.py tests/test_visual_explanations.py tests/test_cleanlab.py tests/test_pipeline.py tests/test_model_suite.py
 
-      - run: OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 pytest -q tests/test_current_explanations.py tests/test_release_navigation.py
+      - run: OMP_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 pytest -q tests/test_current_explanations.py tests/test_release_navigation.py tests/test_two_minilm_prices.py

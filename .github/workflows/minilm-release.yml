@@ -1,11 +1,11 @@
-name: MiniLM-only Lemon Squeezer and Bayesian release
+name: MiniLM two-price Lemon Squeezer and Bayesian release
 on:
   workflow_dispatch:
   push:
-    paths: ['scripts/train_minilm_xgboost.py', 'scripts/restore_kaggle_pricing.py', 'scripts/prepare_minilm_embeddings.py', 'scripts/package_minilm_release.py', '.github/workflows/minilm-release.yml']
+    paths: ['scripts/train_minilm_xgboost.py', 'scripts/restore_kaggle_pricing.py', 'scripts/prepare_minilm_embeddings.py', 'scripts/package_minilm_release.py', 'pricing/minilm_signal.py', '.github/workflows/minilm-release.yml']
 concurrency:
   group: minilm-only-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
@@ -22,6 +22,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'xgboost>=3.0,<4' 'lightgbm>=4.5,<5' requests joblib streamlit==1.66.1 onnxruntime 'tokenizers>=0.23.1,<0.24'
+      - run: python -m compileall -q pricing scripts
       - name: Restore and verify original Kaggle cohort and text-training evidence
         run: |
           python -m scripts.restore_kaggle_pricing
@@ -36,6 +37,11 @@ jobs:
       - name: Encode every original advert with pinned label-free MiniLM
         if: steps.embeddings.outputs.cache-hit != 'true'
         run: python -m scripts.prepare_minilm_embeddings --cohort training-cache/full-cohort.jsonl --output training-cache/minilm-embeddings
+      - uses: actions/cache/save@v4
+        if: steps.embeddings.outputs.cache-hit != 'true'
+        with:
+          path: training-cache/minilm-embeddings
+          key: minilm-128-1110a243-746bc9f8-clean-v2
       - name: Fresh five-fold residuals, then one 25 percent training trim and refit
         run: |
           python -m scripts.train_minilm_xgboost --market ask --iterations 300 --minilm-features training-cache/minilm-embeddings --output training-cache/minilm-oof

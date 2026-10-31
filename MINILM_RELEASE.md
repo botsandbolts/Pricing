@@ -4,15 +4,15 @@ The migration workflow builds a new release; the app reads its feature contract 
 
 ## What changes
 
-- Replace all current asking-model TF-IDF columns with 384 normalized MiniLM embedding dimensions. No UMAP or TF-IDF vocabulary enters the new cleaner, regular asking AFT model or matching Bayesian residual fit.
+- Replace all current asking-model TF-IDF columns with one MiniLM description-price feature: the arithmetic mean of two dollar-price predictions. No UMAP or TF-IDF vocabulary enters the new cleaner, regular asking AFT model or matching Bayesian residual fit.
 - Recompute five vehicle-group-held-out XGBoost residuals, remove the largest 25% of training absolute log errors, then refit and recalibrate. Validation and test are not selected by the trimming rule. Wholesale has no descriptions, so its median-quantile model remains structured-only and is retrained separately.
-- The pinned frozen `all-MiniLM-L6-v2` encoder is int8 ONNX, CPU, 128 tokens, with consistent text cleanup. It does not learn any prices. XGBoost learns the mapping from embeddings and vehicle facts to asking prices. This is NOT a newly fine-tuned supervised MiniLM backbone.
+- The pinned frozen `all-MiniLM-L6-v2` encoder is int8 ONNX, CPU, 128 tokens, with consistent text cleanup. It does not learn any prices. MiniLM supplies an internal 384-dimensional embedding to two Ridge log-price heads. Two repeated group-held-out two-fold partitions produce two training predictions per row; their dollar prices are averaged. Inside each outer XGBoost fold this process is fitted anew using outer-training rows only. For new/validation/test adverts, two complementary training-only heads are averaged. XGBoost combines that scalar with vehicle facts; raw dimensions are not tree inputs. This is NOT a newly fine-tuned supervised MiniLM backbone.
 - Current dollar SHAP, native log SHAP, sensitivity plots, value timeline, sharing and BART use the release-declared model. Phrase analysis reruns the complete MiniLM → XGBoost → optional Bayesian → date-adjustment function; its full-description endpoint must match the displayed asking price.
 - BART receives the vehicle advert, unverified seller description, the valuations and their date, plus short method/evaluation context. Exact numerical results remain deterministic in the cards and source story; the neural summary cannot certify them.
 
 ## Why the supplied Kaggle prices are not simply reused as five-fold features
 
-`botsandbolts/pricing` supplies the original 211,844-row cohort, three completed supervised OOF files and optimizer checkpoints. Its saved training status is pending. The cohort hash and original fold archive hashes are checked. Those three OOF assignments are not nested within a new five-fold XGBoost split: directly reusing them can pass held-fold labels indirectly through other training features. This release instead computes label-free embeddings of the original descriptions, then fits each XGBoost fold strictly within its training cars. The original supervised training evidence remains preserved.
+`botsandbolts/pricing` supplies the original 211,844-row cohort, three completed supervised OOF files and optimizer checkpoints. Its saved training status is pending. The cohort hash and original fold archive hashes are checked. Those three OOF assignments are not nested within a new five-fold XGBoost split: directly reusing them can pass held-fold labels indirectly through other training features. This release instead computes label-free embeddings of the original descriptions, then fits two repeated OOF price features and each XGBoost fold strictly within its training cars. The original supervised training evidence remains preserved.
 
 ## Evaluation and deployment
 

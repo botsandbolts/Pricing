@@ -72,7 +72,7 @@ def run_side(side, path, ask_path, panel, output, iterations, residual_source, m
         lookup=pd.Index(json.loads((mf/'row-ids.json').read_text())).get_indexer(d.row_id.astype(str))
         if (lookup<0).any():raise ValueError('Missing MiniLM row')
         embeddings=np.load(mf/'embeddings.npy',mmap_mode='r')[lookup]
-        x=pd.concat([x,pd.DataFrame(embeddings,columns=[f'minilm_{i}' for i in range(embeddings.shape[1])])],axis=1)
+
     texts=d.text.fillna('').astype(str).tolist() if side=='ask' else None
     phase=d.phase.map({'train':'calibration','validation':'validation','test':'test'})
     tr=np.flatnonzero(phase=='calibration')
@@ -97,11 +97,6 @@ def run_side(side, path, ask_path, panel, output, iterations, residual_source, m
         # Keep explicit zeros: a zero age/category is a value, not sparse missing.
         structured=csr_matrix((values.ravel(),np.tile(np.arange(k),n),np.arange(0,(n+1)*k,k)),shape=(n,k))
         names=list(frame);types=['c' if c in CATEGORICAL else 'q' for c in frame]
-        if vectorizer is not None:
-            sparse_text=vectorizer.transform(text)
-            structured=hstack([structured,sparse_text],format='csr')
-            names += [f'tfidf_{j}' for j in range(sparse_text.shape[1])]
-            types += ['q']*sparse_text.shape[1]
         return xgb.DMatrix(structured,feature_names=names,feature_types=types,enable_categorical=True,nthread=2)
     def fit(idx,features):
         frame,text=features
@@ -119,7 +114,15 @@ def run_side(side, path, ask_path, panel, output, iterations, residual_source, m
         return np.asarray(raw,float) if side=='ask' else np.exp(np.clip(raw,-700,np.log(1e7)))
     def augmented(fit_idx,pred_idx,prefix):
         train=x.iloc[fit_idx].copy();held=x.iloc[pred_idx].copy()
-        return (train,[texts[i] for i in fit_idx] if texts else None),(held,[texts[i] for i in pred_idx] if texts else None)
+        if embeddings is not None:
+            from pricing.minilm_signal import two_price_crossfit,mean_price
+            oof,heads,individual=two_price_crossfit(embeddings[fit_idx],y[fit_idx],d.vehicle_group.iloc[fit_idx].to_numpy())
+            train['predicted_text_price']=oof
+            held['predicted_text_price']=mean_price(heads,embeddings[pred_idx])
+            if prefix=='calibration-refit':
+                (folder/'minilm-heads.json').write_text(json.dumps({'heads':heads,'aggregation':'arithmetic mean of two dollar predictions','training_feature':'two repetitions of group-held-out two-fold prediction, averaged per row','outer_validation':'price heads refit within each outer XGBoost training fold','seeds':[42,1729]},indent=2))
+                pd.DataFrame({'row_id':d.row_id.iloc[fit_idx].to_numpy(),'oof_price_1':individual[:,0],'oof_price_2':individual[:,1],'predicted_text_price':oof}).to_csv(folder/'text-price-oof.csv.gz',index=False)
+        return (train,None),(held,None)
     for fold,(a,b) in enumerate(GroupKFold(5).split(tr,groups=d.vehicle_group.iloc[tr])):
         print(f'{side} group OOF {fold+1}/5',flush=True)
         train_x,held_x=augmented(tr[a],tr[b],f'fold-{fold+1}')
@@ -131,13 +134,13 @@ def run_side(side, path, ask_path, panel, output, iterations, residual_source, m
     final=fit(tr,train_x);preds[held]=predict(final,held_x)
     final[0].save_model(str(folder/'calibration-refit.ubj'))
     if side=='ask':
-        (folder/'features.json').write_text(json.dumps({'kind':'minilm-embeddings','dimensions':384,'frozen':True,'max_tokens':128,'encoder_source':'sentence-transformers/all-MiniLM-L6-v2','encoder_revision':provenance['revision']},indent=2))
+        (folder/'features.json').write_text(json.dumps({'kind':'minilm-price','dimensions':1,'embedding_dimensions_internal':384,'frozen':True,'max_tokens':128,'encoder_source':'sentence-transformers/all-MiniLM-L6-v2','encoder_revision':provenance['revision']},indent=2))
     (folder/'category-schema.json').write_text(json.dumps(final[1]))
     if not np.isfinite(preds).all() or (preds<=0).any():raise ValueError('Incomplete OOF predictions')
     residual=np.log(y/preds)
     report={'market':side,'objective':loss,'folds':5,'iterations':iterations,'n':len(d),
             'residual_unit':'log(observed/reference prediction)', 'training':'calibration group OOF; calibration-only final refit',
-            'description_features':'ask: pinned frozen MiniLM, 384 label-free dimensions, no TF-IDF or UMAP; bid: structured only',
+            'description_features':'ask: arithmetic mean of two cross-fitted MiniLM dollar prices as one feature; no TF-IDF, raw embedding dimensions or UMAP in XGBoost; bid: structured only',
             'transformer_feature':bool(embeddings is not None),'scores':{}}
     for split in ('calibration','validation','test'):
         mask=(phase==split).to_numpy();report['scores'][split]={'n':int(mask.sum()),

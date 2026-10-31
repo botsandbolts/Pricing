@@ -39,3 +39,31 @@ def crossfit(embeddings,prices,groups):
         oof[held]=price(fit_head(embeddings[fit],prices[fit]),embeddings[held])
     if not np.isfinite(oof).all():raise ValueError('Incomplete MiniLM head OOF')
     return oof,fit_head(embeddings,prices)
+
+
+def mean_price(heads,embeddings):
+    """Arithmetic mean in dollars, not exponentiated mean log price."""
+    if len(heads)!=2:raise ValueError('Exactly two MiniLM price heads are required')
+    return np.mean([price(h,embeddings) for h in heads],axis=0)
+
+
+def two_price_crossfit(embeddings,prices,groups,seeds=(42,1729)):
+    """Two group-held-out predictions per row, with two-fold splits repeated twice.
+
+    First repetition's complementary heads also form the inference pair. No
+    outcome of a predicted group enters either of its two training predictions.
+    Call only on the outer XGBoost training partition for nested cross-fitting.
+    """
+    groups=np.asarray(groups).astype(str);unique=np.unique(groups)
+    if len(unique)<4 or len(seeds)!=2:raise ValueError('Need four groups and two distinct repetitions')
+    values=np.full((len(prices),2),np.nan);serving=[]
+    for repeat,seed in enumerate(seeds):
+        shuffled=np.random.default_rng(seed).permutation(unique)
+        halves=np.array_split(shuffled,2)
+        for held_groups in halves:
+            held=np.isin(groups,held_groups);fit=~held
+            head=fit_head(np.asarray(embeddings)[fit],np.asarray(prices)[fit])
+            values[held,repeat]=price(head,np.asarray(embeddings)[held])
+            if repeat==0:serving.append(head)
+    if not np.isfinite(values).all() or (values<=0).any():raise ValueError('Incomplete two-price cross-fitting')
+    return values.mean(axis=1),serving,values

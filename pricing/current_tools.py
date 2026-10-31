@@ -165,7 +165,7 @@ def render_drivers(root,fields,notes,results,bayesian):
 
 def render_minilm(root,notes,fields=None,date=None,results=None,bayesian=False):
     from pricing.description_features import kind
-    current=kind(root)=='minilm-embeddings' and fields is not None and results is not None and 'error' not in results.get('ask',{'error':'unavailable'})
+    current=kind(root) in {'minilm-price','minilm-embeddings'} and fields is not None and results is not None and 'error' not in results.get('ask',{'error':'unavailable'})
     st.markdown('### 🖍 Which phrases move my asking estimate?' if current else '### 🖍 MiniLM · description-only comparison')
     st.caption('Direct grouped Shapley attribution of your current asking-price function, including MiniLM, XGBoost, date adjustment and the selected Bayesian correction. No surrogate is trained.' if current else 'Separate historical MiniLM/Ridge experiment. It is NOT an input to the current TF-IDF estimate. These dollar effects do not explain today’s valuation.')
     if not notes.strip():st.info('Add a seller description and estimate the car to investigate its wording.');return
