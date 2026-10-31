@@ -1,0 +1,41 @@
+{
+  "bytes": 2886731,
+  "sha256": "b2f63d45aa2431313679f978db2c2dcc99ad5e965d7e4a6d8a2bfe22302a2a87",
+  "parts": [
+    {
+      "file": "posterior.npz.000.part",
+      "bytes": 480000,
+      "sha256": "d1f63bbc8c9192408f3d6876dc6dbfcc2f9b28741b7c3d72f584235bc02b3a58"
+    },
+    {
+      "file": "posterior.npz.001.part",
+      "bytes": 480000,
+      "sha256": "db67d5eb1c25d98f7124bf00ae535caad8a3bab2c77e6f35c19bbc20f4b1d606"
+    },
+    {
+      "file": "posterior.npz.002.part",
+      "bytes": 480000,
+      "sha256": "81019454a626c377cc16323f77244d2fc8ebd7d5bcd39597fe4b8f6d9691b1c5"
+    },
+    {
+      "file": "posterior.npz.003.part",
+      "bytes": 480000,
+      "sha256": "29ebd8884be2ebac8b3cb1f7ac716cbfb41876cc3ede7d7b7e4782ff1ed75ff1"
+    },
+    {
+      "file": "posterior.npz.004.part",
+      "bytes": 480000,
+      "sha256": "fe0c6f832c12ffeed9bf52844ba6b4333de2ef331eb5b35a707f3b0935f05b11"
+    },
+    {
+      "file": "posterior.npz.005.part",
+      "bytes": 480000,
+      "sha256": "4e23af3e8af4386bff7679903336680c0317993db40927ea53581140e79e5055"
+    },
+    {
+      "file": "posterior.npz.006.part",
+      "bytes": 6731,
+      "sha256": "223cafe6f322be343977375c9bf21b8630af284e9700ef8a1ae8fe05cd8fe3eb"
+    }
+  ]
+}

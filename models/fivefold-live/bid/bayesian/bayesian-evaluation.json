@@ -1,0 +1,20 @@
+{
+  "nominal_coverage": 0.9,
+  "validation_rows": 82380,
+  "test_rows": 83603,
+  "validation_multiplier": 1.5048039404432854,
+  "test_coverage": 0.9224668971209167,
+  "test_median_interval_width_usd": 9572.245935090625,
+  "test_median_interval_ratio": 2.0195720374181803,
+  "point_scores": {
+    "mae_usd": 1818.5985868216512,
+    "rmse_usd": 2938.292412746649,
+    "mae_log": 0.15265610883780392,
+    "bias_usd": 613.0519709390808,
+    "rows": 83603
+  },
+  "limits": "Historical individual outcome interval only; no current-date market/age transport validation or causal interval.",
+  "market": "bid",
+  "base_test_mae_usd": 1800.9645558860777,
+  "model": "xgboost five-fold OOF + joint Bayesian make/model/age log-residual correction"
+}

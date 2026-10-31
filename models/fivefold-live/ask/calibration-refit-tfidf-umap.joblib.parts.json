@@ -1,0 +1,51 @@
+{
+  "bytes": 72950180,
+  "sha256": "c4dd8055135fbdecb5c6147199387788f66a6c2355e1181323023e250bc2f6b3",
+  "parts": [
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.000.part",
+      "bytes": 8388608,
+      "sha256": "7c5260759b2949b015bd55a143346406b405bd6a53bd5e3df96d050ebb19ad73"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.001.part",
+      "bytes": 8388608,
+      "sha256": "ffac55b886773a91041411123ee6e1dfd102e01a6f5c976d6a538817bc08bc57"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.002.part",
+      "bytes": 8388608,
+      "sha256": "4b42b8a63c4cc99a6c689697449188b578df5e640ac406c8a8662a0b4964a5f6"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.003.part",
+      "bytes": 8388608,
+      "sha256": "a74a8aac6e8ed4822a94a51b03e1b5df60d389bc89ad184b05885eb9be6d1f96"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.004.part",
+      "bytes": 8388608,
+      "sha256": "a686722d2ac5379609d12fceb5345e578ff750fe567572c220d315b3582a4d80"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.005.part",
+      "bytes": 8388608,
+      "sha256": "3db36ad62f2782d209e08196f744adea8f530f34d2efce2fa6daae7e5d493b3f"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.006.part",
+      "bytes": 8388608,
+      "sha256": "c35f6fdb68be9c8ca79aeb35b46355b03c94ac3e19bc48b292e94fb73d8f79db"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.007.part",
+      "bytes": 8388608,
+      "sha256": "c1faefe885beaaa3ced3cf0c7658d0a21a2f4991dbd3dcaaa19bf534ae033c11"
+    },
+    {
+      "file": "calibration-refit-tfidf-umap.joblib.008.part",
+      "bytes": 5841316,
+      "sha256": "51790207d3e29eff4b0b2524df9e3bcea91028ec09c8d5deecb16919a342e376"
+    }
+  ]
+}

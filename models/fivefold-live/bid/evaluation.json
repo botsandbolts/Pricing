@@ -1,0 +1,30 @@
+{
+  "market": "bid",
+  "objective": "reg:quantileerror",
+  "folds": 5,
+  "iterations": 1000,
+  "n": 550181,
+  "residual_unit": "log(observed/reference prediction)",
+  "training": "calibration group OOF; calibration-only final refit",
+  "description_features": "ask only: fold-fitted TF-IDF bigrams to 8 UMAP coordinates; no text on bid",
+  "scores": {
+    "calibration": {
+      "n": 384198,
+      "mae_usd": 1303.2176508206226,
+      "rmse_log": 0.23526155989865907,
+      "median_signed_log_residual": -2.234808358216188e-05
+    },
+    "validation": {
+      "n": 82380,
+      "mae_usd": 1685.307267990725,
+      "rmse_log": 0.2661131639849174,
+      "median_signed_log_residual": -0.04578578014744311
+    },
+    "test": {
+      "n": 83603,
+      "mae_usd": 1800.9645558860782,
+      "rmse_log": 0.2359708681618461,
+      "median_signed_log_residual": -0.0712369016071905
+    }
+  }
+}
