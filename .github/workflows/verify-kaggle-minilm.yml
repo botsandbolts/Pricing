@@ -1,0 +1,32 @@
+name: Verify supplied Kaggle MiniLM OOF prices
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - data/kaggle-minilm-assessment/**
+      - scripts/verify_kaggle_minilm_folds.py
+      - .github/workflows/verify-kaggle-minilm.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install numpy pandas scikit-learn
+      - name: Restore exact original canonical cohort
+        run: |
+          mkdir -p training-cache
+          curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'
+          echo 'eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f  training-cache/ask.zip' | sha256sum -c -
+          python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2
+      - run: python -m scripts.verify_kaggle_minilm_folds --cohort training-cache/full-cohort.jsonl --output training-cache/recovered-minilm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-original-minilm-assessment-oof
+          path: training-cache/recovered-minilm/
+          retention-days: 90
