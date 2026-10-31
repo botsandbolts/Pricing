@@ -20,9 +20,10 @@ def publish_receipt(root,fields,notes,date,results,saved,bayesian):
     st.session_state['_current_pricing_mode']=bayesian
 
 def build_report(root,fields,date,results):
-    sections=[{'title':'Installed model','text':'Cleaned XGBoost: ask normal AFT with sparse TF-IDF descriptions; bid median quantile on log dollars. No MiniLM or UMAP. AFT uses exact observed price bounds; no verified censoring intervals are available.'},
-              {'title':'Cleaning','text':'Five vehicle-group cross-validation models supply log residuals. One largest-quarter training trim precedes refitting. Validation and test remain untrimmed. Cleaning can discard valid unusual cars; improved accuracy from cleaning has not been demonstrated against a matched uncleaned model.'},
-              {'title':'Other studio tools','text':'Sharing offers image cards, QR codes and public links containing vehicle inputs. Evidence shows historical auction comparables. The timeline reconstructs prices at entered mileage; these are not observed sales. No dealer-profit or guaranteed-discount claim is supported.'}]
+    from pricing.description_features import kind,label
+    feature_label=label(root)
+    sections=[{'title':'Valuation method','text':f'XGBoost combines vehicle facts with {feature_label} description features for the advertised asking-price estimate. The auction model uses structured vehicle facts and median quantile loss. The asking AFT fit uses exact observed price bounds; verified censoring intervals are unavailable.'},
+              {'title':'Evaluation technique','text':'Separate historical training, validation and test splits. Five vehicle-group cross-validation folds produce log residuals; one largest-quarter training trim precedes refitting. Validation and test are not trimmed by that rule. The optional separate Bayesian make/model/age residual correction borrows evidence across related cars. Historical test MAE measures average dollar error, not a guarantee for this car. Date-adjusted current prices and ranges have not been independently validated.'}]
     estimates={}
     for side,r in results.items():
         if 'error' in r:continue
@@ -162,38 +163,48 @@ def render_drivers(root,fields,notes,results,bayesian):
             st.caption('Dollar steps depend on this displayed order because the underlying model is in log dollars. The historical total is order-invariant; individual dollar steps are not.')
             st.download_button('Download '+side+' current feature contributions',frame.to_csv(index=False),side+'-current-shap.csv','text/csv')
 
-def render_minilm(root,notes):
-    st.markdown('### 🖍 MiniLM · which phrases move its description-price signal?')
-    st.caption('Separate historical description-only experiment. This compact MiniLM/Ridge head is NOT an input to the current TF-IDF XGBoost estimate above. Its dollar effects must not be read as changes to today’s car valuation.')
-    if not notes.strip():
-        st.info('Add a seller description and estimate the car to investigate its wording.');return
-    st.caption('Runs only on request, locally on CPU. The encoder reads up to 128 tokens; phrase removal can change truncation. Highlights allocate model response, not causal market premiums.')
+def render_minilm(root,notes,fields=None,date=None,results=None,bayesian=False):
+    from pricing.description_features import kind
+    current=kind(root)=='minilm-embeddings' and fields is not None and results is not None and 'error' not in results.get('ask',{'error':'unavailable'})
+    st.markdown('### 🖍 Which phrases move my asking estimate?' if current else '### 🖍 MiniLM · description-only comparison')
+    st.caption('Direct grouped Shapley attribution of your current asking-price function, including MiniLM, XGBoost, date adjustment and the selected Bayesian correction. No surrogate is trained.' if current else 'Separate historical MiniLM/Ridge experiment. It is NOT an input to the current TF-IDF estimate. These dollar effects do not explain today’s valuation.')
+    if not notes.strip():st.info('Add a seller description and estimate the car to investigate its wording.');return
+    st.caption('On request · CPU · up to 128 tokens after the existing text cleanup. Removing phrases can alter negation and truncation; these are model reactions, not causal price premiums.')
+    identity=json.dumps([notes,fields,str(date),bayesian,current,results.get('ask',{}).get('price') if results else None],sort_keys=True,default=str)
     requested=st.button('Analyse description with MiniLM',key='current_minilm_phrases')
     cached=st.session_state.get('_current_minilm_analysis',{})
-    if not requested and cached.get('notes')!=notes:return
-    folder=Path(root)/'models/xgboost-sparse-minilm/ask'
-    @st.cache_resource(show_spinner=False,max_entries=1)
-    def encoder(path):
-        from pricing.minilm_signal import Encoder
-        return Encoder(path)
+    if not requested and cached.get('identity')!=identity:return
     try:
-        from pricing.minilm_signal import price
         from pricing.text_attribution import explain_text,highlight_html,contribution_chart
         if requested:
-            head=json.loads((folder/'minilm-head.json').read_text())
-            model=encoder(str(folder/'minilm'))
-            with st.spinner('Comparing phrase combinations with the compact MiniLM encoder…'):
-                payload=explain_text(lambda text:float(price(head,model.encode([text]))[0]),notes,limit=6,pairs=2)
-            st.session_state['_current_minilm_analysis']={'notes':notes,'payload':payload}
+            if current:
+                from pricing.current_explanations import CurrentView
+                from pricing.current_value import current_transport
+                transport,_=current_transport(root)
+                view=CurrentView(root,'ask',date,notes,bayesian,transport)
+                import pandas as pd
+                def predict(text):
+                    view.notes=text
+                    return float(view.predict(pd.DataFrame([fields]))[0])
+            else:
+                from pricing.minilm_signal import Encoder,price
+                folder=Path(root)/'models/xgboost-sparse-minilm/ask'
+                @st.cache_resource(show_spinner=False,max_entries=1)
+                def encoder(path):return Encoder(path)
+                model=encoder(str(folder/'minilm'));head=json.loads((folder/'minilm-head.json').read_text())
+                def predict(text):return float(price(head,model.encode([text]))[0])
+            with st.spinner('Comparing phrase combinations with MiniLM…'):
+                payload=explain_text(predict,notes,limit=6,pairs=2)
+            if current and abs(payload['prediction']-results['ask']['price'])>max(.05,results['ask']['price']*1e-5):raise ValueError('Phrase explanation differs from displayed estimate')
+            st.session_state['_current_minilm_analysis']={'identity':identity,'payload':payload}
         else:payload=cached['payload']
         a,b,c=st.columns(3)
-        a.metric('Blank-description historical signal',f"${payload['base']:,.0f}")
-        b.metric('Full-description historical signal',f"${payload['prediction']:,.0f}")
+        a.metric('Same car · blank advert' if current else 'Blank-description historical signal',f"${payload['base']:,.0f}")
+        b.metric('With your description' if current else 'Full-description historical signal',f"${payload['prediction']:,.0f}")
         c.metric('Net description effect',f"${payload['difference']:+,.0f}")
         st.markdown(highlight_html(payload),unsafe_allow_html=True)
         chart=contribution_chart(payload,True)
-        chart.update_xaxes(title='Allocated effect on historical description-only signal (USD)')
+        chart.update_xaxes(title='Allocated effect on current asking estimate (USD)' if current else 'Allocated effect on historical description-only signal (USD)')
         st.plotly_chart(chart,width='stretch')
-        st.caption('Grouped permutation Shapley attribution, holding the model fixed. Description-only historical asking-price associations; no vehicle-fact adjustment, no date transport and no sale-price guarantee. Current-estimate drivers are in the XGBoost section above.')
-    except (ImportError,ValueError,OSError,RuntimeError):
-        st.warning('The separate MiniLM analysis could not load. Your current estimates remain available.')
+        st.caption('Grouped permutation Shapley allocations sum to the blank-to-full difference. A reconstruction check verifies arithmetic, not truth, causal effects or prediction accuracy. The auction model has no descriptions.')
+    except (ImportError,ValueError,OSError,RuntimeError):st.warning('MiniLM phrase analysis could not complete. The price results remain available.')

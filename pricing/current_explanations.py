@@ -31,7 +31,7 @@ class CurrentView:
         data=csr_matrix((values.ravel(),np.tile(np.arange(k),n),np.arange(0,(n+1)*k,k)),shape=(n,k))
         if self.projector is not None:
             t=self.projector.transform([self.notes]*len(cars));data=hstack([data,t],format='csr');types+=['q']*t.shape[1]
-            display['Description (all TF-IDF terms)']=self.notes[:100] or '(blank)'
+            display['Description (all text dimensions)']=self.notes[:100] or '(blank)'
         return xgb.DMatrix(data,feature_names=self.model.feature_names,feature_types=types,enable_categorical=True,nthread=2),display,age
     def native(self,cars):
         matrix,display,_=self.matrix(cars)
@@ -119,7 +119,7 @@ def render(root,fields,notes,date,results,bayesian):
         import plotly.express as px
         importance=pd.DataFrame({'Feature':native['names'],'Mean absolute SHAP (log USD)':np.abs(native['values']).mean(axis=0)}).sort_values('Mean absolute SHAP (log USD)').tail(12)
         st.plotly_chart(px.bar(importance,x='Mean absolute SHAP (log USD)',y='Feature',orientation='h',title='Feature importance · this reference gallery only'),width='stretch')
-        st.caption('Native TreeSHAP in log dollars for this XGBoost model. Grey categories have no numerical ranking. All TF-IDF terms are summed into a description group; description text stays fixed across the reference gallery. This chart excludes the Bayesian and date layers.')
+        st.caption('Native TreeSHAP in log dollars for this XGBoost model. Grey categories have no numerical ranking. All text dimensions are summed into a description group; description text stays fixed across the reference gallery. This chart excludes the Bayesian and date layers.')
     with tabs[2]:
         feature=st.selectbox('Feature to inspect',native['names'],key='current_dependence')
         colours=['None']+[c for c in native['x'] if pd.api.types.is_numeric_dtype(native['x'][c])]

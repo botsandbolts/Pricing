@@ -1,0 +1,74 @@
+name: MiniLM-only Lemon Squeezer and Bayesian release
+on:
+  workflow_dispatch:
+  push:
+    paths: ['scripts/train_minilm_xgboost.py', 'scripts/restore_kaggle_pricing.py', 'scripts/prepare_minilm_embeddings.py', 'scripts/package_minilm_release.py', '.github/workflows/minilm-release.yml']
+concurrency:
+  group: minilm-only-release
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy pandas scipy scikit-learn xgboost lightgbm requests joblib streamlit==1.66.1 onnxruntime tokenizers
+      - name: Restore and verify original Kaggle cohort and text-training evidence
+        run: |
+          python -m scripts.restore_kaggle_pricing
+          curl --fail --location --retry 3 --output training-cache/bid.zip 'https://www.kaggle.com/api/v1/datasets/download/tunguz/used-car-auction-prices'
+          echo 'acfe086790275ce843700303f0701446f5326852be1ee11d9d2e9407d0301e8d  training-cache/bid.zip' | sha256sum -c -
+          python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl
+      - uses: actions/cache@v4
+        id: embeddings
+        with:
+          path: training-cache/minilm-embeddings
+          key: minilm-128-1110a243-746bc9f8-clean-v2
+      - name: Encode every original advert with pinned label-free MiniLM
+        if: steps.embeddings.outputs.cache-hit != 'true'
+        run: python -m scripts.prepare_minilm_embeddings --cohort training-cache/full-cohort.jsonl --output training-cache/minilm-embeddings
+      - name: Fresh five-fold residuals, then one 25 percent training trim and refit
+        run: |
+          python -m scripts.train_minilm_xgboost --market ask --iterations 300 --minilm-features training-cache/minilm-embeddings --output training-cache/minilm-oof
+          python -m scripts.train_minilm_xgboost --market bid --iterations 300 --output training-cache/minilm-oof
+          python -m scripts.train_minilm_xgboost --market ask --iterations 300 --minilm-features training-cache/minilm-embeddings --output training-cache/minilm-cleaned --residual-source training-cache/minilm-oof/ask/predictions.csv.gz
+          python -m scripts.train_minilm_xgboost --market bid --iterations 300 --output training-cache/minilm-cleaned --residual-source training-cache/minilm-oof/bid/predictions.csv.gz
+      - name: Fit matching Bayesian residual posteriors
+        run: |
+          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market ask --cohort training-cache/full-cohort.jsonl --predictions training-cache/minilm-cleaned/ask/predictions.csv.gz --output training-cache/minilm-cleaned/ask/bayesian
+          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market bid --cohort training-cache/bid-cohort.jsonl --predictions training-cache/minilm-cleaned/bid/predictions.csv.gz --output training-cache/minilm-cleaned/bid/bayesian
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minilm-cleaning-and-evaluation-evidence
+          path: |
+            training-cache/minilm-oof/
+            training-cache/minilm-cleaned/
+            training-cache/kaggle-source.json
+          retention-days: 90
+      - name: Package and smoke-test both markets under serving budget
+        run: python -m scripts.package_minilm_release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: minilm-only-serving
+          path: models/xgboost-hierarchy/
+          retention-days: 90
+      - name: Publish verified serving bundle
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mv models/xgboost-hierarchy "$RUNNER_TEMP/minilm-serving"
+          git pull --ff-only origin main
+          rm -rf models/xgboost-hierarchy
+          mv "$RUNNER_TEMP/minilm-serving" models/xgboost-hierarchy
+          git add -A models/xgboost-hierarchy/
+          git commit -m 'Deploy MiniLM-only XGBoost cleaning and pricing with matching Bayesian posteriors'
+          git push origin HEAD:main

@@ -37,7 +37,9 @@ def render(root):
     from pricing.analytics import render_privacy
     render_privacy()
     st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
-    st.markdown('## 🍋 The Sparse Lemon Squeezer')
+    from pricing.description_features import label
+    feature_label=label(root)
+    st.markdown('## 🍋 The Mini Lemon Squeezer' if feature_label=='MiniLM embeddings' else '## 🍋 The Sparse Lemon Squeezer')
     st.caption('Regular prices first. Bayesian family advice when you want a second opinion.')
     hierarchy_page=st.session_state.get('studio_tabs')=='🌳 Hierarchical model'
     views=['🌳 Bayesian pricing','📊 Accuracy comparison','🧠 How it works'] if hierarchy_page else ['🚗 Regular pricing','🌳 Bayesian pricing','📊 Accuracy comparison','🧠 How it works']
@@ -53,19 +55,21 @@ def render(root):
         st.markdown('### 🌳 Bayesian pricing · the family council')
         st.write('Adds make, model and age corrections to the regular XGBoost estimate. Rare models borrow evidence from their make and the wider market.')
         scorecard(root)
-        st.info('The correction helped asking-price MAE but worsened auction-price MAE. Regular pricing is available in its own panel.')
+        st.info('The matched historical errors above show whether the correction helped each market. Regular pricing remains available separately.')
     else:
         st.markdown('### 🚗 Regular pricing · straight from the trees')
-        st.write('Your cleaned XGBoost models: asking AFT with TF-IDF descriptions, and wholesale median quantile regression.')
+        st.write(f'Your cleaned XGBoost models: asking AFT with {feature_label} descriptions, and wholesale median quantile regression.')
         st.caption('Choose Bayesian pricing for the additional correction and historical ranges. Your car details carry across.')
     from pricing.hierarchy_sparse_live import render as live
     live(root,bayesian=bayesian)
 
 def explain():
+    from pricing.description_features import label
+    feature_label=label(Path("."))
     st.markdown('### Business English')
-    st.write('Each training car is priced by a fresh TF-IDF XGBoost model that did not train on that car. We rank the gap between its recorded and predicted log price, remove the largest 25% of training misses, and train fresh XGBoost models. This may remove errors, but can also remove valid unusual cars. The original validation and test cars stay in the exam.')
-    st.write('This hierarchical asking model reads the advert through sparse TF-IDF. No MiniLM or other transformer is loaded. The auction model estimates a typical wholesale sale using median regression. Bayesian make and model effects borrow evidence for rare cars and provide historical outcome ranges. Today’s prices additionally use the existing ageing and market-index scenario.')
+    st.write(f'Each training car is priced by a fresh {feature_label} XGBoost model that did not train on that car. We rank the gap between its recorded and predicted log price, remove the largest 25% of training misses, and train fresh XGBoost models. This may remove errors, but can also remove valid unusual cars. The original validation and test cars stay in the exam.')
+    st.write(f'This hierarchical asking model reads the advert through {feature_label}. The auction model estimates a typical wholesale sale using median regression. Bayesian make and model effects borrow evidence for rare cars and provide historical outcome ranges. Today’s prices additionally use the existing ageing and market-index scenario.')
     st.markdown('### Technical English')
-    st.write('Selection: absolute log(observed/predicted), from five vehicle-group-held-out XGBoost folds; ceil(25% of eligible calibration rows) removed once per market. Ask: normal survival:aft, exact [price,price] bounds. Bid: reg:quantileerror, alpha=0.5, log-dollar labels. Both use 300 boosting rounds, max depth 5, two CPU threads and native categorical splits. Asking descriptions use a fold-fitted 2,000-feature sparse TF-IDF vocabulary. No UMAP or dense TF-IDF matrix is loaded. This panel has no transformer price feature. It uses compact XGBoost models followed by a Bayesian correction fitted to their own OOF log residuals.')
+    st.write(f'Selection: absolute log(observed/predicted), from five vehicle-group-held-out XGBoost folds; ceil(25% of eligible calibration rows) removed once per market. Ask: normal survival:aft, exact [price,price] bounds. Bid: reg:quantileerror, alpha=0.5, log-dollar labels. Both use 300 boosting rounds, max depth 5, two CPU threads and native categorical splits. Asking descriptions use {feature_label}. For MiniLM releases, the frozen encoder supplies 384 label-free dimensions and never learns evaluation targets; for historical TF-IDF releases, a 2,000-term vocabulary is fitted within each fold. No UMAP is loaded. It uses compact XGBoost models followed by a Bayesian correction fitted to their own OOF log residuals.')
     st.write('Bayesian layer: separate Gaussian make/model-within-make/age residual posteriors for ask and bid, sampled with two blocked Gibbs chains. Validation calibrates 90% historical individual prediction ranges; full test measures coverage. This is not a jointly pooled ask/bid market model, and Gaussian/t/mixture LOO comparison is not implemented.')
     st.warning('Cleaning is adaptive. Post-selection OOF scores are conditional diagnostics, not nested CV of the entire selection pipeline. A matched uncleaned benchmark on the same held-out cars is required to establish whether cleaning helped. Historical interval coverage does not validate today’s extrapolation.')

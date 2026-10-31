@@ -90,3 +90,5 @@ tokenizers>=0.23.1,<0.24
 # Audit release: restart imported modules; restore current BART and standalone MiniLM tools.
 
 # Restore the complete current SHAP studio and fast persistent value timelines.
+
+# Manifest-driven MiniLM replacement and advert-first BART briefing.

@@ -47,3 +47,17 @@ def test_regular_waterfall_uses_regular_anchor():
     assert chart.data[0].y[0]==50.
     assert sum(chart.data[0].y[:3])==pytest.approx(100.)
     assert original['price']==120.
+
+
+def test_timeline_stays_visible_after_assumption_changes_and_rerun(studio):
+    at=studio
+    at.button[0].click().run()
+    at.get('pills')[0].set_value('📅 Value over time').run()
+    assert not at.exception
+    assert len(at.get('plotly_chart'))==1
+    at.slider[0].set_value(12000).run()
+    assert not at.exception
+    assert len(at.get('plotly_chart'))==1
+    at.run()
+    assert not at.exception
+    assert len(at.get('plotly_chart'))==1

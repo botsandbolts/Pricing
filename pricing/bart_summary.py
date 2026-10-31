@@ -92,25 +92,17 @@ def build_valuation_story(fields,description,valuation=None):
 
 
 def qualitative_report_source(fields,description,valuation):
-    """Readable cross-panel briefing; exact numeric tables stay in the source report."""
-    facts,seller=narrative({**fields,'year':None,'odometer':None},description)
-    facts+=' The exact model year and mileage are in the vehicle profile.'
-    parts=[
-        'The car valuation report separates the seller advertised asking price from the wholesale auction sale estimate. Their gap is not dealer profit or a guaranteed discount.',
-        'Historical price models are adjusted to the selected date using vehicle ageing and a public monthly used-car market index. Past same-car prices are reconstructed scenarios, not observed sales. Mileage is held constant for the report; the interactive timeline can instead assume annual driving.',
-        'The index can require a short-horizon forecast beyond its latest observation. Sparse trims use pooled depreciation when flagged. Newer auction generations require an explicit analogue assumption. Current individual-car prices remain experimental without validated prediction intervals.',
-        'The supplied vehicle profile follows. '+facts,
-    ]
+    """Advert-first briefing: vehicle, seller narrative, valuation and evaluation."""
+    facts,seller=narrative(fields,description)
+    parts=['Write a short factual briefing about this vehicle advert, the seller description, the valuation and how it was evaluated. Do not invent vehicle condition or promises.',
+           'Vehicle advertised: '+facts]
+    if seller:parts.append('Unverified seller description: '+seller)
+    parts.append('The valuation has two distinct targets: a seller advertised asking price and a wholesale auction estimate. Their gap is not dealer profit. The exact date and dollar values are supplied in the source report and displayed in the price cards.')
+    for side,r in valuation.get('market_estimates',{}).items():
+        parts.append(('Asking' if side=='ask' else 'Auction')+' valuation: '+str(r['estimated_price_usd'])+' US dollars, for '+str(valuation.get('valuation_date'))+'.')
     for section in valuation.get('sections',[]):
-        title=section['title']
-        if title=='Description branch':parts.append('The description branch uses MiniLM to supply a text-price feature to the asking model. The auction dataset has no descriptions.')
-        elif title=='Feature contributions':parts.append('Native feature-contribution charts explain the historical model response. Separate waterfalls explain ageing and market adjustments in dollars. Phrase analysis is available on request. Explanations describe model associations, not causal effects.')
-        elif title.endswith('model & evaluation'):parts.append(title+': historical tests report errors on the whole original test population and on the retained cohort. Filtering by actual outcomes makes the retained scores optimistic. An independent new cohort is required to establish increased accuracy.')
-        elif title=='Market clock backtests':parts.append('The market forecast has rolling-origin backtests. Component tests do not establish the accuracy of the whole current-car valuation.')
-        elif title.endswith('depreciation evidence'):parts.append(title+': separately fitted depreciation components have historical validation evidence, with their own limitations.')
-        elif title=='Other studio tools':parts.append(section['text'])
-        elif title=='Price targets & datasets':parts.append('The sources are historical Craigslist advertised prices and reported wholesale auction selling prices, covering different years and market segments.')
-    if seller:parts.append('The seller states, without independent verification: '+seller)
+        parts.append(section['title']+': '+section['text'])
+    parts.append('Prices are transported from historical models using age, mileage and a monthly public market index. They are model scenarios, not confirmed sale prices or inspected-car guarantees. The seller description is not independently verified.')
     return '\n'.join(parts)
 
 
@@ -124,7 +116,7 @@ def render_story(fields,description,valuation=None):
     summary_source=qualitative_report_source(fields,description,valuation) if valuation else story
     fingerprint=hashlib.sha256(str(('cross-panel-valuation-v3',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
     st.markdown('#### 📖 Your car & price story · BART summary' if valuation else '#### 📖 The car’s story · AI summary')
-    if valuation:st.caption('Your car, both markets, historical scenarios, model drivers and evaluation evidence — one briefing. BART is the narrator; the receipts keep the numbers honest.')
+    if valuation:st.caption('The advert and seller’s description, both valuations, and a short explanation of the evaluation method. Exact figures stay in the price cards and full source story.')
     saved=st.session_state.get('_bart_summary',{})
     if saved.get('fingerprint')!=fingerprint:
         try:

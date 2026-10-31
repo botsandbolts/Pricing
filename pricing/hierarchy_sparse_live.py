@@ -9,7 +9,7 @@ from pricing.bayesian_hierarchy import load as load_bayesian,predict as posterio
 from marketbridge.time_engine import age_on,today
 
 @st.cache_resource(show_spinner=False,max_entries=2)
-def load(root,side):
+def _load(root,side,version):
     import xgboost as xgb
     import joblib
     folder=Path(root)/'models/xgboost-hierarchy'/side
@@ -19,9 +19,16 @@ def load(root,side):
     schema=json.loads((folder/'category-schema.json').read_text())
     posterior,draws=load_bayesian(folder/'bayesian')
     if posterior['base_model_id']!='xgboost-fivefold-'+side:raise ValueError('Mismatched Bayesian base model')
-    projector=joblib.load(folder/'tfidf.joblib') if side=='ask' else None
+    from pricing.description_features import projector as load_projector
+    projector=load_projector(folder) if side=='ask' else None
     report=json.loads((folder/'bayesian/bayesian-evaluation.json').read_text())
     return model,schema,posterior,draws,projector,report
+
+def load(root,side):
+    folder=Path(root)/'models/xgboost-hierarchy'/side
+    paths=[folder/'evaluation.json',folder/'category-schema.json',folder/'features.json',folder.parent/'release.json']
+    version=tuple((p.name,p.stat().st_mtime_ns,p.stat().st_size) for p in paths if p.exists())
+    return _load(root,side,version)
 
 def design_matrix(model,schema,projector,fields,age):
     import xgboost as xgb
@@ -85,7 +92,9 @@ def estimate(root,fields,date,allow=False):
 
 def render(root,*,bayesian=True):
     from pricing.forest_form import render as form
-    fields,notes,date,allow,submitted=form(description_sensitive='tfidf')
+    from pricing.description_features import kind,label
+    feature_kind=kind(root)
+    fields,notes,date,allow,submitted=form(description_sensitive=feature_kind)
     signature=json.dumps([fields,notes,str(date),allow],sort_keys=True)
     if submitted:
         st.session_state.pop('hierarchy_sparse_result',None)
@@ -113,7 +122,7 @@ def render(root,*,bayesian=True):
                 if 'error' in r:st.warning(r['error']);continue
                 st.metric(f"Estimated value · {date:%d %b %Y}",f"${r['price']:,.0f}");st.caption(meaning)
                 if bayesian:st.markdown(f"**Historical 90% range, date-adjusted · USD {r['interval_low']:,.0f}–{r['interval_high']:,.0f}**")
-                st.caption(f"{date:%d %b %Y} · "+("XGBoost + Bayesian correction" if bayesian else "Regular XGBoost · TF-IDF asking AFT / auction median"))
+                st.caption(f"{date:%d %b %Y} · "+("XGBoost + Bayesian correction" if bayesian else f"Regular XGBoost · {label(root)} asking AFT / auction median"))
                 if r['analogue']:st.warning('Auction estimate uses a generation analogue: auction training ends at model year 2015. This 2016–2021 vehicle generation was not observed; the date adjustment does not validate that assumption.')
                 if bayesian and r['model_support']==0:st.caption('Unseen model/trim: the correction borrows from its make and broader market.')
                 if r['unknown_categories']:st.caption('Unseen categorical inputs: '+', '.join(r['unknown_categories'])+'. Native missing-value routing applies.')
@@ -162,4 +171,4 @@ def render(root,*,bayesian=True):
     render_drivers(root,fields,notes,results,bayesian)
     from pricing.current_explanations import render as render_graphs
     render_graphs(root,fields,notes,date,results,bayesian)
-    render_minilm(root,notes)
+    render_minilm(root,notes,fields,date,results,bayesian)
