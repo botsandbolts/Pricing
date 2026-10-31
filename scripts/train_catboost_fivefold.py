@@ -62,10 +62,16 @@ def run_side(side, path, ask_path, panel, output, iterations):
         import umap
         vectorizer=TfidfVectorizer(ngram_range=(1,2),min_df=10,max_df=.98,
                                    max_features=12000,sublinear_tf=True,dtype=np.float32)
-        matrix=vectorizer.fit_transform([texts[i] for i in fit_idx])
+        # A bounded reference atlas keeps the serving projector small. The
+        # CatBoost model is retrained against this atlas; old weights cannot be
+        # reused with the new coordinates.
+        rng=np.random.default_rng(42)
+        atlas=rng.choice(fit_idx,size=min(20000,len(fit_idx)),replace=False)
+        matrix=vectorizer.fit_transform([texts[i] for i in atlas])
         reducer=umap.UMAP(n_components=8,n_neighbors=25,min_dist=.1,metric='cosine',
                           random_state=42,transform_seed=42,low_memory=True,n_jobs=1)
-        fitted=reducer.fit_transform(matrix)
+        reducer.fit(matrix)
+        fitted=reducer.transform(vectorizer.transform([texts[i] for i in fit_idx]))
         held=reducer.transform(vectorizer.transform([texts[i] for i in predict_idx]))
         joblib.dump((vectorizer,reducer),folder/f'{prefix}-tfidf-umap.joblib',compress=3)
         return fitted,held
