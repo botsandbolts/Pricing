@@ -74,3 +74,5 @@ qrcode>=8,<9
 # Refresh categorical time-evidence waterfall axis after live UI verification.
 
 # Full two-market random-forest car editor and verified native serving weights.
+
+# Joint Bayesian residual posterior and historical outcome ranges: refresh app imports.

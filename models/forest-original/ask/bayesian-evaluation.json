@@ -1,0 +1,28 @@
+{
+  "nominal_coverage": 0.9,
+  "validation_rows": 31668,
+  "test_rows": 31682,
+  "validation_multiplier": 1.6457352110996102,
+  "test_coverage": 0.8990909664793889,
+  "test_median_interval_width_usd": 15226.602756400516,
+  "test_median_interval_ratio": 3.6241659034905367,
+  "point_scores": {
+    "mae_usd": 4084.841142542993,
+    "rmse_usd": 7753.211357446402,
+    "mae_log": 0.31334357803078866,
+    "bias_usd": -1583.4852505581352,
+    "rows": 31682
+  },
+  "limits": "Historical individual outcome interval only; no current-date market/age transport validation or causal interval.",
+  "side": "ask",
+  "rhat": {
+    "global": 0.999204088582973,
+    "age": 0.9999034589542101,
+    "sigma2": 1.0009601208631624,
+    "make_tau2": 1.006815321975801,
+    "model_tau2": 1.0071114108352586
+  },
+  "train_rows": 147777,
+  "base_model_id": "xgbrf-log-price-1694f7a3999c87a4e9e16f03e230e0d9117ae74db4d58d56bc246f57e7948c3e",
+  "price_basis": "2021 advertised asking USD"
+}

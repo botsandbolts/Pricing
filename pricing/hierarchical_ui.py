@@ -34,7 +34,7 @@ def render(root):
 """
     side=st.session_state.get('hierarchy_side','ask')
     if installed(str(root),side):
-        hero=hero.replace('MODEL STATUS · AWAITING CALIBRATION DATA','XGBOOST RANDOM FOREST · ORIGINAL DATA').replace('The laboratory is ready. A trained correction and measured accuracy gain are not available yet. Your current price calculator keeps its existing models.','One random forest. One family-tree correction. Same untouched test. Enter your own car below for both markets. The original text-sensitive calculator remains available.')
+        hero=hero.replace('MODEL STATUS · AWAITING CALIBRATION DATA','BAYESIAN FAMILY TREE · ORIGINAL DATA').replace('The laboratory is ready. A trained correction and measured accuracy gain are not available yet. Your current price calculator keeps its existing models.','A joint Bayesian make/model correction follows the random forest. Both prices now come with a clearly labelled historical uncertainty range. Enter your car below.')
     st.markdown(hero,unsafe_allow_html=True)
     if st.session_state.get('studio_tabs')!='🌳 Hierarchical model':return
     from pricing.forest_live import render as render_live
@@ -45,8 +45,8 @@ def render(root):
     saved=st.session_state.get('hierarchy_experiment')
     if not saved or saved[0]['side']!=side:saved=installed(str(root),side)
     with st.expander('How this works · plain English and statistical recipe'):
-        st.write('The forest estimates log price from vehicle facts. A family-tree correction learns the remaining out-of-fold errors: market, make and model offsets, plus supported age patterns. Sparse models borrow strength. Family advice, with fewer unsolicited opinions.')
-        st.write('XGBoost RF: 200 parallel trees in one boosting round, depth 8, native categorical splits. The hierarchy is sequential empirical Bayes, not joint MCMC. Correction standard errors are not individual sale-price prediction intervals.')
+        st.write('The forest estimates log price from vehicle facts. A joint Bayesian correction fits a market mean, shared age slope, make offsets and model-within-make offsets to independent out-of-fold residuals. Sparse models borrow strength. Family advice, with fewer unsolicited opinions.')
+        st.write('XGBoost RF: 200 parallel trees in one boosting round, depth 8, native categorical splits. Two blocked Gibbs chains sample the joint hierarchical Gaussian posterior, including residual noise and group variances. The separate validation cohort scales historical 90% prediction ranges; the untouched test cohort measures coverage. The previous sequential empirical-Bayes correction remains as a benchmark below.')
         st.warning('Historical asking advertisements and wholesale sales are different targets. This experiment excludes SGD, CatBoost, MiniLM and production outlier cleaning. Your ordinary calculator and description features remain available.')
     with st.expander('Developer workbench · data, fitting & provenance'):
         from pricing.forest_residuals import OBSERVATION_COLUMNS,generate
@@ -80,13 +80,25 @@ def render(root):
     st.markdown('#### 02 · Did the family advice help?')
     test=report['cohorts']['test'];a,b=st.columns(2)
     a.metric('XGBoost RF · test MAE',f"${test['base']['mae_usd']:,.0f}")
-    b.metric('RF + hierarchy · test MAE',f"${test['hierarchical']['mae_usd']:,.0f}")
+    from pathlib import Path
+    bayes_file=Path(root)/'models/forest-original'/side/'bayesian-evaluation.json'
+    bayes_report=json.loads(bayes_file.read_text()) if bayes_file.exists() else None
+    b.metric('RF + joint Bayes · test MAE' if bayes_report else 'RF + empirical Bayes · test MAE',
+             f"${(bayes_report['point_scores']['mae_usd'] if bayes_report else test['hierarchical']['mae_usd']):,.0f}")
     st.caption(f"Same {test['base']['rows']:,} historical test cars. Lower MAE means a smaller average dollar miss. No difficult test cars disappeared behind the garage.")
+    if bayes_report:
+        st.markdown(f"**Historical 90% price range:** contained **{bayes_report['test_coverage']:.1%}** of {bayes_report['test_rows']:,} untouched test outcomes. Median width **${bayes_report['test_median_interval_width_usd']:,.0f}**. Validation chose the scale; test never fitted it.")
+        st.caption('These are individual historical outcome ranges, not confidence intervals for the average prediction. Date transport and future market uncertainty have not been coverage-tested.')
+        with st.expander('Bayesian receipt · priors, chains & convergence'):
+            import gzip
+            with gzip.open(Path(root)/'models/forest-original'/side/'bayesian.json.gz','rt') as file:meta=json.load(file)
+            st.json({'priors':meta['priors'],'chains':meta['chains'],'warmup_per_chain':meta['warmup_per_chain'],'draws_per_chain':meta['draws_per_chain'],'rhat':meta['rhat'],'validation_multiplier':bayes_report['validation_multiplier']})
     lo,hi=test['mae_change_95_group_bootstrap']
     st.metric('MAE change · hierarchy minus forest',f"{test['mae_change_usd']:+,.2f} USD")
     st.caption(f'Negative is better. Paired group bootstrap, 300 resamples: 95% interval [{lo:+,.2f}, {hi:+,.2f}] USD. This concerns the MAE difference, not a car price.')
-    with st.expander('Full scorecard · MAE, RMSE, log error and bias'):
+    with st.expander('Full scorecard · forest, empirical Bayes and joint Bayes'):
         metrics=[{'Cohort':split,'Model':'Forest' if method=='base' else 'Forest + hierarchy',**r[method]} for split,r in report['cohorts'].items() for method in ['base','hierarchical']]
+        if bayes_report:metrics.append({'Cohort':'test','Model':'Forest + joint Bayes',**bayes_report['point_scores']})
         st.dataframe(pd.DataFrame(metrics),hide_index=True)
         st.caption('RMSE penalizes extreme misses. Bias is prediction minus observed price. Improving MAE does not guarantee improved bias.')
     with st.expander('Random forest · full technical receipt'):
@@ -112,7 +124,14 @@ def render(root):
         st.caption(f"Observed historical target: ${row.observed_price:,.0f}. This is a held-out check, not an offer.")
         st.bar_chart(pd.DataFrame({'Log-price correction':[row.global_effect,row.make_effect,row.model_effect,row.age_effect]},index=['Market','Make','Model','Age']))
         st.write(f"Make support: {int(row.make_n):,} · model support: {int(row.model_n):,} · model pooling weight: {row.model_weight:.1%}.")
-        st.caption(f'Approximate correction standard error: {row.correction_sd_log:.4f} log units; excludes base-model, hyperparameter and date uncertainty.')
+        st.caption(f'Legacy empirical-Bayes correction standard error: {row.correction_sd_log:.4f} log units; this is not a prediction interval.')
+        if bayes_report:
+            from pricing.forest_live import bayesian
+            from pricing.bayesian_hierarchy import predict as posterior_predict,interval
+            meta,draws=bayesian(str(root),side)
+            bp=posterior_predict(meta,draws,rows.iloc[[choice]]).iloc[[0]]
+            low,high=interval(bp,meta['interval']['multiplier'])
+            st.success(f"Joint Bayesian historical estimate ${bp.corrected_price.iloc[0]:,.0f} · 90% validation-calibrated historical range ${low[0]:,.0f}–${high[0]:,.0f}")
         if 'year' in row and 'source_date' in row:
             from pricing.forest_time import render as render_date
             render_date(root,row,side)

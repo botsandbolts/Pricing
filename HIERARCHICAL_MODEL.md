@@ -1,6 +1,6 @@
 # Original-data random forest and hierarchical laboratory
 
-The **Hierarchical model** panel loads real original-cohort results automatically. It compares **XGBoost random forest** with **the same forest plus an empirical-Bayes residual correction**. SGD has been removed. CatBoost is not used in this experiment. The normal landing-page calculator, car-details fields, long description dropdown and MiniLM text features keep their existing production models.
+The **Hierarchical model** panel loads original-cohort results automatically. Its live editor combines **XGBoost random forest** with a **joint Bayesian residual correction** and shows validation-calibrated historical outcome ranges. The previous sequential empirical-Bayes correction remains as a benchmark. SGD has been removed. CatBoost is not used in this experiment. The normal landing-page calculator and MiniLM text features keep their existing production models.
 
 ## Data and historical assessment
 
@@ -8,10 +8,10 @@ Sources: Craigslist Used Cars / Tom, [Zenodo 10457828](https://zenodo.org/record
 
 All source records are scanned and 100% of eligible canonical cars are assessed. No 10% sampling or residual trimming. Existing canonical preparation retains dated, deduplicated asking listings priced $1,000–150,000 with cleaned descriptions >=80 characters; auctions require valid VIN/price provenance and one canonical sale per vehicle. Predictor checks require valid year/date/mileage; missing mileage remains eligible for forest training. Known auction VIN overlap with asking descriptions is excluded.
 
-| Market | Eligible cars | Test cars | Forest test MAE | Forest + hierarchy test MAE |
-|---|---:|---:|---:|---:|
-| Craigslist asking | 211,127 | 31,682 | $4,722 | $4,065 |
-| Wholesale auction | 550,181 | 83,603 | $2,240 | $2,127 |
+| Market | Eligible cars | Test cars | Forest test MAE | Empirical-Bayes test MAE | Joint-Bayes test MAE | Historical 90% range test coverage |
+|---|---:|---:|---:|---:|---:|---:|
+| Craigslist asking | 211,127 | 31,682 | $4,722 | $4,065 | $4,085 | 89.9% |
+| Wholesale auction | 550,181 | 83,603 | $2,240 | $2,127 | $2,116 | 92.4% |
 
 Historical price bases differ: 2021 advertised asking dollars versus January 2015 CPI-reference auction dollars. Do not directly rank these two MAEs as identical tasks or current-car guarantees. Auction normalization uses the project's two-month-lag index recipe; current-vintage revisions remain a limitation.
 
@@ -25,9 +25,30 @@ The release used `XGBRFRegressor`, internally one boosting round with 200 parall
 
 `log(corrected USD) = log(forest USD) + global + make + model-within-make + age effect`.
 
-Sequential empirical-Bayes pooling fits `log(observed/base)` on calibration OOF errors. Estimated between-group variance is group-mean variance minus average sampling variance, floored at zero. Group offsets shrink by `n*tau²/(sigma²+n*tau²)`. Unseen groups get zero group offset; sparse groups borrow strength. A regularized shared age slope is supplemented by model-age slopes with >=40 calibration rows and >=3 years' age variation. This is a sequential Gaussian approximation, not joint Bayesian MCMC. Correction standard errors omit hyperparameter uncertainty and are not sale-price intervals.
+The earlier sequential empirical-Bayes benchmark pools `log(observed/base)` on calibration OOF errors. Estimated between-group variance is group-mean variance minus average sampling variance, floored at zero. Group offsets shrink by `n*tau²/(sigma²+n*tau²)`. Unseen groups get zero group offset; sparse groups borrow strength. A regularized shared age slope is supplemented by model-age slopes with >=40 calibration rows and >=3 years' age variation. This is a sequential Gaussian approximation, not joint Bayesian MCMC. Its correction standard errors omit hyperparameter uncertainty and are not sale-price intervals. It remains on the scorecard; the live car editor uses the joint Bayesian correction below.
 
 The scorecard includes MAE, RMSE, log MAE and signed bias. A 300-resample paired vehicle-group bootstrap reports a 95% interval for the MAE difference, not for a car's price. Both historical tests improved MAE/RMSE after pooling; auction signed bias increased. All measures and limitations remain visible. No automatic production promotion occurs.
+
+### Joint Bayesian correction and historical outcome ranges
+
+The installed car editor fits a **joint posterior**, separately for asking and auction prices. The forest remains a held-fixed calibration-only base model. Group-out-of-fold log-price errors obey:
+
+`r_i = market + age_per_decade × (age_i − mean_age)/10 + make_i + model_within_make_i + observation_noise_i`.
+
+Independent proper priors: market `Normal(0,1)`, age per decade `Normal(0,0.2)`, make and model effects `Normal(0,tau_make²)` and `Normal(0,tau_model²)`. Observation and group variances have inverse-gamma `(shape, scale)` priors `(2,0.1)`, `(2,0.04)` and `(2,0.04)` respectively. Two blocked Gibbs chains jointly sample effects and variances. The global mean and group effects are updated as a conditional block to improve mixing. The release stores 100 thinned posterior draws per chain from 400 sampled draws; diagnostics use all samples and report R-hat for market, age and variances. Sparse groups shrink to their parents. Unseen groups add population variation to uncertainty.
+
+For an individual historical car, predictive log variance combines joint posterior variation and observation noise. A **separate chronological validation set** chooses the finite-sample 90% quantile of absolute standardized log errors to scale the historical posterior predictive interval. The **untouched chronological test set** reports coverage, median width, MAE, RMSE and bias. The center exponentiates the mean log correction, a median-like price rather than the arithmetic expected sale price. A prediction range concerns one outcome, not the uncertainty of the model mean. Validation is marginal across the historical cohort, with no coverage guarantee for every subgroup.
+
+The same ageing and monthly market factors transport the point and historical range to the selected date. **There is no verified 90% coverage for today's prices**: market forecasts, inventory shifts, unobserved generations and age/mileage transport introduce uncertainty absent from this historical interval. The GUI says this explicitly and reports the actual untouched-test coverage. Craigslist asks are advertised prices, not completed retail sales.
+
+Reproduce from the original archives and group-held-out forest residuals:
+
+```
+python -m scripts.train_original_residual_comparison --engine forest --output training-cache/bayesian-refit
+python -m scripts.train_bayesian_hierarchy --input training-cache/bayesian-refit --warmup 450 --draws 400
+```
+
+The first command needs the canonical input files described below. Released posterior files are checksum-verified non-pickle NumPy arrays split into Git-sized chunks, with priors, diagnostics and test coverage in JSON. The new RF refit matched every price in all 1,000 previously published held-out inspection examples per market. No test outcome fitted the posterior or selected interval width.
 
 ## Today or another date
 

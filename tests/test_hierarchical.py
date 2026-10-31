@@ -194,3 +194,25 @@ def test_compact_forest_categorical_and_missing_routes():
     arrays={'base':np.array([10],np.float32),'starts':np.array([0,3]),'feature':np.array([0,-1,-1]),'value':np.array([0,1,2],np.float32),'yes':np.array([1,0,0]),'no':np.array([2,0,0]),'missing':np.array([2,0,0]),'cat_offset':np.zeros(3,int),'cat_length':np.array([1,0,0]),'bits':np.array([4],np.uint8)}
     x=pd.DataFrame({'make':pd.Categorical(['c','b',None],categories=['a','b','c'])})
     np.testing.assert_array_equal(CompactForest(arrays).predict(x),[11,12,12])
+
+
+def test_joint_bayesian_posterior_and_independent_interval_calibration():
+    from pricing.bayesian_hierarchy import fit, predict as bayes_predict, assess, interval
+    d=fixture();cal=d[d.split=='calibration'];val=d[d.split=='validation'];test=d[d.split=='test']
+    meta,draws=fit(cal,warmup=16,draws=25)
+    assert meta['method']=='joint_gibbs_hierarchical_gaussian_log_residuals'
+    assert len(draws['global'])==50 and len(draws['make'])==50
+    summary,_,est=assess(meta,draws,val,test)
+    assert 0<=summary['test_coverage']<=1 and summary['validation_rows']==50
+    assert (est.predictive_sd_log>0).all()
+    low,high=interval(est,summary['validation_multiplier'])
+    assert np.all(low<high)
+    changed=d.copy();changed.loc[changed.split=='test','observed_price']*=7
+    other,other_draws=fit(changed[changed.split=='calibration'],warmup=16,draws=25)
+    assert meta==other
+    for key in draws:np.testing.assert_array_equal(draws[key],other_draws[key])
+    # An unseen model draws from the hierarchical population, widening its range.
+    unknown=test.iloc[:1].copy();unknown['manufacturer']='not-a-make';unknown['model']='not-a-model'
+    pred=bayes_predict(meta,draws,unknown).iloc[0]
+    assert pred.model_n==0 and pred.make_n==0
+    assert pred.predictive_sd_log>0

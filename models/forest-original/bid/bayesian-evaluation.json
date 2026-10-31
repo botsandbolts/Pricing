@@ -1,0 +1,28 @@
+{
+  "nominal_coverage": 0.9,
+  "validation_rows": 82380,
+  "test_rows": 83603,
+  "validation_multiplier": 1.4865101500881492,
+  "test_coverage": 0.923507529634104,
+  "test_median_interval_width_usd": 11382.660286730412,
+  "test_median_interval_ratio": 2.320691678762123,
+  "point_scores": {
+    "mae_usd": 2116.415066464595,
+    "rmse_usd": 3491.65145737243,
+    "mae_log": 0.17519311287973655,
+    "bias_usd": 447.96587114188753,
+    "rows": 83603
+  },
+  "limits": "Historical individual outcome interval only; no current-date market/age transport validation or causal interval.",
+  "side": "bid",
+  "rhat": {
+    "global": 1.017240582631597,
+    "age": 1.0028232563696082,
+    "sigma2": 0.9988400127873073,
+    "make_tau2": 1.0122338537973439,
+    "model_tau2": 1.0267271865133012
+  },
+  "train_rows": 384198,
+  "base_model_id": "xgbrf-log-price-13ff5618232431d9cccf35f88cf28a2197d135b054d679f8c4ecfe6a7e07dbc7",
+  "price_basis": "2015-01 CPI-reference auction USD"
+}
