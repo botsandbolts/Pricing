@@ -56,6 +56,7 @@ function installPricingInteractions() {
   actions.set('Download CatBoost residuals',['download_requested','catboost_residuals']);
   actions.set('Download hierarchical experiment',['download_requested','hierarchical_report']);
   const settings = new Map([
+    ['Market to explain','shap_market'],['Pricing view','pricing_view'],
     ['Pricing model','pricing_model'],['Asking model','asking_model'],['Bid / auction model','bid_model'],
     ['Auction pricing option','auction_model'],['Browse 400 real car descriptions — type to search','example_description'],
     ['Valuation date','valuation_date'],['Assumed miles per year','annual_miles'],
