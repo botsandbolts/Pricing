@@ -1,0 +1,43 @@
+name: Original-cohort five-fold XGBoost CPU
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/train_xgboost_fivefold.py
+      - .github/workflows/xgboost-fivefold.yml
+permissions:
+  contents: read
+jobs:
+  train:
+    strategy:
+      fail-fast: false
+      matrix:
+        market: [ask, bid]
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scikit-learn>=1.4,<2' 'scipy>=1.11,<2' 'xgboost>=3.0,<4' 'lightgbm>=4.5,<5' 'umap-learn>=0.5.7,<0.6' 'joblib>=1.3,<2'
+      - name: Download original archives
+        run: |
+          mkdir -p training-cache
+          curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'
+          echo 'eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f  training-cache/ask.zip' | sha256sum -c -
+          if [ '${{ matrix.market }}' = bid ]; then
+            curl --fail --location --retry 3 --output training-cache/bid.zip 'https://www.kaggle.com/api/v1/datasets/download/tunguz/used-car-auction-prices'
+            echo 'acfe086790275ce843700303f0701446f5326852be1ee11d9d2e9407d0301e8d  training-cache/bid.zip' | sha256sum -c -
+          fi
+      - run: python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 4
+      - if: matrix.market == 'bid'
+        run: python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl
+      - name: Fit five XGBoost models and held-out refit
+        run: python -m scripts.train_xgboost_fivefold --market '${{ matrix.market }}' --iterations 1000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: xgboost-fivefold-${{ matrix.market }}
+          path: training-cache/xgboost-fivefold/${{ matrix.market }}/
+          retention-days: 30
