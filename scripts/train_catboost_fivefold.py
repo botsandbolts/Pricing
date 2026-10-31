@@ -21,6 +21,10 @@ from pricing.catboost_residuals import CATEGORICAL
 
 def run_side(side, path, ask_path, panel, output, iterations):
     d=load_cohort(path)
+    if 'vehicle_group' not in d:
+        if side!='ask':raise ValueError('Auction vehicle_group is required')
+        # Craigslist preparation already deduplicates VINs and descriptions.
+        d['vehicle_group']=d.row_id.astype(str)
     if side=='ask':
         # The shared cohort loader deliberately strips descriptions. Restore by
         # row identity, never by assumed row order after validity filtering.
