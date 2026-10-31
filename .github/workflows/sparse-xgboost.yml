@@ -5,6 +5,9 @@ on:
     paths:
       - scripts/train_sparse_xgboost.py
       - .github/workflows/sparse-xgboost.yml
+concurrency:
+  group: sparse-lemon-release
+  cancel-in-progress: true
 permissions:
   contents: write
   actions: read
@@ -36,9 +39,14 @@ jobs:
           name: fresh-tfidf-oof-residuals
           path: training-cache/tfidf-oof/
           retention-days: 30
+      - name: Export and precompute frozen MiniLM signal offline
+        run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu 'torch==2.6.0'
+          pip install 'transformers==4.57.1' 'onnx>=1.16,<2' 'onnxruntime>=1.20,<2' 'tokenizers>=0.22,<0.23'
+          python -m scripts.prepare_minilm_signal --cohort training-cache/full-cohort.jsonl --output training-cache/minilm-signal
       - name: Cut 25 percent using fresh TF-IDF residuals and retrain XGBoost
         run: |
-          python -m scripts.train_sparse_xgboost --market ask --iterations 300 --output training-cache/xgboost-sparse --residual-source training-cache/tfidf-oof/ask/predictions.csv.gz
+          python -m scripts.train_sparse_xgboost --market ask --iterations 300 --output training-cache/xgboost-sparse --residual-source training-cache/tfidf-oof/ask/predictions.csv.gz --minilm-features training-cache/minilm-signal
           python -m scripts.train_sparse_xgboost --market bid --iterations 300 --output training-cache/xgboost-sparse --residual-source training-cache/tfidf-oof/bid/predictions.csv.gz
       - name: Fit matching Bayesian posteriors
         run: |
@@ -51,16 +59,16 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sparse-lemon-serving
-          path: models/xgboost-sparse/
+          path: models/xgboost-sparse-minilm/
           retention-days: 90
       - name: Install verified weights for Streamlit
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          mv models/xgboost-sparse "$RUNNER_TEMP/xgboost-sparse"
+          mv models/xgboost-sparse-minilm "$RUNNER_TEMP/xgboost-sparse-minilm"
           git pull --ff-only origin main
-          python -c "import shutil; shutil.rmtree('models/xgboost-sparse',ignore_errors=True)"
-          mv "$RUNNER_TEMP/xgboost-sparse" models/xgboost-sparse
-          git add -A models/xgboost-sparse/
+          python -c "import shutil; shutil.rmtree('models/xgboost-sparse-minilm',ignore_errors=True)"
+          mv "$RUNNER_TEMP/xgboost-sparse-minilm" models/xgboost-sparse-minilm
+          git add -A models/xgboost-sparse-minilm/
           git commit -m 'Deploy compact sparse-TFIDF Lemon Squeezer XGBoost and matching Bayesian hierarchy'
           git push origin HEAD:main

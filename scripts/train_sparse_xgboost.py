@@ -19,7 +19,7 @@ from pricing.model_suite import load_cohort, predictors
 from pricing.catboost_residuals import CATEGORICAL
 
 
-def run_side(side, path, ask_path, panel, output, iterations, residual_source):
+def run_side(side, path, ask_path, panel, output, iterations, residual_source, minilm_features=None):
     d=load_cohort(path)
     if residual_source:
         source=pd.read_csv(residual_source,dtype={'row_id':str})
@@ -62,6 +62,16 @@ def run_side(side, path, ask_path, panel, output, iterations, residual_source):
         x[c]=x[c].fillna('unknown').astype(str).str.strip().str.lower() if c in x else 'unknown'
     x=x[cols].reset_index(drop=True)
     d=d.reset_index(drop=True)
+    embeddings=None
+    if side=='ask' and minilm_features:
+        import hashlib
+        mf=Path(minilm_features)
+        provenance=json.loads((mf/'provenance.json').read_text())
+        if provenance['cohort_sha256']!=hashlib.file_digest(open(path,'rb'),'sha256').hexdigest():raise ValueError('MiniLM cohort mismatch')
+        row_ids=json.loads((mf/'row-ids.json').read_text())
+        lookup=pd.Index(row_ids).get_indexer(d.row_id.astype(str))
+        if (lookup<0).any():raise ValueError('Missing MiniLM row')
+        embeddings=np.load(mf/'embeddings.npy',mmap_mode='r')[lookup]
     texts=d.text.fillna('').astype(str).tolist() if side=='ask' else None
     phase=d.phase.map({'train':'calibration','validation':'validation','test':'test'})
     tr=np.flatnonzero(phase=='calibration')
@@ -111,7 +121,15 @@ def run_side(side, path, ask_path, panel, output, iterations, residual_source):
         raw=model.predict(matrix(frame,levels,vectorizer,text))
         return np.asarray(raw,float) if side=='ask' else np.exp(np.clip(raw,-700,np.log(1e7)))
     def augmented(fit_idx,pred_idx,prefix):
-        return (x.iloc[fit_idx].copy(),[texts[i] for i in fit_idx] if texts else None),(x.iloc[pred_idx].copy(),[texts[i] for i in pred_idx] if texts else None)
+        train=x.iloc[fit_idx].copy();held=x.iloc[pred_idx].copy()
+        if embeddings is not None:
+            from pricing.minilm_signal import crossfit,price
+            oof,head=crossfit(embeddings[fit_idx],y[fit_idx],d.vehicle_group.iloc[fit_idx].to_numpy())
+            train['predicted_text_price']=oof
+            held['predicted_text_price']=price(head,embeddings[pred_idx])
+            if prefix=='calibration-refit':
+                (folder/'minilm-head.json').write_text(json.dumps(head))
+        return (train,[texts[i] for i in fit_idx] if texts else None),(held,[texts[i] for i in pred_idx] if texts else None)
     for fold,(a,b) in enumerate(GroupKFold(5).split(tr,groups=d.vehicle_group.iloc[tr])):
         print(f'{side} group OOF {fold+1}/5',flush=True)
         train_x,held_x=augmented(tr[a],tr[b],f'fold-{fold+1}')
@@ -129,7 +147,7 @@ def run_side(side, path, ask_path, panel, output, iterations, residual_source):
     report={'market':side,'objective':loss,'folds':5,'iterations':iterations,'n':len(d),
             'residual_unit':'log(observed/reference prediction)', 'training':'calibration group OOF; calibration-only final refit',
             'description_features':'ask: fold-fitted sparse TF-IDF, 2000 features, no UMAP; bid: structured only',
-            'scores':{}}
+            'transformer_feature':bool(embeddings is not None),'scores':{}}
     for split in ('calibration','validation','test'):
         mask=(phase==split).to_numpy();report['scores'][split]={'n':int(mask.sum()),
             'mae_usd':float(np.abs(y[mask]-preds[mask]).mean()),
@@ -151,9 +169,10 @@ if __name__=='__main__':
     p.add_argument('--output',default='training-cache/xgboost-fivefold')
     p.add_argument('--market',choices=['ask','bid'])
     p.add_argument('--residual-source',default=None)
+    p.add_argument('--minilm-features',default=None)
     p.add_argument('--iterations',type=int,default=300)
     args=p.parse_args()
     for side,path in [('ask',args.ask),('bid',args.bid)]:
         if args.market and args.market!=side:continue
         if not Path(path).exists():raise FileNotFoundError(f'{path} missing: prepare the original cohort first')
-        run_side(side,path,args.ask,IndexPanel(args.index),args.output,args.iterations,args.residual_source)
+        run_side(side,path,args.ask,IndexPanel(args.index),args.output,args.iterations,args.residual_source,args.minilm_features)

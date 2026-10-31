@@ -12,15 +12,22 @@ from marketbridge.time_engine import age_on,today
 def load(root,side):
     import xgboost as xgb
     import joblib
-    folder=Path(root)/'models/xgboost-sparse'/side
+    folder=Path(root)/'models/xgboost-sparse-minilm'/side
     model=xgb.Booster()
     model.load_model(bytearray(read_model_file(folder/'calibration-refit.ubj')))
     schema=json.loads((folder/'category-schema.json').read_text())
     posterior,draws=load_bayesian(folder/'bayesian')
     if posterior['base_model_id']!='xgboost-fivefold-'+side:raise ValueError('Mismatched Bayesian base model')
     projector=joblib.load(folder/'tfidf.joblib') if side=='ask' else None
+    if side=='ask' and (folder/'minilm-head.json').exists():
+        projector={'tfidf':projector,'head':json.loads((folder/'minilm-head.json').read_text()),'encoder_path':str(folder/'minilm')}
     report=json.loads((folder/'bayesian/bayesian-evaluation.json').read_text())
     return model,schema,posterior,draws,projector,report
+
+@st.cache_resource(show_spinner=False,max_entries=1)
+def minilm_encoder(path):
+    from pricing.minilm_signal import Encoder
+    return Encoder(path)
 
 def base_predict(model,schema,projector,fields,age,side):
     import xgboost as xgb
@@ -32,6 +39,12 @@ def base_predict(model,schema,projector,fields,age,side):
         value=str(fields.get(c) or 'unknown').strip().lower()
         if value not in levels:unknown.append(c)
         x[c]=pd.Categorical([value],categories=levels)
+    if isinstance(projector,dict):
+        from pricing.minilm_signal import price as text_price
+        signal=projector
+        embeddings=minilm_encoder(signal['encoder_path']).encode([str(fields.get('text',''))],batch_size=1)
+        x['predicted_text_price']=text_price(signal['head'],embeddings)
+        projector=signal['tfidf']
     from scipy.sparse import csr_matrix,hstack
     frame=x.copy()
     for c,levels in schema.items():
