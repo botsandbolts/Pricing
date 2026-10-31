@@ -34,6 +34,6 @@
 - An independent current-market dataset validating today's transported prices or current-date interval coverage.
 - Demonstrated improvement from the 25% trimming against an otherwise matched untrimmed model.
 - Full legacy multi-graph explanation suite rewired to the new estimator. Current native TreeSHAP, dollar/time waterfalls and timeline are connected; old benchmark tools retain their own identities.
-- Local end-to-end neural BART generation was not exercised in this audit environment; orchestration/number-guard tests passed. Runtime model download, latency and factual accuracy are not guaranteed.
+- BART source/orchestration tests passed; actual hosted BART generation and separate ONNX MiniLM phrase highlights were also exercised successfully on 31 October. Runtime latency and factual accuracy are not guaranteed.
 
 No zero-bug claim is made. This audit records reproducible checks and explicit gaps rather than treating old promises as proof of implementation.

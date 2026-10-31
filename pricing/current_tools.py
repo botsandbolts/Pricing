@@ -154,7 +154,9 @@ def render_minilm(root,notes):
         b.metric('Full-description historical signal',f"${payload['prediction']:,.0f}")
         c.metric('Net description effect',f"${payload['difference']:+,.0f}")
         st.markdown(highlight_html(payload),unsafe_allow_html=True)
-        st.plotly_chart(contribution_chart(payload,True),width='stretch')
+        chart=contribution_chart(payload,True)
+        chart.update_xaxes(title='Allocated effect on historical description-only signal (USD)')
+        st.plotly_chart(chart,width='stretch')
         st.caption('Grouped permutation Shapley attribution, holding the model fixed. Description-only historical asking-price associations; no vehicle-fact adjustment, no date transport and no sale-price guarantee. Current-estimate drivers are in the XGBoost section above.')
     except (ImportError,ValueError,OSError,RuntimeError):
         st.warning('The separate MiniLM analysis could not load. Your current estimates remain available.')
