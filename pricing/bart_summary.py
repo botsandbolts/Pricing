@@ -94,8 +94,7 @@ def build_valuation_story(fields,description,valuation=None):
 def qualitative_report_source(fields,description,valuation):
     """Advert-first briefing: vehicle, seller narrative, valuation and evaluation."""
     facts,seller=narrative(fields,description)
-    parts=['Write a short factual briefing about this vehicle advert, the seller description, the valuation and how it was evaluated. Do not invent vehicle condition or promises.',
-           'Vehicle advertised: '+facts]
+    parts=[facts]
     if seller:parts.append('Unverified seller description: '+seller)
     parts.append('The valuation has two distinct targets: a seller advertised asking price and a wholesale auction estimate. Their gap is not dealer profit. The exact date and dollar values are supplied in the source report and displayed in the price cards.')
     for side,r in valuation.get('market_estimates',{}).items():

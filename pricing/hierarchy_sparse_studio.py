@@ -58,7 +58,7 @@ def render(root):
         st.info('The matched historical errors above show whether the correction helped each market. Regular pricing remains available separately.')
     else:
         st.markdown('### 🚗 Regular pricing · straight from the trees')
-        st.write(f'Your cleaned XGBoost models: asking AFT with {feature_label} descriptions, and wholesale median quantile regression.')
+        st.write(f'Cleaned XGBoost uses AFT for asking prices, with {feature_label} as its description input. Auction prices use median quantile regression.')
         st.caption('Choose Bayesian pricing for the additional correction and historical ranges. Your car details carry across.')
     from pricing.hierarchy_sparse_live import render as live
     live(root,bayesian=bayesian)

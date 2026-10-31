@@ -96,3 +96,5 @@ tokenizers>=0.23.1,<0.24
 # Cold restart: isolate release-contract helper and refresh all serving/explanation imports.
 
 # Final MiniLM release: memory-bounded BART generation and refreshed runtime imports.
+
+# BART source is declarative advert prose; refresh summary imports and copy.

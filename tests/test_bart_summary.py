@@ -61,3 +61,11 @@ def test_cross_panel_story_includes_historical_evidence_without_contacts():
     for text in ['Description branch','8,300.00','TreeSHAP','age=11','Craigslist','Used Car Auction Prices','not the Cars & Bids','Deal Detective']:
         assert text in story
     assert 'a@b.com' not in story
+
+
+def test_bart_source_is_an_advert_story_not_an_instruction_prompt():
+    from pricing.bart_summary import qualitative_report_source
+    text=qualitative_report_source({'manufacturer':'Toyota','model':'Corolla'},'Needs new tires.',{'valuation_date':'2026-10-31','market_estimates':{'ask':{'estimated_price_usd':7984}},'sections':[{'title':'Evaluation technique','text':'Five-fold group-held-out residuals; untouched test MAE.'}]})
+    assert text.startswith('The listed vehicle is Toyota Corolla.')
+    for phrase in ['Needs new tires.','7984','Evaluation technique','Five-fold']:assert phrase in text
+    assert 'Write a short' not in text and 'Do not invent' not in text
