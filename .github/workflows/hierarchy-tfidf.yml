@@ -1,0 +1,66 @@
+name: TFIDF-only Bayesian hierarchy deployment
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/deploy_hierarchy_sparse.py
+      - .github/workflows/hierarchy-tfidf.yml
+concurrency:
+  group: hierarchy-tfidf-release
+  cancel-in-progress: true
+permissions:
+  contents: write
+  actions: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scikit-learn>=1.4,<2' 'scipy>=1.11,<2' 'xgboost>=3.0,<4' 'lightgbm>=4.5,<5' 'requests>=2.31,<3' 'joblib>=1.3,<2' 'streamlit==1.66.1'
+      - uses: actions/download-artifact@v4
+        with:
+          name: fresh-tfidf-oof-residuals
+          run-id: 41201778648
+          github-token: ${{ github.token }}
+          path: training-cache/tfidf-oof
+      - name: Restore original cohorts
+        run: |
+          mkdir -p training-cache
+          curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'
+          echo 'eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f  training-cache/ask.zip' | sha256sum -c -
+          curl --fail --location --retry 3 --output training-cache/bid.zip 'https://www.kaggle.com/api/v1/datasets/download/tunguz/used-car-auction-prices'
+          echo 'acfe086790275ce843700303f0701446f5326852be1ee11d9d2e9407d0301e8d  training-cache/bid.zip' | sha256sum -c -
+          python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 4
+          python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl
+      - name: Cut 25 percent using fresh TF-IDF residuals and retrain XGBoost
+        run: |
+          python -m scripts.train_sparse_xgboost --market ask --iterations 300 --output training-cache/xgboost-hierarchy --residual-source training-cache/tfidf-oof/ask/predictions.csv.gz
+          python -m scripts.train_sparse_xgboost --market bid --iterations 300 --output training-cache/xgboost-hierarchy --residual-source training-cache/tfidf-oof/bid/predictions.csv.gz
+      - name: Fit matching Bayesian posteriors
+        run: |
+          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market ask --cohort training-cache/full-cohort.jsonl --predictions training-cache/xgboost-hierarchy/ask/predictions.csv.gz --output training-cache/xgboost-hierarchy/ask/bayesian
+          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market bid --cohort training-cache/bid-cohort.jsonl --predictions training-cache/xgboost-hierarchy/bid/predictions.csv.gz --output training-cache/xgboost-hierarchy/bid/bayesian
+      - name: Package and verify real inference
+        run: |
+          python -m compileall -q pricing/hierarchy_sparse_live.py pricing/hierarchy_sparse_studio.py
+          python -m scripts.deploy_hierarchy_sparse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfidf-bayesian-hierarchy-serving
+          path: models/xgboost-hierarchy/
+          retention-days: 90
+      - name: Install verified weights for Streamlit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mv models/xgboost-hierarchy "$RUNNER_TEMP/xgboost-hierarchy"
+          git pull --ff-only origin main
+          python -c "import shutil; shutil.rmtree('models/xgboost-hierarchy',ignore_errors=True)"
+          mv "$RUNNER_TEMP/xgboost-hierarchy" models/xgboost-hierarchy
+          git add -A models/xgboost-hierarchy/
+          git commit -m 'Deploy compact sparse-TFIDF Lemon Squeezer XGBoost and matching Bayesian hierarchy'
+          git push origin HEAD:main

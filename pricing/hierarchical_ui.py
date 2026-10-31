@@ -12,6 +12,11 @@ def installed(root,side):return load(root,side)
 
 def render(root):
     from pathlib import Path
+    if (Path(root)/'models/xgboost-hierarchy/release.json').exists():
+        from pricing.hierarchy_sparse_studio import render as hierarchy
+        hierarchy(root)
+        return
+    from pathlib import Path
     if (Path(root)/'models/xgboost-sparse-minilm/release.json').exists() and json.loads((Path(root)/'models/xgboost-sparse-minilm/release.json').read_text()).get('residual_source')=='fresh-tfidf-fivefold':
         from pricing.sparse_studio import render as sparse
         sparse(root)
