@@ -1,0 +1,31 @@
+{
+  "bytes": 1971351,
+  "sha256": "705bbae3ee71300a3edc82156ac4a85a4b775c4e653502ec3638c8711df234b5",
+  "parts": [
+    {
+      "file": "posterior.npz.000.part",
+      "bytes": 480000,
+      "sha256": "51b3943fa6a65d9edd51bbbea02c7e973e4e6dc202a9b3c19d23e38c9321689b"
+    },
+    {
+      "file": "posterior.npz.001.part",
+      "bytes": 480000,
+      "sha256": "9e4ef0de2bdc2d1c7ea350c61cd540cf05799dead8ffda8ba7e9c93175e4c2c2"
+    },
+    {
+      "file": "posterior.npz.002.part",
+      "bytes": 480000,
+      "sha256": "ee00d66d925bd24a3ac944fe98c48b4f031ce41adc96ce2caf0332b4e86c3ba6"
+    },
+    {
+      "file": "posterior.npz.003.part",
+      "bytes": 480000,
+      "sha256": "7d2769e0bed94c245848e25d95ddc779848099d4c756b42053aaa029d7f447de"
+    },
+    {
+      "file": "posterior.npz.004.part",
+      "bytes": 51351,
+      "sha256": "fcb5fbe96bc43e4b5f8a6bd5f7121a4deb84828d033c94aa90e27c52e46e45b2"
+    }
+  ]
+}
