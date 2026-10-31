@@ -1,6 +1,6 @@
 {
   "name": "The Sparse Lemon Squeezer",
-  "source": "original five-fold group OOF log residuals",
+  "source": "fresh five-fold sparse TF-IDF XGBoost group OOF log residuals",
   "removed_training_rows": 36945,
   "original_training_rows": 147777,
   "fraction": 0.25,

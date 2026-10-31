@@ -2,19 +2,19 @@
   "nominal_coverage": 0.9,
   "validation_rows": 82380,
   "test_rows": 83603,
-  "validation_multiplier": 3.750768183367711,
-  "test_coverage": 0.9209956580505484,
-  "test_median_interval_width_usd": 10145.462234315415,
-  "test_median_interval_ratio": 2.1015081600779153,
+  "validation_multiplier": 3.9621381762077648,
+  "test_coverage": 0.921282729088669,
+  "test_median_interval_width_usd": 10294.38182936603,
+  "test_median_interval_ratio": 2.1276124355198873,
   "point_scores": {
-    "mae_usd": 1977.4447039620366,
-    "rmse_usd": 5355.202984424572,
-    "mae_log": 0.16076383055471014,
-    "bias_usd": 680.2049031125783,
+    "mae_usd": 2035.161271495393,
+    "rmse_usd": 4795.301675937021,
+    "mae_log": 0.16362656445007195,
+    "bias_usd": 556.4403959898441,
     "rows": 83603
   },
   "limits": "Historical individual outcome interval only; no current-date market/age transport validation or causal interval.",
   "market": "bid",
-  "base_test_mae_usd": 1954.773072336885,
+  "base_test_mae_usd": 1975.7250664766884,
   "model": "xgboost five-fold OOF + joint Bayesian make/model/age log-residual correction"
 }

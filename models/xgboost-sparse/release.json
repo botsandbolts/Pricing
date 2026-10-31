@@ -1,1 +1,1 @@
-{"method": "sparse-lemon-squeezer-25", "model": "XGBoost trained after 25% OOF residual cleaning + matching Bayesian log residuals", "ask_run": 41189327994, "bid_run": 41190411926}
+{"residual_source": "fresh-tfidf-fivefold", "method": "sparse-lemon-squeezer-25", "model": "XGBoost trained after 25% OOF residual cleaning + matching Bayesian log residuals", "ask_run": 41189327994, "bid_run": 41190411926}
