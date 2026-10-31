@@ -104,3 +104,5 @@ tokenizers>=0.23.1,<0.24
 # Robust Bayesian v2: reload nonlinear correction, risk-stratified intervals and scorecards.
 
 # Cold restart: disable ONNX telemetry and refresh the actual Bayesian BART briefing.
+
+# Bayesian comparison: render paired dollar figures as currency, not LaTeX.

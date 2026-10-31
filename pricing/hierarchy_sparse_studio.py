@@ -25,10 +25,10 @@ def scorecard(root,*,details=False):
                 st.caption(f"{r['test_rows']:,} unchanged eligible test cars. Historical 90% range coverage: {r['test_coverage']:.2%}.")
                 if 'previous_bayesian_scores' in r:
                     previous=r['previous_bayesian_scores']['mae_usd'];saving=r['improvement_over_previous']
-                    st.markdown(f"Previous Bayesian MAE **${previous:,.0f}** → redesigned **${c['bayesian']:,.0f}**")
+                    st.markdown(f"Previous Bayesian MAE **USD {previous:,.0f}** → redesigned **USD {c['bayesian']:,.0f}**")
                     if details:
                         low,high=saving['group_bootstrap_95_usd']
-                        st.caption(f"Paired improvement over previous Bayes: ${saving['mean_mae_saved_usd']:,.2f}/car; 95% vehicle-group bootstrap range ${low:,.2f}–${high:,.2f}. This concerns average improvement, not an individual car’s range.")
+                        st.caption(f"Paired improvement over previous Bayes: USD {saving['mean_mae_saved_usd']:,.2f}/car; 95% vehicle-group bootstrap range USD {low:,.2f}–{high:,.2f}. This concerns average improvement, not an individual car’s range.")
                     st.caption('Selected errors: '+r['selected_likelihood'].replace('_',' ')+' · nonlinear effects · segment-specific noise.')
         rows.append({'Market':label,'Regular MAE ($)':c['base'],'Bayesian MAE ($)':c['bayesian'],'MAE reduction ($)':c['saved_usd'],'MAE reduction (%)':c['improvement_pct'],'Test cars':r['test_rows']})
     if details:
