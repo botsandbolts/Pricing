@@ -1,0 +1,30 @@
+{
+  "market": "bid",
+  "objective": "quantile",
+  "folds": 5,
+  "iterations": 300,
+  "n": 454131,
+  "residual_unit": "log(observed/reference prediction)",
+  "training": "calibration group OOF; calibration-only final refit",
+  "description_features": "none: compact structured-only Bayesian panel",
+  "scores": {
+    "calibration": {
+      "n": 288148,
+      "mae_usd": 1072.344413878882,
+      "rmse_log": 0.1180633620048109,
+      "median_signed_log_residual": -3.9678612683501425e-06
+    },
+    "validation": {
+      "n": 82380,
+      "mae_usd": 1839.2538409361948,
+      "rmse_log": 0.2876285814066977,
+      "median_signed_log_residual": 0.019297182392165893
+    },
+    "test": {
+      "n": 83603,
+      "mae_usd": 1825.3094451857482,
+      "rmse_log": 0.2527701354833713,
+      "median_signed_log_residual": -0.006550324717347863
+    }
+  }
+}

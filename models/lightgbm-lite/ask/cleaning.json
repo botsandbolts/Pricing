@@ -1,0 +1,9 @@
+{
+  "name": "Lemon Lite",
+  "source": "original five-fold group OOF log residuals",
+  "removed_training_rows": 36945,
+  "original_training_rows": 147777,
+  "fraction": 0.25,
+  "validation_test_filtered": false,
+  "selection_limit": "Fixed OOF selection precedes refitting. Later OOF scores are conditional diagnostics, not nested CV of selection. Full original validation/test remain unchanged."
+}
