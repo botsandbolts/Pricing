@@ -1,6 +1,8 @@
 # Pricing release audit — 31 October 2026
 
-## Current production contract
+This records the initial TF-IDF snapshot and subsequent repairs. For the current installed feature contract, consult `models/xgboost-hierarchy/release.json` and `ask/features.json`; for the two-price MiniLM replacement see `MINILM_RELEASE.md`. Earlier snapshot scores are not automatically the new release’s scores.
+
+## Production contract at the initial audit snapshot
 
 - Horizontal landing navigation; one main panel executes per rerun. Regular pricing and Bayesian pricing remain separate views. Model controls for old benchmarks are explicitly historical.
 - Current bundle: `models/xgboost-hierarchy`. XGBoost ask normal AFT, exact dollar bounds; wholesale median quantile on log dollars. 300 rounds, depth 5. Sparse TF-IDF descriptions for ask (2,000 vocabulary entries); no UMAP, MiniLM or CatBoost in this current estimate path.
