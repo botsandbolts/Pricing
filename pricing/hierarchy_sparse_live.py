@@ -78,7 +78,7 @@ def estimate(root,fields,date,allow=False):
         except (ValueError,OSError,KeyError,MemoryError) as exc:results[side]={'error':str(exc)}
     return results,transport,error
 
-def render(root):
+def render(root,*,bayesian=True):
     from pricing.forest_form import render as form
     fields,notes,date,allow,submitted=form(description_sensitive='tfidf')
     signature=json.dumps([fields,notes,str(date),allow],sort_keys=True)
@@ -93,47 +93,53 @@ def render(root):
         st.info('Fill in your car, then press Estimate asking + auction prices. No spreadsheet required.');return
     if saved['signature']!=signature:
         st.info('Car details or date changed. Press Estimate asking + auction prices to refresh both estimates.');return
-    st.markdown('### Two prices. Two different questions.')
+    from pricing.pricing_comparison import selected_receipt
+    results={side:selected_receipt(r,bayesian) for side,r in saved['results'].items()}
+    st.markdown('### '+('Bayesian estimates · with family evidence' if bayesian else 'Regular XGBoost estimates'))
+    st.caption('Asking and wholesale auction are different market targets. '+('These estimates include the Bayesian correction.' if bayesian else 'These estimates use XGBoost directly.'))
+
     for col,side,title,meaning in zip(st.columns(2),['ask','bid'],["Seller’s asking price","Wholesale auction estimate"],["What might a seller put in the advert? Before negotiation; not a completed retail sale.","What might a comparable car sell for at wholesale auction? Not a live bid or dealer offer."]):
         with col:
             with st.container(border=True):
-                st.markdown('#### '+title);r=saved['results'][side]
+                st.markdown('#### '+title);r=results[side]
                 if 'error' in r:st.warning(r['error']);continue
                 st.metric('Date-adjusted scenario',f"${r['price']:,.0f}");st.caption(meaning)
-                st.markdown(f"**Historical 90% range, date-adjusted · ${r['interval_low']:,.0f}–${r['interval_high']:,.0f}**")
-                st.caption(f"{date:%d %b %Y} · XGBoost + Bayesian make/model correction")
+                if bayesian:st.markdown(f"**Historical 90% range, date-adjusted · ${r['interval_low']:,.0f}–${r['interval_high']:,.0f}**")
+                st.caption(f"{date:%d %b %Y} · "+("XGBoost + Bayesian correction" if bayesian else "Regular XGBoost · TF-IDF asking AFT / auction median"))
                 if r['analogue']:st.warning('Unobserved newer generation: analogue assumption enabled.')
-                if r['model_support']==0:st.caption('Unseen model/trim: the correction borrows from its make and broader market.')
+                if bayesian and r['model_support']==0:st.caption('Unseen model/trim: the correction borrows from its make and broader market.')
                 if r['unknown_categories']:st.caption('Unseen categorical inputs: '+', '.join(r['unknown_categories'])+'. Native missing-value routing applies.')
     st.info('The gap is not dealer profit or a promised discount. These models describe different markets and vehicle populations.')
-    available=[r for r in saved['results'].values() if 'error' not in r]
+    available=[r for r in results.values() if 'error' not in r]
     if available:
         import plotly.graph_objects as go
         labels={'ask':'Seller asking','bid':'Wholesale auction'}
         colors={'ask':'#6752d4','bid':'#17846e'}
         fig=go.Figure()
-        for side,r in saved['results'].items():
+        for side,r in results.items():
             if 'error' in r:continue
             fig.add_trace(go.Scatter(x=[r['price']],y=[labels[side]],mode='markers',name=labels[side],
                 marker={'size':14,'color':colors[side]},
                 error_x={'type':'data','symmetric':False,'array':[r['interval_high']-r['price']],
                          'arrayminus':[r['price']-r['interval_low']],'color':colors[side],
-                         'thickness':3,'width':7},
+                         'thickness':3,'width':7} if bayesian else None,
                 hovertemplate='%{y}: $%{x:,.0f}<extra></extra>'))
         fig.update_layout(height=190,margin={'l':4,'r':12,'t':14,'b':14},showlegend=False,
-            xaxis_title='USD · dot = price estimate · bar = historical range',
+            xaxis_title='USD · dot = price estimate'+(' · bar = historical range' if bayesian else ''),
             yaxis={'categoryorder':'array','categoryarray':['Wholesale auction','Seller asking']})
         fig.update_xaxes(tickprefix='$',tickformat=',.0f',rangemode='tozero')
-        st.plotly_chart(fig,width='stretch',key='fivefold_bayesian_ranges')
+        st.plotly_chart(fig,width='stretch',key='separate_price_ranges_'+str(bayesian))
         r=available[0];market=r['market']
         st.caption(f"Market data observed through {market['last_known_month']}. Selected month {market['month']}: "+(f"{market['horizon']}-month {market['method'].replace('_',' ')} forecast." if market['horizon'] else 'observed monthly index.'))
-        st.warning('Ranges are 90% historical-outcome intervals calibrated on held-out historical cars, then transported to the selected date with the same ageing and market factors as the point estimate. Their 90% coverage is NOT validated for today, especially for forecast months or unobserved generations. They are not confidence intervals for the model mean or price guarantees.')
+        if bayesian:st.warning('Ranges are 90% historical-outcome intervals calibrated on held-out historical cars, then transported to the selected date with the same ageing and market factors as the point estimate. Their 90% coverage is NOT validated for today, especially for forecast months or unobserved generations. They are not confidence intervals for the model mean or price guarantees.')
         with st.expander('Follow the dollars · historical anchors, ageing and market movement'):
             from pricing.forest_time import adjustment_chart
             for side,r in saved['results'].items():
                 if 'error' in r:continue
                 st.markdown('**'+('Asking' if side=='ask' else 'Auction')+'**')
-                st.plotly_chart(adjustment_chart(r),width='stretch',key='fivefold_live_waterfall_'+side)
+                chart=adjustment_chart(r)
+                chart.data[0].x=['Historical XGBoost'+(' + Bayes' if bayesian else ''),'Age & mileage','Market movement',r['date']]
+                st.plotly_chart(chart,width='stretch',key='separate_waterfall_'+side+str(bayesian))
                 st.caption(f"Age/mileage ×{r['vehicle_factor']:.3f} · market ×{r['market_factor']:.3f}. Reference anchor is a model scenario, not an observed sale of your car.")
-                st.caption(f"Joint posterior {r['posterior_draws']} draws; predictive SD {r['predictive_sd_log']:.3f} log units. Validation scale {r['interval_multiplier']:.2f}; untouched historical test coverage {r['historical_coverage']:.1%} versus 90% nominal.")
-            st.json(saved['results'],expanded=False)
+                if bayesian:st.caption(f"Joint posterior {r['posterior_draws']} draws; predictive SD {r['predictive_sd_log']:.3f} log units. Validation scale {r['interval_multiplier']:.2f}; untouched historical test coverage {r['historical_coverage']:.1%} versus 90% nominal.")
+            st.json(results,expanded=False)
