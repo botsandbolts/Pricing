@@ -46,6 +46,10 @@ def test_invented_numbers_withheld():
     engine=Engine();engine.generate=lambda text:'It has 12345 miles.'
     assert summarize_story('Vehicle has 95000 miles.',engine)['status']=='review_required'
 
+def test_unsupported_financial_claim_is_withheld():
+    engine=Engine();engine.generate=lambda text:'There is no dealer profit.'
+    assert summarize_story('Toyota asking and wholesale auction estimates concern different markets.',engine)['status']=='review_required'
+
 def test_contacts_and_empty():
     _,text=narrative({},'<b>New brakes.</b> https://example.com a@b.com 212-555-1234')
     assert '<b>' not in text and 'a@b.com' not in text and '212-555-1234' not in text

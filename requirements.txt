@@ -108,3 +108,5 @@ tokenizers>=0.23.1,<0.24
 # Bayesian comparison: render paired dollar figures as currency, not LaTeX.
 
 # Keep car editor widgets and pricing mode alive across horizontal panel changes.
+
+# BART advert grounding: avoid negation-heavy financial boilerplate in the AI source.

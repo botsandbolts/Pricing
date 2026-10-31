@@ -64,8 +64,11 @@ def summarize_story(story,engine,qualitative=False):
     summary=summaries[0]
     numbers=lambda text:set(re.findall(r'\d+(?:\.\d+)?',text.replace(',','')))
     unexpected=numbers(summary)-numbers(story)
-    return {'summary':summary if not unexpected else '', 'chunks':len(chunks),
-            'status':'review_required' if unexpected else 'ready'}
+    unsupported_claim=any(term in summary.lower() and term not in story.lower()
+                          for term in ['dealer profit','guaranteed discount','live bid','dealer offer'])
+    review=bool(unexpected or unsupported_claim)
+    return {'summary':summary if not review else '', 'chunks':len(chunks),
+            'status':'review_required' if review else 'ready'}
 
 
 def build_valuation_story(fields,description,valuation=None):
@@ -98,9 +101,9 @@ def qualitative_report_source(fields,description,valuation):
     if seller:parts.append('The seller states, without independent verification: '+seller)
     parts.append('Car Price Studio estimates this vehicle for '+str(valuation.get('valuation_date'))+'.')
     for side,r in valuation.get('market_estimates',{}).items():
-        meaning='seller advertised asking price before negotiation' if side=='ask' else 'wholesale auction estimate, not a live bid or dealer offer'
+        meaning='seller advertised asking price before negotiation' if side=='ask' else 'wholesale auction sale price estimate'
         parts.append(f"The {meaning} is approximately {float(r['estimated_price_usd']):,.0f} US dollars.")
-    parts.append('The asking and auction estimates describe different markets; their gap is not dealer profit or a guaranteed discount.')
+    parts.append('The asking and auction estimates describe distinct markets and vehicle populations.')
     for section in valuation.get('sections',[]):
         if section['title'] in {'Valuation method','Evaluation technique'}:
             parts.append(section['title']+': '+section['text'])
@@ -142,7 +145,7 @@ def render_story(fields,description,valuation=None):
             gc.collect()
     result=saved['result']
     if result['status']=='ready':st.write(result['summary'])
-    elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
+    elif result['status']=='review_required':st.caption('The draft introduced an unsupported figure or market claim and was withheld. Read the supplied story below.')
     else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
     if valuation:st.caption('AI overview, not a valuation calculation. BART receives an advert briefing with rounded estimates and method background; exact figures remain in the cards and source report. A number check withholds drafts that introduce figures absent from the supplied story. It cannot detect every factual mistake or a number attached to the wrong fact.')
     st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
