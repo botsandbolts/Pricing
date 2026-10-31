@@ -33,7 +33,10 @@
 - Joint ask/bid hierarchical likelihood; Student-t and mixture alternatives; LOO ELPD comparison; actual Tobit/interval-censoring bounds. Asking prices alone do not supply those bounds. Current hierarchy is Gaussian with separate markets.
 - An independent current-market dataset validating today's transported prices or current-date interval coverage.
 - Demonstrated improvement from the 25% trimming against an otherwise matched untrimmed model.
-- Full legacy multi-graph explanation suite rewired to the new estimator. Current native TreeSHAP, dollar/time waterfalls and timeline are connected; old benchmark tools retain their own identities.
+- The full six-view explanation suite is now wired to the current estimator: complete-function grouped dollar SHAP, native log-TreeSHAP beeswarm/dependence/decision paths, selected-date mileage sensitivity and a year/mileage price surface. The latter two are sensitivity plots, not SHAP interaction values. The gallery is at most 16 supported fixture cars; text and auction grade stay fixed. Dollar SHAP uses at most three background cars and four sampled orders. Old benchmark tools retain their identities.
 - BART source/orchestration tests passed; actual hosted BART generation and separate ONNX MiniLM phrase highlights were also exercised successfully on 31 October. Runtime latency and factual accuracy are not guaranteed.
 
 No zero-bug claim is made. This audit records reproducible checks and explicit gaps rather than treating old promises as proof of implementation.
+
+## Timeline follow-up
+The timeline now builds on entry, retains its graph across reruns and regenerates when assumptions change. Depreciation calculations are vectorized over months. Pre-update saved receipts recover vehicle fields from their saved signature. A regression checks exact agreement at the saved valuation date for both markets and both regular/Bayesian modes.

@@ -15,6 +15,7 @@ def load(root,side):
     folder=Path(root)/'models/xgboost-hierarchy'/side
     model=xgb.Booster()
     model.load_model(bytearray(read_model_file(folder/'calibration-refit.ubj')))
+    model.set_param({'nthread':2})
     schema=json.loads((folder/'category-schema.json').read_text())
     posterior,draws=load_bayesian(folder/'bayesian')
     if posterior['base_model_id']!='xgboost-fivefold-'+side:raise ValueError('Mismatched Bayesian base model')
@@ -159,4 +160,6 @@ def render(root,*,bayesian=True):
     render_briefing(root,fields,notes,date,results)
     from pricing.current_tools import render_drivers,render_minilm
     render_drivers(root,fields,notes,results,bayesian)
+    from pricing.current_explanations import render as render_graphs
+    render_graphs(root,fields,notes,date,results,bayesian)
     render_minilm(root,notes)

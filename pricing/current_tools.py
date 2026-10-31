@@ -49,41 +49,78 @@ def render_briefing(root,fields,notes,date,results):
     if st.session_state.get('_current_bart_report')==identity:
         render_story(fields,notes,valuation=report)
 
+def timeline_frame(saved,annual,bayesian,transport):
+    """Vectorize depreciation over months; no repeated model fits or neural calls."""
+    import numpy as np
+    import pandas as pd
+    from marketbridge.time_engine import today,age_on
+    fields=saved.get('fields')
+    if not fields:
+        try:fields=json.loads(saved['signature'])[0]
+        except (KeyError,ValueError,TypeError):raise ValueError('Please estimate the car again to refresh this older saved receipt.')
+    start=max(pd.Timestamp('2015-01-01'),pd.Timestamp(f"{int(fields['year'])+1}-01-01"))
+    end=pd.Timestamp(transport.clock.meta['latest_observation'])+pd.DateOffset(months=6)
+    dates=pd.date_range(start,end,freq='MS').union(pd.DatetimeIndex([pd.Timestamp(today()),pd.Timestamp(saved['date'])])).unique().sort_values()
+    frames=[]
+    for side,raw in saved['results'].items():
+        if 'error' in raw:continue
+        r=selected_receipt(raw,bayesian)
+        accepted=[];levels=[]
+        for date in dates:
+            age=age_on(fields['year'],date)
+            if not 0<=age<=30:continue
+            try:level,meta=transport.clock.value(date,as_of=today())
+            except ValueError:continue
+            accepted.append(date);levels.append(level)
+        if not accepted:continue
+        ages=np.array([age_on(fields['year'],d) for d in accepted])
+        miles=np.clip(fields['odometer']+annual*np.array([(d-pd.Timestamp(saved['date'])).days/365.25 for d in accepted]),0,2000000)
+        cars=pd.DataFrame([fields]*len(accepted))
+        factors=transport.curves[side].ratio(cars,r['source_age'],ages,from_miles=r['source_mileage'],to_miles=miles)
+        reference=transport.clock.reference(r['source_date'])[0] if side=='ask' else float(transport.clock.data.loc['2015-01'])
+        prices=r['historical_corrected_price']*factors*np.asarray(levels)/reference
+        frames.append(pd.DataFrame({'Date':accepted,'USD':prices,'Market':'Seller asking' if side=='ask' else 'Wholesale auction','Mileage':miles,'Period':['Future scenario' if d>pd.Timestamp(today()) else 'Reconstructed past / present' for d in accepted]}))
+    if not frames:raise ValueError('No supported dates for this car and the available market snapshot.')
+    return pd.concat(frames,ignore_index=True)
+
 def render_timeline(root):
     from marketbridge.time_engine import today
     from pricing.current_value import current_transport,render_market_clock
-    from pricing.forest_time import adjust
-    import pandas as pd
     import plotly.express as px
     st.header('📅 Value over time · same car, same models')
     saved=st.session_state.get('hierarchy_sparse_result')
     if not saved:
-        st.info('Estimate your car in Price my car first. This timeline uses that exact estimate, not a different historical model.');return
-    fields=saved['fields'];bayesian=st.session_state.get('_current_pricing_mode',False)
+        st.info('Estimate your car in Price my car first. This timeline uses that exact estimate, not a different historical model.')
+        from pricing.deal_detective import move_to
+        st.button('Go to Price my car',on_click=move_to,args=('🚗 Price my car',))
+        return
+    fields=saved.get('fields')
+    if not fields:
+        try:fields=json.loads(saved['signature'])[0]
+        except (KeyError,ValueError,TypeError):st.warning('Estimate the car again to refresh this older saved receipt.');return
+    bayesian=st.session_state.get('_current_pricing_mode',False)
     st.write(f"{fields['year']} {fields['manufacturer']} {fields['model']} · {fields['odometer']:,} miles")
-    st.caption(('Bayesian' if bayesian else 'Regular XGBoost')+' anchors. Past values are reconstructed scenarios, not recorded sales. Mileage is held constant unless you choose annual driving.')
+    st.caption(('Bayesian' if bayesian else 'Regular XGBoost')+' anchors. Historical values are reconstructed scenarios, not recorded sales. Zero annual miles holds mileage constant.')
     annual=st.slider('Assumed miles per year',0,30000,0,1000,key='current_timeline_annual')
-    if st.button('Build value-over-time graph',type='primary'):
+    signature=json.dumps([saved,annual,bayesian,str(today())],sort_keys=True,default=str)
+    try:
         transport,error=current_transport(root)
-        start=max(pd.Timestamp('2015-01-01'),pd.Timestamp(f"{int(fields['year'])+1}-01-01"))
-        end=pd.Timestamp(transport.clock.meta['latest_observation'])+pd.DateOffset(months=6)
-        rows=[]
-        for side,raw in saved['results'].items():
-            if 'error' in raw:continue
-            r=selected_receipt(raw,bayesian)
-            anchor={**fields,'age':r['source_age'],'source_date':r['source_date'],'odometer':r['source_mileage'],'base_price':r['historical_forest_price'],'corrected_price':r['historical_corrected_price']}
-            for date in pd.date_range(start,end,freq='MS').union(pd.DatetimeIndex([pd.Timestamp(today())])):
-                miles=max(0,fields['odometer']+annual*(date-pd.Timestamp(saved['date'])).days/365.25)
-                try:
-                    value=adjust(transport,anchor,side,date,miles,as_of=today())
-                    rows.append({'Date':date,'USD':value['price'],'Market':'Seller asking' if side=='ask' else 'Wholesale auction','Mileage':miles})
-                except ValueError:continue
-        if not rows:st.warning('No supported dates in the saved market snapshot.');return
-        frame=pd.DataFrame(rows)
-        st.plotly_chart(px.line(frame,x='Date',y='USD',color='Market',hover_data=['Mileage']),width='stretch')
+        signature+=json.dumps(transport.clock.meta,sort_keys=True,default=str)
+        cached=st.session_state.get('_current_timeline',{})
+        if cached.get('signature')!=signature:
+            with st.spinner('Building both market timelines from your saved estimate…'):
+                frame=timeline_frame(saved,annual,bayesian,transport)
+            cached={'signature':signature,'frame':frame};st.session_state['_current_timeline']=cached
+        frame=cached['frame']
+        fig=px.line(frame,x='Date',y='USD',color='Market',line_dash='Period',hover_data=['Mileage'])
+        fig.update_yaxes(title='Model scenario value · USD',tickprefix='$',tickformat=',.0f')
+        st.plotly_chart(fig,width='stretch',key='current_timeline_chart')
         st.download_button('Download this value timeline',frame.to_csv(index=False),'car-value-over-time.csv','text/csv')
         render_market_clock(transport,today(),error)
-        st.caption('Both past and future car values are model scenarios. The monthly market index is not a daily transaction feed. Component backtests do not validate current individual-car accuracy.')
+        st.caption('Solid past values are reconstructions; dashed future values are scenarios. Mileage is floored at zero and capped at two million miles. A monthly index is not a daily transaction feed. Current individual-car accuracy and intervals are unvalidated.')
+    except (ValueError,KeyError,OSError,TypeError) as exc:
+        st.warning('Timeline unavailable: '+str(exc))
+
 
 def render_drivers(root,fields,notes,results,bayesian):
     st.markdown('### Why this estimate?')

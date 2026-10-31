@@ -88,3 +88,5 @@ tokenizers>=0.23.1,<0.24
 # Refresh serving process for separate regular and Bayesian pricing panels.
 
 # Audit release: restart imported modules; restore current BART and standalone MiniLM tools.
+
+# Restore the complete current SHAP studio and fast persistent value timelines.
