@@ -6,7 +6,7 @@ from pricing.pricing_comparison import selected_receipt
 
 def publish_receipt(root,fields,notes,date,results,saved,bayesian):
     from pricing.description_features import label
-    from pricing.hierarchy_sparse_live import release_identity
+    from pricing.release_contract import release_identity
     model='XGBoost Lemon Squeezer · '+label(root)+(' + Bayesian correction' if bayesian else '')
     request=saved['request_id']+':'+str(bayesian)
     from pricing.analytics import record_price
@@ -97,7 +97,7 @@ def render_timeline(root):
         from pricing.deal_detective import move_to
         st.button('Go to Price my car',on_click=move_to,args=('🚗 Price my car',))
         return
-    from pricing.hierarchy_sparse_live import release_identity
+    from pricing.release_contract import release_identity
     if saved.get('model_version') is not None and saved['model_version']!=release_identity(root):
         st.info('The installed models changed. Re-estimate your saved car in Price my car to refresh the timeline.');return
     fields=saved.get('fields')
@@ -129,7 +129,7 @@ def render_timeline(root):
 
 
 def render_drivers(root,fields,notes,results,bayesian):
-    from pricing.hierarchy_sparse_live import release_identity
+    from pricing.release_contract import release_identity
     st.markdown('### Why this estimate?')
     st.caption('Explain the installed XGBoost model, not a substitute model. Feature associations are not causal effects or an inspection.')
     identity=json.dumps([fields,notes,results,bayesian,release_identity(root)],sort_keys=True,default=str)
@@ -170,7 +170,7 @@ def render_drivers(root,fields,notes,results,bayesian):
             st.download_button('Download '+side+' current feature contributions',frame.to_csv(index=False),side+'-current-shap.csv','text/csv')
 
 def render_minilm(root,notes,fields=None,date=None,results=None,bayesian=False):
-    from pricing.hierarchy_sparse_live import release_identity
+    from pricing.release_contract import release_identity
     from pricing.description_features import kind
     current=kind(root) in {'minilm-price','minilm-embeddings'} and fields is not None and results is not None and 'error' not in results.get('ask',{'error':'unavailable'})
     st.markdown('### 🖍 Which phrases move my asking estimate?' if current else '### 🖍 MiniLM · description-only comparison')

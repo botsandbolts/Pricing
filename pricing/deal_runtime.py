@@ -23,7 +23,8 @@ def current_callbacks(root):
     import json
     import streamlit as st
     from marketbridge.time_engine import today
-    from pricing.hierarchy_sparse_live import estimate,release_identity
+    from pricing.hierarchy_sparse_live import estimate
+    from pricing.release_contract import release_identity
     from pricing.pricing_comparison import selected_receipt
     saved=st.session_state.get('last_displayed_price')
     date=saved[1].get('valuation_date',str(today())) if saved else str(today())

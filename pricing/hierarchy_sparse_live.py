@@ -90,14 +90,7 @@ def estimate(root,fields,date,allow=False):
         except (ValueError,OSError,KeyError,MemoryError) as exc:results[side]={'error':str(exc)}
     return results,transport,error
 
-def release_identity(root):
-    import hashlib
-    folder=Path(root)/'models/xgboost-hierarchy'
-    paths=[folder/'release.json',folder/'ask/features.json',folder/'ask/evaluation.json',folder/'bid/evaluation.json',folder/'ask/minilm-heads.json']
-    digest=hashlib.sha256()
-    for path in paths:
-        if path.exists():digest.update(path.read_bytes())
-    return digest.hexdigest()
+from pricing.release_contract import release_identity
 
 def render(root,*,bayesian=True):
     from pricing.forest_form import render as form

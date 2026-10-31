@@ -96,7 +96,7 @@ def render(root,fields,notes,date,results,bayesian):
     choices=[s for s,r in results.items() if 'error' not in r]
     if not choices:return
     side=st.radio('Market to explain',choices,format_func=lambda s:'Seller asking' if s=='ask' else 'Wholesale auction',horizontal=True,key='current_shap_market')
-    from pricing.hierarchy_sparse_live import release_identity
+    from pricing.release_contract import release_identity
     identity=json.dumps([fields,notes,str(date),bayesian,side,results[side]['price'],release_identity(root)],sort_keys=True,default=str)
     if st.button('Build all explanation graphs',type='primary',key='current_all_graphs'):
         st.session_state.pop('_current_graphs',None)

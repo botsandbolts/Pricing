@@ -349,7 +349,7 @@ def render(estimate_fn=None,bid_fn=None,model_id=''):
     render_shared()
     saved=st.session_state.get('last_explained_price')
     if saved and saved[1].get('model_version'):
-        from pricing.hierarchy_sparse_live import release_identity
+        from pricing.release_contract import release_identity
         if saved[1]['model_version']!=release_identity(Path(__file__).resolve().parents[1]):
             st.info('The installed pricing models changed. Estimate your saved car again to refresh its sharing and comparison receipt.')
             return

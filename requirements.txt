@@ -92,3 +92,5 @@ tokenizers>=0.23.1,<0.24
 # Restore the complete current SHAP studio and fast persistent value timelines.
 
 # Manifest-driven MiniLM replacement and advert-first BART briefing.
+
+# Cold restart: isolate release-contract helper and refresh all serving/explanation imports.
