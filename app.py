@@ -16,12 +16,8 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
-if (Path(__file__).parent/'models/xgboost-sparse-minilm/release.json').exists() and json.loads((Path(__file__).parent/'models/xgboost-sparse-minilm/release.json').read_text()).get('residual_source')=='fresh-tfidf-fivefold':
-    view=st.radio('Pricing workspace',['Main asking model · MiniLM + TF-IDF','Hierarchical model · TF-IDF, no transformer'],horizontal=True,key='pricing_workspace')
-    if view.startswith('Hierarchical'):
-        from pricing.hierarchical_ui import render
-    else:
-        from pricing.sparse_studio import render
+if (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
+    from pricing.hierarchy_sparse_studio import render
     render(Path(__file__).parent)
     footer()
     st.stop()
