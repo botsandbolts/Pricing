@@ -6,6 +6,8 @@ import streamlit as st
 
 class MiniLMFeatures:
     def __init__(self,path):
+        import onnxruntime as ort
+        ort.disable_telemetry_events()
         from pricing.minilm_signal import Encoder
         self.encoder=Encoder(path)
     def transform(self,texts):

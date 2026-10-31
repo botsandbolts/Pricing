@@ -102,3 +102,5 @@ tokenizers>=0.23.1,<0.24
 # BART advert overview: grounded rounded figures with unsupported-number rejection.
 
 # Robust Bayesian v2: reload nonlinear correction, risk-stratified intervals and scorecards.
+
+# Cold restart: disable ONNX telemetry and refresh the actual Bayesian BART briefing.

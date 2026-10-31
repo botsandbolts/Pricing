@@ -34,6 +34,8 @@ def build_report(root,fields,date,results):
           'market_index_status':r['market'],'newer_generation_analogue':r['analogue']}
         report=json.loads((Path(root)/'models/xgboost-hierarchy'/side/'bayesian/bayesian-evaluation.json').read_text())
         method=('Redesigned nonlinear, cross-classified hierarchy with '+report['selected_likelihood'].replace('_',' ')+' errors and price/age-specific variances. Gaussian, Student-t and contamination candidates competed on validation dollar MAE. Different validation cars calibrated risk-stratified intervals. This is not PSIS-LOO.' if report.get('method')=='robust_cross_classified_gibbs_v1' else 'Gaussian make/model/age residual hierarchy.')
+        if report.get('method')=='robust_cross_classified_gibbs_v1':
+            sections[1]['text']+=' Optional '+side+' Bayesian refinement uses nonlinear multilevel '+report['selected_likelihood'].replace('_',' ')+' log-residual corrections; different validation cars select the model and calibrate risk-group ranges.'
         sections.append({'title':side+' held-out evidence','text':f"Historical full-test regular MAE ${report['base_test_mae_usd']:,.2f}; Bayesian MAE ${report['point_scores']['mae_usd']:,.2f}. "+method+" Today’s date-adjusted errors remain unmeasured. These ranges have historical calibration only; ask and bid are fitted separately. Verified censoring bounds are unavailable."})
     return {'valuation_date':str(date),'market_estimates':estimates,'unavailable_markets':[s for s in ['ask','bid'] if 'error' in results.get(s,{})],
         'market_source':'BLS/FRED CUUR0000SETA02 monthly retail used-car CPI (also used as a wholesale proxy)',
