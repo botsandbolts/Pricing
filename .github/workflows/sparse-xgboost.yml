@@ -1,10 +1,10 @@
-name: Lemon Squeezer XGBoost training and deployment
+name: Sparse Lemon Squeezer XGBoost deployment
 on:
   workflow_dispatch:
   push:
     paths:
-      - scripts/train_lemon_xgboost.py
-      - .github/workflows/lemon-xgboost.yml
+      - scripts/train_sparse_xgboost.py
+      - .github/workflows/sparse-xgboost.yml
 permissions:
   contents: write
   actions: read
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scikit-learn>=1.4,<2' 'scipy>=1.11,<2' 'xgboost>=3.0,<4' 'lightgbm>=4.5,<5' 'requests>=2.31,<3' 'umap-learn>=0.5.7,<0.6' 'joblib>=1.3,<2' 'streamlit==1.66.1'
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scikit-learn>=1.4,<2' 'scipy>=1.11,<2' 'xgboost>=3.0,<4' 'lightgbm>=4.5,<5' 'requests>=2.31,<3' 'joblib>=1.3,<2' 'streamlit==1.66.1'
       - uses: actions/download-artifact@v4
         with:
           name: xgboost-fivefold-ask
@@ -41,26 +41,28 @@ jobs:
       - name: Squeeze training residuals and refit five XGBoost folds
         run: |
           mv training-cache/xgb-source training-cache/original-xgb
-          python -m scripts.train_lemon_xgboost --market ask --iterations 1000 --output training-cache/xgb-source --residual-source training-cache/original-xgb/ask/predictions.csv.gz
-          python -m scripts.train_lemon_xgboost --market bid --iterations 1000 --output training-cache/xgb-source --residual-source training-cache/original-xgb/bid/predictions.csv.gz
+          python -m scripts.train_sparse_xgboost --market ask --iterations 300 --output training-cache/xgboost-sparse --residual-source training-cache/original-xgb/ask/predictions.csv.gz
+          python -m scripts.train_sparse_xgboost --market bid --iterations 300 --output training-cache/xgboost-sparse --residual-source training-cache/original-xgb/bid/predictions.csv.gz
       - name: Fit matching Bayesian posteriors
         run: |
-          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market ask --cohort training-cache/full-cohort.jsonl --predictions training-cache/xgb-source/ask/predictions.csv.gz --output training-cache/xgb-source/ask/bayesian
-          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market bid --cohort training-cache/bid-cohort.jsonl --predictions training-cache/xgb-source/bid/predictions.csv.gz --output training-cache/xgb-source/bid/bayesian
+          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market ask --cohort training-cache/full-cohort.jsonl --predictions training-cache/xgboost-sparse/ask/predictions.csv.gz --output training-cache/xgboost-sparse/ask/bayesian
+          python -m scripts.fit_fivefold_bayes --base-kind xgboost --market bid --cohort training-cache/bid-cohort.jsonl --predictions training-cache/xgboost-sparse/bid/predictions.csv.gz --output training-cache/xgboost-sparse/bid/bayesian
       - name: Package and verify real inference
         run: |
-          python -m compileall -q pricing/fivefold_live.py pricing/hierarchical_ui.py pricing/forest_form.py
-          python -m scripts.deploy_fivefold_live
+          python -m compileall -q pricing/sparse_live.py scripts/train_sparse_xgboost.py
+          python -m scripts.deploy_sparse_xgboost
       - uses: actions/upload-artifact@v4
         with:
-          name: lemon-xgboost-bayesian-serving
-          path: models/fivefold-live/
+          name: sparse-lemon-serving
+          path: models/xgboost-sparse/
           retention-days: 90
       - name: Install verified weights for Streamlit
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add models/fivefold-live/
-          git commit -m 'Deploy Lemon Squeezer XGBoost models with matching Bayesian hierarchy'
-          git pull --rebase origin main
+          mv models/xgboost-sparse "$RUNNER_TEMP/xgboost-sparse"
+          git pull --ff-only origin main
+          mv "$RUNNER_TEMP/xgboost-sparse" models/xgboost-sparse
+          git add models/xgboost-sparse/
+          git commit -m 'Deploy compact sparse-TFIDF Lemon Squeezer XGBoost and matching Bayesian hierarchy'
           git push origin HEAD:main
