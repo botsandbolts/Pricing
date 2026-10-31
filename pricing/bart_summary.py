@@ -84,7 +84,7 @@ def build_valuation_story(fields,description,valuation=None):
         if r.get('newer_generation_analogue'):sentences.append('The auction estimate assumes an unobserved newer-generation analogue.')
     for side in valuation.get('unavailable_markets',[]):sentences.append(f'The {side} estimate is unavailable; no price is invented.')
     sentences.append('The market source is '+str(valuation.get('market_source'))+', observed through '+str(valuation.get('latest_observed_month'))+'.')
-    sentences.append('Asking and auction prices have different economic targets; their difference is not dealer profit. Date-adjusted estimates extrapolate historical data and are not verified current sales. No validated individual prediction interval is available.')
+    sentences.append('Asking and auction prices have different economic targets; their difference is not dealer profit. Date-adjusted estimates extrapolate historical data and are not verified current sales. Current-date individual prediction interval coverage has not been validated.')
     for section in valuation.get('sections',[]):
         sentences.append(section['title']+': '+section['text'])
     if seller:sentences.append('The seller says, without independent verification: '+seller)
@@ -144,12 +144,12 @@ def render_story(fields,description,valuation=None):
     if result['status']=='ready':st.write(result['summary'])
     elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
     else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
-    if valuation:st.caption('AI overview, not a valuation calculation. BART receives a qualitative briefing covering the report’s topics; exact figures remain in the cards and source report. A number check withholds drafts that introduce figures absent from the supplied story. It cannot detect every factual mistake or a number attached to the wrong fact.')
+    if valuation:st.caption('AI overview, not a valuation calculation. BART receives an advert briefing with rounded estimates and method background; exact figures remain in the cards and source report. A number check withholds drafts that introduce figures absent from the supplied story. It cannot detect every factual mistake or a number attached to the wrong fact.')
     st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
     with st.expander('Full supplied story · model & limitations'):
         st.markdown(story.replace('\n','\n\n'))
         if valuation:
-            with st.expander('Qualitative briefing supplied to BART'):
+            with st.expander('Advert briefing supplied to BART'):
                 st.text(summary_source)
             st.download_button('Download full valuation story',story,'car-valuation-story.txt','text/plain',key='download_valuation_story')
         st.caption('BART-base-CNN runs locally on CPU, using greedy decoding. Pricing model caches are released before generation; BART weights are released afterward. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')

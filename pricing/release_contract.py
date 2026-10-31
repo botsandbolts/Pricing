@@ -5,6 +5,7 @@ from pathlib import Path
 def release_identity(root):
     folder=Path(root)/'models/xgboost-hierarchy'
     paths=[folder/'release.json',folder/'ask/features.json',folder/'ask/evaluation.json',folder/'bid/evaluation.json',folder/'ask/minilm-heads.json']
+    paths += [folder/side/'bayesian'/name for side in ['ask','bid'] for name in ['bayesian.json.gz','bayesian-evaluation.json']]
     digest=hashlib.sha256()
     for path in paths:
         if path.exists():digest.update(path.read_bytes())

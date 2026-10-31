@@ -22,11 +22,15 @@ def _load(root,side,version):
     from pricing.description_features import projector as load_projector
     projector=load_projector(folder) if side=='ask' else None
     report=json.loads((folder/'bayesian/bayesian-evaluation.json').read_text())
+    if posterior.get('base_evaluation_sha256'):
+        import hashlib
+        if hashlib.sha256((folder/'evaluation.json').read_bytes()).hexdigest()!=posterior['base_evaluation_sha256']:
+            raise ValueError('Bayesian calibration belongs to another base-model release')
     return model,schema,posterior,draws,projector,report
 
 def load(root,side):
     folder=Path(root)/'models/xgboost-hierarchy'/side
-    paths=[folder/'evaluation.json',folder/'category-schema.json',folder/'features.json',folder.parent/'release.json']
+    paths=[folder/'evaluation.json',folder/'category-schema.json',folder/'features.json',folder.parent/'release.json',folder/'bayesian/bayesian.json.gz',folder/'bayesian/bayesian-evaluation.json']
     version=tuple((p.name,p.stat().st_mtime_ns,p.stat().st_size) for p in paths if p.exists())
     return _load(root,side,version)
 
@@ -82,7 +86,9 @@ def estimate(root,fields,date,allow=False):
             ratio=receipt['vehicle_factor']*receipt['market_factor']
             receipt.update(interval_low=float(lo[0]*ratio),interval_high=float(hi[0]*ratio),
                 historical_coverage=float(report['test_coverage']),interval_level=posterior['interval']['level'],
-                interval_multiplier=posterior['interval']['multiplier'],posterior_draws=len(draws['global']),
+                interval_multiplier=float(bp.get('interval_multiplier',posterior['interval']['multiplier'])),posterior_draws=len(draws['global']),
+                interval_calibration_group=bp.get('interval_calibration_group','all validation cars'),interval_calibration_n=int(bp.get('interval_calibration_n',report['validation_rows'])),
+                interval_calibration_source=bp.get('interval_calibration_source','all validation cars'),
                 predictive_sd_log=float(bp.predictive_sd_log),unknown_categories=unknown,
                 make_support=int(bp.make_n),model_support=int(bp.model_n),
                 analogue=bool(side=='bid' and int(fields['year'])>2015))
@@ -126,10 +132,14 @@ def render(root,*,bayesian=True):
                 st.markdown('#### '+title);r=results[side]
                 if 'error' in r:st.warning(r['error']);continue
                 st.metric(f"Estimated value · {date:%d %b %Y}",f"${r['price']:,.0f}");st.caption(meaning)
-                if bayesian:st.markdown(f"**Historical 90% range, date-adjusted · USD {r['interval_low']:,.0f}–{r['interval_high']:,.0f}**")
+                if bayesian:
+                    st.markdown(f"**Historical 90% range, date-adjusted · USD {r['interval_low']:,.0f}–{r['interval_high']:,.0f}**")
+                    labels={'rare':'rare/unseen model','common':'model with 12+ examples','under5000':'baseline under $5,000','5000plus':'baseline $5,000+','older_highmiles':'older/high-mileage','other':'younger/lower-mileage'}
+                    group=' · '.join(labels.get(k,k) for k in r['interval_calibration_group'].split('|'))
+                    st.caption(f"Range checked against {r['interval_calibration_n']:,} historical validation cars · {group}. Pool: {r['interval_calibration_source']}. See Accuracy comparison for segment coverage.")
                 st.caption(f"{date:%d %b %Y} · "+("XGBoost + Bayesian correction" if bayesian else f"Regular XGBoost · {label(root)} asking AFT / auction median"))
                 if r['analogue']:st.warning('Auction estimate uses a generation analogue: auction training ends at model year 2015. This 2016–2021 vehicle generation was not observed; the date adjustment does not validate that assumption.')
-                if bayesian and r['model_support']==0:st.caption('Unseen model/trim: the correction borrows from its make and broader market.')
+                if bayesian and r['model_support']<12:st.caption('Rare or unseen model/trim: the correction borrows from its make and broader market. Few examples mean less model-specific evidence.')
                 if r['unknown_categories']:st.caption('Unseen categorical inputs: '+', '.join(r['unknown_categories'])+'. Native missing-value routing applies.')
     st.info('The gap is not dealer profit or a promised discount. These models describe different markets and vehicle populations.')
     available=[r for r in results.values() if 'error' not in r]

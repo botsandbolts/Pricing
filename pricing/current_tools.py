@@ -25,7 +25,7 @@ def build_report(root,fields,date,results):
     from pricing.description_features import kind,label
     feature_label=label(root)
     sections=[{'title':'Valuation method','text':f'XGBoost combines vehicle facts with {feature_label} description features for the advertised asking-price estimate. The auction model uses structured vehicle facts and median quantile loss. The asking AFT fit uses exact observed price bounds; verified censoring intervals are unavailable.'},
-              {'title':'Evaluation technique','text':'Separate historical training, validation and test splits. Five vehicle-group cross-validation folds produce log residuals; one largest-quarter training trim precedes refitting. Validation and test are not trimmed by that rule. The optional separate Bayesian make/model/age residual correction borrows evidence across related cars. Historical test MAE measures average dollar error, not a guarantee for this car. Date-adjusted current prices and ranges have not been independently validated.'}]
+              {'title':'Evaluation technique','text':'Separate historical training, validation and test splits. Five vehicle-group cross-validation folds produce log residuals; one largest-quarter training trim precedes refitting. Validation and test are not trimmed. The optional Bayesian residual correction borrows evidence across related cars; its installed method and measured results are recorded below. Historical test MAE is average dollar error, not a guarantee for this car. Current-date accuracy and range coverage have not been independently validated.'}]
     estimates={}
     for side,r in results.items():
         if 'error' in r:continue
@@ -33,7 +33,8 @@ def build_report(root,fields,date,results):
           'age_multiplier':r['vehicle_factor'],'market_multiplier':r['market_factor'],'vehicle_age_years':r['age'],
           'market_index_status':r['market'],'newer_generation_analogue':r['analogue']}
         report=json.loads((Path(root)/'models/xgboost-hierarchy'/side/'bayesian/bayesian-evaluation.json').read_text())
-        sections.append({'title':side+' held-out evidence','text':f"Historical full-test regular MAE ${report['base_test_mae_usd']:,.2f}; Bayesian MAE ${report['point_scores']['mae_usd']:,.2f}. These are different from today's date-adjusted errors, which have not been measured. Bayesian ranges have historical calibration only; ask and bid are fitted separately. Gaussian/t/mixture LOO comparisons and genuine censoring models are not implemented."})
+        method=('Redesigned nonlinear, cross-classified hierarchy with '+report['selected_likelihood'].replace('_',' ')+' errors and price/age-specific variances. Gaussian, Student-t and contamination candidates competed on validation dollar MAE. Different validation cars calibrated risk-stratified intervals. This is not PSIS-LOO.' if report.get('method')=='robust_cross_classified_gibbs_v1' else 'Gaussian make/model/age residual hierarchy.')
+        sections.append({'title':side+' held-out evidence','text':f"Historical full-test regular MAE ${report['base_test_mae_usd']:,.2f}; Bayesian MAE ${report['point_scores']['mae_usd']:,.2f}. "+method+" Today’s date-adjusted errors remain unmeasured. These ranges have historical calibration only; ask and bid are fitted separately. Verified censoring bounds are unavailable."})
     return {'valuation_date':str(date),'market_estimates':estimates,'unavailable_markets':[s for s in ['ask','bid'] if 'error' in results.get(s,{})],
         'market_source':'BLS/FRED CUUR0000SETA02 monthly retail used-car CPI (also used as a wholesale proxy)',
         'latest_observed_month':next((r['market']['last_known_month'] for r in results.values() if 'error' not in r),None),'sections':sections}

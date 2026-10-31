@@ -100,3 +100,5 @@ tokenizers>=0.23.1,<0.24
 # BART source is declarative advert prose; refresh summary imports and copy.
 
 # BART advert overview: grounded rounded figures with unsupported-number rejection.
+
+# Robust Bayesian v2: reload nonlinear correction, risk-stratified intervals and scorecards.

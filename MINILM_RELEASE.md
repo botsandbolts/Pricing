@@ -17,3 +17,5 @@ The migration workflow builds a new release; the app reads its feature contract 
 ## Evaluation and deployment
 
 `MiniLM-only Lemon Squeezer and Bayesian release` builds original five-fold predictions and cleaned five-fold predictions, refits regular models, fits matching Gaussian hierarchical residual posteriors, measures original eligible validation/test MAE and coverage, and checks real serving inference under memory and package-size budgets. It publishes the bundle only after those checks pass. Scores shown in the GUI come from that bundle, not earlier TF-IDF scores. No improvement or current-market accuracy is assumed.
+
+The later [Bayesian redesign](ROBUST_BAYESIAN.md) replaces only the residual posterior after its own matched comparison. Regular XGBoost weights and the MiniLM heads remain fixed. The installed per-market Bayesian report identifies its selected likelihood and risk-stratified interval method; the Gaussian paragraph above describes the baseline workflow.
