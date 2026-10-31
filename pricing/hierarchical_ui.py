@@ -46,7 +46,7 @@ def render(root):
     if not saved or saved[0]['side']!=side:saved=installed(str(root),side)
     with st.expander('How this works · plain English and statistical recipe'):
         st.write('The forest estimates log price from vehicle facts. A joint Bayesian correction fits a market mean, shared age slope, make offsets and model-within-make offsets to independent out-of-fold residuals. Sparse models borrow strength. Family advice, with fewer unsolicited opinions.')
-        st.write('XGBoost RF: 200 parallel trees in one boosting round, depth 8, native categorical splits. Two blocked Gibbs chains sample the joint hierarchical Gaussian posterior, including residual noise and group variances. The separate validation cohort scales historical 90% prediction ranges; the untouched test cohort measures coverage. The previous sequential empirical-Bayes correction remains as a benchmark below.')
+        st.write('XGBoost RF: 200 parallel trees in one boosting round, depth 8, native categorical splits. Two blocked Gibbs chains sample the joint hierarchical Gaussian posterior, including residual noise and group variances. The separate validation cohort scales historical 90% prediction ranges; the untouched test cohort measures coverage. The optional uploaded-data workbench below still fits the earlier empirical-Bayes benchmark.')
         st.warning('Historical asking advertisements and wholesale sales are different targets. This experiment excludes SGD, CatBoost, MiniLM and production outlier cleaning. Your ordinary calculator and description features remain available.')
     with st.expander('Developer workbench · data, fitting & provenance'):
         from pricing.forest_residuals import OBSERVATION_COLUMNS,generate
@@ -94,10 +94,10 @@ def render(root):
             with gzip.open(Path(root)/'models/forest-original'/side/'bayesian.json.gz','rt') as file:meta=json.load(file)
             st.json({'priors':meta['priors'],'chains':meta['chains'],'warmup_per_chain':meta['warmup_per_chain'],'draws_per_chain':meta['draws_per_chain'],'rhat':meta['rhat'],'validation_multiplier':bayes_report['validation_multiplier']})
     lo,hi=test['mae_change_95_group_bootstrap']
-    st.metric('MAE change · hierarchy minus forest',f"{test['mae_change_usd']:+,.2f} USD")
-    st.caption(f'Negative is better. Paired group bootstrap, 300 resamples: 95% interval [{lo:+,.2f}, {hi:+,.2f}] USD. This concerns the MAE difference, not a car price.')
+    st.metric('Empirical-Bayes benchmark MAE change vs forest',f"{test['mae_change_usd']:+,.2f} USD")
+    st.caption(f'Applies only to the earlier empirical-Bayes benchmark, not the joint Bayesian model. Negative is better. Paired group bootstrap, 300 resamples: 95% interval [{lo:+,.2f}, {hi:+,.2f}] USD.')
     with st.expander('Full scorecard · forest, empirical Bayes and joint Bayes'):
-        metrics=[{'Cohort':split,'Model':'Forest' if method=='base' else 'Forest + hierarchy',**r[method]} for split,r in report['cohorts'].items() for method in ['base','hierarchical']]
+        metrics=[{'Cohort':split,'Model':'Forest' if method=='base' else 'Forest + empirical Bayes',**r[method]} for split,r in report['cohorts'].items() for method in ['base','hierarchical']]
         if bayes_report:metrics.append({'Cohort':'test','Model':'Forest + joint Bayes',**bayes_report['point_scores']})
         st.dataframe(pd.DataFrame(metrics),hide_index=True)
         st.caption('RMSE penalizes extreme misses. Bias is prediction minus observed price. Improving MAE does not guarantee improved bias.')
@@ -109,18 +109,18 @@ def render(root):
         view['forest_residual_usd']=view.observed_price-view.base_price
         view['corrected_residual_usd']=view.observed_price-view.corrected_price
         st.caption('Positive residual: underestimated. Displayed rows are an inspection subset; the scorecard uses the complete test cohort.')
-        st.dataframe(view,hide_index=True)
+        st.dataframe(view.rename(columns={'corrected_residual_usd':'empirical_bayes_residual_usd'}),hide_index=True)
     st.markdown('#### 03 · Inspect one held-out car')
     choice=st.selectbox('Held-out example',range(len(rows)),format_func=lambda i:f"Example {i+1} · {rows.iloc[i]['manufacturer']} {rows.iloc[i]['model']}",key='hierarchy_example')
     row=rows.iloc[choice]
-    if st.button('Compare hierarchical estimate',key='hierarchy_compare'):
+    if st.button('Compare forest, empirical Bayes & joint Bayes',key='hierarchy_compare'):
         st.session_state['hierarchy_checked']=(bundle['fingerprint'],choice)
         from pricing.hierarchical_store import record
         record(side,row,bundle,str(uuid.uuid4()))
     if st.session_state.get('hierarchy_checked')==(bundle['fingerprint'],choice):
         a,b=st.columns(2)
         a.metric('Forest · historical prediction',f"${row.base_price:,.0f}")
-        b.metric('Forest + hierarchy · same price basis',f"${row.corrected_price:,.0f}",f"{100*(row.corrected_price/row.base_price-1):+.1f}%",delta_color='off')
+        b.metric('Forest + empirical Bayes · historical',f"${row.corrected_price:,.0f}",f"{100*(row.corrected_price/row.base_price-1):+.1f}%",delta_color='off')
         st.caption(f"Observed historical target: ${row.observed_price:,.0f}. This is a held-out check, not an offer.")
         st.bar_chart(pd.DataFrame({'Log-price correction':[row.global_effect,row.make_effect,row.model_effect,row.age_effect]},index=['Market','Make','Model','Age']))
         st.write(f"Make support: {int(row.make_n):,} · model support: {int(row.model_n):,} · model pooling weight: {row.model_weight:.1%}.")
@@ -138,5 +138,5 @@ def render(root):
     if 'hierarchy_residual_export' in st.session_state:
         st.download_button('Download forest residuals',st.session_state['hierarchy_residual_export'],'forest-residuals.csv','text/csv',key='hierarchy_residual_download')
     else:st.download_button('Download inspected test examples',rows.to_csv(index=False),'forest-test-examples.csv','text/csv',key='hierarchy_residual_download')
-    st.download_button('Download hierarchical experiment',json.dumps({'model':bundle,'evaluation':report},indent=2),'hierarchical-experiment.json','application/json',key='hierarchy_export')
+    st.download_button('Download empirical-Bayes benchmark',json.dumps({'model':bundle,'evaluation':report},indent=2),'hierarchical-empirical-bayes.json','application/json',key='hierarchy_export')
     st.caption('Uploads remain session-local. Only explicit, consented historical comparisons are saved privately to Turso for 90 days. Date scenarios are not logged as historical predictions. GA receives bounded action names, never uploaded rows or descriptions.')
