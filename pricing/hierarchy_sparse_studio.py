@@ -56,7 +56,7 @@ def render(root):
     st.caption('Regular prices first. Bayesian family advice when you want a second opinion.')
     hierarchy_page=st.session_state.get('studio_tabs')=='🌳 Hierarchical model'
     views=['🌳 Bayesian pricing','📊 Accuracy comparison','🧠 How it works'] if hierarchy_page else ['🚗 Regular pricing','🌳 Bayesian pricing','📊 Accuracy comparison','🧠 How it works']
-    panel=st.radio('Pricing view',views,horizontal=True,key='hierarchical_pricing_view' if hierarchy_page else 'separate_pricing_panel')
+    panel=st.radio('Pricing view',views,horizontal=True,key='hierarchical_pricing_view' if hierarchy_page else 'separate_pricing_panel',persist_state='session')
     if panel=='📊 Accuracy comparison':
         scorecard(root,details=True)
         return
