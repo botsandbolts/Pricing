@@ -84,3 +84,5 @@ joblib>=1.3,<2
 # Compact MiniLM signal: ONNX inference avoids loading PyTorch in the new calculator.
 onnxruntime>=1.20,<2
 tokenizers>=0.23.1,<0.24
+
+# Refresh serving process for separate regular and Bayesian pricing panels.
