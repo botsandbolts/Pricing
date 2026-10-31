@@ -68,3 +68,5 @@ qrcode>=8,<9
 # Hierarchical residual export: separate session data from download widget state.
 
 # Original-cohort hierarchical and SGD-Huber comparison: reload installed research results.
+
+# Forest-only hierarchy and today-by-default date controls; refresh serving modules.

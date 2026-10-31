@@ -115,51 +115,18 @@ def test_completed_panel_keeps_export_data_separate_from_widget_state():
     assert not app.exception
 
 
-def test_sgd_fits_only_calibration_and_pools_rare_levels():
-    from pricing.sgd_residuals import fit as fit_sgd,predict as predict_sgd,features
-    d=fixture();d['odometer']=np.arange(len(d))*1000
-    d.loc[d.index[:3],'model']='rare_training_trim'
-    cal=d[d.split=='calibration'];held=d[d.split=='test'].copy()
-    model=fit_sgd(cal)
-    encoder=model.named_steps['encode']
-    categories=encoder.named_transformers_['categorical']
-    assert categories.min_frequency==20 and categories.max_categories==50
-    means=encoder.named_transformers_['numeric'].mean_
-    np.testing.assert_allclose(means,features(cal)[['age','log_miles','mileage_missing','log_base_price','auction_grade','grade_missing']].mean())
-    held['model']='never_seen_in_training'
-    first=predict_sgd(model,held)
-    held['observed_price']*=100
-    np.testing.assert_allclose(first,predict_sgd(model,held))
-    assert np.isfinite(first).all()
-
-
 def test_original_bundle_loads_without_upload(tmp_path):
     import gzip,json
     from pricing.original_residual_results import load
     b,r,rows=experiment(fixture(),'ask')
-    path=tmp_path/'models'/'hierarchical-original'/'ask';path.mkdir(parents=True)
+    path=tmp_path/'models'/'forest-original'/'ask';path.mkdir(parents=True)
     with gzip.open(path/'model.json.gz','wt') as f:json.dump(b,f)
     (path/'evaluation.json').write_text(json.dumps(r))
     rows.to_csv(path/'examples.csv.gz',index=False)
     loaded=load(tmp_path,'ask')
     assert loaded[0]['fingerprint']==b['fingerprint']
-    assert loaded[1]['cohorts']['test']['sgd_huber']['rows']==len(rows)
+    assert loaded[1]['cohorts']['test']['base']['rows']==len(rows)
     assert len(loaded[2])==len(rows)
-
-
-def test_sgd_price_oof_and_heldout_are_label_independent():
-    from pricing.sgd_price import generate
-    d=fixture();d['odometer']=25000.;d['observed_price']=np.linspace(5000,20000,len(d))
-    source=d.drop(columns=['base_price','base_fold','prediction_kind','base_model_id'])
-    a,meta=generate(source,'ask')
-    changed=source.copy();changed.loc[changed.split!='calibration','observed_price']*=3
-    b,_=generate(changed,'ask')
-    np.testing.assert_allclose(a.base_price,b.base_price)
-    assert meta['method']=='fresh_group_cross_fitted_sgd_huber_log_price'
-    assert a[a.split=='calibration'].base_fold.nunique()==3
-    bundle,report,rows=experiment(a,'ask',include_sgd=False)
-    assert 'sgd_huber' not in report['cohorts']['test']
-    assert report['cohorts']['test']['base']['rows']==len(rows)
 
 
 def test_xgboost_parallel_forest_and_legacy_wrapper_agree():

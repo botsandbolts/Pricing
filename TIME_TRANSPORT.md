@@ -147,3 +147,7 @@ The Ask curve refit uses 198,995 in-scope listings; the Bid curve uses 549,995 i
 Selected market model: damped Holt. Locked later-origin index MAPE is 0.80% / 3.05% / 6.47% / 7.51% at 1 / 3 / 6 / 12 months (11 forecasts per horizon). Selection used earlier origins only. The current GUI limits forecasts to six months even though 12-month diagnostics are reported. These percentages do not measure individual-car pricing accuracy.
 
 Real-model Streamlit testing passed for unchanged historical Ask output ($10,608.983456680162 on the fixed control car), quantile Bid default, two current-value receipts, a 298-row two-market timeline, annual-mileage scenarios and preserved explanation controls. Nine focused tests cover monotonic curves, categorical pooling/serialization, publication cutoffs, horizon limits, missing inputs, model-year guards and existing serving.
+
+## Today-by-default controls and forest scenarios
+
+The shared date selector defaults to Today (Berlin calendar), automatically recomputed on refresh. Custom dates and month-end scenarios remain available. The forest research panel reuses the fitted depreciation curves and release-aware market clock with original-row anchors; historical test scores do not become current-price accuracy claims. See HIERARCHICAL_MODEL.md.

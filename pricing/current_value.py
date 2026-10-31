@@ -63,8 +63,8 @@ def clock_controls(prefix='main'):
     """Today follows Berlin's calendar on every app rerun, never a frozen widget."""
     day = today()
     with st.expander('Valuation date & auction coverage', expanded=False):
-        mode = st.radio('Price date', ['End of this month · market nowcast', 'Today · follows the calendar', 'Choose a date'],
-                        horizontal=True, key=prefix+'_clock_mode_v2')
+        mode = st.radio('Price date', ['Today · follows the calendar', 'Choose a date', 'End of this month · market nowcast'],
+                        horizontal=True, key=prefix+'_clock_mode_v3')
         if mode.startswith('End of'):
             selected = month_end(day)
         elif mode.startswith('Today'):

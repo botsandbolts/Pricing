@@ -94,13 +94,16 @@ day,allow=clock_controls('fixture')
 st.text(str(day))
 ''').run()
     assert not app.exception
-    assert app.text[0].value == '2026-10-31'
+    assert app.text[0].value == '2026-10-30'
     assert app.checkbox[0].value is True
     app.radio[0].set_value('Today · follows the calendar').run()
     assert app.text[0].value == '2026-10-30'
     monkeypatch.setattr(current,'today',lambda:date(2026,10,31))
     app.run()
     assert app.text[0].value == '2026-10-31'
+    monkeypatch.setattr(current,'today',lambda:date(2026,11,1))
+    app.run()
+    assert app.text[0].value == '2026-11-01'
     app.radio[0].set_value('Choose a date').run()
     app.date_input[0].set_value(date(2026,9,12)).run()
     assert app.text[0].value == '2026-09-12'
@@ -131,3 +134,23 @@ def test_month_end_calendar_and_october_nowcast():
     assert r['market']['month']=='2026-10'
     assert r['market']['method']=='damped_holt'
     assert r['market']['kind']=='forecast_monthly_index'
+
+
+def test_forest_time_uses_source_age_and_single_auction_reference():
+    import pandas as pd
+    from pricing.forest_time import adjust
+    from marketbridge.time_engine import age_on
+    t=TimeTransport(ROOT)
+    row=pd.Series({**CAR,'source_date':'2015-06-01','age':age_on(2015,'2015-06-01'),'base_price':20000.,'corrected_price':22000.})
+    r=adjust(t,row,'bid','2026-10-30',95000,as_of='2026-10-30')
+    level,_=t.clock.value('2026-10-30',as_of='2026-10-30')
+    assert r['market_factor']==pytest.approx(level/t.clock.data.loc['2015-01'])
+    assert r['price']==pytest.approx(22000*r['vehicle_factor']*r['market_factor'])
+    assert r['forest_price']==pytest.approx(20000*r['vehicle_factor']*r['market_factor'])
+    assert r['source_age']<1 and r['age']>11
+    same=adjust(t,row,'ask','2015-06-01',95000,as_of='2026-10-30')
+    assert same['price']==pytest.approx(22000.)
+    november=adjust(t,row,'bid','2026-11-01',95000,as_of='2026-11-01')
+    assert november['market']['horizon']==2
+    with pytest.raises(ValueError,match='six months'):
+        adjust(t,row,'bid','2028-01-01',95000,as_of='2026-10-30')

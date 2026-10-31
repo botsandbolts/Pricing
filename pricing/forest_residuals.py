@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupKFold
 from pricing.hierarchical import validate
-from pricing.sgd_price import CATEGORICAL,OBSERVATION_COLUMNS
+CATEGORICAL=['manufacturer','model','type','transmission','state','fuel','drive','title_status','cylinders','paint_color']
+OBSERVATION_COLUMNS=['row_id','vehicle_group','split','manufacturer','model','age','odometer','observed_price','price_basis']
 
 
 def generate(frame,side,*,max_rows=1000000,model_path=None):

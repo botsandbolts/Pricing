@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from pricing.model_suite import load_cohort,predictors
 from marketbridge.structural import IndexPanel,known_pricing_vins
-from pricing.sgd_price import generate,CATEGORICAL
+from pricing.forest_residuals import generate,CATEGORICAL
 from pricing.hierarchical import experiment
 
 
@@ -17,9 +17,6 @@ def sha(path):
 
 
 def run(args):
-    if args.engine=='forest':
-        from pricing.forest_residuals import generate as generate_base
-    else:generate_base=generate
     out=Path(args.output);out.mkdir(parents=True,exist_ok=True)
     known=known_pricing_vins(args.ask)
     panel=IndexPanel(args.index)
@@ -57,11 +54,11 @@ def run(args):
         if residual_path.exists():
             residuals=pd.read_csv(residual_path);base_meta=json.loads((dest/'base-assessment.json').read_text())
         else:
-            residuals,base_meta=generate_base(frame,side,max_rows=1000000,model_path=dest/('base-assessment.ubj' if args.engine=='forest' else 'base-assessment.joblib'))
+            residuals,base_meta=generate(frame,side,max_rows=1000000,model_path=dest/'base-assessment.ubj')
             residuals.to_csv(residual_path,index=False,float_format='%.12g')
             (dest/'base-assessment.json').write_text(json.dumps(base_meta,indent=2))
-        print(f'Fitting hierarchy over SGD-Huber residuals on {len(residuals):,} original {side} observations',flush=True)
-        bundle,report,rows=experiment(residuals,side,max_rows=1000000,include_sgd=False)
+        print(f'Fitting hierarchy over forest residuals on {len(residuals):,} original {side} observations',flush=True)
+        bundle,report,rows=experiment(residuals,side,max_rows=1000000)
         report['base_assessment']=base_meta;report['provenance']=provenance
         with gzip.open(dest/'model.json.gz','wt') as f:json.dump(bundle,f)
         (dest/'evaluation.json').write_text(json.dumps(report,indent=2))
@@ -72,4 +69,4 @@ def run(args):
 
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--ask',default='training-cache/full-cohort.jsonl');p.add_argument('--bid',default='training-cache/bid-cohort.jsonl');p.add_argument('--index',default='models/structural-transfer/used-car-index.csv');p.add_argument('--output',default='models/hierarchical-original');p.add_argument('--side',choices=['ask','bid']);p.add_argument('--engine',choices=['sgd','forest'],default='sgd');run(p.parse_args())
+    p=argparse.ArgumentParser();p.add_argument('--ask',default='training-cache/full-cohort.jsonl');p.add_argument('--bid',default='training-cache/bid-cohort.jsonl');p.add_argument('--index',default='models/structural-transfer/used-car-index.csv');p.add_argument('--output',default='training-cache/forest-assessment-fit');p.add_argument('--side',choices=['ask','bid']);p.add_argument('--engine',choices=['forest'],default='forest');run(p.parse_args())
