@@ -20,7 +20,10 @@ st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);co
 <strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
 An uncommon make or trim has fewer close comparisons. Explore the separate hierarchical asking and wholesale estimates, their historical ranges, and how similar cars lend evidence.
 </div>''',unsafe_allow_html=True)
-st.link_button('Explore rare-car estimates and uncertainty ↗','?hierarchy=1',type='primary')
+if st.button('Explore rare-car estimates and uncertainty ↗',type='primary',key='rare_car_entry'):
+    st.query_params['hierarchy']='1'
+    st.session_state['studio_tabs']='🌳 Hierarchical model'
+    st.rerun()
 from pricing.iterative_release import render_release
 render_release(Path(__file__).parent)
 from pricing.analytics import render_privacy, record_price
