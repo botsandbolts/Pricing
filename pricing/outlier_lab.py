@@ -10,7 +10,7 @@ def survivor_rows(counts, stages=5, fraction=.05):
         rows.append({'Round':i,**values,'Total':sum(values.values())})
     return rows
 
-def render(root):
+def render_historical(root):
     import streamlit as st
     import pandas as pd
     import plotly.express as px
@@ -129,3 +129,26 @@ def render(root):
     st.caption(report['source']+' · Saved experiment evidence; no retraining occurs when you open this tab.')
     st.link_button('Open saved Kaggle experiment',report['run_url'])
     st.download_button('Download experiment evidence · JSON',json.dumps(report,indent=2),'five-stage-outlier-evidence.json','application/json',key='outlier_evidence_download')
+
+
+def render(root):
+    from pathlib import Path
+    import json
+    import streamlit as st
+    from pricing.hierarchy_sparse_studio import scorecard
+    st.header('🍋 Lemon Squeezer · the 25% training trim')
+    st.write('Five cross-validation models price cars they did not train on. The largest absolute log-price misses identify the quarter removed from training before the final XGBoost refit. Five folds, one cut — not five cleaning rounds.')
+    st.warning('A large miss can be a bad label or a valid unusual car. Cleaning is not proof of better accuracy or fraud. Validation and test cars are not trimmed by this rule.')
+    for side in ['ask','bid']:
+        folder=Path(root)/'models/xgboost-hierarchy'/side
+        cleaning=json.loads((folder/'cleaning.json').read_text())
+        st.subheader('Asking · Craigslist' if side=='ask' else 'Wholesale · auction')
+        a,b,c=st.columns(3)
+        a.metric('Training candidates',f"{cleaning['original_training_rows']:,}")
+        b.metric('Removed',f"{cleaning['removed_training_rows']:,}")
+        c.metric('Retained',f"{cleaning['original_training_rows']-cleaning['removed_training_rows']:,}")
+        with st.expander(side.title()+' · exact training and evaluation receipt'):
+            st.json(cleaning)
+            st.json(json.loads((folder/'evaluation.json').read_text()))
+    scorecard(root,details=True)
+    st.caption('The comparison isolates the Bayesian correction on the cleaned model. A matched uncleaned XGBoost benchmark is needed to measure the effect of the trim itself. The earlier five-stage CatBoost experiment is superseded, not this release’s method.')

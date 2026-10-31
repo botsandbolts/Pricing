@@ -4,7 +4,7 @@ function installPricingInteractions() {
   const panels = new Map([
     ['🚗 Price my car','calculator'],['↔ Two-market garage','two_market'],
     ['📅 Value over time','value_over_time'],['🧠 The science','science'],
-    ['🌳 Hierarchical model','hierarchical_model'],['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
+    ['🌳 Hierarchical model','calculator'],['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
   ]);
   const subpanels = new Map([
     ['📸 Import advert','import_advert'],['🕵️ Price verdict','price_verdict'],
@@ -16,6 +16,10 @@ function installPricingInteractions() {
     ['Year × mileage','year_mileage'],['Technical receipt','technical_receipt']
   ]);
   const actions = new Map([
+    ['Estimate asking + auction prices',['estimate_requested','two_market']],
+    ['Generate BART overview',['summary_requested','bart']],
+    ['Analyse description with MiniLM',['explanation_requested','minilm_phrases']],
+    ['Show current model price drivers',['explanation_requested','xgboost_drivers']],
     ['Estimate asking price',['estimate_requested','asking']],
     ['Let the pricing committee argue',['estimate_requested','model_comparison']],
     ['Price it in both markets',['estimate_requested','two_market']],
@@ -137,7 +141,7 @@ function installPricingInteractions() {
     && !node.closest?.('details:not([open]),[hidden],[aria-hidden="true"]')
     && (typeof node.checkVisibility!=='function' || node.checkVisibility({checkVisibilityCSS:true}));
   function selectedPanels() {
-    const tabs=[...document.querySelectorAll('[role="tab"][aria-selected="true"]')].filter(visible);
+    const tabs=[...document.querySelectorAll('[role="tab"][aria-selected="true"],button[aria-pressed="true"],[role="radio"][aria-checked="true"]')].filter(visible);
     const main=tabs.find(tab=>panels.has(label(tab)));
     const nested=tabs.find(tab=>subpanels.has(label(tab)));
     switchPanel(main?panels.get(label(main)):state.panel,nested?subpanels.get(label(nested)):'none');

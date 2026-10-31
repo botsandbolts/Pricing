@@ -33,17 +33,23 @@ def apply_vehicle(fields,text='',seller=None,tab='🚗 Price my car'):
     for k,values in enums.items():
         v=f.get(k,'unknown');v='SUV' if k=='type' and str(v).lower()=='suv' else str(v).lower()
         f[k]=v if v in values else 'unknown'
-    for k,v in f.items():st.session_state['vehicle_'+k]=v
+    for k,v in f.items():
+        st.session_state['vehicle_'+k]=v
+        st.session_state['forest_car_'+k]=v
+    st.session_state['forest_description']=text[:8000]
+    st.session_state.pop('hierarchy_sparse_result',None)
     st.session_state['seller_description']=text[:8000]
     if seller is not None:st.session_state['detective_seller']=float(seller)
     st.session_state.pop('last_explained_price',None)
     st.session_state.pop('pricing_visual_explanation',None)
     st.session_state['studio_tabs']=tab
+    st.session_state['_navigate_to']=tab
 
 
-def move_to(tab):st.session_state['studio_tabs']=tab
+def move_to(tab):st.session_state['_navigate_to']=tab
 
 def open_share():
+    st.session_state['_navigate_to']='🕵️ Deal Detective'
     st.session_state['studio_tabs']='🕵️ Deal Detective'
     st.session_state['detective_tabs']='📤 Share & go viral'
 

@@ -16,27 +16,39 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
-_feature_pages=['🚗 Current regular & Bayesian pricing','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective & sharing','🧹 Outlier lab','🌳 Hierarchical model']
-st.markdown('### Explore the studio')
-_workspace=st.pills('Studio panels',_feature_pages,selection_mode='single',default=_feature_pages[0],key='landing_studio_workspace',label_visibility='collapsed') or _feature_pages[0]
-st.markdown('<style>.st-key-studio_tabs [role="tablist"]{display:none}</style>',unsafe_allow_html=True)
-if _workspace==_feature_pages[0] and (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
+from pricing.navigation import render_navigation
+_workspace=render_navigation()
+if _workspace in ['🚗 Price my car','🌳 Hierarchical model'] and (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
     from pricing.hierarchy_sparse_studio import render
     render(Path(__file__).parent)
     from pricing.ga_events import render_events
     render_events()
     footer()
     st.stop()
-_target='🕵️ Deal Detective' if _workspace=='🕵️ Deal Detective & sharing' else _workspace
-st.session_state['studio_tabs']=_target
-st.info('Full feature studio · historical comparisons retain their original model names and recorded scores. Current regular and Bayesian pricing is in the first panel above.')
+if _workspace=='🧠 The science':
+    from pricing.hierarchy_sparse_studio import explain
+    from pricing.analytics import render_privacy
+    render_privacy()
+    explain()
+    footer()
+    st.stop()
+if _workspace=='📅 Value over time':
+    from pricing.current_tools import render_timeline
+    from pricing.analytics import render_privacy
+    render_privacy()
+    render_timeline(Path(__file__).parent)
+    from pricing.ga_events import render_events
+    render_events()
+    footer()
+    st.stop()
+st.caption('Historical comparison tools retain their own model names and assessment dates. They are not the current XGBoost calculator.')
 st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
 <strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
 An uncommon make or trim has fewer close comparisons. Explore the separate hierarchical asking and wholesale estimates, their historical ranges, and how similar cars lend evidence.
 </div>''',unsafe_allow_html=True)
 if st.button('Explore rare-car estimates and uncertainty ↗',type='primary',key='rare_car_entry'):
     st.query_params['hierarchy']='1'
-    st.session_state['studio_tabs']='🌳 Hierarchical model'
+    st.session_state['_navigate_to']='🌳 Hierarchical model'
     st.rerun()
 
 from pricing.analytics import render_privacy, record_price
@@ -73,11 +85,11 @@ if aft_ready:choices.insert(0,aft_label)
 from pricing.residual_ui import ready as robust_aft_ready,model_root
 _default_root=model_root(Path('.'))
 robust_aft_label=('MiniLM + CatBoost AFT' if _default_root.name in ['minilm-catboost-aft','iterative-catboost'] else 'CatBoost AFT' if _default_root.name=='catboost-aft' else 'XGBoost AFT')+(' · five-stage cleaning (default)' if _default_root.name=='iterative-catboost' else ' · residual-trimmed (default)')
-if robust_aft_ready(Path('.')):choices.insert(0,robust_aft_label)
+if robust_aft_ready(Path('.')) and 'CatBoost' not in robust_aft_label:choices.insert(0,robust_aft_label)
 tabular_catboost_label='CatBoost AFT · tabular comparison'
-if _default_root.name=='minilm-catboost-aft' and Path('models/catboost-aft/ask/manifest.json').exists():choices.append(tabular_catboost_label)
+
 iterative_quantile_label='MiniLM + CatBoost quantile 0.5 · five-stage comparison'
-if _default_root.name=='iterative-catboost':choices.append(iterative_quantile_label)
+
 mode=st.sidebar.selectbox('Pricing model',choices,index=choices.index('Trained tabular baseline'),key='pricing_model')
 locations={iterative_quantile_label:Path('models/iterative-catboost/ask-quantile'),tabular_catboost_label:Path('models/catboost-aft/ask'),robust_aft_label:model_root(Path('.'))/'ask',aft_label:aft_path,'Cleanlab trained ensemble':cleanlab_ensemble,'Best trained ensemble':best_asking_bundle(Path('.')),
            minilm_label:installed_minilm,
@@ -88,33 +100,8 @@ path=Path(os.environ.get('PRICING_MODEL_DIR',str(locations[mode])))
 ready=(path/'manifest.json').exists()
 selected_manifest=json.loads((path/'manifest.json').read_text()) if ready else {}
 uses_text=selected_manifest.get('pipeline')=='fine-tuned-minilm-l6+lightgbm' or (selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft','catboost-log-quantile'] and selected_manifest.get('text_feature',False))
-with st.sidebar.expander('Active model · technical receipt'):
-    if selected_manifest.get('training_regime')=='five-stage-catboost-residual':
-        st.info('MiniLM description-price stacking + CatBoost. Five cleaner rounds remove ceil(5% of survivors) per phase; the final estimator is newly fitted afterward.')
-        st.caption('Native categorical features. Both AFT and log-median quantile alternatives are assessed. Filtering held-out outcomes gives optimistic selected-cohort scores; original test diagnostics remain visible.')
-    if selected_manifest.get('training_regime') in ['residual-trimmed-robust-xgb','residual-trimmed-catboost-aft','residual-trimmed-minilm-catboost-aft']:
-        st.info('MiniLM reads the seller description, then regularized CatBoost normal AFT combines its predicted_text_price with vehicle facts.' if uses_text else 'CatBoost normal AFT · tabular-only comparison; this model does not use the description.')
-        st.warning('Filtered validation/test scores are optimistic because their labels select retained cars. See Evaluation for original unfiltered-test errors too.')
-    elif selected_manifest.get('pipeline')=='modest-model-suite':
-        st.success('AFT is the preferred default: lowest recorded test RMSE on both datasets and lowest auction MAE. Huber remains better for asking-price MAE.')
-        st.caption('Normal AFT predicts the log-normal median. This trained run used exact price bounds; no interval-censoring mechanism was verified.')
-    if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
-        st.info('MiniLM is installed and ready to read descriptions. These are the completed assessment weights: 148,290 descriptions for MiniLM and 109,609 retained training rows for LightGBM. The separate full-data refit is still pending. The neural mechanic has passed this exam; it has not graduated from every garage yet.')
-    if uses_text:
-        if selected_manifest.get('pipeline') in ['catboost-aft','catboost-log-quantile']:
-            st.caption(('Five CatBoost cleaner rounds precede final fitting. ' if selected_manifest.get('training_regime')=='five-stage-catboost-residual' else '')+'MiniLM supplies one dynamic description-price feature. CatBoost learned this feature from out-of-fold text predictions. Make and model remain native categorical fields. Filtered scores are optimistic; see the active bundle for the exact cleaning method. The neural mechanic reads the advert; the tree committee checks the paperwork.')
-        elif selected_manifest.get('outlier_filter',{}).get('algorithm')=='Cleanlab':
-            st.caption('MiniLM reads the description. Cleanlab audited suspected training price-label errors using vehicle facts, internal cross-validation and uncertainty estimation. It does not filter the car you enter. Validation and test rows remain intact.')
-        else:
-            st.info('Cleanlab has replaced Isolation Forest in the training code. This installed model still uses its original Isolation Forest weights; it will be replaced only after a Cleanlab bundle is trained and installed.')
-            st.caption('MiniLM reads the description. Isolation Forest in auto mode filtered unusual training text-price signals; it does not reject your car at prediction time. LightGBM combines that signal with the form fields. The bouncer worked during training; the pricing desk is open.')
-    if not ready:
-        st.info('This historical MiniLM mode has not been trained. The integrated Pricing + CarBids tab uses its own completed models and remains available.')
-sidebar_receipt(Path(__file__).parent)
 with st.sidebar:
-    with st.expander('Datasets & provenance'):
-        render_sources(stacked=True)
-    render_methods(Path(__file__).parent)
+    st.caption('Historical comparison model only. Current XGBoost properties are in The science.')
 if not ready:
     st.warning('The selected historical model is unavailable. Choose an installed model in the sidebar.')
 
@@ -128,20 +115,19 @@ def get_pipeline(location):
     return _get_pipeline(location,file.stat().st_mtime_ns)
 
 st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
-value,compare,time_panel,how,results,laboratory,detective,outlier_lab,hierarchical_panel=st.tabs(['🚗 Price my car','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🌳 Hierarchical model'],key='studio_tabs',default='🌳 Hierarchical model' if st.query_params.get('hierarchy') else '🕵️ Deal Detective' if st.query_params.get('garage') else '🚗 Price my car',on_change='rerun')
-with hierarchical_panel:
+if _workspace=='🌳 Hierarchical model':
     from pricing.hierarchical_ui import render as render_hierarchical
     render_hierarchical(Path(__file__).parent)
-with outlier_lab:
+if _workspace=='🧹 Outlier lab':
     from pricing.outlier_lab import render as render_outlier_lab
     render_outlier_lab(Path(__file__).parent)
-with laboratory:
+if _workspace=='🧪 Model lab':
     from pricing.suite_ui import render
     render(Path(__file__).parent)
-with compare:
+if _workspace=='↔ Two-market garage':
     from marketbridge.ui import render_comparison
     render_comparison(Path(__file__).parent)
-with value:
+if _workspace=='🚗 Price my car':
     from pricing.price_meaning import render_market_guide,render_market_price
     render_market_guide()
     from pricing.current_value import (clock_controls,current_transport,DateAdjustedAsking,
@@ -291,12 +277,12 @@ with value:
             render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
             from pricing.explanation_ui import render_visual_explanations
             render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
-with time_panel:
+if _workspace=='📅 Value over time':
     from pricing.time_ui import render_time_studio
     time_saved=st.session_state.get('last_explained_price')
     if time_saved and time_saved[0]!=str(path):time_saved=None
     render_time_studio(Path(__file__).parent,time_saved,get_pipeline(str(path)) if time_saved else None)
-with how:
+if _workspace=='🧠 The science':
     if _default_root.name=='iterative-catboost':
         st.success('Active default: five-stage CatBoost cleaning; MiniLM + asking AFT and wholesale log-median quantile 0.5. Full model card and all measured trade-offs are in Outlier lab. The older methods described below remain comparison experiments.')
     if _default_root.name!='iterative-catboost':st.write('The asking default combines MiniLM description regression with CatBoost normal AFT. The auction default is tabular CatBoost quantile 0.5 on log prices, fitted after a separate quantile-residual cleaner removes the highest-residual 25% per original phase. CatBoost handles categorical labels natively and uses exact observed dollar bounds, with an internal log-price likelihood. Ask preserves its existing highest-residual quartile plus OutlierTree masks. Bid uses its new quantile-residual top-quarter cut only, without additional OutlierTree flags. Filtered test scores are optimistic selected-cohort results; original-test diagnostics are reported too. The MiniLM + CatBoost default includes the dynamic description-price feature; the earlier tabular-only CatBoost model is a comparison baseline. Auction data contain no descriptions, so auction CatBoost remains tabular. Only its cleaner can optionally use an IMR fitted from a genuine sold/unsold listing population; such data are currently unavailable. Earlier models remain available for comparison.')
@@ -311,7 +297,11 @@ with how:
     else:
         st.write('The legacy assessment used standardized dollar targets in its selected Huber LightGBM. MiniLM itself learned standardized log1p prices. Its inverse-transformed dollar estimate becomes predicted_text_price.')
     st.write('The complete raw database is scanned before eligibility checks and deduplication. The eligible sample is split chronologically 70/15/15. Historical 2021 asking prices are not completed-sale prices or current valuations.')
-with results:
+if _workspace=='📊 Evaluation':
+    from pricing.hierarchy_sparse_studio import scorecard
+    scorecard(Path(__file__).parent,details=True)
+    st.divider()
+    st.subheader('Historical experiments · different architectures and cohorts')
     from pricing.evaluation_ui import render_model_comparison
     render_model_comparison()
     if (path/'evaluation.json').exists() and ready:
@@ -348,7 +338,7 @@ with results:
             if selected_manifest.get('deployment_scope')=='completed-chronological-assessment':
                 st.caption(selected_manifest['assessment_note'])
                 st.text(f"Description-only test MAE: ${e['description_only']['mae_usd']:,.0f} · MiniLM + LightGBM test MAE: ${e['stacked']['mae_usd']:,.0f}.")
-                st.info('The installed MiniLM model is the default studio model. Its filter is recorded in the model manifest. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
+                st.info('This is the historical MiniLM comparison model, not the current studio default. Its filter is recorded in the model manifest. The other trained models remain selectable for comparison. The recorded assessment above belongs to these installed weights; the full-data refit has not finished yet.')
                 st.download_button('Download MiniLM assessment',json.dumps(e,indent=2),'minilm-assessment.json','application/json')
         if selected_manifest.get('pipeline') in ['modest-model-suite','catboost-aft','catboost-log-quantile']:
             st.caption('Point estimate only. Neither the AFT distribution nor quantile loss provides a validated current-car prediction interval here.')
@@ -358,7 +348,7 @@ with results:
         else:st.caption('The ensemble band is calibrated on historical validation residuals; no individual or future-market coverage guarantee is claimed.')
     else:st.info('This mode has no completed evaluation. Train MiniLM to enable it; baseline scores do not apply.')
 
-with detective:
+if _workspace=='🕵️ Deal Detective':
     from pricing.deal_detective import render as render_detective
     from pricing.deal_runtime import bid_estimate
     render_detective(lambda text,fields:get_pipeline(str(path)).predict(text,fields,explain=False),bid_estimate,str(path))

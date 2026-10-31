@@ -1,7 +1,7 @@
 """Bounded GA completion events. No prices, vehicle facts or text are transmitted."""
 import uuid
 
-SOURCES = {'calculator':'calculator', 'calculator-companion':'calculator',
+SOURCES = {'current_pricing':'calculator','calculator':'calculator', 'calculator-companion':'calculator',
            'time-scenario':'value_over_time', 'robust_pair':'two_market',
            'suite':'model_lab', 'suite_robust':'model_lab', 'suite_pair':'model_lab',
            'integrated_new':'two_market', 'integrated':'two_market', 'integrated_robust':'two_market'}
@@ -14,7 +14,7 @@ def queue_estimate(side, source, event_key):
         return
     feature = SOURCES.get(source)
     active = {'🚗 Price my car':'calculator', '↔ Two-market garage':'two_market',
-              '📅 Value over time':'value_over_time', '🧪 Model lab':'model_lab'}.get(
+              '🌳 Hierarchical model':'calculator', '📅 Value over time':'value_over_time', '🧪 Model lab':'model_lab'}.get(
                   st.session_state.get('studio_tabs', '🚗 Price my car'))
     if feature is None or feature != active:
         return

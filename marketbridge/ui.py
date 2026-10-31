@@ -42,13 +42,13 @@ def show_prices(result,auction_date):
 
 def render_comparison(root):
     from pricing.residual_ui import ready as residual_ready,render_calculator,render_assessment
-    if residual_ready(root):
+    if residual_ready(root) and not (Path(root)/'models/xgboost-hierarchy/release.json').exists():
         mode=st.selectbox('Two-market pricing models',['Five-stage defaults · asking AFT + auction median','Original models and structural experiments'],key='robust_integrated_mode')
         if mode=='Five-stage defaults · asking AFT + auction median':
             render_calculator(root,key_prefix='integrated_new');render_assessment(root);return
     if (Path(root)/'models/price-model-suite/comparison.json').exists():
-        mode=st.selectbox('Two-market comparison mode',['AFT defaults','Historical structural experiments'],key='integrated_comparison_mode')
-        if mode=='AFT defaults':
+        mode=st.selectbox('Two-market comparison mode',['Historical AFT benchmark','Historical structural experiments'],key='integrated_comparison_mode')
+        if mode=='Historical AFT benchmark':
             from pricing.suite_ui import render
             render(root,key_prefix='integrated')
             return
@@ -65,7 +65,7 @@ def render_comparison(root):
             year=a.number_input('Model year',1886,2027,2014)
             make=b.text_input('Make','Toyota');model=c.text_input('Model','Camry')
             a,b,c=st.columns(3)
-            as_of=a.date_input('Valuation date',value=date(2022,5,1),min_value=date(2013,3,1),max_value=date(2026,11,30))
+            as_of=a.date_input('Valuation date',value=date.today(),min_value=date(2013,3,1))
             miles=b.number_input('Actual mileage · miles',0,2_000_000,95000,step=1000)
             state=c.text_input('US state','ca',max_chars=2)
             a,b,c=st.columns(3)
@@ -163,7 +163,7 @@ def render_comparison(root):
 
 def render_auction_companion(root,fields):
     from pricing.residual_ui import ready as residual_ready,render_bid
-    if residual_ready(root):
+    if residual_ready(root) and not (Path(root)/'models/xgboost-hierarchy/release.json').exists():
         try:render_bid(root,fields)
         except Exception as exc:st.warning(f'AFT auction companion unavailable: {exc}')
         return

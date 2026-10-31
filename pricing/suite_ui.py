@@ -33,13 +33,13 @@ def render(root,key_prefix="suite"):
     root=Path(root);suite=root/'models/price-model-suite'
     if not (suite/'comparison.json').exists():suite=root/'models/price-model-suite-tabular'
     from pricing.residual_ui import ready as residual_ready,render_assessment,render_calculator
-    if residual_ready(root):
+    if residual_ready(root) and not (Path(root)/'models/xgboost-hierarchy/release.json').exists():
         render_calculator(root,key_prefix=key_prefix+'_robust');render_assessment(root)
     st.subheader('Historical comparison: three models walk into a car dealership')
     st.write('Huber takes extreme prices with a pinch of salt. Median regression aims at the middle car. AFT models a bell-shaped uncertainty in log price. Ridge is the straight-line accountant checking their arithmetic.')
     if not (suite/'comparison.json').exists():
         st.info('New model training has not completed. Scores and prices appear here only after the fitted bundles are ready.');return
-    st.info('These are the original unfiltered benchmark models. The new residual-trimmed defaults and their separate filtered/original-test assessments appear above when ready.')
+    st.info('These are the original unfiltered benchmark models. Current XGBoost estimates and their matched historical scores are in Price my car and Evaluation.')
     with st.expander('Why AFT? Tobit and interval censoring · plain language and maths'):
         doc=root/'TOBIT_AND_CENSORING.md'
         if doc.exists():st.markdown(doc.read_text())
@@ -120,7 +120,7 @@ def render(root,key_prefix="suite"):
 def render_bid_companion(root,fields):
     """New Cleanlab bid models on the main calculator's submitted car."""
     from pricing.residual_ui import ready as residual_ready,render_bid
-    if residual_ready(root):
+    if residual_ready(root) and not (Path(root)/'models/xgboost-hierarchy/release.json').exists():
         render_bid(root,fields);return
     root=Path(root);folder=root/'models/price-model-suite/bid'
     if not (folder/'manifest.json').exists():folder=root/'models/price-model-suite-tabular/bid'

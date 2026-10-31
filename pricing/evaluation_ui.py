@@ -18,9 +18,9 @@ def render_model_comparison():
     if transfer.exists():
         score=json.loads(transfer.read_text())['models']['with_auction_structure']['test']
         rows.append({'Model':'Auction-structure LightGBM','Original test MAE (USD)':score['mae_usd'],'Original test RMSE (USD)':score['rmse_usd']})
-    st.subheader('All models · the same dollar ruler')
+    st.subheader('Historical benchmarks · separate experiments')
     st.dataframe(rows,hide_index=True)
-    st.caption('Recorded chronological assessments before full-data deployment refits. Lower MAE is better: an MAE of $3,500 means $3,500 average absolute error, not a $3,500 guarantee for your car. The transformer does not automatically win just because it has read more words than your mechanic.')
+    st.caption('These recorded assessments use different experiment cohorts and training protocols; they are not a matched leaderboard. Recorded chronological assessments precede full-data deployment refits. Lower MAE is better: an MAE of $3,500 means $3,500 average absolute error, not a $3,500 guarantee for your car. The transformer does not automatically win just because it has read more words than your mechanic.')
     file=Path('reports/studio-audit/studio-audit.json')
     if file.exists():
         audit=json.loads(file.read_text())

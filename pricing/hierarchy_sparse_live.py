@@ -8,7 +8,7 @@ from pricing.suite_storage import read_model_file
 from pricing.bayesian_hierarchy import load as load_bayesian,predict as posterior_predict,interval as posterior_interval
 from marketbridge.time_engine import age_on,today
 
-@st.cache_resource(show_spinner=False,max_entries=1)
+@st.cache_resource(show_spinner=False,max_entries=2)
 def load(root,side):
     import xgboost as xgb
     import joblib
@@ -22,7 +22,7 @@ def load(root,side):
     report=json.loads((folder/'bayesian/bayesian-evaluation.json').read_text())
     return model,schema,posterior,draws,projector,report
 
-def base_predict(model,schema,projector,fields,age,side):
+def design_matrix(model,schema,projector,fields,age):
     import xgboost as xgb
     x=pd.DataFrame({'age':[age],'log_miles':[np.log1p(float(fields['odometer']))],
                     'auction_grade':[fields.get('auction_grade')]})
@@ -44,7 +44,11 @@ def base_predict(model,schema,projector,fields,age,side):
     if projector is not None:
         t=projector.transform([str(fields.get('text',''))])
         data=hstack([data,t],format='csr');types+=['q']*t.shape[1]
-    raw=float(model.predict(xgb.DMatrix(data,feature_names=model.feature_names,feature_types=types,enable_categorical=True,nthread=2))[0])
+    return xgb.DMatrix(data,feature_names=model.feature_names,feature_types=types,enable_categorical=True,nthread=2),unknown
+
+def base_predict(model,schema,projector,fields,age,side):
+    matrix,unknown=design_matrix(model,schema,projector,fields,age)
+    raw=float(model.predict(matrix)[0])
     price=raw if side=='ask' else float(np.exp(np.clip(raw,-700,np.log(1e7))))
     if not np.isfinite(price) or price<=0:raise ValueError('Invalid base price')
     return price,unknown
@@ -83,10 +87,13 @@ def render(root,*,bayesian=True):
     fields,notes,date,allow,submitted=form(description_sensitive='tfidf')
     signature=json.dumps([fields,notes,str(date),allow],sort_keys=True)
     if submitted:
+        st.session_state.pop('hierarchy_sparse_result',None)
+        st.session_state.pop('last_explained_price',None)
+        st.session_state.pop('last_displayed_price',None)
         try:
             with st.spinner('Reading the advert and consulting the Bayesian family tree…'):
                 results,_,_=estimate(root,{**fields,'text':notes},date,allow)
-            st.session_state['hierarchy_sparse_result']={'signature':signature,'results':results,'date':str(date)}
+            st.session_state['hierarchy_sparse_result']={'signature':signature,'results':results,'date':str(date),'fields':fields,'notes':notes,'request_id':__import__('uuid').uuid4().hex}
         except (ValueError,OSError,KeyError,MemoryError) as exc:st.error(str(exc))
     saved=st.session_state.get('hierarchy_sparse_result')
     if not saved:
@@ -134,12 +141,22 @@ def render(root,*,bayesian=True):
         if bayesian:st.warning('Ranges are 90% historical-outcome intervals calibrated on held-out historical cars, then transported to the selected date with the same ageing and market factors as the point estimate. Their 90% coverage is NOT validated for today, especially for forecast months or unobserved generations. They are not confidence intervals for the model mean or price guarantees.')
         with st.expander('Follow the dollars · historical anchors, ageing and market movement'):
             from pricing.forest_time import adjustment_chart
-            for side,r in saved['results'].items():
+            for side,r in results.items():
                 if 'error' in r:continue
                 st.markdown('**'+('Asking' if side=='ask' else 'Auction')+'**')
                 chart=adjustment_chart(r)
                 chart.data[0].x=['Historical XGBoost'+(' + Bayes' if bayesian else ''),'Age & mileage','Market movement',r['date']]
                 st.plotly_chart(chart,width='stretch',key='separate_waterfall_'+side+str(bayesian))
                 st.caption(f"Age/mileage ×{r['vehicle_factor']:.3f} · market ×{r['market_factor']:.3f}. Reference anchor is a model scenario, not an observed sale of your car.")
-                if bayesian:st.caption(f"Joint posterior {r['posterior_draws']} draws; predictive SD {r['predictive_sd_log']:.3f} log units. Validation scale {r['interval_multiplier']:.2f}; untouched historical test coverage {r['historical_coverage']:.1%} versus 90% nominal.")
+                if bayesian:st.caption(f"Market-specific posterior {r['posterior_draws']} draws; predictive SD {r['predictive_sd_log']:.3f} log units. Validation scale {r['interval_multiplier']:.2f}; untouched historical test coverage {r['historical_coverage']:.1%} versus 90% nominal.")
             st.json(results,expanded=False)
+
+    from pricing.current_tools import publish_receipt, render_briefing
+    publish_receipt(root,fields,notes,date,results,saved,bayesian)
+    if 'ask' in results and 'error' not in results['ask']:
+        from pricing.deal_detective import open_share
+        st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='current_share')
+    render_briefing(root,fields,notes,date,results)
+    from pricing.current_tools import render_drivers,render_minilm
+    render_drivers(root,fields,notes,results,bayesian)
+    render_minilm(root,notes)
