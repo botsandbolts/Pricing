@@ -10,7 +10,7 @@ from pricing.bayesian_hierarchy import fit, assess, save
 def main():
     p=argparse.ArgumentParser()
     p.add_argument('--market',choices=['ask','bid'],required=True)
-    p.add_argument('--base-kind',choices=['catboost','xgboost'],default='catboost')
+    p.add_argument('--base-kind',choices=['catboost','xgboost','lightgbm'],default='catboost')
     p.add_argument('--cohort',required=True)
     p.add_argument('--predictions',required=True)
     p.add_argument('--output',required=True)

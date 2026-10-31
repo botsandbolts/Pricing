@@ -16,6 +16,11 @@ if st.query_params.get('connection_check') == '1':
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
+if (Path(__file__).parent/'models/lightgbm-lite/release.json').exists():
+    from pricing.lightgbm_studio import render
+    render(Path(__file__).parent)
+    footer()
+    st.stop()
 if (Path(__file__).parent/'models/fivefold-live/release.json').exists() and json.loads((Path(__file__).parent/'models/fivefold-live/release.json').read_text()).get('method')=='lemon-squeezer-25':
     from pricing.lemon_studio import render
     render(Path(__file__).parent)

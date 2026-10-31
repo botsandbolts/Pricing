@@ -12,6 +12,11 @@ def installed(root,side):return load(root,side)
 
 def render(root):
     from pathlib import Path
+    if (Path(root)/'models/lightgbm-lite/release.json').exists():
+        from pricing.lightgbm_studio import render as render_lite
+        render_lite(root)
+        return
+    from pathlib import Path
     if (Path(root)/'models/fivefold-live/release.json').exists():
         from pricing.fivefold_live import render as live
         st.markdown('## The Bayesian family tree')

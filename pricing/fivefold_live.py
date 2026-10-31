@@ -10,6 +10,8 @@ from marketbridge.time_engine import age_on,today
 
 @st.cache_resource(show_spinner=False,max_entries=2)
 def load(root,side):
+    if side=='ask':
+        raise ValueError('The large asking-text projector is paused after a memory failure. The lightweight replacement is training; auction estimation remains available.')
     import xgboost as xgb
     import joblib
     folder=Path(root)/'models/fivefold-live'/side
@@ -67,7 +69,7 @@ def estimate(root,fields,date,allow=False):
                 make_support=int(bp.make_n),model_support=int(bp.model_n),
                 analogue=bool(side=='bid' and int(fields['year'])>2015))
             results[side]=receipt
-        except (ValueError,OSError,KeyError) as exc:results[side]={'error':str(exc)}
+        except (ValueError,OSError,KeyError,MemoryError) as exc:results[side]={'error':str(exc)}
     return results,transport,error
 
 def render(root):
@@ -79,7 +81,7 @@ def render(root):
             with st.spinner('Reading the advert and consulting the Bayesian family tree…'):
                 results,_,_=estimate(root,{**fields,'text':notes},date,allow)
             st.session_state['fivefold_live_result']={'signature':signature,'results':results,'date':str(date)}
-        except (ValueError,OSError,KeyError) as exc:st.error(str(exc))
+        except (ValueError,OSError,KeyError,MemoryError) as exc:st.error(str(exc))
     saved=st.session_state.get('fivefold_live_result')
     if not saved:
         st.info('Fill in your car, then press Estimate asking + auction prices. No spreadsheet required.');return
