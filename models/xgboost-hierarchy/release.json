@@ -3,5 +3,10 @@
   "description_features": "minilm-price",
   "method": "minilm-lemon-squeezer-25",
   "residual_source": "fresh-minilm-fivefold",
-  "model": "XGBoost with one averaged MiniLM description-price feature, 25% training OOF trimming, matching separate Bayesian corrections"
+  "model": "XGBoost with one averaged MiniLM description-price feature, 25% training OOF trimming, matching separate Bayesian corrections",
+  "bayesian_redesign_markets": [
+    "ask",
+    "bid"
+  ],
+  "bayesian_method": "validation-selected cross-classified nonlinear heteroscedastic log residuals"
 }
