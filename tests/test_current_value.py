@@ -154,3 +154,11 @@ def test_forest_time_uses_source_age_and_single_auction_reference():
     assert november['market']['horizon']==2
     with pytest.raises(ValueError,match='six months'):
         adjust(t,row,'bid','2028-01-01',95000,as_of='2026-10-30')
+
+
+def test_forest_time_waterfall_keeps_dates_as_category_labels():
+    from pricing.forest_time import adjustment_chart
+    fig=adjustment_chart({'historical_corrected_price':20000.,'vehicle_factor':.7,'price':15000.,'date':'2026-11-15'})
+    assert fig.layout.xaxis.type=='category'
+    assert sum(fig.data[0].y)==pytest.approx(15000.)
+    assert len(fig.data[0].x)==4

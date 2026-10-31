@@ -70,3 +70,5 @@ qrcode>=8,<9
 # Original-cohort hierarchical and SGD-Huber comparison: reload installed research results.
 
 # Forest-only hierarchy and today-by-default date controls; refresh serving modules.
+
+# Refresh categorical time-evidence waterfall axis after live UI verification.

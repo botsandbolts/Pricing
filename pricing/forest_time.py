@@ -48,11 +48,7 @@ def render(root,row,side):
         b.metric('Forest + hierarchy · date-adjusted scenario',f"${r['price']:,.0f}")
         st.caption(f"Age {r['source_age']:.2f} → {r['age']:.2f} years · ageing/mileage ×{r['vehicle_factor']:.3f} · market ×{r['market_factor']:.3f}")
         render_market_clock(transport,selected,error)
-        import plotly.graph_objects as go
-        base=r['historical_corrected_price'];aged=base*r['vehicle_factor']
-        fig=go.Figure(go.Waterfall(x=['Historical RF + hierarchy','Age & mileage','Market movement',str(selected)],measure=['absolute','relative','relative','total'],y=[base,aged-base,r['price']-aged,0],text=[f'${base:,.0f}',f'{aged-base:+,.0f}',f"{r['price']-aged:+,.0f}",f"${r['price']:,.0f}"],textposition='outside',totals={'marker_color':'#6351e8'},increasing={'marker_color':'#309574'},decreasing={'marker_color':'#ce6347'}))
-        fig.update_layout(height=350,showlegend=False,margin={'l':15,'r':15,'t':30,'b':30},yaxis_title='Scenario USD');fig.update_yaxes(tickprefix='$',tickformat=',.0f',rangemode='tozero')
-        st.plotly_chart(fig,width='stretch',key='forest_date_waterfall')
+        st.plotly_chart(adjustment_chart(r),width='stretch',key='forest_date_waterfall')
         with st.expander('Date adjustment · evidence and assumptions'):
             st.write('Historical price × fitted age/mileage ratio × market-index ratio. The forest is not asked to extrapolate a negative year. The market clock forecasts beyond observed monthly data using the component-backtest-selected method, capped at six months.')
             st.write('Asking anchors use the original source month; auction anchors already use January 2015 CPI-reference dollars, which are applied once. Source dates and years are matched to exact original rows.')
@@ -60,3 +56,11 @@ def render(root,row,side):
             st.dataframe(pd.DataFrame(transport.clock.report.get('summary',[])),hide_index=True)
             st.caption('Component tests do not establish current-car MAE or an individual prediction interval. Cross-sectional depreciation is not identified causal ageing; retail CPI is a proxy for auction market movement.')
     except (ValueError,KeyError,OSError,TypeError) as exc:st.warning('Date-adjusted scenario unavailable: '+str(exc))
+
+
+def adjustment_chart(r):
+    import plotly.graph_objects as go
+    base=r['historical_corrected_price'];aged=base*r['vehicle_factor']
+    fig=go.Figure(go.Waterfall(x=['Historical RF + hierarchy','Age & mileage','Market movement',r['date']],measure=['absolute','relative','relative','total'],y=[base,aged-base,r['price']-aged,0],text=[f'${base:,.0f}',f'{aged-base:+,.0f}',f"{r['price']-aged:+,.0f}",f"${r['price']:,.0f}"],textposition='outside',totals={'marker_color':'#6351e8'},increasing={'marker_color':'#309574'},decreasing={'marker_color':'#ce6347'}))
+    fig.update_layout(height=350,showlegend=False,margin={'l':15,'r':15,'t':30,'b':30},yaxis_title='Scenario USD');fig.update_yaxes(tickprefix='$',tickformat=',.0f',rangemode='tozero');fig.update_xaxes(type='category')
+    return fig
