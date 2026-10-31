@@ -92,16 +92,19 @@ def build_valuation_story(fields,description,valuation=None):
 
 
 def qualitative_report_source(fields,description,valuation):
-    """Advert-first briefing: vehicle, seller narrative, valuation and evaluation."""
+    """Readable advert/valuation story, with card-rounded figures for numeric checks."""
     facts,seller=narrative(fields,description)
     parts=[facts]
-    if seller:parts.append('Unverified seller description: '+seller)
-    parts.append('The valuation has two distinct targets: a seller advertised asking price and a wholesale auction estimate. Their gap is not dealer profit. The exact date and dollar values are supplied in the source report and displayed in the price cards.')
+    if seller:parts.append('The seller states, without independent verification: '+seller)
+    parts.append('Car Price Studio estimates this vehicle for '+str(valuation.get('valuation_date'))+'.')
     for side,r in valuation.get('market_estimates',{}).items():
-        parts.append(('Asking' if side=='ask' else 'Auction')+' valuation: '+str(r['estimated_price_usd'])+' US dollars, for '+str(valuation.get('valuation_date'))+'.')
+        meaning='seller advertised asking price before negotiation' if side=='ask' else 'wholesale auction estimate, not a live bid or dealer offer'
+        parts.append(f"The {meaning} is approximately {float(r['estimated_price_usd']):,.0f} US dollars.")
+    parts.append('The asking and auction estimates describe different markets; their gap is not dealer profit or a guaranteed discount.')
     for section in valuation.get('sections',[]):
-        parts.append(section['title']+': '+section['text'])
-    parts.append('Prices are transported from historical models using age, mileage and a monthly public market index. They are model scenarios, not confirmed sale prices or inspected-car guarantees. The seller description is not independently verified.')
+        if section['title'] in {'Valuation method','Evaluation technique'}:
+            parts.append(section['title']+': '+section['text'])
+    parts.append('Historical price models are adjusted for vehicle age, mileage and a monthly market index. Held-out historical test error measures past average dollar mistakes, not a guarantee for this car or a validated current sale price. The original advert and deterministic price cards remain the source of exact facts.')
     return '\n'.join(parts)
 
 
@@ -125,7 +128,7 @@ def render_story(fields,description,valuation=None):
             import gc
             gc.collect()
             with st.spinner('Condensing the car’s story…'):
-                result=summarize_story(summary_source,get_engine(MODEL_ID,REVISION),qualitative=bool(valuation))
+                result=summarize_story(summary_source,get_engine(MODEL_ID,REVISION))
             saved={'fingerprint':fingerprint,'result':result}
             st.session_state['_bart_summary']=saved
         except Exception as error:
@@ -141,7 +144,7 @@ def render_story(fields,description,valuation=None):
     if result['status']=='ready':st.write(result['summary'])
     elif result['status']=='review_required':st.caption('The draft introduced an unsupported number and was withheld. Read the supplied story below.')
     else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
-    if valuation:st.caption('AI overview, not a valuation calculation. BART receives a qualitative briefing covering the report’s topics; exact figures remain in the cards and source report. The overview disables numeric output tokens; it can still omit or misstate facts.')
+    if valuation:st.caption('AI overview, not a valuation calculation. BART receives a qualitative briefing covering the report’s topics; exact figures remain in the cards and source report. A number check withholds drafts that introduce figures absent from the supplied story. It cannot detect every factual mistake or a number attached to the wrong fact.')
     st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
     with st.expander('Full supplied story · model & limitations'):
         st.markdown(story.replace('\n','\n\n'))

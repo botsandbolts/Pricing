@@ -69,3 +69,11 @@ def test_bart_source_is_an_advert_story_not_an_instruction_prompt():
     assert text.startswith('The listed vehicle is Toyota Corolla.')
     for phrase in ['Needs new tires.','7984','Evaluation technique','Five-fold']:assert phrase in text
     assert 'Write a short' not in text and 'Do not invent' not in text
+
+
+def test_advert_source_has_display_rounded_prices_not_broken_numeric_placeholders():
+    from pricing.bart_summary import qualitative_report_source
+    text=qualitative_report_source({'year':2015,'manufacturer':'Toyota','model':'Corolla','odometer':95000},'Needs tires.',{'valuation_date':'2026-10-31','market_estimates':{'ask':{'estimated_price_usd':7984.1234},'bid':{'estimated_price_usd':3465.25}}})
+    assert '7,984 US dollars' in text and '3,465 US dollars' in text
+    assert '7984.1234' not in text
+    assert summarize_story(text,Engine())['status']=='ready'

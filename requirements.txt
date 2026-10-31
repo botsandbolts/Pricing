@@ -98,3 +98,5 @@ tokenizers>=0.23.1,<0.24
 # Final MiniLM release: memory-bounded BART generation and refreshed runtime imports.
 
 # BART source is declarative advert prose; refresh summary imports and copy.
+
+# BART advert overview: grounded rounded figures with unsupported-number rejection.
