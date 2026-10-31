@@ -104,7 +104,7 @@ def render(root,*,bayesian=True):
                 st.markdown('#### '+title);r=results[side]
                 if 'error' in r:st.warning(r['error']);continue
                 st.metric('Date-adjusted scenario',f"${r['price']:,.0f}");st.caption(meaning)
-                if bayesian:st.markdown(f"**Historical 90% range, date-adjusted · ${r['interval_low']:,.0f}–${r['interval_high']:,.0f}**")
+                if bayesian:st.markdown(f"**Historical 90% range, date-adjusted · USD {r['interval_low']:,.0f}–{r['interval_high']:,.0f}**")
                 st.caption(f"{date:%d %b %Y} · "+("XGBoost + Bayesian correction" if bayesian else "Regular XGBoost · TF-IDF asking AFT / auction median"))
                 if r['analogue']:st.warning('Unobserved newer generation: analogue assumption enabled.')
                 if bayesian and r['model_support']==0:st.caption('Unseen model/trim: the correction borrows from its make and broader market.')

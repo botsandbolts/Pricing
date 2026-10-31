@@ -36,6 +36,7 @@ def scorecard(root,*,details=False):
 def render(root):
     from pricing.analytics import render_privacy
     render_privacy()
+    st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
     st.markdown('## 🍋 The Sparse Lemon Squeezer')
     st.caption('Regular prices first. Bayesian family advice when you want a second opinion.')
     panel=st.radio('Explore the studio',['🚗 Regular pricing','🌳 Bayesian pricing','📊 Accuracy comparison','🧠 How it works'],horizontal=True,key='separate_pricing_panel')
