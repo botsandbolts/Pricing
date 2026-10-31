@@ -1,16 +1,46 @@
 {
-  "bytes": 15215362,
-  "sha256": "759f16dae6cb4dc4b8271ee85f1205abc27e74845e9cee177aad3082f6a7aa26",
+  "bytes": 60572291,
+  "sha256": "977772d0b289e850f5d6003de987ac1f1abc22083d3652768707d61a012e0553",
   "parts": [
     {
       "file": "calibration-refit.ubj.000.part",
       "bytes": 8388608,
-      "sha256": "6fd0d3cfb22dc04b3f6d09e714bb2266dc386be9f22307a57d06b6d1317cac46"
+      "sha256": "94f0fd0157551691eef7ccddc499d15a5010683efc7bb969c70b22087b5294b5"
     },
     {
       "file": "calibration-refit.ubj.001.part",
-      "bytes": 6826754,
-      "sha256": "ba322d330d0f0a95916f7ebcf53bd415b626a71f42f14cd34fb2cb7dbc865f3f"
+      "bytes": 8388608,
+      "sha256": "af14a23e34af9c41f0701bf31c0df6bcfcd72003dd6e5aa75787f1095fff82b4"
+    },
+    {
+      "file": "calibration-refit.ubj.002.part",
+      "bytes": 8388608,
+      "sha256": "deca8207e3913691e175269aec29c885a71c61817d8bef5c4e49520b3ea2967d"
+    },
+    {
+      "file": "calibration-refit.ubj.003.part",
+      "bytes": 8388608,
+      "sha256": "e5a60caab3ed95dc39954712447c732a137332e5d312c24ba2ec6f63962a0f06"
+    },
+    {
+      "file": "calibration-refit.ubj.004.part",
+      "bytes": 8388608,
+      "sha256": "cb624b2c631d5c1037879a8e387f47e0faf9092313a0819d1691a2d25deee697"
+    },
+    {
+      "file": "calibration-refit.ubj.005.part",
+      "bytes": 8388608,
+      "sha256": "300d2ddb3e6b2eac3dff65baff7c502ac214fba23a1731f5e44e542f4afc2c11"
+    },
+    {
+      "file": "calibration-refit.ubj.006.part",
+      "bytes": 8388608,
+      "sha256": "e6a07b5863ec19cfcdaff14a51aa192fa2eeb55625eea834d82abeefcec63d40"
+    },
+    {
+      "file": "calibration-refit.ubj.007.part",
+      "bytes": 1852035,
+      "sha256": "ba40321ffaec2e2ddafc7dd91a055b81bcf995c208f9789b5c739371f3aa8ff7"
     }
   ]
 }

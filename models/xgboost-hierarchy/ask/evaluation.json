@@ -6,26 +6,26 @@
   "n": 174182,
   "residual_unit": "log(observed/reference prediction)",
   "training": "calibration group OOF; calibration-only final refit",
-  "description_features": "ask: fold-fitted sparse TF-IDF, 2000 features, no UMAP; bid: structured only",
-  "transformer_feature": false,
+  "description_features": "ask: arithmetic mean of two cross-fitted MiniLM dollar prices as one feature; no TF-IDF, raw embedding dimensions or UMAP in XGBoost; bid: structured only",
+  "transformer_feature": true,
   "scores": {
     "calibration": {
       "n": 110832,
-      "mae_usd": 1966.652997802893,
-      "rmse_log": 0.15905630724486655,
-      "median_signed_log_residual": 0.0008847126813942022
+      "mae_usd": 1984.039921509027,
+      "rmse_log": 0.15900237831431416,
+      "median_signed_log_residual": 0.0025913718490204866
     },
     "validation": {
       "n": 31668,
-      "mae_usd": 3464.083991579415,
-      "rmse_log": 0.41206528837132395,
-      "median_signed_log_residual": 0.01554440804459124
+      "mae_usd": 3503.995866092028,
+      "rmse_log": 0.422411503125333,
+      "median_signed_log_residual": 0.02429345104181753
     },
     "test": {
       "n": 31682,
-      "mae_usd": 3633.9570644646687,
-      "rmse_log": 0.4167448055187743,
-      "median_signed_log_residual": 0.014577943209156272
+      "mae_usd": 3706.416622643729,
+      "rmse_log": 0.42638944407188484,
+      "median_signed_log_residual": 0.026299220242582987
     }
   }
 }
