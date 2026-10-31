@@ -1,0 +1,33 @@
+name: Compact five-fold serving artifacts
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/package_fivefold_serving.py
+      - .github/workflows/package-fivefold.yml
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        market: [ask, bid]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: catboost-fivefold-${{ matrix.market }}
+          run-id: 41182620241
+          github-token: ${{ github.token }}
+          path: source/
+      - name: Keep calibrated refit and matching text transformer only
+        run: python -m scripts.package_fivefold_serving --source source --output "serving/${{ matrix.market }}" --market '${{ matrix.market }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catboost-serving-${{ matrix.market }}
+          path: serving/${{ matrix.market }}/
+          retention-days: 90
