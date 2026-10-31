@@ -26,22 +26,21 @@ def render(root):
 </style>
 <section class="hierarchy-hero" aria-label="Hierarchical pricing introduction">
 <div class="eyebrow">THE FAMILY TREE · ROBUST PRICES, SHARED EVIDENCE</div>
-<h2>Rare trim?<br>Ask the family.</h2>
-<p>One unusual car should not have to explain the entire market. This experiment lets related makes and models share evidence, while giving well-supported models their own voice.</p>
+<h2>One car.<br>Two market views.</h2>
+<p>Your car details, today’s date, asking and auction estimates together. The forest handles the maths. You keep the bargaining face.</p>
 <span class="hierarchy-status">MODEL STATUS · AWAITING CALIBRATION DATA</span>
 <p style="font-size:.9rem;margin-bottom:0">The laboratory is ready. A trained correction and measured accuracy gain are not available yet. Your current price calculator keeps its existing models.</p>
 </section>
-<div class="hierarchy-steps" aria-label="How partial pooling works">
-<article class="hierarchy-step"><span class="number">01 / START WITH THE CAR</span><h3>The forest reads the facts.</h3><p>Vehicle facts give the forest its starting point. This separate experiment excludes text embeddings.</p></article>
-<article class="hierarchy-step"><span class="number">02 / ASK THE FAMILY</span><h3>Related cars share evidence.</h3><p>A rare trim borrows from its make. More evidence gives its own model a stronger voice. Family advice, with fewer unsolicited opinions.</p></article>
-<article class="hierarchy-step"><span class="number">03 / CHECK THE RECEIPTS</span><h3>Better is something we measure.</h3><p>Compare both versions on the same untouched cars. No difficult test cars disappear behind the garage.</p></article>
-</div>
 """
     side=st.session_state.get('hierarchy_side','ask')
     if installed(str(root),side):
-        hero=hero.replace('MODEL STATUS · AWAITING CALIBRATION DATA','XGBOOST RANDOM FOREST · ORIGINAL DATA').replace('The laboratory is ready. A trained correction and measured accuracy gain are not available yet. Your current price calculator keeps its existing models.','One random forest. One family-tree correction. Same untouched test. The main calculator and description dropdown keep their existing models.')
+        hero=hero.replace('MODEL STATUS · AWAITING CALIBRATION DATA','XGBOOST RANDOM FOREST · ORIGINAL DATA').replace('The laboratory is ready. A trained correction and measured accuracy gain are not available yet. Your current price calculator keeps its existing models.','One random forest. One family-tree correction. Same untouched test. Enter your own car below for both markets. The original text-sensitive calculator remains available.')
     st.markdown(hero,unsafe_allow_html=True)
     if st.session_state.get('studio_tabs')!='🌳 Hierarchical model':return
+    from pricing.forest_live import render as render_live
+    render_live(root)
+    st.divider()
+    st.markdown('### Evidence locker · historical tests and example cars')
     side=st.radio('Hierarchical market',['ask','bid'],format_func=lambda x:'Asking · Craigslist' if x=='ask' else 'Wholesale · auction',horizontal=True,key='hierarchy_side')
     saved=st.session_state.get('hierarchy_experiment')
     if not saved or saved[0]['side']!=side:saved=installed(str(root),side)
@@ -92,7 +91,7 @@ def render(root):
         st.caption('RMSE penalizes extreme misses. Bias is prediction minus observed price. Improving MAE does not guarantee improved bias.')
     with st.expander('Random forest · full technical receipt'):
         st.json(report.get('base_assessment',{}))
-        st.caption('Large fitted forests and full residual tables are offline reproduction outputs. This panel inspects held-out cars; it does not replace the live calculator with arbitrary-input forest inference.')
+        st.caption('The car form above runs the installed random forests for your own vehicle. These scorecards and saved examples describe the independent historical assessment. The original MiniLM calculator remains available.')
     with st.expander('Residuals · what did the forest miss?'):
         view=rows[['manufacturer','model','age','observed_price','base_price','corrected_price']].copy()
         view['forest_residual_usd']=view.observed_price-view.base_price

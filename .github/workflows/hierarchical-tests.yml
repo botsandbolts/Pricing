@@ -1,9 +1,9 @@
 name: Hierarchical model checks
 on:
   push:
-    paths: ['pricing/hierarchical*.py', 'pricing/catboost_residuals.py', 'pricing/forest_residuals.py', 'pricing/forest_time.py', 'pricing/current_value.py', 'tests/test_current_value.py', 'pricing/original_residual_results.py', 'scripts/train_original_residual_comparison.py', 'tests/test_hierarchical.py', '.github/workflows/hierarchical-tests.yml']
+    paths: ['pricing/hierarchical*.py', 'pricing/catboost_residuals.py', 'pricing/forest_residuals.py', 'pricing/forest_live.py', 'pricing/forest_form.py', 'pricing/description_examples.py', 'pricing/forest_time.py', 'pricing/current_value.py', 'tests/test_current_value.py', 'pricing/original_residual_results.py', 'scripts/train_original_residual_comparison.py', 'tests/test_hierarchical.py', '.github/workflows/hierarchical-tests.yml']
   pull_request:
-    paths: ['pricing/hierarchical*.py', 'pricing/catboost_residuals.py', 'pricing/forest_residuals.py', 'pricing/forest_time.py', 'pricing/current_value.py', 'tests/test_current_value.py', 'pricing/original_residual_results.py', 'scripts/train_original_residual_comparison.py', 'tests/test_hierarchical.py', '.github/workflows/hierarchical-tests.yml']
+    paths: ['pricing/hierarchical*.py', 'pricing/catboost_residuals.py', 'pricing/forest_residuals.py', 'pricing/forest_live.py', 'pricing/forest_form.py', 'pricing/description_examples.py', 'pricing/forest_time.py', 'pricing/current_value.py', 'tests/test_current_value.py', 'pricing/original_residual_results.py', 'scripts/train_original_residual_comparison.py', 'tests/test_hierarchical.py', '.github/workflows/hierarchical-tests.yml']
 permissions:
   contents: read
 jobs:
@@ -15,6 +15,7 @@ jobs:
           sparse-checkout: |
             pricing
             tests
+            data/description-examples.json
             marketbridge
             models/time-transport
       - uses: actions/setup-python@v5

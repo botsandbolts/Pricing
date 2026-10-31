@@ -1,0 +1,16 @@
+{
+  "bytes": 843225,
+  "sha256": "d01bcb2a6785995c10a3121480ec14b3a97a04b3e519ccd8e2902cbf3f8f3d34",
+  "parts": [
+    {
+      "file": "serving-compact.npz.000.part",
+      "bytes": 500000,
+      "sha256": "5ec87cb60c967dad0902286b99d8b1b88fd9a599b49c0bd4189bff0d3231f0f5"
+    },
+    {
+      "file": "serving-compact.npz.001.part",
+      "bytes": 343225,
+      "sha256": "964fcae326ace72b4660e35081eae588f50e58c5948e1a2743297786049212da"
+    }
+  ]
+}

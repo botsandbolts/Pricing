@@ -8,25 +8,27 @@ def load_examples():
     return json.loads(file.read_text())['examples'] if file.exists() else []
 
 
-def render_examples(uses_text):
+def render_examples(uses_text,*,prefix='vehicle',description_key='seller_description',example_key='description_example'):
     import streamlit as st
     examples = load_examples()
     if not examples:
         return
     def apply():
-        selected = st.session_state.get('description_example', 0)
+        selected = st.session_state.get(example_key, 0)
         if not selected:
             return
         example = examples[selected - 1]
-        st.session_state['seller_description'] = example['text']
+        st.session_state[description_key] = example['text']
         for key, value in example['fields'].items():
             if value is not None:
-                st.session_state['vehicle_' + key] = value
-        st.session_state.pop('last_explained_price', None)
-        st.session_state.pop('pricing_visual_explanation', None)
+                st.session_state[prefix+'_' + key] = value
+        if prefix=='vehicle':
+            st.session_state.pop('last_explained_price', None)
+            st.session_state.pop('pricing_visual_explanation', None)
+        else:st.session_state.pop('forest_live_result',None)
     st.selectbox(
         f'Browse {len(examples):,} real car descriptions — type to search',
-        range(len(examples) + 1), key='description_example', on_change=apply,
+        range(len(examples) + 1), key=example_key, on_change=apply,
         format_func=lambda i: 'Write your own description' if i == 0 else examples[i - 1]['label'],
         disabled=not uses_text,
         help='Selecting an example loads its description and matching car fields. Edit either, then press Estimate asking price.')

@@ -1,0 +1,9 @@
+{
+  "format": "exact_xgboost_tree_bitsets_v1",
+  "trees": 200,
+  "sha256": "d01bcb2a6785995c10a3121480ec14b3a97a04b3e519ccd8e2902cbf3f8f3d34",
+  "bytes": 843225,
+  "verified_examples": 1000,
+  "max_abs_prediction_difference_usd": 4.999674274586141e-08,
+  "scope": "Same calibration-only XGBoost trees; compilation changes storage and traversal only, no retraining."
+}

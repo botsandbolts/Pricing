@@ -152,3 +152,45 @@ def test_forest_original_generator_excludes_test_targets():
     second,_=generate(source,'bid')
     np.testing.assert_allclose(first.base_price,second.base_price)
     assert meta['trees']==200 and meta['boosting_rounds']==1
+
+
+def test_complete_forest_form_and_two_price_submit():
+    from streamlit.testing.v1 import AppTest
+    app=AppTest.from_string('''
+from pricing.forest_form import render
+import streamlit as st
+fields,notes,date,allow,submitted=render()
+if submitted:st.json(fields)
+''').run()
+    assert not app.exception
+    labels={x.label for x in app.text_input}
+    assert {'Make','Model / trim','US state abbreviation'}<=labels
+    assert len(app.selectbox)>=9
+    assert any('Seller description' in x.label for x in app.text_area)
+    submit=next(b for b in app.button if b.label=='Estimate asking + auction prices')
+    submit.click().run()
+    assert not app.exception and len(app.json)==1
+
+
+def test_live_forest_handles_missing_grade_and_unseen_categories():
+    from pricing.forest_live import predict
+    from pricing.forest_residuals import CATEGORICAL
+    from pricing.hierarchical import fit
+    class NativeModel:
+        def predict(self,x):
+            assert x.auction_grade.dtype.kind=='f' and x.auction_grade.isna().all()
+            assert x.manufacturer.isna().all()
+            return np.array([np.log(10000.)])
+    meta={'category_schema':{c:['known'] for c in CATEGORICAL},'features':['age','log_miles','auction_grade']+CATEGORICAL}
+    fields={'manufacturer':'unseen','model':'unknown','odometer':100000,'auction_grade':None}
+    result,unknown=predict(NativeModel(),meta,fit(fixture()),fields,5.)
+    assert result['base_price']==pytest.approx(10000.)
+    assert result['model_n']==0 and 'manufacturer' in unknown
+
+
+def test_compact_forest_categorical_and_missing_routes():
+    from pricing.forest_compact import CompactForest
+    import pandas as pd
+    arrays={'base':np.array([10],np.float32),'starts':np.array([0,3]),'feature':np.array([0,-1,-1]),'value':np.array([0,1,2],np.float32),'yes':np.array([1,0,0]),'no':np.array([2,0,0]),'missing':np.array([2,0,0]),'cat_offset':np.zeros(3,int),'cat_length':np.array([1,0,0]),'bits':np.array([4],np.uint8)}
+    x=pd.DataFrame({'make':pd.Categorical(['c','b',None],categories=['a','b','c'])})
+    np.testing.assert_array_equal(CompactForest(arrays).predict(x),[11,12,12])

@@ -1,0 +1,26 @@
+{
+  "bytes": 1772122,
+  "sha256": "f6934ca1082bd5e0006ce3ac24ef36262b227c94b959488df74b01c56802d062",
+  "parts": [
+    {
+      "file": "serving-compact.npz.000.part",
+      "bytes": 500000,
+      "sha256": "5c902bf4d883fd8b9ba4b603a47d278ced52703e04fc022491734961fb147f95"
+    },
+    {
+      "file": "serving-compact.npz.001.part",
+      "bytes": 500000,
+      "sha256": "f35e64d15ee14bcadbc4e76f8b5c6e55a9b94ec0503eefe1626caa3e44240528"
+    },
+    {
+      "file": "serving-compact.npz.002.part",
+      "bytes": 500000,
+      "sha256": "1385a5d62ddf38e91b7173099eba5277581bb69a469af6d517564e1cbd871f0d"
+    },
+    {
+      "file": "serving-compact.npz.003.part",
+      "bytes": 272122,
+      "sha256": "b26b97c4e819e6b48b33f8a45d35bb480b8233517ef629a53a85bc34a64bd151"
+    }
+  ]
+}
