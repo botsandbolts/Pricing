@@ -83,3 +83,16 @@ def test_adjusted_price_features_allow_native_categories_and_keep_missing_facts(
     assert np.isnan(result[0])
     assert result[1:]==pytest.approx(price[1:])
     assert price[0]==1000
+
+
+def test_leave_one_out_excludes_own_target_and_uses_dense_numeric_geometry():
+    from pricing.taste_ranking import leave_one_out_geometry
+    frame=sample().iloc[:20].copy();frame['manufacturer']=['unique']+['shared']*19
+    prices=frame.price.to_numpy(dtype=float)
+    geometry,a=leave_one_out_geometry(frame,prices)
+    changed=prices.copy();changed[0]=999999
+    _,b=leave_one_out_geometry(frame,changed)
+    assert a[0]==pytest.approx(b[0]) # neither category sum nor prior includes this row
+    assert geometry.shape==(20,len(CATEGORICAL)+3) and np.isfinite(geometry).all()
+    assert a[0,0]==pytest.approx(np.log(prices[1:]).mean())
+    assert not np.allclose(a[1:],b[1:])

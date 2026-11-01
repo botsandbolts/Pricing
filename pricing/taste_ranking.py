@@ -116,3 +116,24 @@ def adjusted_price_features(codes,numeric,levels,prices,source_days,when,transpo
     values=np.asarray(prices)[ids]*factors*current/np.array([lookup[months[i]] for i in ids])
     good=np.isfinite(values)&(values>0)&(values<=1e7);out[ids[good]]=values[good]
     return out
+
+
+def leave_one_out_geometry(frame,prices,smoothing=20.):
+    """Dense category price profiles, excluding each row from group AND prior."""
+    from sklearn.preprocessing import StandardScaler
+    target=np.log(np.asarray(prices,dtype=float));n=len(target)
+    if n<2 or not np.isfinite(target).all():raise ValueError('Finite positive advertised prices required for leave-one-out encoding')
+    if smoothing<0:raise ValueError('Smoothing must be nonnegative')
+    prior=(target.sum()-target)/(n-1)
+    columns=[]
+    for field in CATEGORICAL:
+        values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
+        groups=pd.DataFrame({'category':values.to_numpy(),'target':target}).groupby('category',sort=False).target
+        sums=groups.transform('sum').to_numpy();counts=groups.transform('count').to_numpy()
+        denominator=counts-1+smoothing
+        encoded=np.divide(sums-target+smoothing*prior,denominator,out=prior.copy(),where=denominator>0)
+        columns.append(encoded)
+    _,numeric,_=encode(frame)
+    matrix=np.column_stack(columns+[numeric[:,i] for i in range(numeric.shape[1])])
+    scaled=np.clip(StandardScaler().fit_transform(matrix),-6,6).astype(np.float32)
+    return scaled,np.column_stack(columns)

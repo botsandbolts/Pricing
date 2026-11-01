@@ -3,7 +3,7 @@ import argparse,gc,hashlib,json,re,sqlite3,time,zlib
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from pricing.taste_ranking import CATEGORICAL,encode,clean
+from pricing.taste_ranking import CATEGORICAL,encode,clean,leave_one_out_geometry
 
 def density_profiles(embedding):
     import hdbscan
@@ -53,20 +53,12 @@ def build(source,root):
     if len(set(ids))!=count:raise ValueError('Canonical vehicle duplication detected')
     frame=pd.concat(parts,ignore_index=True);del parts;gc.collect()
     codes,numeric,levels=encode(frame)
-    from sklearn.preprocessing import OneHotEncoder,StandardScaler,normalize
-    from sklearn.decomposition import TruncatedSVD
-    from scipy.sparse import hstack,csr_matrix
-    from threadpoolctl import threadpool_limits
-    encoder=OneHotEncoder(handle_unknown='ignore',sparse_output=True,dtype=np.float32)
-    cat=encoder.fit_transform(codes)
-    scaled=np.clip(StandardScaler().fit_transform(numeric),-6,6)*.5
-    matrix=hstack([cat,csr_matrix(scaled)],format='csr');del cat
-    with threadpool_limits(limits=2):latent=TruncatedSVD(n_components=min(32,matrix.shape[1]-1,count-1),random_state=42,n_iter=5).fit_transform(matrix)
-    del matrix,encoder;gc.collect();latent=normalize(latent).astype(np.float32)
+    geometry,_=leave_one_out_geometry(frame,np.array(prices,dtype=float),smoothing=20.)
+    gc.collect()
     import umap
     print('Fitting full-cohort UMAP on',count,'cars',flush=True)
-    embedding=umap.UMAP(n_components=5,n_neighbors=30,min_dist=.05,metric='cosine',n_epochs=100,low_memory=True,random_state=42,n_jobs=1).fit_transform(latent)
-    del latent;gc.collect();print('Fitting HDBSCAN',flush=True)
+    embedding=umap.UMAP(n_components=5,n_neighbors=30,min_dist=.05,metric='euclidean',n_epochs=100,low_memory=True,random_state=42,n_jobs=1).fit_transform(geometry)
+    del geometry;gc.collect();print('Fitting HDBSCAN',flush=True)
     clusters,noise,prototypes,attempts,density_count=density_profiles(embedding)
     valid=np.array([int(hashlib.sha256(('taste-validation:'+rid).encode()).hexdigest()[:8],16)%5==0 for rid in ids]);valid[prototypes]=False
     np.savez_compressed(folder/'features.npz',codes=codes,numeric=numeric,clusters=clusters,noise=noise,validation=valid,prices=np.array(prices,dtype=np.float32),source_days=np.array(source_days,dtype=np.int32))
@@ -80,7 +72,7 @@ def build(source,root):
         body=next((v for v in bodies.index if v!='__missing__'),'Mixed cars')
         make=next((v for v in makes.index if v!='__missing__'),'Mixed makes')
         profiles.append({'position':pos,'cluster':i,'name':str(body).title()+' · '+str(make).title(),'cars':int(len(subset)),'prototype':cars[i]})
-    manifest={'version':1,'description_excerpt_characters':100,'rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':list(CATEGORICAL)+['model_year','log_mileage','mileage_missing'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'limits':'Ten prototype ratings propagate as weak labels. HDBSCAN leaf groups are merged to ten macroprofiles when necessary; density noise is assigned to its nearest profile and flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
+    manifest={'version':1,'description_excerpt_characters':100,'category_encoding':'Smoothed leave-one-out log advertised price; alpha=20; own row excluded from group and global prior; dense standardized features; no one-hot or SVD before UMAP','rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':list(CATEGORICAL)+['model_year','log_mileage','mileage_missing'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'limits':'Ten prototype ratings propagate as weak labels. HDBSCAN leaf groups are merged to ten macroprofiles when necessary; density noise is assigned to its nearest profile and flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
     if database.stat().st_size>90*1024*1024:raise ValueError('Serving catalogue exceeds 90 MiB release budget')
     (folder/'manifest.json').write_text(json.dumps(manifest,indent=2,allow_nan=False));print(json.dumps({k:v for k,v in manifest.items() if k not in ['levels','profiles','sha256']},indent=2),flush=True)
 if __name__=='__main__':
