@@ -72,7 +72,8 @@ jobs:
           assert all(m['vehicle']['id']!=q['id'] for m in matches)
           from streamlit.testing.v1 import AppTest
           from pricing import inspector_estimate
-          inspector_estimate.quote=lambda root,fields,notes,date,allow:dict(fields=fields,notes=notes,date=str(date),model_version='',results={})
+          inspector_estimate.render=lambda *args,**kwargs:None
+          inspector_estimate.quote=lambda root,fields,notes,date,allow:dict(fields=fields,notes=notes,date=str(date),model_version='',results={'ask':{'price':10000,'forest_price':9463,'historical_forest_price':12000},'bid':{'price':4000,'forest_price':3811,'historical_forest_price':10000}})
           at=AppTest.from_string("from pathlib import Path\nfrom pricing.listing_inspector import render\nrender(Path('.'))").run(timeout=60)
           at.text_area[0].set_value('Full service history. Needs new tires.')
           at.button[0].click().run(timeout=60)

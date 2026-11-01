@@ -8,6 +8,7 @@ import streamlit as st
 from pricing.comparable_retrieval import ComparableIndex,reference_rows,clean
 from pricing.reference_prices import feature_prices,adjust_reference
 from pricing.pricing_comparison import selected_receipt
+from marketbridge.time_engine import age_on,today
 
 @st.cache_resource(max_entries=1,show_spinner=False)
 def joint_imputer(root,version):
@@ -21,7 +22,17 @@ def query_vector(root,text,version):
 
 def price_on(row,side,price,source,target,transport):
     if price is None:return np.nan
-    return feature_prices([{**row,'price':price,'observed_date':str(source)}],side,target,transport)[0]
+    # This is a model scenario, not a newly observed historical sale. Both
+    # date indexes may be forecasts; clock.reference() requires observed data.
+    source_age=max(0.,age_on(row['year'],source));target_age=age_on(row['year'],target)
+    if not 0<=target_age<=30:return np.nan
+    miles=row.get('odometer')
+    if miles is None:return np.nan
+    frame=pd.DataFrame([{**row,'age':source_age,'odometer':miles}])
+    factor=float(transport.curves[side].ratio(frame,source_age,target_age,from_miles=miles,to_miles=miles)[0])
+    old,_=transport.clock.value(source,as_of=today());new,_=transport.clock.value(target,as_of=today())
+    result=float(price)*factor*new/old
+    return result if np.isfinite(result) and 0<result<=1e7 else np.nan
 
 def description_to_date(rows,values,target,transport,mileage):
     synthetic=[dict(r,price=float(v),observed_date='2021-05-01') for r,v in zip(rows,values)]
@@ -117,7 +128,7 @@ def render(root,saved,own,valuation_date,pricing_view):
         st.caption(f'{len(matches)} neighbours · exact FAISS cosine search · no make/model/year compatibility exclusions.')
         for rank,(side,match) in enumerate(matches,1):
             car=match['vehicle'];label='Ask' if side=='ask' else 'Auction';colour='#eee7ff' if side=='ask' else '#e3f2ff'
-            name=f"{car['year']} {str(car['manufacturer']).title()} {car['model']}";adjusted=None;reason=''
+            name=f"{int(car['year'])} {str(car['manufacturer']).title()} {car['model']}";adjusted=None;reason=''
             try:
                 if transport is None:raise ValueError('Market-date adjustment unavailable')
                 adjusted=adjust_reference(car,side,valuation_date,transport,mileage)

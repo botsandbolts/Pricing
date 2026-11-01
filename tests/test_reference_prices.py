@@ -32,3 +32,19 @@ def test_vectorized_reference_prices_match_individual_adjustments():
     values=feature_prices(cars,'ask',date(2026,11,1),Transport(),95000)
     assert values[:2]==pytest.approx([adjust_reference(c,'ask',date(2026,11,1),Transport(),95000)['price_usd'] for c in cars[:2]])
     assert np.isnan(values[2])
+
+
+
+def test_query_scenario_back_conversion_can_use_forecast_source_month():
+    from pricing.inspector_neighbours import price_on
+    from datetime import date
+    class Curve:
+        def ratio(self,*args,**kwargs):return [0.5]
+    class Clock:
+        def value(self,date,as_of=None):return (200. if date.year==2026 else 100.),{}
+        def reference(self,date):raise AssertionError('A scenario source may be a forecast, not an observation')
+    class Transport:
+        curves={'bid':Curve()};clock=Clock()
+    car={'year':2015,'odometer':95000,'manufacturer':'toyota','model':'corolla'}
+    assert price_on(car,'bid',10000.,date(2026,11,1),date(2021,5,1),Transport())==2500.
+    assert price_on(car,'bid',None,date(2026,11,1),date(2021,5,1),Transport())!=2500.
