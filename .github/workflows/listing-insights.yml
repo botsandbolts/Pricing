@@ -1,0 +1,85 @@
+name: Listing decision tools and original-data insights
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pricing/market_review.py'
+      - 'pricing/listing_statistics.py'
+      - 'pricing/listing_insights_ui.py'
+      - 'pricing/popular_vehicles.py'
+      - 'scripts/build_listing_insights.py'
+      - 'tests/test_market_review.py'
+      - '.github/workflows/listing-insights.yml'
+permissions:
+  contents: write
+concurrency:
+  group: listing-insights-release
+  cancel-in-progress: false
+jobs:
+  checks-and-reports:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            scripts
+            tests
+            carbids
+            data
+            models/xgboost-hierarchy/ask/bayesian
+            models/xgboost-hierarchy/ask/minilm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy pandas scipy scikit-learn==1.8.0 requests streamlit==1.66.1 pytest onnxruntime tokenizers
+      - run: python -m pytest tests/test_market_review.py tests/test_comparable_retrieval.py tests/test_bart_summary.py tests/test_auto_bart_ui.py -q
+      - name: Restore verified original source data
+        run: |
+          mkdir -p training-cache
+          curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'
+          echo 'eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f  training-cache/ask.zip' | sha256sum -c -
+          curl --fail --location --retry 3 --output training-cache/bid.zip 'https://www.kaggle.com/api/v1/datasets/download/tunguz/used-car-auction-prices'
+          echo 'acfe086790275ce843700303f0701446f5326852be1ee11d9d2e9407d0301e8d  training-cache/bid.zip' | sha256sum -c -
+          python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2
+          python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl
+      - name: Build larger historical comparison catalogue and compact semantic vectors
+        run: |
+          python -m scripts.build_comparable_catalog training-cache/full-cohort.jsonl
+          python -m scripts.build_comparable_semantics
+      - name: Calculate original-data regional and description reports
+        run: python -m scripts.build_listing_insights --ask training-cache/full-cohort.jsonl --bid training-cache/bid-cohort.jsonl
+      - name: Verify completed report rendering
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from streamlit.testing.v1 import AppTest
+          import json
+          for side in ['ask','bid']:
+              r=json.loads(Path(f'data/listing-insights/{side}.json').read_text())
+              assert r['test_mae_usd']>0
+              assert r['rows']['test']>=50
+          at=AppTest.from_string("from pathlib import Path\nfrom pricing.listing_insights_ui import render_regions,render_information\nrender_regions(Path('.'))\nrender_information(Path('.'))").run(timeout=30)
+          assert not at.exception
+          print('Original-data reports and UI verified')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: listing-original-data-insights
+          path: data/listing-insights/
+          retention-days: 90
+      - name: Publish small aggregate reports only
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add data/listing-insights/ data/comparable-catalog/ data/comparable-minilm/
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish original-data regional and description-signal assessments"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi

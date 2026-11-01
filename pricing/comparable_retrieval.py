@@ -30,7 +30,9 @@ class ComparableIndex:
         matrix=matrix.multiply(self.column_weights).tocsr()
         self.dimensions=min(dimensions,matrix.shape[1]-1,len(self.rows)-1)
         self.svd=TruncatedSVD(n_components=self.dimensions,n_iter=5,random_state=42)
-        self.vectors=normalize(self.svd.fit_transform(matrix)).astype(np.float32)
+        from threadpoolctl import threadpool_limits
+        with threadpool_limits(limits=2):
+            self.vectors=normalize(self.svd.fit_transform(matrix)).astype(np.float32)
         self.years=np.asarray([r['year'] for r in self.rows],dtype=np.float32)
         self.miles=np.asarray([r['odometer'] for r in self.rows],dtype=np.float32)
         self.description_vectors=None
@@ -55,8 +57,10 @@ class ComparableIndex:
             semantic=np.clip(self.description_vectors@normalize(v)[0],-1,1)
             has_text=np.array([bool(r.get('description','').strip()) for r in self.rows])
             scores+=np.where(has_text,.10*semantic,0.)
+        # Retrieve by SVD first, then apply explicit matching scores and guardrails.
+        candidates=np.argsort(-similarity,kind='stable')[:min(500,len(self.rows))]
         matches=[]
-        for i in np.argsort(-scores,kind='stable'):
+        for i in candidates[np.argsort(-scores[candidates],kind='stable')]:
             r=self.rows[i]
             if clean(r['manufacturer'])!=clean(query['manufacturer']) or year_gap[i]>5 or models[i]<.45:continue
             if exclude_id is not None and r.get('id')==exclude_id:continue
@@ -72,6 +76,9 @@ def reference_rows(root,market):
     import gzip
     root=Path(root)
     if market=='ask':
+        catalog=root/'data/comparable-catalog/ask.json.gz'
+        if catalog.exists():
+            return json.load(gzip.open(catalog,'rt'))['rows']
         raw=json.loads((root/'data/description-examples.json').read_text())
         return [dict(x['fields'],id=x['id'],description=x['text'],price_kind='Historical asking advert · price omitted',reference_period='April–May 2021') for x in raw['examples']]
     raw=json.load(gzip.open(root/'data/deal-reference.json.gz','rt'))

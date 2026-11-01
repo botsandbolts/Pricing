@@ -38,7 +38,7 @@ def test_inspector_form_and_reruns():
     at=AppTest.from_string("from pathlib import Path\nfrom pricing.listing_inspector import render\nrender(Path('.'))").run(timeout=30)
     assert not at.exception
     at.text_area[0].set_value('Manual transmission. Full service history.')
-    at.selectbox[0].select('automatic');at.button[0].click().run(timeout=30)
+    next(x for x in at.selectbox if x.label=='Transmission').select('automatic');at.button[0].click().run(timeout=30)
     assert not at.exception
     assert any('Check transmission' in x.value for x in at.subheader)
     at.radio[0].set_value('Historical auction sales').run(timeout=30)

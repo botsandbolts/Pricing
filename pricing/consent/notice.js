@@ -2,12 +2,13 @@
 function installPricingInteractions() {
   if (window.__pricingInteractions) return window.__pricingInteractions;
   const panels = new Map([
-    ['🚗 Price my car','calculator'],['↔ Two-market garage','two_market'],
+    ['🚗 Price my car','calculator'],['🔎 Listing Inspector','listing_inspector'],['↔ Two-market garage','two_market'],
     ['📅 Value over time','value_over_time'],['🧠 The science','science'],
     ['🌳 Hierarchical model','calculator'],['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
   ]);
   for(const [name,id] of [...panels])panels.set(name.replace(/^[^\p{L}\p{N}]+/u,''),id);
   const subpanels = new Map([
+    ['Advert checks & questions','advert_checks'],['Comparable cars','comparable_cars'],['Purchase sandbox','purchase_sandbox'],['Deal & confidence','deal_confidence'],['Duplicate check','duplicate_check'],['Regional prices','regional_prices'],['Batch review','batch_review'],['Information premium','information_premium'],['Methods & limits','inspector_methods'],
     ['🚗 Regular pricing','regular_pricing'],['🌳 Bayesian pricing','bayesian_pricing'],
     ['📊 Accuracy comparison','accuracy_comparison'],['🧠 How it works','model_recipe'],
     ['📸 Import advert','import_advert'],['🕵️ Price verdict','price_verdict'],
@@ -19,6 +20,7 @@ function installPricingInteractions() {
     ['Year × mileage','year_mileage'],['Technical receipt','technical_receipt']
   ]);
   const actions = new Map([
+    ['Inspect this advert',['inspector_action','inspect']],['Evaluate this car & build its passport',['inspector_action','evaluate']],['Check these listings for duplicates',['inspector_action','duplicates']],['Evaluate inventory · up to 25 vehicles',['inspector_action','batch_review']],['Download appraisal passport',['download_requested','appraisal_passport']],['Download duplicate review',['download_requested','duplicate_review']],['Download the review queue',['download_requested','review_queue']],
     ['Estimate asking + auction prices',['estimate_requested','two_market']],
     ['Generate BART overview',['summary_requested','bart']],
     ['Analyse description with MiniLM',['explanation_requested','minilm_phrases']],
