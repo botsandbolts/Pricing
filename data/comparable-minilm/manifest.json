@@ -1,7 +1,7 @@
 {
-  "rows_sha256": "5035d51908473507549500224dff48ba92381d1ba444f94f787792d42bf1bece",
-  "vectors_sha256": "6a0b50f4bbb512884458411f8dde7672c1b851ac1ae09f3c72963d0114700981",
-  "rows": 400,
+  "rows_sha256": "63b502710462855a656d9fd3d6650ee021aff6cd1b276c7253794fb6d6115202",
+  "vectors_sha256": "3f4b23153d2a415aea8d4a9b236ab5d72cc327bbc9290322bdbbb3f2e0d057f3",
+  "rows": 4756,
   "dimensions": 384,
   "model": "Frozen int8 all-MiniLM-L6-v2; max 128 tokens",
   "scope": "Historical training-example descriptions only; no target prices or training updates"

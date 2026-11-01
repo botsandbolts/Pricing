@@ -1,0 +1,473 @@
+{
+  "market": "bid",
+  "rows": {
+    "train": 39991,
+    "validation": 10000,
+    "test": 10000
+  },
+  "basis": "Historical reported auction dollars",
+  "method": "Ridge log-price audit baseline; sparse categorical controls, nonlinear age/mileage terms, grade and calendar controls. Separate from production XGBoost/Bayesian models.",
+  "test_mae_usd": 2709.5776035416607,
+  "historical_interval_coverage": 0.9248,
+  "interval_calibration_rows": 10000,
+  "nominal_coverage": 0.9,
+  "limits": "Exploratory selected historical cohort, not representative current prices. These source test records may have been examined by earlier project experiments.",
+  "regions": [
+    {
+      "state": "fl",
+      "training_vehicles": 5797,
+      "adjusted_association_pct": -0.507114678651822,
+      "bootstrap_90_pct": [
+        -1.2681589970450264,
+        0.12465933669863324
+      ]
+    },
+    {
+      "state": "ca",
+      "training_vehicles": 5742,
+      "adjusted_association_pct": 5.274841617875483,
+      "bootstrap_90_pct": [
+        4.447376708004063,
+        5.838309482723332
+      ]
+    },
+    {
+      "state": "pa",
+      "training_vehicles": 3331,
+      "adjusted_association_pct": 1.6570053837472232,
+      "bootstrap_90_pct": [
+        1.0014039242435469,
+        2.6410799168860994
+      ]
+    },
+    {
+      "state": "tx",
+      "training_vehicles": 3274,
+      "adjusted_association_pct": -0.8488236600182895,
+      "bootstrap_90_pct": [
+        -1.9823208560749235,
+        0.04167782252713539
+      ]
+    },
+    {
+      "state": "ga",
+      "training_vehicles": 2532,
+      "adjusted_association_pct": 3.1251828242084083,
+      "bootstrap_90_pct": [
+        2.014839394110454,
+        3.9345479148996394
+      ]
+    },
+    {
+      "state": "nj",
+      "training_vehicles": 1860,
+      "adjusted_association_pct": -3.030166349173852,
+      "bootstrap_90_pct": [
+        -3.874009754938787,
+        -1.7465275526565849
+      ]
+    },
+    {
+      "state": "tn",
+      "training_vehicles": 1676,
+      "adjusted_association_pct": 0.8519396127387848,
+      "bootstrap_90_pct": [
+        0.01003141152117643,
+        1.971786873397819
+      ]
+    },
+    {
+      "state": "il",
+      "training_vehicles": 1633,
+      "adjusted_association_pct": 0.46827159015392206,
+      "bootstrap_90_pct": [
+        -0.5533706815167808,
+        1.6363413640545783
+      ]
+    },
+    {
+      "state": "nc",
+      "training_vehicles": 1625,
+      "adjusted_association_pct": 2.4160892510744056,
+      "bootstrap_90_pct": [
+        1.1463941677407568,
+        3.4240863993663018
+      ]
+    },
+    {
+      "state": "oh",
+      "training_vehicles": 1506,
+      "adjusted_association_pct": -4.752649484802778,
+      "bootstrap_90_pct": [
+        -5.8093779799302485,
+        -3.911357087499724
+      ]
+    },
+    {
+      "state": "mo",
+      "training_vehicles": 1152,
+      "adjusted_association_pct": 2.17854285612919,
+      "bootstrap_90_pct": [
+        1.3600291040491916,
+        3.287319694283021
+      ]
+    },
+    {
+      "state": "mi",
+      "training_vehicles": 1125,
+      "adjusted_association_pct": -2.1461019596153537,
+      "bootstrap_90_pct": [
+        -3.649013463782549,
+        -0.6464326768287673
+      ]
+    },
+    {
+      "state": "va",
+      "training_vehicles": 982,
+      "adjusted_association_pct": -6.807825023282249,
+      "bootstrap_90_pct": [
+        -8.676518236556726,
+        -4.691255224805819
+      ]
+    },
+    {
+      "state": "nv",
+      "training_vehicles": 890,
+      "adjusted_association_pct": -0.7443541478787058,
+      "bootstrap_90_pct": [
+        -1.7663971607990978,
+        1.3579517276572897
+      ]
+    },
+    {
+      "state": "md",
+      "training_vehicles": 811,
+      "adjusted_association_pct": -9.14706420830009,
+      "bootstrap_90_pct": [
+        -10.797028446903145,
+        -7.267602034024348
+      ]
+    },
+    {
+      "state": "wi",
+      "training_vehicles": 743,
+      "adjusted_association_pct": -2.18776535173002,
+      "bootstrap_90_pct": [
+        -3.6205025507508517,
+        -0.10793832319689142
+      ]
+    },
+    {
+      "state": "mn",
+      "training_vehicles": 728,
+      "adjusted_association_pct": 0.8252373171662669,
+      "bootstrap_90_pct": [
+        -0.9977010160321641,
+        2.124878199187647
+      ]
+    },
+    {
+      "state": "az",
+      "training_vehicles": 582,
+      "adjusted_association_pct": 3.391875458400596,
+      "bootstrap_90_pct": [
+        1.3299891749111106,
+        5.514236250450921
+      ]
+    },
+    {
+      "state": "wa",
+      "training_vehicles": 561,
+      "adjusted_association_pct": 1.4271867570670589,
+      "bootstrap_90_pct": [
+        -1.4435368130247432,
+        3.8102529556245353
+      ]
+    },
+    {
+      "state": "co",
+      "training_vehicles": 506,
+      "adjusted_association_pct": 4.112973251678214,
+      "bootstrap_90_pct": [
+        2.2878839152111876,
+        5.9927313872462395
+      ]
+    },
+    {
+      "state": "ma",
+      "training_vehicles": 452,
+      "adjusted_association_pct": -12.572012419227052,
+      "bootstrap_90_pct": [
+        -14.200477539037646,
+        -10.010216746854333
+      ]
+    },
+    {
+      "state": "ny",
+      "training_vehicles": 405,
+      "adjusted_association_pct": -13.087787937472612,
+      "bootstrap_90_pct": [
+        -16.18884829066241,
+        -10.141697168208138
+      ]
+    },
+    {
+      "state": "ne",
+      "training_vehicles": 353,
+      "adjusted_association_pct": 5.640086759309567,
+      "bootstrap_90_pct": [
+        2.190172228639566,
+        8.377601728957753
+      ]
+    },
+    {
+      "state": "sc",
+      "training_vehicles": 321,
+      "adjusted_association_pct": 0.17352613803722813,
+      "bootstrap_90_pct": [
+        -2.63521203140437,
+        2.805501791764324
+      ]
+    },
+    {
+      "state": "in",
+      "training_vehicles": 312,
+      "adjusted_association_pct": -6.875010294711921,
+      "bootstrap_90_pct": [
+        -8.669083835628845,
+        -4.2425294745245745
+      ]
+    },
+    {
+      "state": "on",
+      "training_vehicles": 219,
+      "adjusted_association_pct": -4.295042701039387,
+      "bootstrap_90_pct": [
+        -7.5122157572512185,
+        -0.9527382436755522
+      ]
+    },
+    {
+      "state": "pr",
+      "training_vehicles": 209,
+      "adjusted_association_pct": -12.605772531364595,
+      "bootstrap_90_pct": [
+        -17.473259935366766,
+        -9.816442498361521
+      ]
+    },
+    {
+      "state": "la",
+      "training_vehicles": 195,
+      "adjusted_association_pct": -5.275413223847619,
+      "bootstrap_90_pct": [
+        -8.561824940968261,
+        -1.0626387878573198
+      ]
+    },
+    {
+      "state": "ut",
+      "training_vehicles": 141,
+      "adjusted_association_pct": -1.917657886125447,
+      "bootstrap_90_pct": [
+        -6.8389342654375005,
+        2.090365572168146
+      ]
+    },
+    {
+      "state": "hi",
+      "training_vehicles": 100,
+      "adjusted_association_pct": -12.761545973464916,
+      "bootstrap_90_pct": [
+        -16.56467546568516,
+        -9.008279328023141
+      ]
+    }
+  ],
+  "regional_method": "State coefficients relative to the training-count-weighted mean of states with >=100 training vehicles; controls as above; 90% percentile bootstrap, fixed encoding and penalty. Associations, not transport arbitrage or causal location effects; overlap is not established.",
+  "outlier_review": {
+    "method": "Fresh three-fold vehicle-group-held-out absolute log residuals from the audit baseline; largest quartile flagged for review only. No deletion or retraining of production models.",
+    "training_rows": 39991,
+    "flagged_rows": 9998,
+    "threshold_absolute_log_residual": 0.26938755707215556,
+    "diagnostics": [
+      {
+        "make": "acura",
+        "training_vehicles": 415,
+        "largest_residual_share_pct": 20.722891566265062
+      },
+      {
+        "make": "audi",
+        "training_vehicles": 414,
+        "largest_residual_share_pct": 29.71014492753623
+      },
+      {
+        "make": "bmw",
+        "training_vehicles": 1431,
+        "largest_residual_share_pct": 19.566736547868622
+      },
+      {
+        "make": "buick",
+        "training_vehicles": 340,
+        "largest_residual_share_pct": 27.647058823529413
+      },
+      {
+        "make": "cadillac",
+        "training_vehicles": 502,
+        "largest_residual_share_pct": 38.84462151394422
+      },
+      {
+        "make": "chevrolet",
+        "training_vehicles": 4364,
+        "largest_residual_share_pct": 27.749770852428963
+      },
+      {
+        "make": "chrysler",
+        "training_vehicles": 1274,
+        "largest_residual_share_pct": 26.059654631083202
+      },
+      {
+        "make": "dodge",
+        "training_vehicles": 2291,
+        "largest_residual_share_pct": 23.264949803579224
+      },
+      {
+        "make": "ford",
+        "training_vehicles": 6833,
+        "largest_residual_share_pct": 24.07434509000439
+      },
+      {
+        "make": "gmc",
+        "training_vehicles": 741,
+        "largest_residual_share_pct": 28.34008097165992
+      },
+      {
+        "make": "honda",
+        "training_vehicles": 2088,
+        "largest_residual_share_pct": 28.735632183908045
+      },
+      {
+        "make": "hyundai",
+        "training_vehicles": 1560,
+        "largest_residual_share_pct": 18.205128205128204
+      },
+      {
+        "make": "infiniti",
+        "training_vehicles": 1100,
+        "largest_residual_share_pct": 7.636363636363637
+      },
+      {
+        "make": "jeep",
+        "training_vehicles": 1109,
+        "largest_residual_share_pct": 28.313796212804327
+      },
+      {
+        "make": "kia",
+        "training_vehicles": 1277,
+        "largest_residual_share_pct": 17.07126076742365
+      },
+      {
+        "make": "land rover",
+        "training_vehicles": 134,
+        "largest_residual_share_pct": 44.776119402985074
+      },
+      {
+        "make": "lexus",
+        "training_vehicles": 859,
+        "largest_residual_share_pct": 18.044237485448196
+      },
+      {
+        "make": "lincoln",
+        "training_vehicles": 408,
+        "largest_residual_share_pct": 28.186274509803923
+      },
+      {
+        "make": "mazda",
+        "training_vehicles": 691,
+        "largest_residual_share_pct": 19.247467438494937
+      },
+      {
+        "make": "mercedes-benz",
+        "training_vehicles": 1172,
+        "largest_residual_share_pct": 20.392491467576793
+      },
+      {
+        "make": "mercury",
+        "training_vehicles": 168,
+        "largest_residual_share_pct": 55.952380952380956
+      },
+      {
+        "make": "mini",
+        "training_vehicles": 237,
+        "largest_residual_share_pct": 16.877637130801688
+      },
+      {
+        "make": "mitsubishi",
+        "training_vehicles": 329,
+        "largest_residual_share_pct": 30.091185410334347
+      },
+      {
+        "make": "nissan",
+        "training_vehicles": 3718,
+        "largest_residual_share_pct": 15.11565357719204
+      },
+      {
+        "make": "pontiac",
+        "training_vehicles": 375,
+        "largest_residual_share_pct": 48.53333333333333
+      },
+      {
+        "make": "ram",
+        "training_vehicles": 318,
+        "largest_residual_share_pct": 18.238993710691823
+      },
+      {
+        "make": "saturn",
+        "training_vehicles": 230,
+        "largest_residual_share_pct": 43.47826086956522
+      },
+      {
+        "make": "scion",
+        "training_vehicles": 111,
+        "largest_residual_share_pct": 18.91891891891892
+      },
+      {
+        "make": "subaru",
+        "training_vehicles": 396,
+        "largest_residual_share_pct": 31.565656565656564
+      },
+      {
+        "make": "toyota",
+        "training_vehicles": 2754,
+        "largest_residual_share_pct": 27.77777777777778
+      },
+      {
+        "make": "unknown",
+        "training_vehicles": 727,
+        "largest_residual_share_pct": 73.03988995873453
+      },
+      {
+        "make": "volkswagen",
+        "training_vehicles": 857,
+        "largest_residual_share_pct": 24.154025670945156
+      },
+      {
+        "make": "volvo",
+        "training_vehicles": 279,
+        "largest_residual_share_pct": 33.33333333333333
+      }
+    ],
+    "limits": "Large residuals can be legitimate unusual cars, omitted features or bad labels. Flags are not verified data errors."
+  },
+  "provenance": {
+    "canonical_input_sha256": "c42f5cbac5813d9a2cafebaaa6f1b95e522e9dea328eb15efb4961941b948601",
+    "original_partition_counts": {
+      "train": 384271,
+      "validation": 82393,
+      "test": 83627
+    },
+    "sampling": "Deterministic SHA-256 rank within original train/validation/test partitions. Up to 40,000 train, 10,000 validation and 10,000 test records. No residual trimming.",
+    "source": "https://www.kaggle.com/datasets/tunguz/used-car-auction-prices",
+    "source_license": "CC0-1.0"
+  }
+}

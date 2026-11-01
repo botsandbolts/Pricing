@@ -1,41 +1,41 @@
 {
   "market": "ask",
   "method": "sklearn IterativeImputer with native-categorical LightGBM classifiers for optional categories; LightGBM regression for year/log-mileage. CPU, small trees, observed values restored.",
-  "reference_sha256": "063c83845e19d46f2484655fd73e2e3e622bc9902232502dd462ae181cf487c2",
-  "model_sha256": "bab0453dc311bca4fb0a3552e4200e4a66d71f2ab4d52e7984d22f93ad500ffe",
-  "artifact_bytes": 76103,
-  "rows": 400,
-  "held_out_audit_rows": 91,
+  "reference_sha256": "e1a35bd2d0327701da539d310df869a3b9ae8b5ff012ad53a325fa6048173999",
+  "model_sha256": "b6e819390acc8c1aa0b6cf6afc7fa3d1e9cd2eaa7526d829fc9e5a57018ca020",
+  "artifact_bytes": 159049,
+  "rows": 4756,
+  "held_out_audit_rows": 956,
   "masked_category_reconstruction": [
     {
       "field": "type",
-      "masked_cells": 13,
-      "held_out_accuracy": 0.5384615384615384,
-      "mode_baseline_accuracy": 0.38461538461538464
+      "masked_cells": 143,
+      "held_out_accuracy": 0.4965034965034965,
+      "mode_baseline_accuracy": 0.3076923076923077
     },
     {
       "field": "fuel",
-      "masked_cells": 20,
-      "held_out_accuracy": 0.9,
-      "mode_baseline_accuracy": 0.9
+      "masked_cells": 182,
+      "held_out_accuracy": 0.9120879120879121,
+      "mode_baseline_accuracy": 0.9230769230769231
     },
     {
       "field": "transmission",
-      "masked_cells": 18,
-      "held_out_accuracy": 0.7777777777777778,
-      "mode_baseline_accuracy": 0.7777777777777778
+      "masked_cells": 219,
+      "held_out_accuracy": 0.8904109589041096,
+      "mode_baseline_accuracy": 0.8904109589041096
     },
     {
       "field": "drive",
-      "masked_cells": 14,
-      "held_out_accuracy": 0.5714285714285714,
-      "mode_baseline_accuracy": 0.42857142857142855
+      "masked_cells": 134,
+      "held_out_accuracy": 0.6343283582089553,
+      "mode_baseline_accuracy": 0.3880597014925373
     },
     {
       "field": "title_status",
-      "masked_cells": 24,
-      "held_out_accuracy": 0.875,
-      "mode_baseline_accuracy": 0.875
+      "masked_cells": 205,
+      "held_out_accuracy": 0.9463414634146341,
+      "mode_baseline_accuracy": 0.9463414634146341
     }
   ],
   "limits": "Randomly masked cells in held-out vehicles measure reconstruction only, not real missing-not-at-random performance. Inferred values are used only in retrieval, never verified facts or production valuation inputs. Entirely unobserved categorical fields remain explicit unknown categories."
