@@ -8,7 +8,7 @@ Adjusted advert/auction prices assist Ask/Bid missing-feature imputation, then a
 
 ## Architecture and isolation
 
-`listing_inspector.py` is a separate horizontal workspace. `market_review.py` contains bounded CSV parsing, duplicate matching, review rules and sequential batch orchestration. `listing_insights_ui.py` presents the tools. Offline research lives in `listing_statistics.py` and `scripts/build_listing_insights.py`. Neither visiting a panel nor changing a tab fits a model. Production weights, cleaning masks, calibration and default pricing are unchanged.
+`listing_inspector.py` is a separate horizontal workspace. `market_review.py` contains bounded CSV parsing, duplicate matching, review rules and sequential batch orchestration. `listing_insights_ui.py` presents the tools. Offline research lives in `listing_statistics.py` and `scripts/build_listing_insights.py`. Production estimators and imputation chains are fitted offline. Small SVD reference indexes are constructed lazily and cached when a completed query first uses a matching mode. Production weights, cleaning masks, calibration and default pricing are unchanged.
 
 ### Comparable retrieval and missing values
 
