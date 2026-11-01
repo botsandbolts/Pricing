@@ -364,3 +364,5 @@ if _workspace=='🕵️ Deal Detective':
 from pricing.ga_events import render_events
 render_events()
 footer()
+
+# Inspector release a7cb5bd: forecast-aware query context, price-free SVD.
