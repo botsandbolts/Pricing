@@ -1,0 +1,9 @@
+{
+  "reference_sha256": "d4976e2834905ecad1f266d500629fc29b17df49b696fe68e29c649cec7788e5",
+  "model_sha256": "6ec5a14559da0fa8e575b4ed8680c17302a660939b524a1c51895089e2754302",
+  "price_basis_date": "2026-11-01",
+  "rows": 4000,
+  "supported_prices": 3978,
+  "artifact_bytes": 507945,
+  "method": "IterativeImputer with native-categorical LightGBM. Adjusted price is auxiliary context only and is dropped before SVD. Observed source facts are preserved."
+}
