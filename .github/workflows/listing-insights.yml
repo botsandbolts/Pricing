@@ -6,7 +6,11 @@ on:
       - 'pricing/market_review.py'
       - 'pricing/listing_statistics.py'
       - 'pricing/listing_insights_ui.py'
-      - 'pricing/popular_vehicles.py'
+      - 'pricing/vehicle_presets.py'
+      - 'pricing/retrieval_imputation.py'
+      - 'scripts/build_retrieval_imputation.py'
+      - 'scripts/build_comparable_catalog.py'
+      - 'scripts/build_vehicle_presets.py'
       - 'scripts/build_listing_insights.py'
       - 'tests/test_market_review.py'
       - '.github/workflows/listing-insights.yml'
@@ -75,15 +79,36 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: listing-original-data-insights
-          path: data/listing-insights/
+          path: |
+            data/listing-insights/
+            data/comparable-catalog/
+            data/comparable-minilm/
+            data/retrieval-imputation/
+            data/vehicle-examples.json
           retention-days: 90
-      - name: Publish small aggregate reports only
+  publish:
+    needs: checks-and-reports
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/download-artifact@v4
+        with:
+          name: listing-original-data-insights
+          path: data
+      - name: Publish consistent reference assets and research reports atomically
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add data/listing-insights/ data/comparable-catalog/ data/comparable-minilm/ data/retrieval-imputation/ data/vehicle-examples.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Publish original-data regional and description-signal assessments"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
+          tar -cf "$RUNNER_TEMP/listing-assets.tar" data/listing-insights data/comparable-catalog data/comparable-minilm data/retrieval-imputation data/vehicle-examples.json
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            tar -xf "$RUNNER_TEMP/listing-assets.tar"
+            git add data/listing-insights data/comparable-catalog data/comparable-minilm data/retrieval-imputation data/vehicle-examples.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Install complete original-data listing research and consistent retrieval assets"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
