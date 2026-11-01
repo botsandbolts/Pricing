@@ -2,7 +2,7 @@
   "market": "hybrid",
   "method": "sklearn IterativeImputer with native-categorical LightGBM classifiers for optional categories; LightGBM regression for year/log-mileage. CPU, small trees, observed values restored.",
   "reference_sha256": "8150d7a609955c4a3c92d194ea3899d15d1b71e164584662844a618f6010048c",
-  "model_sha256": "c2a024328910842766cad82472ecae70215c0de99fe27da561680c2f820c82c5",
+  "model_sha256": "2a35cdade3e7d6a6ed0db42d6dfcfde36a3c9f2e32499f508dcd2869fa1827cb",
   "artifact_bytes": 665779,
   "rows": 8756,
   "held_out_audit_rows": 1763,
