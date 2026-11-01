@@ -4,17 +4,13 @@
 
 Listing Inspector helps a buyer prepare questions and a dealer organize appraisal work. It complements the existing valuation calculator. It does not certify a vehicle, authenticate a seller, determine realized profit or supply live market listings.
 
-## Choose a car
+## Choose a specific car
 
-Search the 1,000 historical make/model presets, select one, and edit the vehicle details. Presets are ranked by retained Craigslist calibration counts from the installed Bayesian release. They include model/trim label variants and are not a current US sales ranking. Add a description and select Inspect this advert.
-
-## Advert checks and seller questions
-
-The tool quotes sentences that mention maintenance, repairs, title issues or mechanical problems. It also highlights some conflicts between the form and the description. A flag means ask a question, not assume a defect. Missing or unflagged information is unverified.
+Search 1,000 individual historical vehicle records by year, car, mileage or state. Selecting one fills its actual available vehicle details and description. This is not a popularity list or a list of generic make/model combinations. Edit the fields and select Find comparable cars. Some auction examples contain no description; it stays empty rather than borrowing another seller’s text.
 
 ## Comparable cars
 
-Asking adverts and auction sales are separate historical reference sets. Each comparison explains age, mileage and specification differences. Descriptions contain seller claims. Auction prices retain their original dates; an old auction amount is not today's offer. Matching methods and candidate-pool sizes are disclosed in the interface.
+Asking adverts and auction sales are separate historical reference sets. FAISS returns five nearest cars by cosine similarity of normalized SVD vectors, with optional MiniLM description similarity. There are no brand/model compatibility exclusions or second-stage ranking. Each comparison shows actual age, mileage and specification differences; any retrieval-only imputation is identified. Descriptions contain seller claims. Auction prices retain their original dates; an old auction amount is not today's offer. Matching methods and candidate-pool sizes are disclosed in the interface.
 
 ## Purchase sandbox
 
@@ -22,7 +18,7 @@ Enter assumed realized resale proceeds and acquisition, repair, transport, fee a
 
 ## Deal review and appraisal passport
 
-Explicitly evaluate the inspected car to obtain existing Bayesian asking and auction estimates. An asking price below the date-adjusted historical range is a reason to investigate. Wide ranges, rare models, unfamiliar categories, generation extrapolation and advert questions may instead require more information or specialist review.
+Explicitly evaluate the inspected car to obtain existing Bayesian asking and auction estimates. An asking price below the date-adjusted historical range is a reason to investigate. Wide ranges, rare models, unfamiliar categories, generation extrapolation may instead require more information or specialist review.
 
 The downloadable passport records the vehicle, valuation date, pricing release, estimates and support. Historical test MAE and coverage are assessment-population statistics, not a measured error for this car. Transported current-date intervals have not been validated against current transactions. There is no calibrated probability of a bargain.
 
@@ -40,7 +36,7 @@ Upload up to 25 cars to evaluate them sequentially using the installed models. A
 
 ## Information premium and Lemon inspection
 
-A separate research baseline asks whether six description-mention flags help historical held-out price prediction beyond structured vehicle facts. Its dollar MAE may improve or worsen; both outcomes are shown. A phrase coefficient is an observational association, not money created by editing an advert. Statements such as “no accidents” still contain an accident mention and must not be interpreted as verified damage.
+A separate research baseline asks whether frozen MiniLM description vectors improve historical held-out price prediction beyond structured vehicle facts. Its dollar MAE may improve or worsen; both outcomes are shown. This measures predictive information, not money created by editing an advert. No keyword flag engine is used.
 
 Fresh grouped cross-validation flags the largest research-training log residuals for inspection. It keeps all observations. Legitimate unusual cars can have large residuals. This experiment does not change the production Lemon Squeezer cut or any serving model.
 

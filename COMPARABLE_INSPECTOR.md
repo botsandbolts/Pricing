@@ -1,26 +1,29 @@
-# Listing Inspector: comparable vehicle retrieval
+# Comparable cars: SVD + exact FAISS cosine retrieval
 
-The separate horizontal Listing Inspector panel preserves the existing regular and Bayesian pricing paths. It adds evidence-linked advert checks, seller questions, two historical comparison sets, and a user-assumption purchase contribution sandbox.
+The separate Listing Inspector workspace leaves regular and Bayesian pricing models unchanged. Select one of 1,000 specific historical vehicle examples, or enter your own car. Examples load year, make, model, mileage, available specifications and seller-description text. There is no make/model popularity selector.
 
-## Comparable retrieval
+## Representation and distance
 
-Sparse float32 one-hot encoding covers make, model, body, fuel, transmission, drive and title status. Missing values have an explicit marker; unknown query categories are ignored. Feature-block weights are 1.4, 2, 1, 0.7, 0.7, 0.7, 0.7. Randomized truncated SVD (seed 42; five iterations) maps these into 32 dimensions. Vectors are normalized.
+Categorical inputs are make, model, body, fuel, transmission, drive and title status. Sparse one-hot feature-block weights are 1.4, 2, 1, 0.7, 0.7, 0.7, 0.7. Year and mileage are standardized using reference-set statistics and included at weight 0.2 each. Truncated SVD uses 32 dimensions, five randomized iterations and seed 42. Resulting vectors are L2-normalized.
 
-Ranking = 0.45 categorical cosine + 0.30 model-label string similarity − 0.15 capped year distance/5 − 0.10 capped mileage distance/100,000. Separate hard guardrails require same make, no more than five model years apart, and model-label similarity >=0.45. Unknown makes receive no results. These are explicit engineering choices, not optimized relevance weights. Exact attributes remain visible. Generation/trim identity is not guaranteed.
+Without description input, FAISS IndexFlatIP searches the unit SVD vectors directly. Inner product therefore equals cosine similarity. With description input, combine sqrt(0.8) times the unit SVD vector and sqrt(0.2) times the unit MiniLM vector, then L2-normalize the complete vector before the same exact FAISS search. Cosine distance is 1 minus the returned similarity. Scores are relative similarity, not probabilities of compatibility or valuation correctness.
 
-When a valid offline description index is installed and a query has text, add 0.10 MiniLM cosine similarity. The frozen installed int8 all-MiniLM-L6-v2 encoder sees up to 128 tokens. Reference vectors are stored float16 in compressed NPZ, loaded without pickle, with content and row-order hashes. Queries are encoded on CPU with a bounded cache; no UI downloads. Semantic failure falls back to attribute matching. Auction records have no descriptions.
+There is no same-make, model-name, generation or year compatibility filter. Volkswagen can return Audi. Numerical attributes influence SVD geometry rather than excluding cars. Only invalid/zero representations and an explicitly excluded self-record are omitted. Search requests five neighbours directly, with no 500-candidate stage, LambdaRank, FM or second-stage reranking. Fewer results are returned only when fewer usable reference records exist.
 
-The asking reference set uses up to 5,000 original training adverts when its compact catalogue is installed, falling back to 400 manufacturer-balanced historical Craigslist training examples (April–May 2021; prices and common personal identifiers removed) and 4,000 sampled auction records from 2015. They are separate markets, may overlap training, and are not live listings. Prices never enter retrieval. Auction prices are shown with their historical dates; asking prices are unavailable in the curated text sample.
+## Missing features
 
-## Evaluation and selection
+Offline sklearn IterativeImputer fits chained native-categorical LightGBM classifiers for optional categorical fields and LightGBM regression for year/log-mileage. Original observations are restored after transformation. Unsupported all-missing categorical fields stay explicit unknown categories; a complete numerical matrix is not a claim that unknown facts have become known. Learned schedules are exported as portable compressed JSON containing LightGBM text models, not pickle.
 
-`python -m scripts.benchmark_comparables` compares 32/64/128 dimensions. The recorded engineering audit checks filtering, reference-vector footprint and local latency. All had zero guardrail violations; 32 was selected for memory, not demonstrated relevance superiority. Search averaged approximately 7 ms for asking references and 35 ms for auction references on the development machine, excluding first-load imports, encoding and UI rendering. Total benchmark-process peak RSS was approximately 192 MiB, not incremental app memory.
+Only retrieval vectors use inferred values. Cards retain source fields and name which retrieval inputs were estimated. Inferred title status, mileage or transmission is never a verified listing fact and never enters the production valuation model through this feature. Hashes bind imputation artifacts to the exact reference set. A held-out randomly masked-cell audit reports categorical reconstruction against a mode baseline; it does not establish performance under real missing-not-at-random patterns.
 
-`tests/test_comparable_retrieval.py` tests target-price invariance, invalid queries, unfamiliar categories, self exclusion, semantic dimensions, real reference guardrails, UI submit and reruns. CI builds real MiniLM vectors and verifies actual semantic UI use. No judged NDCG, precision gain or price accuracy improvement is claimed. No FM or LambdaRank is used. Similar target prices are not relevance labels.
+## Reference data
 
-## Remaining scope
+The larger asking catalogue uses up to 5,000 deterministic original training adverts, with prices omitted, common contact/VIN strings redacted and description excerpts capped at 1,200 characters. It falls back to the existing 400 historical asking examples until installed. Auction references are 4,000 sampled 2015 records with original auction dates and prices. Markets remain separate. References may overlap production-model training, are not an independent accuracy benchmark and imply no current availability.
 
-This release does not implement calibrated bargain probabilities, duplicate detection, regional-effect estimation, information-premium experiments or batch appraisal queues. Existing Bayesian uncertainty and valuation metrics belong to their own models, not this retrieval index. Rule-based advert checks can miss negation and complex language. Contribution calculations use user assumptions and exclude overhead and tax; they are not predicted realized margins.
+Frozen int8 all-MiniLM-L6-v2 descriptions use up to 128 tokens. CPU reference vectors are precomputed as compressed float16 arrays. Integrity and row-order hashes are checked before use. The UI never downloads a model; unavailable text matching leaves categorical/numerical retrieval available.
 
+## Evaluation
 
-Retrieval first selects up to 500 nearest SVD vectors, then applies explicit matching scores and same-make/year/model guardrails to return up to five eligible cars. No exact count is fabricated for a small or unsupported reference pool.
+`benchmark_comparables.py` compares 32/64/128 dimensions for reference memory and local search latency. Cross-brand and distant-year results are diagnostics, not violations. The 32-dimension choice minimizes footprint; no judged relevance or NDCG superiority is claimed. No price is used to fit or search the similarity index.
+
+Tests cover exact agreement between FAISS and brute-force cosine scores, the five-result limit, cross-brand retrieval, price invariance, invalid inputs, self exclusion, portable imputation equivalence, original-fact preservation, complete presets and UI reruns. CI verifies real MiniLM inference and builds compact reference assets before publication.

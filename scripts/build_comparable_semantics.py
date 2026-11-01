@@ -6,7 +6,9 @@ from pricing.comparable_retrieval import ComparableIndex,reference_rows
 from pricing.comparable_semantics import fingerprint
 from pricing.description_features import MiniLMFeatures
 root=Path(__file__).resolve().parents[1]
-index=ComparableIndex(reference_rows(root,'ask'))
+from pricing.retrieval_imputation import load as load_imputer
+rows=reference_rows(root,'ask')
+index=ComparableIndex(rows,imputer=load_imputer(root,'ask',rows))
 encoder=MiniLMFeatures(root/'models/xgboost-hierarchy/ask/minilm')
 values=encoder.encoder.encode([r['description'] for r in index.rows],batch_size=16)
 folder=root/'data/comparable-minilm';folder.mkdir(exist_ok=True)

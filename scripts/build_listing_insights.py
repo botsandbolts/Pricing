@@ -15,7 +15,12 @@ def build(path,side,output,max_train=40000,max_other=10000,bootstrap=40):
     for phase,part in d.groupby('phase'):
         limit=max_train if phase=='train' else max_other
         rows.extend(part.sort_values('_rank').head(limit).drop(columns='_rank').to_dict('records'))
-    report=experiment(rows,side,bootstrap=bootstrap)
+    encoder=None
+    if side=='ask':
+        from pricing.description_features import MiniLMFeatures
+        engine=MiniLMFeatures(Path(__file__).resolve().parents[1]/'models/xgboost-hierarchy/ask/minilm')
+        encoder=lambda texts:engine.transform(texts).toarray()
+    report=experiment(rows,side,bootstrap=bootstrap,embedding_encoder=encoder,encoder_name='Frozen int8 all-MiniLM-L6-v2 · up to 128 tokens')
     report['provenance']={'canonical_input_sha256':hashlib.file_digest(open(path,'rb'),'sha256').hexdigest(),
         'original_partition_counts':counts,'sampling':'Deterministic SHA-256 rank within original train/validation/test partitions. Up to 40,000 train, 10,000 validation and 10,000 test records. No residual trimming.',
         'source':'https://zenodo.org/records/10457828' if side=='ask' else 'https://www.kaggle.com/datasets/tunguz/used-car-auction-prices',

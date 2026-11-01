@@ -1,47 +1,5 @@
-"""Small, deterministic listing checks; no model loading or network requests."""
+"""Independent workspace for comparable vehicles and statistical appraisal tools."""
 import math
-import re
-from difflib import SequenceMatcher
-
-def normalized(value):
-    return str(value or '').strip().lower()
-
-def inspect(fields, description):
-    findings=[]
-    sentences=re.split(r'(?<=[.!?])\s+|\n+',description.strip())
-    patterns={
-        'transmission':{'automatic':r'\bautomatic\b','manual':r'\bmanual transmission\b|\bstick shift\b'},
-        'title_status':{'salvage':r'\bsalvage title\b','rebuilt':r'\brebuilt title\b'},
-    }
-    for field,values in patterns.items():
-        selected=normalized(fields.get(field))
-        for value,pattern in values.items():
-            evidence=next((s for s in sentences if re.search(pattern,s,re.I) and not re.search(r'\b(no|not|never|without)\b',s,re.I)),None)
-            if evidence and selected not in ('','unknown',value):
-                findings.append({'check':'Check '+field.replace('_',' '),'evidence':evidence,'action':f'The form says {selected}; this sentence mentions {value}. Confirm which is correct.'})
-    for label,pattern,question in [
-        ('Repair details',r'\b(repair|replaced|rebuild|rebuilt|transmission work)\b','What was repaired, when, and is an invoice available?'),
-        ('Mechanical condition',r'\b(rattle|leak|overheat|misfire|check engine)\w*\b','Has the cause been diagnosed? Ask for the inspection report.'),
-        ('Maintenance evidence',r'\b(service history|maintained|maintenance)\b','Which maintenance records are available, and when was the last service?'),
-        ('Title documentation',r'\b(salvage|rebuilt|lien)\b','Can the seller provide the title and supporting documentation?')]:
-        evidence=next((s for s in sentences if re.search(pattern,s,re.I)),None)
-        if evidence:findings.append({'check':label,'evidence':evidence,'action':question})
-    for field in ('odometer','title_status','transmission'):
-        if normalized(fields.get(field)) in ('','unknown','none'):
-            findings.append({'check':'Missing '+field.replace('_',' '),'evidence':'Not supplied in the form.','action':'Confirm this before comparing prices.'})
-    return findings
-
-def comparable_score(query, candidate):
-    """Explicit matching heuristic, not trained relevance or a probability."""
-    make=normalized(query.get('manufacturer'))
-    if not make or make!=normalized(candidate.get('manufacturer')):return None
-    try:
-        years=abs(float(query['year'])-float(candidate['year']))
-        miles=abs(float(query['odometer'])-float(candidate['odometer']))
-        if not all(map(math.isfinite,(years,miles))) or years>5:return None
-    except (ValueError,TypeError,KeyError):return None
-    model=SequenceMatcher(None,normalized(query.get('model')),normalized(candidate.get('model'))).ratio()
-    return 4*model-years/5-miles/100000
 
 def acquisition_scenario(resale, purchase, repairs, transport, fees, holding):
     values=[resale,purchase,repairs,transport,fees,holding]
@@ -53,10 +11,10 @@ def render(root):
     import pandas as pd
     import streamlit as st
     st.title('🔎 Listing Inspector')
-    st.write('Read the evidence. Compare the right cars. Know what to ask.')
-    st.caption('Historical research tools. Checks identify questions, not verified defects or fraud. Existing pricing models are unchanged.')
-    from pricing.popular_vehicles import render as render_popular
-    render_popular(root)
+    st.write('Compare similar cars. Explore prices, uncertainty and market evidence.')
+    st.caption('Historical comparisons and statistical appraisal tools. Existing pricing models are unchanged.')
+    from pricing.vehicle_presets import render as render_examples
+    render_examples(root)
     with st.form('inspector_form'):
         a,b,c=st.columns(3)
         make=a.text_input('Make','Toyota',key='inspector_make',persist_state='session');model=b.text_input('Model / trim','Corolla',key='inspector_model',persist_state='session');year=c.number_input('Model year',1900,2030,2015,key='inspector_year',persist_state='session')
@@ -75,20 +33,13 @@ def render(root):
             color=a.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'],key='inspector_color',persist_state='session')
             grade=b.number_input('Auction condition grade · optional (1–5)',min_value=1.,max_value=5.,value=None,step=.1,key='inspector_grade',persist_state='session')
         description=st.text_area('Paste the seller description',max_chars=8000,key='inspector_description',persist_state='session')
-        submitted=st.form_submit_button('Inspect this advert',type='primary')
+        submitted=st.form_submit_button('Find comparable cars',type='primary')
     if submitted:st.session_state['inspector_result']=({'manufacturer':make,'model':model,'year':year,'odometer':miles,'transmission':transmission,'title_status':title,'state':state,'type':body,'condition':condition,'fuel':fuel,'drive':drive,'cylinders':cylinders,'paint_color':color,'auction_grade':grade},description)
     saved=st.session_state.get('inspector_result')
-    tabs=st.tabs(['Advert checks & questions','Comparable cars','Purchase sandbox','Deal & confidence','Duplicate check','Regional prices','Batch review','Information premium','Methods & limits'])
+    tabs=st.tabs(['Comparable cars','Purchase sandbox','Deal & confidence','Duplicate check','Regional prices','Batch review','Information premium','Methods & limits'])
     with tabs[0]:
-        if not saved:st.info('Paste an advert above to get started.')
-        else:
-            findings=inspect(*saved)
-            if not findings:st.info('No rule-based flags found. This does not verify the advert or vehicle.')
-            for f in findings:
-                st.subheader(f['check']);st.text(f['evidence']);st.write(f['action'])
-    with tabs[1]:
         st.subheader('Find the family resemblance')
-        st.caption('Retrieve up to 500 candidates by SVD similarity, then select up to five using explicit vehicle checks and year/mileage penalties. Similarity is not a valuation or a probability.')
+        st.caption('FAISS retrieves five nearest cars by cosine similarity of normalized SVD vectors. Scaled numerical features enter SVD; descriptions add normalized MiniLM similarity when available. Similarity is not a valuation or a probability.')
         market=st.radio('Compare against', ['Historical asking adverts','Historical auction sales'],horizontal=True,key='inspector_market')
         if saved:
             from pricing.comparable_retrieval import ComparableIndex,reference_rows
@@ -96,11 +47,15 @@ def render(root):
             side='ask' if market.startswith('Historical asking') else 'bid'
             @st.cache_resource(max_entries=2,show_spinner=False)
             def get_index(folder,side,version):
-                index=ComparableIndex(reference_rows(folder,side),32)
+                rows=reference_rows(folder,side)
+                from pricing.retrieval_imputation import load as load_imputer
+                imputer=load_imputer(folder,side,rows)
+                index=ComparableIndex(rows,32,imputer=imputer)
                 semantic=attach(index,folder) if side=='ask' else False
                 return index,semantic
             manifest=root/'data/comparable-minilm/manifest.json'
-            version=manifest.stat().st_mtime_ns if manifest.exists() else 0
+            imputation_manifest=root/'data/retrieval-imputation'/(side+'.json')
+            version=(manifest.stat().st_mtime_ns if manifest.exists() else 0,imputation_manifest.stat().st_mtime_ns if imputation_manifest.exists() else 0)
             try:
                 with st.spinner('Finding comparable vehicles…'):
                     index,semantic=get_index(str(root),side,version)
@@ -114,14 +69,15 @@ def render(root):
                             st.caption('Description matching is temporarily unavailable; vehicle matching continues.')
                     matches=index.search(saved[0],description_vector=vector)
                 st.caption('MiniLM description similarity included.' if vector is not None else 'Vehicle attributes only. '+('Auction records contain no descriptions.' if side=='bid' else 'Description similarity is used when its offline index is installed and you supply text.'))
-                if not matches:st.info('No sufficiently close comparisons in this limited historical sample. Try checking the make/model spelling or switch reference sets.')
+                if not matches:st.info('No usable neighbours in this reference set. Try the other historical market.')
                 for rank,match in enumerate(matches,1):
                     car=match['vehicle']
                     with st.container(border=True):
                         st.markdown(f"### {rank}. {car['year']} {car['manufacturer'].title()} {car['model']}")
-                        st.caption(f"{int(car['odometer']):,} miles · {car.get('sale_date',car.get('reference_period','Historical'))}")
+                        st.caption(f"{format(int(car['odometer']),',')+' miles' if car.get('odometer') is not None else 'Mileage not supplied'} · {car.get('sale_date',car.get('reference_period','Historical'))}")
                         if side=='bid':st.metric('Historical auction price · USD',f"{car['price']:,.0f}")
                         else:st.caption('Advertised price omitted from this reference sample.')
+                        st.caption(f"FAISS cosine similarity: {match['faiss_cosine_similarity']:.3f} · relative similarity, not a confidence probability")
                         for reason in match['evidence']:st.text('• '+reason)
                         if car.get('description'):
                             with st.expander('Read historical seller description'):
@@ -129,9 +85,9 @@ def render(root):
                                 if car.get('description_is_excerpt'):st.caption('Historical description excerpt · first 1,200 characters.')
                 st.caption(f'Reference set: {len(index.rows):,} historical vehicles. Asking adverts are from 2021; auction records from 2015. The reference sample may overlap pricing-model training and is not an independent accuracy benchmark. No current availability is implied.')
             except (ValueError,OSError,KeyError) as exc:
-                st.warning('Comparisons are temporarily unavailable. Your advert checks and purchase sandbox remain available.')
-        else:st.info('Inspect an advert above to find comparisons.')
-    with tabs[2]:
+                st.warning('Comparisons are temporarily unavailable. Your other appraisal tools remain available.')
+        else:st.info('Choose your car above, then select Find comparable cars.')
+    with tabs[1]:
         st.write('Enter your own assumptions. This is a contribution scenario before overhead and tax, not a predicted profit.')
         a,b=st.columns(2)
         resale=a.number_input('Assumed realized resale proceeds · USD',0.0,1000000.0,15000.0,100.0)
@@ -143,18 +99,17 @@ def render(root):
         st.metric('Scenario contribution · USD',f'{acquisition_scenario(resale,purchase,repairs,transport,fees,holding):,.0f}')
         st.caption('Advertised asking prices and auction estimates describe different markets. Their difference is not dealer profit.')
     from pricing.listing_insights_ui import render_deal,render_duplicates,render_regions,render_batch,render_information
-    with tabs[3]:render_deal(root,saved)
-    with tabs[4]:render_duplicates()
-    with tabs[5]:render_regions(root)
-    with tabs[6]:render_batch(root)
-    with tabs[7]:render_information(root)
-    with tabs[8]:
-        st.write('Checks are conservative phrase rules with quoted evidence. They may miss negation and complex language. Confirm all findings with the seller.')
-        st.write('Comparable ranking uses 32-dimensional truncated SVD of sparse, weighted categorical attributes; model-name agreement, year and mileage remain explicit. Same-make, model-name and year-distance guardrails apply. Prices never enter retrieval. MiniLM description cosine similarity is an additional signal when available.')
-        st.write('SVD is unsupervised. Up to 500 nearest categorical vectors are retrieved, then explicit model-name, age, mileage and optional MiniLM description signals select five eligible comparisons. No LambdaRank or FM model is used. The engineering audit checks 32/64/128 dimensions, guardrails, latency and memory; no human-judged relevance gain or NDCG improvement is claimed.')
-        st.write('Regional associations and information-premium experiments are separate offline research reports. Duplicate checks and batch queues process your uploaded CSV only on request; no pricing model is retrained. Deal labels are evidence-review rules, not calibrated bargain probabilities. Nothing here establishes demand, time to sell, realized dealer margin or a causal effect of wording.')
+    with tabs[2]:render_deal(root,saved)
+    with tabs[3]:render_duplicates()
+    with tabs[4]:render_regions(root)
+    with tabs[5]:render_batch(root)
+    with tabs[6]:render_information(root)
+    with tabs[7]:
+        st.write('Retrieval uses 32-dimensional truncated SVD of weighted one-hot categories and scaled numerical features, followed by L2 normalization and exact cosine search with FAISS IndexFlatIP. No make, model or year compatibility filter is applied. Prices never enter retrieval. MiniLM description cosine similarity is an additional signal when available.')
+        st.write('SVD is unsupervised. Five comparisons are retrieved directly by cosine nearest-neighbour search. When text is available, separately normalized SVD/MiniLM blocks have 80%/20% weights before final normalization. There is no intermediate candidate pool or second-stage ranker. No LambdaRank or FM model is used. The engineering audit checks 32/64/128 dimensions, guardrails, latency and memory; no human-judged relevance gain or NDCG improvement is claimed.')
+        st.write('Regional associations and information-premium experiments are separate offline research reports. Duplicate checks and batch queues process your uploaded CSV only on request; no pricing model is retrained. Price comparisons are model outputs, not calibrated bargain probabilities. Nothing here establishes demand, time to sell, realized dealer margin or a causal effect of wording.')
 
-    with tabs[8]:
+    with tabs[7]:
         for label,name in [('Business guide · how to use every tool','LISTING_DECISION_TOOLS.md'),('Technical guide · methods, evaluation and limits','LISTING_DECISION_TECHNICAL.md')]:
             document=root/name
             if document.exists():

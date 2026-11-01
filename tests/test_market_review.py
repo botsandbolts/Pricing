@@ -25,8 +25,8 @@ def test_template_text_alone_not_duplicate():
 
 def test_review_labels_and_batch_failure_isolation():
     good={'price':10000,'interval_low':8000,'interval_high':13000,'model_support':30,'unknown_categories':[]}
-    assert review_estimate(good,5000,[])['priority']=='Price worth investigating'
-    assert review_estimate(dict(good,model_support=0),5000,[])['priority']=='Check evidence first'
+    assert review_estimate(good,5000)['priority']=='Price worth investigating'
+    assert review_estimate(dict(good,model_support=0),5000)['priority']=='Check evidence first'
     rows=csv_rows()
     calls=[]
     def evaluate(fields,date,allow):
@@ -46,10 +46,10 @@ def test_statistics_experiment_and_vehicle_leakage():
         rows.append(dict(row_id=str(i),vehicle_group=str(i),phase='train' if i<400 else 'validation' if i<500 else 'test',
                          manufacturer='ford',model='focus',state='ca' if i%2 else 'ny',type='sedan',year=year,odometer=miles,
                          price=float(np.exp(10-.04*(2015-year)-miles/300000+.05*(i%2)+rng.normal(0,.1))),date='2015-01-01',text='Full service history' if i%3 else 'Needs work'))
-    r=experiment(rows,'ask',bootstrap=3)
+    r=experiment(rows,'ask',bootstrap=3,embedding_encoder=lambda texts:np.array([[len(t),len(set(t))] for t in texts],dtype=float),encoder_name='Synthetic test encoder')
     assert len(r['regions'])==2
     assert r['test_mae_usd']>0 and 0<=r['historical_interval_coverage']<=1
-    assert len(r['description_experiment']['flags'])==6
+    assert r['description_experiment']['embedding_dimensions']==2
     assert r['outlier_review']['flagged_rows']>=100
     rows[-1]['vehicle_group']='1'
     with pytest.raises(ValueError,match='leakage'):experiment(rows,'ask',bootstrap=1)
@@ -60,8 +60,13 @@ def test_presets_fill_editable_form_and_all_tools_render():
     assert not at.exception
     presets=next(x for x in at.selectbox if '1,000' in x.label)
     assert len(presets.options)==1000
-    presets.select('Ford f-150').run(timeout=30)
+    from pricing.vehicle_presets import load
+    first=load(ROOT)['vehicles'][0]
+    presets.select(presets.options[0]).run(timeout=30)
     assert not at.exception
-    assert next(x for x in at.text_input if x.label=='Make').value=='Ford'
-    assert next(x for x in at.text_input if x.label=='Model / trim').value=='f-150'
-    assert len(at.tabs)==9
+    assert next(x for x in at.text_input if x.label=='Make').value==first['manufacturer'].title()
+    assert next(x for x in at.text_input if x.label=='Model / trim').value==first['model']
+    assert next(x for x in at.number_input if x.label=='Model year').value==first['year']
+    assert next(x for x in at.number_input if x.label=='Mileage').value==first['odometer']
+    assert at.text_area[0].value==first.get('description','')
+    assert len(at.tabs)==8

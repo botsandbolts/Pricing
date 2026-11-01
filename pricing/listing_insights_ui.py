@@ -89,7 +89,7 @@ def passport(root,saved):
 
 def render_deal(root,inspected):
     st.subheader('Bargain—or something missing?')
-    st.write('Review an advertised price against the existing Bayesian asking estimate, with supporting evidence.')
+    st.write('Compare an advertised price with the existing Bayesian asking estimate and historical range.')
     if not inspected:st.info('Inspect your advert above first.');return
     fields,text=inspected
     from marketbridge.time_engine import today
@@ -107,11 +107,10 @@ def render_deal(root,inspected):
         except (ValueError,OSError,KeyError,MemoryError,RuntimeError):st.warning('Evaluation is temporarily unavailable. Other Inspector tools remain usable.')
     saved=st.session_state.get('inspector_passport')
     if not saved or saved['signature']!=signature:st.caption('Press Evaluate after changing car details or date. This does not alter your saved landing-page estimate.');return
-    from pricing.listing_inspector import inspect
-    decision=review_estimate(saved['results'].get('ask',{'error':'No asking estimate'}),amount,inspect(fields,text))
+    decision=review_estimate(saved['results'].get('ask',{'error':'No asking estimate'}),amount)
     with st.container(border=True):
         st.markdown('### '+decision['priority']);st.write(decision['reason'])
-        st.caption('This is a review rule, not a calibrated probability of finding a bargain. Lower prices may reflect omitted condition, title or specification details.')
+        st.caption('This model comparison is not a calibrated probability of finding a bargain. Lower prices may reflect omitted condition, title or specification details.')
     passport(root,saved)
 
 
@@ -135,7 +134,7 @@ def render_batch(root):
     if saved and saved[0]==identity:
         st.dataframe(saved[1],hide_index=True,width='stretch')
         st.download_button('Download the review queue',export_csv(saved[1]),'dealer-review-queue.csv','text/csv')
-        st.caption('Sorted by evidence-review rules, not expected profit. One invalid vehicle does not stop other rows. Asking discrepancies use asking estimates only. Historical ranges are date-adjusted; current-date coverage is unvalidated.')
+        st.caption('Sorted for appraisal review, not expected profit. One invalid vehicle does not stop other rows. Asking discrepancies use asking estimates only. Historical ranges are date-adjusted; current-date coverage is unvalidated.')
 
 
 def render_information(root):
@@ -143,19 +142,19 @@ def render_information(root):
     r=report(root,'ask')
     if r is None:st.info('The original-data description experiment is being prepared offline. No invented information premium is shown.');return
     e=r.get('description_experiment')
-    if not e:st.info('No completed description experiment is installed.');return
+    if not e or 'with_minilm_mae_usd' not in e:st.info('The MiniLM description experiment is being prepared offline.');return
     a,b,c=st.columns(3)
     a.metric('Facts-only audit MAE · USD',f"{e['base_mae_usd']:,.0f}")
-    b.metric('Facts + description flags · USD',f"{e['with_claim_flags_mae_usd']:,.0f}")
+    b.metric('Facts + MiniLM · USD',f"{e['with_minilm_mae_usd']:,.0f}")
     c.metric('Historical MAE saved · USD',f"{e['mae_saved_usd']:+,.0f}")
-    low,high=e['paired_vehicle_bootstrap_95_usd'];st.caption(f"Paired vehicle-bootstrap 95% interval for MAE savings: USD {low:+,.0f} to {high:+,.0f}. Positive means the description flags helped; negative means they hurt.")
-    st.dataframe([{'Description signal':x['signal'].replace('_',' '),'Training mentions':x['training_mentions'],'Conditional association %':round(x['associated_pct'],2)} for x in e['flags']],hide_index=True,width='stretch')
+    low,high=e['paired_vehicle_bootstrap_95_usd'];st.caption(f"Paired vehicle-bootstrap 95% interval for MAE savings: USD {low:+,.0f} to {high:+,.0f}. Positive means MiniLM helped this audit model; negative means it hurt.")
+    st.caption(f"{e['embedding_dimensions']} frozen description features · {e['encoder']}")
     st.write(e['interpretation'])
-    st.info('Writing “service history” does not create service history or prove a price premium. These are observational text signals; no causal effect or verified seller claim is inferred.')
+    st.info('The comparison measures predictive information in historical text. It does not show that rewriting an advert changes the vehicle’s value.')
     with st.expander('Research method and original-data provenance'):
         st.write(r['method']);st.write(r['limits']);st.write(r['rows']);st.json(r['provenance'],expanded=False)
     st.divider();st.subheader('Lemon inspection · keep the difficult cars')
     out=r['outlier_review'];st.write(out['method'])
-    st.caption(f"{out['flagged_rows']:,} of {out['training_rows']:,} research-training cars flagged. {out['limits']}")
+    st.caption(f"{out['flagged_rows']:,} of {out['training_rows']:,} research-training cars selected for residual inspection. {out['limits']}")
     st.dataframe(out['diagnostics'],hide_index=True,width='stretch')
     st.caption('This audit does not delete any car or change Lemon Squeezer, XGBoost or Bayesian production weights.')

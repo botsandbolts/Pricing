@@ -82,7 +82,7 @@ def duplicate_pairs(rows):
             result.append({'first':a['id'],'second':b['id'],'evidence':'Matching supplied VIN' if same_vin else 'Similar text + matching make/model/year + close mileage','text_overlap_pct':round(100*similarity,1),'different_fields':', '.join(conflicts) or 'None found','action':'Confirm listing dates and vehicle identity; differences may be legitimate.'})
     return result
 
-def review_estimate(receipt,listed_price,findings):
+def review_estimate(receipt,listed_price):
     """Decision labels, never a calibrated probability of a bargain."""
     if 'error' in receipt:return {'priority':'Unavailable','reason':receipt['error']}
     estimate=number(receipt.get('price'));lo=number(receipt.get('interval_low'));hi=number(receipt.get('interval_high'))
@@ -95,7 +95,6 @@ def review_estimate(receipt,listed_price,findings):
     if rare:reasons.append('Rare or unseen model in calibration')
     if unknown:reasons.append('Unseen inputs: '+', '.join(unknown))
     if width is not None and width>1:reasons.append('Wide historical uncertainty range')
-    if findings:reasons.append(f'{len(findings)} advert checks/questions')
     if receipt.get('analogue'):reasons.append('Auction generation extrapolation')
     below=listed is not None and lo is not None and listed<lo
     if below:reasons.append('Listed below the date-adjusted historical range; verify condition and scope')
@@ -110,7 +109,6 @@ def review_estimate(receipt,listed_price,findings):
 def batch_review(rows,evaluate,date,allow):
     """Sequential, explicit-action evaluation with row-level failure isolation."""
     if len(rows)>25:raise ValueError('Price at most 25 vehicles per batch; duplicate checks support 100.')
-    from pricing.listing_inspector import inspect
     output=[]
     for row in rows:
         base={'id':row['id'],'valuation_date':str(date)}
@@ -118,7 +116,7 @@ def batch_review(rows,evaluate,date,allow):
             output.append({**base,'priority':'Invalid input','reason':'; '.join(row['errors'])});continue
         try:
             results=evaluate({**row['fields'],'text':row['description']},date,allow)
-            reviewed=review_estimate(results.get('ask',{'error':'Asking estimate unavailable'}),row['price'],inspect(row['fields'],row['description']))
+            reviewed=review_estimate(results.get('ask',{'error':'Asking estimate unavailable'}),row['price'])
             bid=results.get('bid',{})
             output.append({**base,**reviewed,'auction_estimate_usd':bid.get('price'),'auction_status':bid.get('error','Experimental date-adjusted estimate')})
         except (ValueError,OSError,KeyError,MemoryError,RuntimeError) as exc:

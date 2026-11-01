@@ -14,11 +14,11 @@ permissions:
   contents: write
 concurrency:
   group: listing-insights-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   checks-and-reports:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       OMP_NUM_THREADS: '2'
       OPENBLAS_NUM_THREADS: '2'
@@ -38,7 +38,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 requests streamlit==1.66.1 pytest onnxruntime tokenizers
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 requests streamlit==1.66.1 pytest onnxruntime tokenizers 'faiss-cpu>=1.8,<2' 'lightgbm>=4.5,<5'
+      - run: python -m scripts.build_vehicle_presets
       - run: python -m pytest tests/test_market_review.py tests/test_comparable_retrieval.py tests/test_bart_summary.py tests/test_auto_bart_ui.py -q
       - name: Restore verified original source data
         run: |
@@ -52,6 +53,8 @@ jobs:
       - name: Build larger historical comparison catalogue and compact semantic vectors
         run: |
           python -m scripts.build_comparable_catalog training-cache/full-cohort.jsonl
+          python -m scripts.build_vehicle_presets
+          python -m scripts.build_retrieval_imputation
           python -m scripts.build_comparable_semantics
       - name: Calculate original-data regional and description reports
         run: python -m scripts.build_listing_insights --ask training-cache/full-cohort.jsonl --bid training-cache/bid-cohort.jsonl
@@ -78,7 +81,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add data/listing-insights/ data/comparable-catalog/ data/comparable-minilm/
+          git add data/listing-insights/ data/comparable-catalog/ data/comparable-minilm/ data/retrieval-imputation/ data/vehicle-examples.json
           if ! git diff --cached --quiet; then
             git commit -m "Publish original-data regional and description-signal assessments"
             git pull --rebase origin main
