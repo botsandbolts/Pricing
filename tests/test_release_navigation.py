@@ -6,6 +6,14 @@ ROOT=Path(__file__).resolve().parents[1]
 
 @pytest.fixture
 def studio(monkeypatch):
+    # Keep pricing/graphs real while isolating the automatic text generator.
+    from pricing import bart_summary
+    class OverviewEngine:
+        def encode(self,text):return text.split()
+        def decode(self,tokens):return ' '.join(tokens)
+        def generate(self,text,forbid_numbers=False):
+            return 'A vehicle overview based on the supplied advert and historical models.'
+    monkeypatch.setattr(bart_summary,'SummaryEngine',OverviewEngine)
     from pricing import current_value
     monkeypatch.setattr(current_value,'live_index',lambda:(None,'Offline regression uses saved dated index.'))
     return AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run()
