@@ -96,3 +96,11 @@ def test_leave_one_out_excludes_own_target_and_uses_dense_numeric_geometry():
     assert geometry.shape==(20,len(CATEGORICAL)+3) and np.isfinite(geometry).all()
     assert a[0,0]==pytest.approx(np.log(prices[1:]).mean())
     assert not np.allclose(a[1:],b[1:])
+
+
+def test_constant_category_leave_out_artifacts_are_not_amplified_by_scaling():
+    from pricing.taste_ranking import leave_one_out_geometry
+    frame=sample().iloc[:100].copy()
+    for key in CATEGORICAL:frame[key]='constant'
+    matrix,_=leave_one_out_geometry(frame,np.linspace(1000,30000,len(frame)))
+    assert np.all(matrix[:,:len(CATEGORICAL)]==0)

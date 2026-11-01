@@ -134,6 +134,11 @@ def leave_one_out_geometry(frame,prices,smoothing=20.):
         encoded=np.divide(sums-target+smoothing*prior,denominator,out=prior.copy(),where=denominator>0)
         columns.append(encoded)
     _,numeric,_=encode(frame)
-    matrix=np.column_stack(columns+[numeric[:,i] for i in range(numeric.shape[1])])
+    encoded_matrix=np.column_stack(columns)
+    # A constant or all-unique category otherwise has tiny leave-out variation
+    # that StandardScaler could amplify into a spurious price-order signal.
+    informative=encoded_matrix.std(axis=0)>=max(.001,.001*float(target.std()))
+    stable=encoded_matrix.copy();stable[:,~informative]=0.
+    matrix=np.column_stack([stable,numeric])
     scaled=np.clip(StandardScaler().fit_transform(matrix),-6,6).astype(np.float32)
-    return scaled,np.column_stack(columns)
+    return scaled,encoded_matrix
