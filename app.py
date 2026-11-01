@@ -19,6 +19,15 @@ render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
 if _workspace=='🔎 Listing Inspector':
+    @st.cache_resource(show_spinner=False)
+    def _inspector_forecast_context_release_v2():
+        # Refresh these lazily imported UI modules once per release, including
+        # long-lived workers with Python imports from the previous deployment.
+        import importlib
+        for name in ('pricing.inspector_estimate','pricing.inspector_neighbours'):
+            importlib.reload(importlib.import_module(name))
+        return True
+    _inspector_forecast_context_release_v2()
     from pricing.listing_inspector import render as render_inspector
     render_inspector(Path(__file__).parent)
     from pricing.ga_events import render_events
