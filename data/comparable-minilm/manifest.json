@@ -1,0 +1,8 @@
+{
+  "rows_sha256": "5035d51908473507549500224dff48ba92381d1ba444f94f787792d42bf1bece",
+  "vectors_sha256": "6a0b50f4bbb512884458411f8dde7672c1b851ac1ae09f3c72963d0114700981",
+  "rows": 400,
+  "dimensions": 384,
+  "model": "Frozen int8 all-MiniLM-L6-v2; max 128 tokens",
+  "scope": "Historical training-example descriptions only; no target prices or training updates"
+}
