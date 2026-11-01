@@ -1,6 +1,6 @@
 {
   "rows_sha256": "5035d51908473507549500224dff48ba92381d1ba444f94f787792d42bf1bece",
-  "vectors_sha256": "6a0b50f4bbb512884458411f8dde7672c1b851ac1ae09f3c72963d0114700981",
+  "vectors_sha256": "10974d7cd9eb436657d2ee521f317ad8857aa1e797b83de548fc3fec09230cbc",
   "rows": 400,
   "dimensions": 384,
   "model": "Frozen int8 all-MiniLM-L6-v2; max 128 tokens",

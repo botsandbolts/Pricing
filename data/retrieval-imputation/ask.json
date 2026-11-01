@@ -2,7 +2,7 @@
   "market": "ask",
   "method": "sklearn IterativeImputer with native-categorical LightGBM classifiers for optional categories; LightGBM regression for year/log-mileage. CPU, small trees, observed values restored.",
   "reference_sha256": "063c83845e19d46f2484655fd73e2e3e622bc9902232502dd462ae181cf487c2",
-  "model_sha256": "b29d18769b7ac59113e272b6fe100433c057cb77e572c407bae65428229c3e69",
+  "model_sha256": "374ca2660679b8ee91b575cd00a4845dc9cb71904ff7963792e6701d4b4f8af7",
   "artifact_bytes": 76103,
   "rows": 400,
   "held_out_audit_rows": 91,
