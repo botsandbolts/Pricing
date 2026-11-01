@@ -1,0 +1,42 @@
+{
+  "market": "hybrid",
+  "method": "sklearn IterativeImputer with native-categorical LightGBM classifiers for optional categories; LightGBM regression for year/log-mileage. CPU, small trees, observed values restored.",
+  "reference_sha256": "8150d7a609955c4a3c92d194ea3899d15d1b71e164584662844a618f6010048c",
+  "model_sha256": "d243267c166d1e5fc38b43b4b0691b4508c8930c108ac42c80fda270ab6683bb",
+  "artifact_bytes": 665779,
+  "rows": 8756,
+  "held_out_audit_rows": 1763,
+  "masked_category_reconstruction": [
+    {
+      "field": "type",
+      "masked_cells": 318,
+      "held_out_accuracy": 0.48427672955974843,
+      "mode_baseline_accuracy": 0.33962264150943394
+    },
+    {
+      "field": "fuel",
+      "masked_cells": 182,
+      "held_out_accuracy": 0.9175824175824175,
+      "mode_baseline_accuracy": 0.9230769230769231
+    },
+    {
+      "field": "transmission",
+      "masked_cells": 357,
+      "held_out_accuracy": 0.907563025210084,
+      "mode_baseline_accuracy": 0.907563025210084
+    },
+    {
+      "field": "drive",
+      "masked_cells": 134,
+      "held_out_accuracy": 0.6791044776119403,
+      "mode_baseline_accuracy": 0.3880597014925373
+    },
+    {
+      "field": "title_status",
+      "masked_cells": 205,
+      "held_out_accuracy": 0.9463414634146341,
+      "mode_baseline_accuracy": 0.9463414634146341
+    }
+  ],
+  "limits": "Randomly masked cells in held-out vehicles measure reconstruction only, not real missing-not-at-random performance. Inferred values are used only in retrieval, never verified facts or production valuation inputs. Entirely unobserved categorical fields remain explicit unknown categories."
+}

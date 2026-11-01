@@ -1,0 +1,17 @@
+{
+  "reference_sha256": "ffc250becd9efdbd6d5a9c1a0966a10e6263809d95ca891d68dd377584ef41c2",
+  "model_sha256": "77fc16cfa8d4a33f72bf1f6bd2c2db2cf74dccf6172c65ec0e362741b8d103ea",
+  "heads_sha256": "0b50ab952b6d2624af26712cac3fde8757c6bb6607bbe876eb67c89e061cac5d",
+  "asking_rows": 4756,
+  "auction_rows": 4000,
+  "auction_description_prices_observed": 0,
+  "artifact_bytes": 944124,
+  "audit": {
+    "held_out_asking_records": 956,
+    "signal_reconstruction_mae_usd": 3073.791475424417,
+    "median_signal_baseline_mae_usd": 5133.717428054596,
+    "scope": "Reconstruction of a transformer-price feature withheld from asking records; not true vehicle-price accuracy or validation on auction descriptions, which do not exist."
+  },
+  "method": "Shared sklearn IterativeImputer with native-categorical LightGBM regression, structured vehicle predictors and reference-2021 price context. Missing auction description-price signals are NaN before imputation; no auction descriptions are invented.",
+  "limits": "The auction text-value feature is a transferred statistical proxy from asking records. It is not an observed price, seller description, bid or validated auction text valuation. Used only in retrieval; serving pricing models are unchanged."
+}
