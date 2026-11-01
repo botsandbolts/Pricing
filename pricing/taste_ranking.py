@@ -125,9 +125,10 @@ def leave_one_out_geometry(frame,prices,smoothing=20.):
     if n<2 or not np.isfinite(target).all():raise ValueError('Finite positive advertised prices required for leave-one-out encoding')
     if smoothing<0:raise ValueError('Smoothing must be nonnegative')
     prior=(target.sum()-target)/(n-1)
-    columns=[]
+    columns=[];category_counts=[]
     for field in CATEGORICAL:
         values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
+        category_counts.append(values.nunique())
         groups=pd.DataFrame({'category':values.to_numpy(),'target':target}).groupby('category',sort=False).target
         sums=groups.transform('sum').to_numpy();counts=groups.transform('count').to_numpy()
         denominator=counts-1+smoothing
@@ -137,7 +138,7 @@ def leave_one_out_geometry(frame,prices,smoothing=20.):
     encoded_matrix=np.column_stack(columns)
     # A constant or all-unique category otherwise has tiny leave-out variation
     # that StandardScaler could amplify into a spurious price-order signal.
-    informative=encoded_matrix.std(axis=0)>=max(.001,.001*float(target.std()))
+    informative=(encoded_matrix.std(axis=0)>=max(.001,.001*float(target.std()))) & (np.asarray(category_counts)>1) & (np.asarray(category_counts)<n)
     stable=encoded_matrix.copy();stable[:,~informative]=0.
     matrix=np.column_stack([stable,numeric])
     scaled=np.clip(StandardScaler().fit_transform(matrix),-6,6).astype(np.float32)
