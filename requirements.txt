@@ -110,3 +110,5 @@ tokenizers>=0.23.1,<0.24
 # Keep car editor widgets and pricing mode alive across horizontal panel changes.
 
 # BART advert grounding: avoid negation-heavy financial boilerplate in the AI source.
+
+# Automatic cached BART overview; keep the assembled input story private.

@@ -48,7 +48,7 @@ The dollar plots include the selected date and optional Bayesian layer. Native S
 
 The value timeline builds automatically, retains its graph across reruns and updates with mileage assumptions. Past values are reconstructed model scenarios, not observed sales of that car.
 
-BART’s optional overview receives the advert, unverified seller description, valuation and brief evaluation-method background. Deterministic source facts and exact figures remain available separately; an abstractive summary can omit or misstate facts and never changes a valuation.
+BART’s automatic overview receives the advert, unverified seller description, valuation and brief evaluation-method background. The assembled BART input story stays internal. Exact figures remain in the price cards; an abstractive summary can omit or misstate facts and never changes a valuation. Up to four overviews are cached per session, and generation is serialized to limit CPU/RAM use.
 
 Deal Detective includes advert import/OCR, historical comparables, buyer briefing, a price challenge and explicit image/link/QR sharing. Analytics are opt-in; GA action events use finite panel/action identifiers rather than seller text or vehicle input values.
 

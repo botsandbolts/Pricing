@@ -10,6 +10,8 @@ CHUNK_TOKENS=960
 OUTPUT_TOKENS=128
 PROMPT=''
 PROMPT_SUFFIX=''
+# Serialize model loading and generation across sessions under the CPU/RAM budget.
+_SUMMARY_WORKER=threading.BoundedSemaphore(1)
 
 
 class SummaryEngine:
@@ -111,48 +113,55 @@ def qualitative_report_source(fields,description,valuation):
     return '\n'.join(parts)
 
 
+def _cached_overview(state,fingerprint,produce,limit=4):
+    """Bounded per-session LRU: unchanged estimates never rerun the model."""
+    cache=state.setdefault('_bart_overview_cache',{})
+    if fingerprint in cache:
+        result=cache.pop(fingerprint)
+    else:
+        result=produce()
+    cache[fingerprint]=result
+    while len(cache)>limit:
+        del cache[next(iter(cache))]
+    return result
+
+
 def render_story(fields,description,valuation=None):
     import streamlit as st
-    # Define lazily: unit tests can import orchestration without loading Streamlit/torch.
-    @st.cache_resource(show_spinner=False)
+    @st.cache_resource(show_spinner=False,max_entries=1)
     def get_engine(model_id,revision):
         return SummaryEngine()
+    # Both narratives stay internal; only the model's checked output is rendered.
     story=build_valuation_story(fields,description,valuation)
     summary_source=qualitative_report_source(fields,description,valuation) if valuation else story
-    fingerprint=hashlib.sha256(str(('cross-panel-valuation-v3',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
-    st.markdown('#### 📖 Your car & price story · BART summary' if valuation else '#### 📖 The car’s story · AI summary')
-    if valuation:st.caption('The advert and seller’s description, both valuations, and a short explanation of the evaluation method. Exact figures stay in the price cards and full source story.')
-    saved=st.session_state.get('_bart_summary',{})
-    if saved.get('fingerprint')!=fingerprint:
-        try:
-            # Keep pricing posteriors and the BART weights out of RAM together.
-            from pricing.hierarchy_sparse_live import _load
-            _load.clear()
-            import gc
-            gc.collect()
-            with st.spinner('Condensing the car’s story…'):
-                result=summarize_story(summary_source,get_engine(MODEL_ID,REVISION))
-            saved={'fingerprint':fingerprint,'result':result}
-            st.session_state['_bart_summary']=saved
-        except Exception as error:
-            import logging
-            logging.getLogger(__name__).warning('BART summary unavailable: %s',type(error).__name__)
-            saved={'fingerprint':fingerprint,'result':{'status':'unavailable','summary':''}}
-            st.session_state['_bart_summary']=saved
-        finally:
-            get_engine.clear()
-            import gc
-            gc.collect()
-    result=saved['result']
-    if result['status']=='ready':st.write(result['summary'])
-    elif result['status']=='review_required':st.caption('The draft introduced an unsupported figure or market claim and was withheld. Read the supplied story below.')
-    else:st.caption('The summary is unavailable. Your price estimate is still ready; the supplied story is below.')
-    if valuation:st.caption('AI overview, not a valuation calculation. BART receives an advert briefing with rounded estimates and method background; exact figures remain in the cards and source report. A number check withholds drafts that introduce figures absent from the supplied story. It cannot detect every factual mistake or a number attached to the wrong fact.')
-    st.caption('ainize/bart-base-cnn · AI-generated summary of unverified listing information. It can omit defects, title issues or misstate facts; check the original. This summary does not affect the price model.')
-    with st.expander('Full supplied story · model & limitations'):
-        st.markdown(story.replace('\n','\n\n'))
-        if valuation:
-            with st.expander('Advert briefing supplied to BART'):
-                st.text(summary_source)
-            st.download_button('Download full valuation story',story,'car-valuation-story.txt','text/plain',key='download_valuation_story')
-        st.caption('BART-base-CNN runs locally on CPU, using greedy decoding. Pricing model caches are released before generation; BART weights are released afterward. Long stories are summarized in token-sized chunks and merged. Results are cached in your session. No LexRank, Qwen, Kaggle job or external AI API. A numeric check catches some invented numbers; it does not establish factual accuracy.')
+    fingerprint=hashlib.sha256(str(('automatic-private-overview-v4',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
+    st.markdown('### 📖 Your valuation overview · BART' if valuation else '### 📖 Your car overview · BART')
+    st.caption('An automatic summary of the advert, valuation and method. Exact estimates remain in the price cards.' if valuation else 'Automatically summarized from the supplied vehicle details and seller description.')
+    def produce():
+        with st.spinner('Preparing your car overview…'):
+            with _SUMMARY_WORKER:
+                try:
+                    from pricing.hierarchy_sparse_live import _load
+                    _load.clear()
+                    import gc
+                    gc.collect()
+                    return summarize_story(summary_source,get_engine(MODEL_ID,REVISION))
+                except Exception as error:
+                    import logging
+                    logging.getLogger(__name__).warning('BART summary unavailable: %s',type(error).__name__)
+                    return {'status':'unavailable','summary':''}
+                finally:
+                    get_engine.clear()
+                    import gc
+                    gc.collect()
+    result=_cached_overview(st.session_state,fingerprint,produce)
+    if result['status']=='ready':
+        st.write(result['summary'])
+    elif result['status']=='review_required':
+        st.caption('The AI draft contained an unsupported figure or market claim and was withheld. Your price cards remain available.')
+    else:
+        st.caption('The overview is temporarily unavailable. Your price cards remain available.')
+        if st.button('Retry summary',key='bart_retry_'+fingerprint[:16]):
+            st.session_state.get('_bart_overview_cache',{}).pop(fingerprint,None)
+            st.rerun()
+    st.caption('AI-generated from unverified listing information. It can omit defects or misstate facts; check the original advert. The summary never changes the valuation.')

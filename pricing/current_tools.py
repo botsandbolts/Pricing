@@ -42,18 +42,10 @@ def build_report(root,fields,date,results):
         'latest_observed_month':next((r['market']['last_known_month'] for r in results.values() if 'error' not in r),None),'sections':sections}
 
 def render_briefing(root,fields,notes,date,results):
-    from pricing.bart_summary import build_valuation_story,render_story
+    """Automatically show only the generated overview, after usable estimates."""
+    from pricing.bart_summary import render_story
     report=build_report(root,fields,date,results)
-    st.markdown('### Your valuation briefing')
-    st.caption('The source report follows the current estimates and their recorded evidence. AI prose is optional and never changes a price.')
-    with st.expander('Read the complete report · facts, evidence and limitations'):
-        st.text(build_valuation_story(fields,notes,report))
-        st.download_button('Download valuation report',json.dumps(report,indent=2,default=str),'valuation-report.json','application/json')
-    identity=json.dumps([fields,notes,report],sort_keys=True,default=str)
-    if st.button('Generate BART overview',key='current_bart_requested'):
-        st.session_state.pop('_bart_summary',None)
-        st.session_state['_current_bart_report']=identity
-    if st.session_state.get('_current_bart_report')==identity:
+    if report.get('market_estimates'):
         render_story(fields,notes,valuation=report)
 
 def timeline_frame(saved,annual,bayesian,transport):

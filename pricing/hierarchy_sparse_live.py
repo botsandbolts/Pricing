@@ -185,9 +185,13 @@ def render(root,*,bayesian=True):
     if 'ask' in results and 'error' not in results['ask']:
         from pricing.deal_detective import open_share
         st.button('📣 Share my price · image, link & group-chat fuel',on_click=open_share,key='current_share')
-    render_briefing(root,fields,notes,date,results)
+    briefing_slot=st.container()
     from pricing.current_tools import render_drivers,render_minilm
     render_drivers(root,fields,notes,results,bayesian)
     from pricing.current_explanations import render as render_graphs
     render_graphs(root,fields,notes,date,results,bayesian)
     render_minilm(root,notes,fields,date,results,bayesian)
+
+    # Paint all controls before starting the automatic CPU summary in its slot.
+    with briefing_slot:
+        render_briefing(root,fields,notes,date,results)
