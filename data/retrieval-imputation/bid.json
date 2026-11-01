@@ -1,0 +1,24 @@
+{
+  "market": "bid",
+  "method": "sklearn IterativeImputer with native-categorical LightGBM classifiers for optional categories; LightGBM regression for year/log-mileage. CPU, small trees, observed values restored.",
+  "reference_sha256": "d4976e2834905ecad1f266d500629fc29b17df49b696fe68e29c649cec7788e5",
+  "model_sha256": "ddb777d7a90eaf3ab948d9ac1c00550bf426b78a0d1d19f5faffa8b0518eb30e",
+  "artifact_bytes": 182647,
+  "rows": 4000,
+  "held_out_audit_rows": 807,
+  "masked_category_reconstruction": [
+    {
+      "field": "type",
+      "masked_cells": 163,
+      "held_out_accuracy": 0.3987730061349693,
+      "mode_baseline_accuracy": 0.31901840490797545
+    },
+    {
+      "field": "transmission",
+      "masked_cells": 155,
+      "held_out_accuracy": 0.8774193548387097,
+      "mode_baseline_accuracy": 0.8774193548387097
+    }
+  ],
+  "limits": "Randomly masked cells in held-out vehicles measure reconstruction only, not real missing-not-at-random performance. Inferred values are used only in retrieval, never verified facts or production valuation inputs. Entirely unobserved categorical fields remain explicit unknown categories."
+}
