@@ -1,6 +1,6 @@
 """Single landing-page navigation, including callback and shared-link routing."""
 import streamlit as st
-PAGES=['🚗 Price my car','🔎 Listing Inspector','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🌳 Hierarchical model']
+PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🌳 Hierarchical model']
 def render_navigation():
     pending=st.session_state.pop('_navigate_to',None)
     if pending in PAGES:
@@ -11,3 +11,4 @@ def render_navigation():
     page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed') or PAGES[0]
     st.session_state['studio_tabs']=page
     return page
+

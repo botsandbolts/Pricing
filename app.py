@@ -18,6 +18,13 @@ install_style()
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
+if _workspace=='🚦 Pick your garage':
+    from pricing.taste_garage_ui import render as render_taste_garage
+    render_taste_garage(Path(__file__).parent)
+    from pricing.ga_events import render_events
+    render_events()
+    footer()
+    st.stop()
 if _workspace=='🔎 Listing Inspector':
     @st.cache_resource(show_spinner=False)
     def _inspector_forecast_context_release_v2():
@@ -375,3 +382,4 @@ render_events()
 footer()
 
 # Inspector release a7cb5bd: forecast-aware query context, price-free SVD.
+

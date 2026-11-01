@@ -1,0 +1,100 @@
+name: Build original-data UMAP garage and test XGBoost ranking
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pricing/taste_*.py'
+      - 'scripts/build_taste_garage.py'
+      - 'tests/test_taste_garage.py'
+      - '.github/workflows/taste-garage.yml'
+permissions:
+  contents: write
+concurrency:
+  group: taste-garage-release
+  cancel-in-progress: false
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      OPENBLAS_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+      NUMBA_NUM_THREADS: '2'
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            marketbridge
+            scripts
+            tests
+            carbids
+            data
+            models/time-transport
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 'xgboost>=3.1,<4' 'umap-learn>=0.5.7,<0.6' 'hdbscan>=0.8.40,<0.9' streamlit==1.66.1 requests pytest
+      - run: python -m pytest tests/test_taste_garage.py -q
+      - uses: actions/cache@v4
+        id: original-cohorts
+        with:
+          path: |
+            training-cache/ask.zip
+            training-cache/full-cohort.jsonl
+            training-cache/full-cohort.meta.json
+          key: original-listing-cohorts-v1-${{ hashFiles('scripts/prepare_full.py', 'carbids/data.py') }}
+      - name: Restore verified original asking dataset
+        run: |
+          mkdir -p training-cache
+          if [ ! -f training-cache/ask.zip ]; then curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'; fi
+          echo 'eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f  training-cache/ask.zip' | sha256sum -c -
+          if [ ! -f training-cache/full-cohort.jsonl ]; then python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2; fi
+      - name: Fit full-cohort UMAP and HDBSCAN; export ten real prototype cars
+        run: python -m scripts.build_taste_garage training-cache/full-cohort.jsonl
+      - name: Verify full-catalogue ranking, memory footprint and UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,time,resource
+          from pricing.taste_ranking import load,train_rank,records,adjusted_price_features
+          root=Path('.')
+          meta,arrays=load(root)
+          assert meta['rows']>100000 and len(meta['profiles'])==10
+          ratings=[1,2,3,4,1,2,3,4,2,3]
+          started=time.time()
+          from marketbridge.time_engine import TimeTransport,today
+          adjusted=adjusted_price_features(arrays['codes'],arrays['numeric'],meta['levels'],arrays['prices'],arrays['source_days'],today(),TimeTransport(root))
+          result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted)
+          assert len(set(result['positions']))==10
+          assert result['final_rows']==meta['rows']
+          assert 0<=result['ndcg10']<=1
+          report={'test_type':'Mechanical ranking smoke test with declared artificial prototype ratings, not real user preferences','rows':meta['rows'],'ranking_seconds':time.time()-started,'process_peak_rss_mib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,'model_result':result}
+          Path('data/taste-garage/release-check.json').write_text(json.dumps(report,indent=2))
+          from streamlit.testing.v1 import AppTest
+          at=AppTest.from_string("from pathlib import Path\nfrom pricing.taste_garage_ui import render\nrender(Path('.'))").run(timeout=60)
+          assert not at.exception
+          assert len([r for r in at.radio if r.label=='Your reaction'])==10
+          print(json.dumps({k:v for k,v in report.items() if k!='model_result'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: original-asking-taste-garage
+          path: data/taste-garage/
+          retention-days: 90
+      - name: Publish verified catalogue atomically
+        run: |
+          tar -cf "$RUNNER_TEMP/taste-assets.tar" data/taste-garage
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            tar -xf "$RUNNER_TEMP/taste-assets.tar"
+            git add data/taste-garage
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Install verified full-cohort UMAP/HDBSCAN car prototypes and ranking catalogue"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
