@@ -18,7 +18,7 @@ Only retrieval vectors use inferred values. Cards retain source fields and name 
 
 ## Reference data
 
-The larger asking catalogue uses up to 5,000 deterministic original training adverts, with prices omitted, common contact/VIN strings redacted and description excerpts capped at 1,200 characters. It falls back to the existing 400 historical asking examples until installed. Auction references are 4,000 sampled 2015 records with original auction dates and prices. Markets remain separate. References may overlap production-model training, are not an independent accuracy benchmark and imply no current availability.
+The larger asking catalogue uses up to 5,000 deterministic original training adverts, with historical prices and dates retained for comparison, common contact/VIN strings redacted and description excerpts capped at 1,200 characters. It falls back to the existing 400 historical asking examples until installed. Auction references are 4,000 sampled 2015 records with original auction dates and prices. Markets remain separate. References may overlap production-model training, are not an independent accuracy benchmark and imply no current availability.
 
 Frozen int8 all-MiniLM-L6-v2 descriptions use up to 128 tokens. CPU reference vectors are precomputed as compressed float16 arrays. Integrity and row-order hashes are checked before use. The UI never downloads a model; unavailable text matching leaves categorical/numerical retrieval available.
 
@@ -27,3 +27,8 @@ Frozen int8 all-MiniLM-L6-v2 descriptions use up to 128 tokens. CPU reference ve
 `benchmark_comparables.py` compares 32/64/128 dimensions for reference memory and local search latency. Cross-brand and distant-year results are diagnostics, not violations. The 32-dimension choice minimizes footprint; no judged relevance or NDCG superiority is claimed. No price is used to fit or search the similarity index.
 
 Tests cover exact agreement between FAISS and brute-force cosine scores, the five-result limit, cross-brand retrieval, price invariance, invalid inputs, self exclusion, portable imputation equivalence, original-fact preservation, complete presets and UI reruns. CI verifies real MiniLM inference and builds compact reference assets before publication.
+
+
+## Historical prices adjusted to the valuation date
+
+Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. Actual prices are never similarity features. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.

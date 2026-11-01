@@ -6,11 +6,11 @@ Listing Inspector helps a buyer prepare questions and a dealer organize appraisa
 
 ## Choose a specific car
 
-Search 1,000 individual historical vehicle records by year, car, mileage or state. Selecting one fills its actual available vehicle details and description. This is not a popularity list or a list of generic make/model combinations. Edit the fields and select Find comparable cars. Some auction examples contain no description; it stays empty rather than borrowing another seller’s text.
+Search 1,000 individual historical vehicle records by year, car, mileage or state. Selecting one fills its actual available vehicle details and description. This is not a popularity list or a list of generic make/model combinations. Edit the fields and select Price my car & find 5 similar cars. Some auction examples contain no description; it stays empty rather than borrowing another seller’s text.
 
 ## Comparable cars
 
-Asking adverts and auction sales are separate historical reference sets. FAISS returns five nearest cars by cosine similarity of normalized SVD vectors, with optional MiniLM description similarity. There are no brand/model compatibility exclusions or second-stage ranking. Each comparison shows actual age, mileage and specification differences; any retrieval-only imputation is identified. Descriptions contain seller claims. Auction prices retain their original dates; an old auction amount is not today's offer. Matching methods and candidate-pool sizes are disclosed in the interface.
+Asking adverts and auction sales are separate historical reference sets. A single form prices your own car with the unchanged landing-page XGBoost/Bayesian models before finding neighbours; prices never enter retrieval. FAISS returns five nearest cars by cosine similarity of normalized SVD vectors, with optional MiniLM description similarity. There are no brand/model compatibility exclusions or second-stage ranking. Each comparison shows actual age, mileage and specification differences; any retrieval-only imputation is identified. Descriptions contain seller claims. Auction prices retain their original dates; an old auction amount is not today's offer. Matching methods and candidate-pool sizes are disclosed in the interface.
 
 ## Purchase sandbox
 
@@ -43,3 +43,8 @@ Fresh grouped cross-validation flags the largest research-training log residuals
 ## Data and privacy
 
 Original historical sources: Craigslist Used Cars / Tom / Zenodo 10457828 (CC BY 4.0) and Used Car Auction Prices / tunguz / Kaggle (CC0). Compact statistical reports contain aggregate results rather than raw uploaded inventory. Uploads and results are processed in the current Streamlit session; these tools add no inventory database or third-party transmission. Opt-in GA events use finite feature/action labels and do not include prices, VINs or description text.
+
+
+## Historical prices adjusted to the valuation date
+
+Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. Actual prices are never similarity features. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.

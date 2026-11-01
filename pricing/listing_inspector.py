@@ -15,6 +15,10 @@ def render(root):
     st.caption('Historical comparisons and statistical appraisal tools. Existing pricing models are unchanged.')
     from pricing.vehicle_presets import render as render_examples
     render_examples(root)
+    from marketbridge.time_engine import today
+    date_mode=st.radio('Valuation date',['Today','Choose a date'],horizontal=True,key='inspector_date_mode',persist_state='session')
+    price_date=today() if date_mode=='Today' else st.date_input('Value this car on',value=today(),key='inspector_price_date',persist_state='session')
+    pricing_view=st.radio('Own-car pricing',['Regular XGBoost','Bayesian + historical range'],horizontal=True,key='inspector_own_view',persist_state='session')
     with st.form('inspector_form'):
         a,b,c=st.columns(3)
         make=a.text_input('Make','Toyota',key='inspector_make',persist_state='session');model=b.text_input('Model / trim','Corolla',key='inspector_model',persist_state='session');year=c.number_input('Model year',1900,2030,2015,key='inspector_year',persist_state='session')
@@ -33,8 +37,22 @@ def render(root):
             color=a.selectbox('Paint color',['unknown','white','black','silver','grey','blue','red','green','brown','yellow','orange','purple','custom'],key='inspector_color',persist_state='session')
             grade=b.number_input('Auction condition grade · optional (1–5)',min_value=1.,max_value=5.,value=None,step=.1,key='inspector_grade',persist_state='session')
         description=st.text_area('Paste the seller description',max_chars=8000,key='inspector_description',persist_state='session')
-        submitted=st.form_submit_button('Find comparable cars',type='primary')
-    if submitted:st.session_state['inspector_result']=({'manufacturer':make,'model':model,'year':year,'odometer':miles,'transmission':transmission,'title_status':title,'state':state,'type':body,'condition':condition,'fuel':fuel,'drive':drive,'cylinders':cylinders,'paint_color':color,'auction_grade':grade},description)
+        allow=st.checkbox('Allow an auction-generation analogue for 2016–2021 cars',value=True,key='inspector_own_analogue',persist_state='session')
+        submitted=st.form_submit_button('Price my car & find 5 similar cars',type='primary')
+    if submitted:
+        st.session_state['inspector_result']=({'manufacturer':make,'model':model,'year':year,'odometer':miles,'transmission':transmission,'title_status':title,'state':state,'type':body,'condition':condition,'fuel':fuel,'drive':drive,'cylinders':cylinders,'paint_color':color,'auction_grade':grade},description)
+        st.session_state.pop('inspector_own_price',None)
+        try:
+            from pricing.inspector_estimate import quote
+            fields,notes=st.session_state['inspector_result']
+            with st.spinner('Pricing your car with the installed models, then finding five neighbours…'):
+                st.session_state['inspector_own_price']=quote(root,fields,notes,price_date,allow)
+        except (ValueError,OSError,KeyError,MemoryError,RuntimeError,TypeError):
+            st.info('Own-car pricing is unavailable for these inputs. The neighbour search can still run; no substitute estimate is invented.')
+    from pricing.inspector_estimate import render as render_own_price
+    own=st.session_state.get('inspector_own_price')
+    if own and own.get('date')==str(price_date):render_own_price(root,own,pricing_view.startswith('Bayesian'))
+    elif own:st.info('Valuation date changed. Press Price my car & find 5 similar cars to refresh your car’s estimates.')
     saved=st.session_state.get('inspector_result')
     tabs=st.tabs(['Comparable cars','Purchase sandbox','Deal & confidence','Duplicate check','Regional prices','Batch review','Information premium','Methods & limits'])
     with tabs[0]:
@@ -55,7 +73,8 @@ def render(root):
                 return index,semantic
             manifest=root/'data/comparable-minilm/manifest.json'
             imputation_manifest=root/'data/retrieval-imputation'/(side+'.json')
-            version=(manifest.stat().st_mtime_ns if manifest.exists() else 0,imputation_manifest.stat().st_mtime_ns if imputation_manifest.exists() else 0)
+            reference_file=root/('data/comparable-catalog/ask.json.gz' if side=='ask' else 'data/deal-reference.json.gz')
+            version=(manifest.stat().st_mtime_ns if manifest.exists() else 0,imputation_manifest.stat().st_mtime_ns if imputation_manifest.exists() else 0,reference_file.stat().st_mtime_ns if reference_file.exists() else 0)
             try:
                 with st.spinner('Finding comparable vehicles…'):
                     index,semantic=get_index(str(root),side,version)
@@ -70,23 +89,48 @@ def render(root):
                     matches=index.search(saved[0],description_vector=vector)
                 st.caption('MiniLM description similarity included.' if vector is not None else 'Vehicle attributes only. '+('Auction records contain no descriptions.' if side=='bid' else 'Description similarity is used when its offline index is installed and you supply text.'))
                 if not matches:st.info('No usable neighbours in this reference set. Try the other historical market.')
+                from marketbridge.time_engine import today
+                from pricing.reference_prices import adjust_reference
+                from pricing.current_value import current_transport
+                normalize_mileage=st.checkbox('Compare prices at my mileage',value=True,key='inspector_normalize_mileage') and saved[0].get('odometer') is not None
+                st.caption(f"Prices adjusted to {price_date:%d %b %Y}. "+(f"Comparison mileage: {int(saved[0]['odometer']):,} miles." if normalize_mileage else 'Each reference keeps its original stated mileage.'))
+                transport=None
+                if any(m['vehicle'].get('price') is not None for m in matches):
+                    try:transport,refresh_error=current_transport(root)
+                    except (ValueError,OSError,KeyError):pass
+                price_rows=[]
+
                 for rank,match in enumerate(matches,1):
                     car=match['vehicle']
                     with st.container(border=True):
                         st.markdown(f"### {rank}. {car['year']} {car['manufacturer'].title()} {car['model']}")
                         st.caption(f"{format(int(car['odometer']),',')+' miles' if car.get('odometer') is not None else 'Mileage not supplied'} · {car.get('sale_date',car.get('reference_period','Historical'))}")
-                        if side=='bid':st.metric('Historical auction price · USD',f"{car['price']:,.0f}")
-                        else:st.caption('Advertised price omitted from this reference sample.')
+                        if car.get('price') is not None:
+                            source_date=car.get('observed_date') or car.get('sale_date') or 'Historical'
+                            st.caption(f"Original {'asking' if side=='ask' else 'auction'} price: USD {car['price']:,.0f} · {str(source_date)[:10]}")
+                            try:
+                                if transport is None:raise ValueError('The market-date adjustment is temporarily unavailable.')
+                                adjusted=adjust_reference(car,side,price_date,transport,saved[0]['odometer'] if normalize_mileage else None)
+                                st.metric(f"Adjusted {'asking' if side=='ask' else 'auction'} comparison · {price_date:%d %b %Y} · USD",f"{adjusted['price_usd']:,.0f}")
+                                st.caption(f"Age/mileage factor ×{adjusted['age_mileage_factor']:.3f} · market factor ×{adjusted['market_factor']:.3f}"+(' · pooled make/body depreciation' if adjusted['pooled_model_curve'] else ''))
+                                market_status=adjusted['market'];st.caption(f"Market index observed through {market_status['last_known_month']}"+(f" · {market_status['horizon']}-month {market_status.get('method','')} forecast" if market_status['horizon'] else ' · observed month'))
+                                price_rows.append({'Car':f"{car['year']} {car['manufacturer']} {car['model']}",'Original date':adjusted['original_date'],'Original price USD':round(adjusted['original_price_usd']),f"Adjusted to {price_date} USD":round(adjusted['price_usd'])})
+                            except (ValueError,OSError,KeyError,TypeError) as exc:st.caption('Date-adjusted comparison unavailable: '+str(exc))
+                        else:st.caption('Restoring this record’s original advertised price from the source data; no substitute price is invented.')
                         st.caption(f"FAISS cosine similarity: {match['faiss_cosine_similarity']:.3f} · relative similarity, not a confidence probability")
                         for reason in match['evidence']:st.text('• '+reason)
                         if car.get('description'):
                             with st.expander('Read historical seller description'):
                                 st.text(car['description'])
                                 if car.get('description_is_excerpt'):st.caption('Historical description excerpt · first 1,200 characters.')
+                if price_rows:
+                    st.markdown('#### Compare the prices · same valuation date')
+                    st.dataframe(price_rows,hide_index=True,width='stretch')
+                st.caption('Date-adjusted historical price scenarios, not current listings or offers. Age/mileage uses the existing pooled depreciation curves; market movement uses retail used-car CPI, including a damped forecast when observations lag. It is also a proxy for wholesale movement. No individual current-price accuracy or interval coverage is established.')
                 st.caption(f'Reference set: {len(index.rows):,} historical vehicles. Asking adverts are from 2021; auction records from 2015. The reference sample may overlap pricing-model training and is not an independent accuracy benchmark. No current availability is implied.')
             except (ValueError,OSError,KeyError) as exc:
                 st.warning('Comparisons are temporarily unavailable. Your other appraisal tools remain available.')
-        else:st.info('Choose your car above, then select Find comparable cars.')
+        else:st.info('Choose your car above, then press Price my car & find 5 similar cars.')
     with tabs[1]:
         st.write('Enter your own assumptions. This is a contribution scenario before overhead and tax, not a predicted profit.')
         a,b=st.columns(2)

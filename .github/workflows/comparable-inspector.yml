@@ -35,6 +35,7 @@ jobs:
             scripts
             tests
             data
+            models/time-transport
             models/xgboost-hierarchy/ask/minilm
       - uses: actions/setup-python@v5
         with:
@@ -62,6 +63,8 @@ jobs:
           assert np.isfinite(vector).all()
           assert all(m['vehicle']['id']!=q['id'] for m in matches)
           from streamlit.testing.v1 import AppTest
+          from pricing import inspector_estimate
+          inspector_estimate.quote=lambda root,fields,notes,date,allow:dict(fields=fields,notes=notes,date=str(date),model_version='',results={})
           at=AppTest.from_string("from pathlib import Path\nfrom pricing.listing_inspector import render\nrender(Path('.'))").run(timeout=60)
           at.text_area[0].set_value('Full service history. Needs new tires.')
           at.button[0].click().run(timeout=60)

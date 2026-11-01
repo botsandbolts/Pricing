@@ -96,3 +96,15 @@ def test_parked_car_timeline_shortcut_saves_the_valuation_before_navigation(stud
     assert at.get('pills')[0].value=='📅 Value over time'
     assert len(at.get('plotly_chart'))==1
     assert at.session_state['last_displayed_price'][1]['prediction_kind']=='date_adjusted_scenario'
+
+def test_inspector_prices_own_car_before_five_neighbour_search(studio):
+    at=studio
+    at.get('pills')[0].set_value('🔎 Listing Inspector').run(timeout=60)
+    assert not at.exception
+    at.text_area[0].set_value('Full service history. Needs new tires.')
+    next(b for b in at.button if b.label=='Price my car & find 5 similar cars').click().run(timeout=90)
+    assert not at.exception
+    assert any(m.label=='Seller’s asking estimate · USD' for m in at.metric)
+    assert any(m.label=='Wholesale auction estimate · USD' for m in at.metric)
+    assert sum(c.value.startswith('FAISS cosine similarity:') for c in at.caption)==5
+    assert all(t.label!='Advert checks & questions' for t in at.tabs)

@@ -37,7 +37,7 @@ def render(root):
             st.session_state['inspector_'+key]=value
         st.session_state['inspector_description']=str(row.get('description') or '')[:8000]
         st.session_state['inspector_grade']=None
-        st.session_state.pop('inspector_result',None);st.session_state.pop('inspector_passport',None)
+        st.session_state.pop('inspector_result',None);st.session_state.pop('inspector_passport',None);st.session_state.pop('inspector_own_price',None)
     if st.session_state.get('inspector_example_car') is not None and st.session_state.get('inspector_example_car') not in choices:
         st.session_state['inspector_example_car']=None
     st.selectbox('Choose a specific car · 1,000 examples',list(choices),index=None,placeholder='Search year, car, mileage or state…',format_func=label,on_change=chosen,key='inspector_example_car',persist_state='session')

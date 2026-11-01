@@ -33,7 +33,12 @@ def test_real_reference_bounds():
                 assert match['vehicle']['id']!=q['id']
                 assert np.isfinite(match['score'])
 
-def test_inspector_form_and_reruns():
+def test_inspector_form_and_reruns(monkeypatch):
+    from pricing import current_value
+    monkeypatch.setattr(current_value,"live_index",lambda:(None,"Offline test snapshot"))
+    from pricing import inspector_estimate
+    from pricing.release_contract import release_identity
+    monkeypatch.setattr(inspector_estimate,'quote',lambda root,fields,notes,date,allow:dict(fields=fields,notes=notes,date=str(date),model_version=release_identity(root),results={'ask':{'price':11000,'forest_price':10000,'historical_forest_price':9000,'interval_low':8000,'interval_high':14000},'bid':{'price':6000,'forest_price':5500,'historical_forest_price':5000,'interval_low':4000,'interval_high':8000}}))
     from streamlit.testing.v1 import AppTest
     at=AppTest.from_string("from pathlib import Path\nfrom pricing.listing_inspector import render\nrender(Path('.'))").run(timeout=30)
     assert not at.exception
@@ -42,7 +47,7 @@ def test_inspector_form_and_reruns():
     assert not at.exception
     assert not any('flag' in x.value.lower() for x in at.info)
     assert all(x.label!='Advert checks & questions' for x in at.tabs)
-    at.radio[0].set_value('Historical auction sales').run(timeout=30)
+    next(x for x in at.radio if x.label=='Compare against').set_value('Historical auction sales').run(timeout=30)
     assert not at.exception
     at.number_input[-1].set_value(500.).run(timeout=30)
     assert not at.exception

@@ -39,3 +39,8 @@ A separate symmetric absolute-log-residual radius is calibrated on validation an
 ### Testing
 
 `test_market_review.py` covers invalid/missing inputs, size limits, VIN conflicts, template-only false matches, spreadsheet export safety, failure-isolated batches, historical partition leakage, controlled experiment output and preset callbacks. Comparable, BART and automatic-summary regressions remain included. CI verifies real original-data report rendering before publishing small aggregate JSON files. Browser validation is separate from a successful source push.
+
+
+## Historical prices adjusted to the valuation date
+
+Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. Actual prices are never similarity features. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.

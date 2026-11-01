@@ -1,4 +1,4 @@
-"""Small public training-reference catalogue, without asking targets or VINs."""
+"""Small public training-reference catalogue, with dated historical asking prices, without VINs."""
 import gzip,hashlib,json,re
 from pathlib import Path
 import pandas as pd
@@ -20,10 +20,10 @@ def build(source,output,count=5000):
         text=clean(r.get('text',''))
         text=re.sub(r'(?i)\b[A-HJ-NPR-Z0-9]{17}\b','[VIN removed]',text)
         text=re.sub(r'(?<!\d)(?:\+?1[ .-]*)?(?:\(\d{3}\)|\d{3})[ .-]*\d{3}[ .-]*\d{4}','[phone removed]',text)
-        row.update(id=r['row_id'],description=text[:1200],description_is_excerpt=len(text)>1200,price_kind='Historical asking advert · price omitted',reference_period='April–May 2021')
+        row.update(id=r['row_id'],description=text[:1200],description_is_excerpt=len(text)>1200,price=float(r['price']),observed_date=pd.Timestamp(r['date']).isoformat(),price_kind='Historical advertised asking price',reference_period=str(pd.Timestamp(r['date']).date()))
         rows.append(row)
     if len(rows)<5:raise ValueError('Insufficient catalogue support for comparable retrieval')
-    payload={'rows':rows,'source':'https://zenodo.org/records/10457828','creator':'Tom','license':'CC-BY-4.0','selection':'Deterministic hash sample from the original canonical training partition, up to 5,000 vehicles; validity checks may reduce this. Asking prices omitted, common contact/VIN strings redacted, description excerpts capped at 1,200 characters. Historical seller claims, not verified facts.'}
+    payload={'rows':rows,'source':'https://zenodo.org/records/10457828','creator':'Tom','license':'CC-BY-4.0','selection':'Deterministic hash sample from the original canonical training partition, up to 5,000 vehicles; validity checks may reduce this. Historical advertised prices and dates retained; common contact/VIN strings redacted, description excerpts capped at 1,200 characters. Historical seller claims, not verified facts.'}
     output=Path(output);output.parent.mkdir(parents=True,exist_ok=True)
     with gzip.open(output,'wt') as f:json.dump(payload,f,ensure_ascii=False,allow_nan=False)
     print('Published',len(rows),'historical asking references')

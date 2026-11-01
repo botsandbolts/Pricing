@@ -20,7 +20,7 @@ function installPricingInteractions() {
     ['Year × mileage','year_mileage'],['Technical receipt','technical_receipt']
   ]);
   const actions = new Map([
-    ['Find comparable cars',['inspector_action','compare']],['Evaluate this car & build its passport',['inspector_action','evaluate']],['Check these listings for duplicates',['inspector_action','duplicates']],['Evaluate inventory · up to 25 vehicles',['inspector_action','batch_review']],['Download appraisal passport',['download_requested','appraisal_passport']],['Download duplicate review',['download_requested','duplicate_review']],['Download the review queue',['download_requested','review_queue']],
+    ['Price my car & find 5 similar cars',['inspector_action','price_and_compare']],['Evaluate this car & build its passport',['inspector_action','evaluate']],['Check these listings for duplicates',['inspector_action','duplicates']],['Evaluate inventory · up to 25 vehicles',['inspector_action','batch_review']],['Download appraisal passport',['download_requested','appraisal_passport']],['Download duplicate review',['download_requested','duplicate_review']],['Download the review queue',['download_requested','review_queue']],
     ['Estimate asking + auction prices',['estimate_requested','two_market']],
     ['Generate BART overview',['summary_requested','bart']],
     ['Analyse description with MiniLM',['explanation_requested','minilm_phrases']],

@@ -11,6 +11,8 @@ on:
       - 'scripts/build_retrieval_imputation.py'
       - 'scripts/build_comparable_catalog.py'
       - 'scripts/build_vehicle_presets.py'
+      - 'pricing/reference_prices.py'
+      - 'pricing/inspector_estimate.py'
       - 'scripts/build_listing_insights.py'
       - 'tests/test_market_review.py'
       - '.github/workflows/listing-insights.yml'
@@ -38,22 +40,33 @@ jobs:
             carbids
             data
             models/xgboost-hierarchy/ask/bayesian
+            models/time-transport
             models/xgboost-hierarchy/ask/minilm
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 requests streamlit==1.66.1 pytest onnxruntime tokenizers 'faiss-cpu>=1.8,<2' 'lightgbm>=4.5,<5'
       - run: python -m scripts.build_vehicle_presets
-      - run: python -m pytest tests/test_market_review.py tests/test_comparable_retrieval.py tests/test_bart_summary.py tests/test_auto_bart_ui.py -q
+      - run: python -m pytest tests/test_market_review.py tests/test_reference_prices.py tests/test_comparable_retrieval.py tests/test_bart_summary.py tests/test_auto_bart_ui.py -q
+      - uses: actions/cache@v4
+        with:
+          path: |
+            training-cache/ask.zip
+            training-cache/bid.zip
+            training-cache/full-cohort.jsonl
+            training-cache/full-cohort.meta.json
+            training-cache/bid-cohort.jsonl
+            training-cache/bid-cohort.meta.json
+          key: original-listing-cohorts-v1-${{ hashFiles('scripts/prepare_full.py', 'carbids/data.py') }}
       - name: Restore verified original source data
         run: |
           mkdir -p training-cache
-          curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'
+          if [ ! -f training-cache/ask.zip ]; then curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'; fi
           echo 'eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f  training-cache/ask.zip' | sha256sum -c -
-          curl --fail --location --retry 3 --output training-cache/bid.zip 'https://www.kaggle.com/api/v1/datasets/download/tunguz/used-car-auction-prices'
+          if [ ! -f training-cache/bid.zip ]; then curl --fail --location --retry 3 --output training-cache/bid.zip 'https://www.kaggle.com/api/v1/datasets/download/tunguz/used-car-auction-prices'; fi
           echo 'acfe086790275ce843700303f0701446f5326852be1ee11d9d2e9407d0301e8d  training-cache/bid.zip' | sha256sum -c -
-          python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2
-          python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl
+          if [ ! -f training-cache/full-cohort.jsonl ]; then python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2; fi
+          if [ ! -f training-cache/bid-cohort.jsonl ]; then python -m carbids.data --input training-cache/bid.zip --output training-cache/bid-cohort.jsonl; fi
       - name: Build larger historical comparison catalogue and compact semantic vectors
         run: |
           python -m scripts.build_comparable_catalog training-cache/full-cohort.jsonl
