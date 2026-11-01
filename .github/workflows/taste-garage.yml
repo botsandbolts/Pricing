@@ -51,6 +51,14 @@ jobs:
           if [ ! -f training-cache/ask.zip ]; then curl --fail --location --retry 3 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'; fi
           echo 'eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f  training-cache/ask.zip' | sha256sum -c -
           if [ ! -f training-cache/full-cohort.jsonl ]; then python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2; fi
+      - uses: actions/cache/save@v4
+        if: steps.original-cohorts.outputs.cache-hit != 'true'
+        with:
+          path: |
+            training-cache/ask.zip
+            training-cache/full-cohort.jsonl
+            training-cache/full-cohort.meta.json
+          key: ${{ steps.original-cohorts.outputs.cache-primary-key }}
       - name: Fit full-cohort UMAP and HDBSCAN; export ten real prototype cars
         run: python -m scripts.build_taste_garage training-cache/full-cohort.jsonl
       - name: Verify full-catalogue ranking, memory footprint and UI

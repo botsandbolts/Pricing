@@ -58,6 +58,7 @@ def render(root):
                 car_details(root,car,when)
                 st.radio('Your reaction',list(LABELS),index=None,format_func=LABELS.get,horizontal=True,key=rating_keys[i])
                 with st.expander(f'Description & details · car {i+1}'):
+                    st.caption('Short excerpt from the historical advert; source text is not independently verified.')
                     st.text(car.get('description') or 'Description not supplied.')
                     st.write({k:car.get(k) for k in ['condition','drive','cylinders','title_status','paint_color','state']})
     ratings=[st.session_state.get(k) for k in rating_keys]
@@ -90,6 +91,7 @@ def render(root):
                 st.write(f"Related profile: {p['name']} · you rated its representative {LABELS[ratings[profile]]}.")
                 if arrays['noise'][position]:st.caption('Exploratory match: HDBSCAN treated this advert as density noise; its profile was assigned by proximity.')
                 with st.expander(f'Original description & specifications · pick {rank}'):
+                    st.caption('Short excerpt from the historical advert; source text is not independently verified.')
                     st.text(car.get('description') or 'Description not supplied.')
                     st.write({k:car.get(k) for k in ['condition','drive','cylinders','title_status','paint_color','state']})
         st.markdown('### Model check · what this score really measures')

@@ -44,10 +44,12 @@ def build(source,root):
             text=re.sub(r'(?i)\b[A-HJ-NPR-Z0-9]{17}\b','[VIN removed]',text)
             text=re.sub(r'(?<!\d)(?:\+?1[ .-]*)?(?:\(\d{3}\)|\d{3})[ .-]*\d{3}[ .-]*\d{4}','[phone removed]',text)
             text=re.sub(r'\S+@\S+','[email removed]',text)
-            car.update(id=str(r['row_id']),price=float(r['price']),observed_date=str(r['date']),description=text[:280])
-            conn.execute('INSERT INTO cars VALUES(?,?)',(count,zlib.compress(json.dumps(car,allow_nan=False).encode(),6)));count+=1
+            car.update(id=str(r['row_id']),price=float(r['price']),observed_date=str(r['date']),description=text[:100])
+            conn.execute('INSERT INTO cars VALUES(?,?)',(count,zlib.compress(json.dumps({k:v for k,v in car.items() if v is not None},allow_nan=False,separators=(',',':')).encode(),6)));count+=1
         conn.commit();print('Prepared',count,'original asking cars',flush=True)
-    conn.close()
+    conn.execute('VACUUM');conn.close()
+    print('Compact catalogue MiB:',database.stat().st_size/1024**2,flush=True)
+    if database.stat().st_size>90*1024*1024:raise ValueError('Serving catalogue exceeds 90 MiB release budget before clustering')
     if len(set(ids))!=count:raise ValueError('Canonical vehicle duplication detected')
     frame=pd.concat(parts,ignore_index=True);del parts;gc.collect()
     codes,numeric,levels=encode(frame)
@@ -78,7 +80,7 @@ def build(source,root):
         body=next((v for v in bodies.index if v!='__missing__'),'Mixed cars')
         make=next((v for v in makes.index if v!='__missing__'),'Mixed makes')
         profiles.append({'position':pos,'cluster':i,'name':str(body).title()+' · '+str(make).title(),'cars':int(len(subset)),'prototype':cars[i]})
-    manifest={'version':1,'rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':list(CATEGORICAL)+['model_year','log_mileage','mileage_missing'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'limits':'Ten prototype ratings propagate as weak labels. HDBSCAN leaf groups are merged to ten macroprofiles when necessary; density noise is assigned to its nearest profile and flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
+    manifest={'version':1,'description_excerpt_characters':100,'rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':list(CATEGORICAL)+['model_year','log_mileage','mileage_missing'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'limits':'Ten prototype ratings propagate as weak labels. HDBSCAN leaf groups are merged to ten macroprofiles when necessary; density noise is assigned to its nearest profile and flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
     if database.stat().st_size>90*1024*1024:raise ValueError('Serving catalogue exceeds 90 MiB release budget')
     (folder/'manifest.json').write_text(json.dumps(manifest,indent=2,allow_nan=False));print(json.dumps({k:v for k,v in manifest.items() if k not in ['levels','profiles','sha256']},indent=2),flush=True)
 if __name__=='__main__':
