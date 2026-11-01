@@ -1,8 +1,8 @@
 {
   "test_type": "Mechanical ranking smoke test with declared artificial prototype ratings, not real user preferences",
   "rows": 211844,
-  "ranking_seconds": 2.9384477138519287,
-  "process_peak_rss_mib": 634.0703125,
+  "ranking_seconds": 5.058810472488403,
+  "process_peak_rss_mib": 641.578125,
   "model_result": {
     "positions": [
       0,
@@ -17,24 +17,26 @@
       9
     ],
     "scores": [
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05,
-      6.714303890476003e-05
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05,
+      -3.16026562359184e-05
     ],
-    "ndcg10": 0.4211683202785599,
-    "random_ndcg10": 0.550877184308403,
-    "training_rows": 169450,
-    "validation_rows": 42394,
+    "ndcg10": 0.27479415342515945,
+    "random_ndcg10": 0.15087302700538208,
+    "training_rows": 169451,
+    "validation_rows": 42393,
     "final_rows": 211844,
     "rounds": 1,
     "direct_judgments": 10,
+    "soft_memberships": true,
+    "gain": "linear soft relevance; 0.1 ordinal training resolution",
     "feature_importance": {
       "manufacturer": 0.0,
       "model": 0.0,
