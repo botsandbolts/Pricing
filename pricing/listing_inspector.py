@@ -75,18 +75,48 @@ def render(root):
             for f in findings:
                 st.subheader(f['check']);st.text(f['evidence']);st.write(f['action'])
     with tabs[1]:
-        st.caption('Historical auction examples only: not live adverts or current asking-price comparisons. Ranking uses transparent vehicle matching, not a trained FM/LambdaRank model.')
+        st.subheader('Find the family resemblance')
+        st.caption('SVD vehicle matching with separate year and mileage penalties. Similarity is not a valuation or a probability.')
+        market=st.radio('Compare against', ['Historical asking adverts','Historical auction sales'],horizontal=True,key='inspector_market')
         if saved:
-            file=root/'data/deal-reference.json.gz'
-            if file.exists():
-                data=json.load(gzip.open(file,'rt'));ranked=[]
-                for car in data.get('cases',[]):
-                    score=comparable_score(saved[0],car)
-                    if score is not None:ranked.append((score,car))
-                rows=[dict(c,matching_score=round(s,3)) for s,c in sorted(ranked,key=lambda x:x[0],reverse=True)[:5]]
-                if rows:st.dataframe(pd.DataFrame(rows),hide_index=True,width='stretch')
-                else:st.info('No supported comparisons in this historical sample. We will not substitute unrelated makes.')
-                st.caption(data.get('selection',''))
+            from pricing.comparable_retrieval import ComparableIndex,reference_rows
+            from pricing.comparable_semantics import attach,encode_query
+            side='ask' if market.startswith('Historical asking') else 'bid'
+            @st.cache_resource(max_entries=2,show_spinner=False)
+            def get_index(folder,side,version):
+                index=ComparableIndex(reference_rows(folder,side),32)
+                semantic=attach(index,folder) if side=='ask' else False
+                return index,semantic
+            manifest=root/'data/comparable-minilm/manifest.json'
+            version=manifest.stat().st_mtime_ns if manifest.exists() else 0
+            try:
+                with st.spinner('Finding comparable vehicles…'):
+                    index,semantic=get_index(str(root),side,version)
+                    vector=None
+                    if semantic and saved[1].strip():
+                        @st.cache_data(max_entries=16,show_spinner=False)
+                        def query_vector(folder,text,version):return encode_query(folder,text)
+                        try:
+                            vector=query_vector(str(root),saved[1],version)
+                        except Exception:
+                            st.caption('Description matching is temporarily unavailable; vehicle matching continues.')
+                    matches=index.search(saved[0],description_vector=vector)
+                st.caption('MiniLM description similarity included.' if vector is not None else 'Vehicle attributes only. '+('Auction records contain no descriptions.' if side=='bid' else 'Description similarity is used when its offline index is installed and you supply text.'))
+                if not matches:st.info('No sufficiently close comparisons in this limited historical sample. Try checking the make/model spelling or switch reference sets.')
+                for rank,match in enumerate(matches,1):
+                    car=match['vehicle']
+                    with st.container(border=True):
+                        st.markdown(f"### {rank}. {car['year']} {car['manufacturer'].title()} {car['model']}")
+                        st.caption(f"{int(car['odometer']):,} miles · {car.get('sale_date',car.get('reference_period','Historical'))}")
+                        if side=='bid':st.metric('Historical auction price · USD',f"{car['price']:,.0f}")
+                        else:st.caption('Advertised price omitted from this reference sample.')
+                        for reason in match['evidence']:st.text('• '+reason)
+                        if car.get('description'):
+                            with st.expander('Read historical seller description'):st.text(car['description'])
+                st.caption('References: 400 manufacturer-balanced 2021 adverts or 4,000 sampled 2015 auction records. Samples may overlap model training and are not an independent accuracy benchmark. No current availability is implied.')
+            except (ValueError,OSError,KeyError) as exc:
+                st.warning('Comparisons are temporarily unavailable. Your advert checks and purchase sandbox remain available.')
+        else:st.info('Inspect an advert above to find comparisons.')
     with tabs[2]:
         st.write('Enter your own assumptions. This is a contribution scenario before overhead and tax, not a predicted profit.')
         a,b=st.columns(2)
@@ -100,6 +130,6 @@ def render(root):
         st.caption('Advertised asking prices and auction estimates describe different markets. Their difference is not dealer profit.')
     with tabs[3]:
         st.write('Checks are conservative phrase rules with quoted evidence. They may miss negation and complex language. Confirm all findings with the seller.')
-        st.write('Comparable ranking currently combines model-name similarity, year difference and mileage difference within the same make. No price enters the ranking.')
-        st.write('Planned learned ranking: factorization-machine interaction scores followed by LambdaRank. Training requires judged comparable pairs or logged relevance feedback, query-group splits and a held-out NDCG assessment. No relevance improvement is claimed yet.')
+        st.write('Comparable ranking uses 32-dimensional truncated SVD of sparse, weighted categorical attributes; model-name agreement, year and mileage remain explicit. Same-make, model-name and year-distance guardrails apply. Prices never enter retrieval. MiniLM description cosine similarity is an additional signal when available.')
+        st.write('Future supervised reranking: LambdaRank, if reviewed relevance labels become available. Training requires judged comparable pairs or logged relevance feedback, query-group splits and a held-out NDCG assessment. SVD is unsupervised; no human relevance improvement is claimed. The engineering audit compares 32/64/128 dimensions and tests guardrails, latency and memory.')
         st.write('Regional effects, calibrated bargain probabilities, duplicate detection, information-premium experiments and batch review require separate data preparation and validation. They are not activated in this release.')

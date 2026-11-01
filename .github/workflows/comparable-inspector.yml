@@ -1,0 +1,72 @@
+name: Comparable Inspector checks and description index
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pricing/comparable_*.py'
+      - 'pricing/listing_inspector.py'
+      - 'scripts/build_comparable_semantics.py'
+      - 'scripts/benchmark_comparables.py'
+      - 'tests/test_comparable_retrieval.py'
+      - '.github/workflows/comparable-inspector.yml'
+permissions:
+  contents: write
+concurrency:
+  group: comparable-inspector
+  cancel-in-progress: false
+jobs:
+  check-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            pricing
+            scripts
+            tests
+            data
+            models/xgboost-hierarchy/ask/minilm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy scipy scikit-learn==1.8.0 pandas streamlit==1.66.1 pytest onnxruntime tokenizers
+      - run: python -m pytest tests/test_comparable_retrieval.py -q
+      - run: python -m scripts.build_comparable_semantics
+      - name: Verify real semantic matching
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import numpy as np
+          from pricing.comparable_retrieval import ComparableIndex,reference_rows
+          from pricing.comparable_semantics import attach,encode_query
+          root=Path('.')
+          index=ComparableIndex(reference_rows(root,'ask'))
+          assert attach(index,root)
+          q=index.rows[0]
+          vector=encode_query(root,q['description'])
+          matches=index.search(q,description_vector=vector,exclude_id=q['id'])
+          assert np.isfinite(vector).all()
+          assert all(m['vehicle']['id']!=q['id'] for m in matches)
+          from streamlit.testing.v1 import AppTest
+          at=AppTest.from_string("from pathlib import Path\nfrom pricing.listing_inspector import render\nrender(Path('.'))").run(timeout=60)
+          at.text_area[0].set_value('Full service history. Needs new tires.')
+          at.button[0].click().run(timeout=60)
+          assert not at.exception
+          assert any(c.value=='MiniLM description similarity included.' for c in at.caption)
+          print('Real MiniLM query and UI passed')
+          PY
+      - name: Publish compact vectors only
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add data/comparable-minilm
+          if ! git diff --cached --quiet; then
+            git commit -m "Install compact MiniLM reference vectors for Listing Inspector"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
