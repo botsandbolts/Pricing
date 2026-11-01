@@ -18,6 +18,13 @@ install_style()
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
+if _workspace=='🔎 Listing Inspector':
+    from pricing.listing_inspector import render as render_inspector
+    render_inspector(Path(__file__).parent)
+    from pricing.ga_events import render_events
+    render_events()
+    footer()
+    st.stop()
 if _workspace in ['🚗 Price my car','🌳 Hierarchical model'] and (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
     from pricing.hierarchy_sparse_studio import render
     render(Path(__file__).parent)
