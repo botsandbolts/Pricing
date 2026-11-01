@@ -1,0 +1,58 @@
+{
+  "test_type": "Mechanical ranking smoke test with declared artificial prototype ratings, not real user preferences",
+  "rows": 211844,
+  "ranking_seconds": 2.9384477138519287,
+  "process_peak_rss_mib": 634.0703125,
+  "model_result": {
+    "positions": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "scores": [
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05,
+      6.714303890476003e-05
+    ],
+    "ndcg10": 0.4211683202785599,
+    "random_ndcg10": 0.550877184308403,
+    "training_rows": 169450,
+    "validation_rows": 42394,
+    "final_rows": 211844,
+    "rounds": 1,
+    "direct_judgments": 10,
+    "feature_importance": {
+      "manufacturer": 0.0,
+      "model": 0.0,
+      "type": 0.0,
+      "fuel": 0.0,
+      "transmission": 0.0,
+      "drive": 0.0,
+      "title_status": 0.0,
+      "condition": 0.0,
+      "cylinders": 0.0,
+      "paint_color": 0.0,
+      "state": 0.0,
+      "model_year": 0.0,
+      "log_mileage": 0.0,
+      "mileage_missing": 0.0,
+      "log_advertised_price": 0.0,
+      "log_date_adjusted_price": 0.0,
+      "price_adjustment_missing": 0.0
+    }
+  }
+}
