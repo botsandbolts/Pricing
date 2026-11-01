@@ -1,5 +1,15 @@
 # Listing decision tools — technical guide
 
+## Three independent SVDs
+
+| Mode | Fitted reference population | Similarity features | Results |
+|---|---|---|---|
+| Ask | Asking adverts only | Vehicle attributes, same-date log asking price, description-price signal and optional MiniLM semantic block | Five asking adverts |
+| Bid | Auction records only | Vehicle attributes, same-date log auction price and imputed description-price signal | Five auction records |
+| Hybrid | Both populations | Vehicle attributes only; no price, description, embedding or description-price signal | Five asking and five auction neighbours |
+
+Hybrid fits one combined vehicle-only projection and searches its asking and auction subsets separately. It never compares coordinates from independently fitted SVDs. Prices can be displayed beside hybrid results but cannot influence its geometry. Asking rows are purple; auction rows are blue. The user-facing Bid label refers to wholesale auction sale records, not observed live buyer offers.
+
 ## Architecture and isolation
 
 `listing_inspector.py` is a separate horizontal workspace. `market_review.py` contains bounded CSV parsing, duplicate matching, review rules and sequential batch orchestration. `listing_insights_ui.py` presents the tools. Offline research lives in `listing_statistics.py` and `scripts/build_listing_insights.py`. Neither visiting a panel nor changing a tab fits a model. Production weights, cleaning masks, calibration and default pricing are unchanged.
@@ -12,7 +22,7 @@ Offline IterativeImputer uses LightGBM regression for numeric values and native-
 
 ### Specific-car selector
 
-`data/vehicle-examples.json` contains exactly 1,000 individual historical vehicle records, with unique source IDs, year, make/model, mileage and available details/text. No popularity ordering or generic make/model preset is used. Selecting a record updates the complete editable Inspector form and clears stale comparison/passport results. If the compiled example file is not installed yet, the same deterministic records are assembled from existing local references. Historical auction examples have no description and never inherit previous text. Missing mileage stays empty. A subsequent larger asking catalogue supplies sufficient asking examples for an all-asking set.
+`data/vehicle-examples.json` contains exactly 1,000 individual historical vehicle records, with unique source IDs, year, make/model, mileage and available details/text. No popularity ordering or generic make/model preset is used. Selecting a record updates the complete editable Inspector form and clears stale comparison/passport results. If the compiled example file is not installed yet, the same deterministic records are assembled from existing local references. Historical auction examples have no description and never inherit previous text. Missing mileage stays empty. The selector targets 500 asking and 500 auction records and shuffles them in a stable, deterministic order; when only 400 asking references exist, 600 auction records complete the list.
 
 ### Duplicate matching
 
@@ -22,7 +32,7 @@ Offline IterativeImputer uses LightGBM regression for numeric values and native-
 
 Explicit actions call the existing `hierarchy_sparse_live.estimate`, not a new pricing estimator. Batch limits are 25 vehicles, evaluated sequentially. Per-row failures yield unavailable statuses. No bulk model fitting or GPU work occurs in Streamlit. Outputs are invalidated by content hash, date, generation assumption and production release identity. The single-car passport is independent of the landing-page saved receipt. CSV exports neutralize formula-leading user strings.
 
-Review labels use asking price versus the existing asking range, rare-model support (<12), unseen categories, range width/point >1, and . They are deterministic triage rules, not fitted outcome probabilities. Current date adjustment does not validate contemporary interval coverage. Auction estimates are separate outputs; their difference from asking is not a profit label.
+Review labels use asking price versus the existing asking range, rare-model support (<12), unseen categories, range width/point >1. They are deterministic triage rules, not fitted outcome probabilities. Current date adjustment does not validate contemporary interval coverage. Auction estimates are separate outputs; their difference from asking is not a profit label.
 
 ### Offline controlled experiments
 
@@ -43,4 +53,15 @@ A separate symmetric absolute-log-residual radius is calibrated on validation an
 
 ## Historical prices adjusted to the valuation date
 
-Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. Actual prices are never similarity features. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.
+Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. In Ask/Bid only, same-date log reference prices and the query’s model estimate are standardized price features in SVD. Neighbour prices therefore cannot independently validate the estimate. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.
+
+
+## Price-aware similarity
+
+In Ask/Bid modes, the query uses its own-car estimate for the selected market and pricing view. Reference prices are transported to that same valuation date and, optionally, the query mileage before their log values enter SVD. Nominal 2015 auction dollars are not directly mixed with current query dollars. If original prices or a supported query estimate are unavailable, the interface discloses that the price feature is inactive. This is price-conditioned discovery, not independent confirmation of the model estimate.
+
+## Missing auction description-price feature
+
+Auction records contain no seller description. Their description-price feature starts as NaN, not zero or invented text. A shared sklearn IterativeImputer with small native-categorical LightGBM regressors learns from observed asking-description prices, vehicle attributes and reference-2021 price context. The asking signal is the mean of the two installed MiniLM price-head dollar predictions. Known asking signals are preserved; missing asking and all auction signals are imputed. The inferred quantity is an asking-style statistical proxy, not an observed auction description or auction offer. It is used only in Ask/Bid retrieval, never Hybrid or production valuation.
+
+The reconstruction audit masks asking signals and compares dollar error with a median baseline. It does not validate transfer to auction descriptions, which do not exist. Models and schedules are stored in hashed compressed JSON with LightGBM text trees. Hybrid uses a separate vehicle-only imputer, excluding price and text even during missing-value completion.

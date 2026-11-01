@@ -5,6 +5,10 @@ on:
     paths:
       - 'pricing/comparable_*.py'
       - 'pricing/retrieval_imputation.py'
+      - 'pricing/description_price_imputation.py'
+      - 'pricing/inspector_neighbours.py'
+      - 'pricing/reference_prices.py'
+      - 'scripts/build_description_price_imputer.py'
       - 'pricing/vehicle_presets.py'
       - 'scripts/build_retrieval_imputation.py'
       - 'scripts/build_vehicle_presets.py'
@@ -36,7 +40,7 @@ jobs:
             tests
             data
             models/time-transport
-            models/xgboost-hierarchy/ask/minilm
+            models/xgboost-hierarchy/ask
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -45,6 +49,7 @@ jobs:
       - run: python -m pytest tests/test_comparable_retrieval.py -q
       - run: python -m scripts.build_retrieval_imputation
       - run: python -m scripts.build_comparable_semantics
+      - run: python -m scripts.build_description_price_imputer
       - name: Verify real semantic matching
         run: |
           python - <<'PY'
@@ -69,7 +74,13 @@ jobs:
           at.text_area[0].set_value('Full service history. Needs new tires.')
           at.button[0].click().run(timeout=60)
           assert not at.exception
-          assert any(c.value=='MiniLM description similarity included.' for c in at.caption)
+          assert any('10 neighbours · exact FAISS cosine search' in c.value for c in at.caption)
+          next(r for r in at.radio if r.label=='Matching approach').set_value('Ask · asking adverts').run(timeout=60)
+          assert not at.exception
+          assert any('5 neighbours · exact FAISS cosine search' in c.value for c in at.caption)
+          next(r for r in at.radio if r.label=='Matching approach').set_value('Bid · auction records').run(timeout=60)
+          assert not at.exception
+          assert any('5 neighbours · exact FAISS cosine search' in c.value for c in at.caption)
           print('Real MiniLM query and UI passed')
           PY
       - name: Publish compact reference assets without overwriting newer catalogues

@@ -1,4 +1,4 @@
-"""Sparse categorical SVD retrieval. Prices never enter similarity."""
+"""Independent SVD retrieval geometries with optional price and description features."""
 import json
 import re
 from pathlib import Path
@@ -20,8 +20,17 @@ def valid(row,allow_missing_miles=False):
     except (ValueError,TypeError,KeyError):return False
 
 class ComparableIndex:
-    def __init__(self,rows,dimensions=32,imputer=None):
-        self.rows=[dict(r) for r in rows if valid(r,allow_missing_miles=imputer is not None)]
+    def __init__(self,rows,dimensions=32,imputer=None,reference_prices=None,description_prices=None):
+        source=list(rows)
+        kept=[i for i,r in enumerate(source) if valid(r,allow_missing_miles=imputer is not None)]
+        self.rows=[dict(source[i]) for i in kept]
+        self.reference_prices=np.asarray(reference_prices,dtype=float)[kept] if reference_prices is not None else None
+        self.description_prices=np.asarray(description_prices,dtype=float)[kept] if description_prices is not None else None
+        self.use_description_price=self.description_prices is not None and bool(np.any(np.isfinite(self.description_prices)&(self.description_prices>0)))
+        self.description_log_median=float(np.nanmedian(np.log(self.description_prices[np.isfinite(self.description_prices)&(self.description_prices>0)]))) if self.use_description_price else None
+        self.use_price=self.reference_prices is not None and bool(np.any(np.isfinite(self.reference_prices)&(self.reference_prices>0)))
+        self.price_support=int(np.sum(np.isfinite(self.reference_prices)&(self.reference_prices>0))) if self.use_price else 0
+        self.price_log_median=float(np.median(np.log(self.reference_prices[np.isfinite(self.reference_prices)&(self.reference_prices>0)]))) if self.use_price else None
         if len(self.rows)<3:raise ValueError('At least three valid reference vehicles required')
         self.encoder=OneHotEncoder(handle_unknown='ignore',sparse_output=True,dtype=np.float32)
         self.imputer=imputer
@@ -31,8 +40,10 @@ class ComparableIndex:
         matrix=matrix.multiply(self.column_weights).tocsr()
         from scipy.sparse import hstack,csr_matrix
         from sklearn.preprocessing import StandardScaler
-        self.numeric_scaler=StandardScaler().fit(nums)
-        matrix=hstack([matrix,csr_matrix(.2*self.numeric_scaler.transform(nums))],format="csr")
+        self.numeric_weights=np.array([.35,.35]+([.70,.10] if self.use_price else [])+([.50,.10] if self.use_description_price else []),dtype=np.float32)
+        design=self._numeric_design(nums,self.reference_prices,self.description_prices)
+        self.numeric_scaler=StandardScaler().fit(design)
+        matrix=hstack([matrix,csr_matrix(self.numeric_weights*self.numeric_scaler.transform(design))],format="csr")
         self.dimensions=min(dimensions,matrix.shape[1]-1,len(self.rows)-1)
         self.svd=TruncatedSVD(n_components=self.dimensions,n_iter=5,random_state=42)
         from threadpoolctl import threadpool_limits
@@ -45,24 +56,41 @@ class ComparableIndex:
         if self.imputer is not None:return self.imputer.transform(rows)
         values=np.asarray([[r['year'],r['odometer']] for r in rows],dtype=np.float32)
         return categories(rows),values,[[] for _ in rows]
+    def _numeric_design(self,nums,prices=None,description_prices=None):
+        parts=[nums[:,0],np.log1p(nums[:,1])]
+        if self.use_price:
+            values=np.asarray(prices,dtype=float)
+            known=np.isfinite(values)&(values>0)
+            logged=np.full(len(values),self.price_log_median)
+            logged[known]=np.log(values[known])
+            parts.extend([logged,(~known).astype(float)])
+        if self.use_description_price:
+            values=np.asarray(description_prices,dtype=float);known=np.isfinite(values)&(values>0)
+            logged=np.full(len(values),self.description_log_median);logged[known]=np.log(values[known])
+            parts.extend([logged,(~known).astype(float)])
+        return np.column_stack(parts).astype(np.float32)
     def attach_descriptions(self,values):
         values=np.asarray(values,dtype=np.float32)
         if values.ndim!=2 or len(values)!=len(self.rows) or not np.isfinite(values).all():raise ValueError('Invalid description index')
         self.description_vectors=normalize(values)
-    def search(self,query,k=5,description_vector=None,exclude_id=None):
+    def search(self,query,k=5,description_vector=None,exclude_id=None,market=None):
         """FAISS exact cosine retrieval: five neighbours, no reranking."""
-        if not valid(query):return []
+        if not valid(query,allow_missing_miles=self.imputer is not None):return []
         import faiss
         from scipy.sparse import hstack,csr_matrix
         faiss.omp_set_num_threads(2)
         cats,num,_=self._completed([query])
         q=self.encoder.transform(cats).multiply(self.column_weights).tocsr()
-        q=hstack([q,csr_matrix(.2*self.numeric_scaler.transform(num))],format='csr')
+        query_price=np.array([query.get('_retrieval_price',np.nan)],dtype=float)
+        query_description=np.array([query.get('_retrieval_description_price',np.nan)],dtype=float)
+        design=self._numeric_design(num,query_price,query_description)
+        q=hstack([q,csr_matrix(self.numeric_weights*self.numeric_scaler.transform(design))],format='csr')
         latent=normalize(self.svd.transform(q))[0]
         if np.linalg.norm(latent)<1e-8:return []
         gaps=np.abs(self.years-float(query['year']))
         eligible=[]
         for i,r in enumerate(self.rows):
+            if market is not None and r.get('_market')!=market:continue
             if np.linalg.norm(self.vectors[i])<1e-8:continue
             if exclude_id is not None and r.get('id')==exclude_id:continue
             eligible.append(i)
@@ -89,7 +117,7 @@ class ComparableIndex:
             i=eligible[int(position)];r=self.rows[i]
             evidence=[f"Make: {query['manufacturer']} → {r['manufacturer']} · {int(gaps[i])} model years apart",f"Model: {query['model']} → {r['model']}"]
             miles=r.get('odometer')
-            if miles is not None:evidence.append(f"Mileage difference: {int(abs(float(miles)-float(query['odometer']))):,} miles")
+            if miles is not None and query.get('odometer') is not None:evidence.append(f"Mileage difference: {int(abs(float(miles)-float(query['odometer']))):,} miles")
             else:evidence.append('Mileage not supplied; a retrieval-only estimate was used')
             for key in ('type','transmission','title_status'):
                 a,b=clean(query.get(key)),clean(r.get(key))
@@ -101,6 +129,8 @@ class ComparableIndex:
 def reference_rows(root,market):
     import gzip
     root=Path(root)
+    if market=='hybrid':
+        return [dict(r,_market='ask') for r in reference_rows(root,'ask')]+[dict(r,_market='bid') for r in reference_rows(root,'bid')]
     if market=='ask':
         catalog=root/'data/comparable-catalog/ask.json.gz'
         if catalog.exists():

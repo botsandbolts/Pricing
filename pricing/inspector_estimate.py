@@ -20,4 +20,4 @@ def render(root,saved,bayesian):
             if 'error' in r:st.warning(label+': '+r['error']);continue
             st.metric(label+' · USD',f"{r['price']:,.0f}");st.caption(meaning)
             if bayesian:st.caption(f"Historical 90% range, date-adjusted: USD {r['interval_low']:,.0f}–{r['interval_high']:,.0f}")
-    st.caption('Same production models as the landing page. Current-date prices are model scenarios; historical interval coverage does not validate current-date coverage. The ask–auction difference is not dealer profit. Prices never enter the neighbour search.')
+    st.caption('Same production models as the landing page. Current-date prices are model scenarios; historical interval coverage does not validate current-date coverage. The ask–auction difference is not dealer profit. Price-aware neighbours partly depend on this estimate and are not independent validation of it.')

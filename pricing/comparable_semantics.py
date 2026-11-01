@@ -19,5 +19,7 @@ def attach(index,root):
 def encode_query(root,text):
     from pricing.description_features import MiniLMFeatures
     encoder=MiniLMFeatures(Path(root)/'models/xgboost-hierarchy/ask/minilm')
-    try:return encoder.encoder.encode([text])[0]
+    try:
+        from scripts.common import clean
+        return encoder.encoder.encode([clean(text)])[0]
     finally:del encoder

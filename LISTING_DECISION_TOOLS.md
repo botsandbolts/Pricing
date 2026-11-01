@@ -1,16 +1,26 @@
 # Listing decision tools — business guide
 
+## Three independent SVDs
+
+| Mode | Fitted reference population | Similarity features | Results |
+|---|---|---|---|
+| Ask | Asking adverts only | Vehicle attributes, same-date log asking price, description-price signal and optional MiniLM semantic block | Five asking adverts |
+| Bid | Auction records only | Vehicle attributes, same-date log auction price and imputed description-price signal | Five auction records |
+| Hybrid | Both populations | Vehicle attributes only; no price, description, embedding or description-price signal | Five asking and five auction neighbours |
+
+Hybrid fits one combined vehicle-only projection and searches its asking and auction subsets separately. It never compares coordinates from independently fitted SVDs. Prices can be displayed beside hybrid results but cannot influence its geometry. Asking rows are purple; auction rows are blue. The user-facing Bid label refers to wholesale auction sale records, not observed live buyer offers.
+
 ## What this workspace is for
 
 Listing Inspector helps a buyer prepare questions and a dealer organize appraisal work. It complements the existing valuation calculator. It does not certify a vehicle, authenticate a seller, determine realized profit or supply live market listings.
 
 ## Choose a specific car
 
-Search 1,000 individual historical vehicle records by year, car, mileage or state. Selecting one fills its actual available vehicle details and description. This is not a popularity list or a list of generic make/model combinations. Edit the fields and select Price my car & find 5 similar cars. Some auction examples contain no description; it stays empty rather than borrowing another seller’s text.
+Search 1,000 shuffled individual historical asking and auction vehicle records by year, car, mileage or state. Selecting one fills its actual available vehicle details and description. This is not a popularity list or a list of generic make/model combinations. Edit the fields and select Price my car & find neighbours. Some auction examples contain no description; it stays empty rather than borrowing another seller’s text.
 
 ## Comparable cars
 
-Asking adverts and auction sales are separate historical reference sets. A single form prices your own car with the unchanged landing-page XGBoost/Bayesian models before finding neighbours; prices never enter retrieval. FAISS returns five nearest cars by cosine similarity of normalized SVD vectors, with optional MiniLM description similarity. There are no brand/model compatibility exclusions or second-stage ranking. Each comparison shows actual age, mileage and specification differences; any retrieval-only imputation is identified. Descriptions contain seller claims. Auction prices retain their original dates; an old auction amount is not today's offer. Matching methods and candidate-pool sizes are disclosed in the interface.
+Asking adverts and auction sales are separate historical reference sets. A single form prices your own car with the unchanged landing-page XGBoost/Bayesian models before finding neighbours; same-date log price enters the Ask/Bid SVDs only. FAISS returns five nearest cars by cosine similarity of normalized SVD vectors, with optional MiniLM description similarity. There are no brand/model compatibility exclusions or second-stage ranking. Each comparison shows actual age, mileage and specification differences; any retrieval-only imputation is identified. Descriptions contain seller claims. Auction prices retain their original dates; an old auction amount is not today's offer. Matching methods and candidate-pool sizes are disclosed in the interface.
 
 ## Purchase sandbox
 
@@ -47,4 +57,15 @@ Original historical sources: Craigslist Used Cars / Tom / Zenodo 10457828 (CC BY
 
 ## Historical prices adjusted to the valuation date
 
-Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. Actual prices are never similarity features. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.
+Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. In Ask/Bid only, same-date log reference prices and the query’s model estimate are standardized price features in SVD. Neighbour prices therefore cannot independently validate the estimate. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.
+
+
+## Price-aware similarity
+
+In Ask/Bid modes, the query uses its own-car estimate for the selected market and pricing view. Reference prices are transported to that same valuation date and, optionally, the query mileage before their log values enter SVD. Nominal 2015 auction dollars are not directly mixed with current query dollars. If original prices or a supported query estimate are unavailable, the interface discloses that the price feature is inactive. This is price-conditioned discovery, not independent confirmation of the model estimate.
+
+## Missing auction description-price feature
+
+Auction records contain no seller description. Their description-price feature starts as NaN, not zero or invented text. A shared sklearn IterativeImputer with small native-categorical LightGBM regressors learns from observed asking-description prices, vehicle attributes and reference-2021 price context. The asking signal is the mean of the two installed MiniLM price-head dollar predictions. Known asking signals are preserved; missing asking and all auction signals are imputed. The inferred quantity is an asking-style statistical proxy, not an observed auction description or auction offer. It is used only in Ask/Bid retrieval, never Hybrid or production valuation.
+
+The reconstruction audit masks asking signals and compares dollar error with a median baseline. It does not validate transfer to auction descriptions, which do not exist. Models and schedules are stored in hashed compressed JSON with LightGBM text trees. Hybrid uses a separate vehicle-only imputer, excluding price and text even during missing-value completion.

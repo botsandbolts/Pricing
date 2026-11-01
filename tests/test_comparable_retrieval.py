@@ -47,7 +47,7 @@ def test_inspector_form_and_reruns(monkeypatch):
     assert not at.exception
     assert not any('flag' in x.value.lower() for x in at.info)
     assert all(x.label!='Advert checks & questions' for x in at.tabs)
-    next(x for x in at.radio if x.label=='Compare against').set_value('Historical auction sales').run(timeout=30)
+    next(x for x in at.radio if x.label=='Matching approach').set_value('Bid · auction records').run(timeout=30)
     assert not at.exception
     at.number_input[-1].set_value(500.).run(timeout=30)
     assert not at.exception
@@ -57,7 +57,7 @@ def test_faiss_is_exact_cosine_and_returns_five_directly():
     from sklearn.preprocessing import normalize
     index=ComparableIndex(sample(),8);query=sample()[3]
     cats,nums,_=index._completed([query])
-    matrix=hstack([index.encoder.transform(cats).multiply(index.column_weights),csr_matrix(.2*index.numeric_scaler.transform(nums))],format='csr')
+    matrix=hstack([index.encoder.transform(cats).multiply(index.column_weights),csr_matrix(index.numeric_weights*index.numeric_scaler.transform(index._numeric_design(nums)))],format='csr')
     vector=normalize(index.svd.transform(matrix))[0]
     expected=sorted((float(index.vectors[i]@vector) for i,r in enumerate(index.rows)),reverse=True)[:5]
     matches=index.search(query,k=500)
@@ -90,3 +90,39 @@ def test_cross_brand_search_has_no_compatibility_filter():
     matches=index.search(query)
     assert len(matches)==5
     assert all(m['vehicle']['manufacturer']!='volkswagen' for m in matches)
+
+
+def test_log_price_is_in_svd_and_changes_query_representation():
+    rows=sample();values=np.array([10000+i*2000 for i in range(len(rows))],dtype=float)
+    index=ComparableIndex(rows,16,reference_prices=values)
+    assert index.use_price and index.numeric_scaler.n_features_in_==4
+    q=dict(rows[4],_retrieval_price=15000)
+    a=index.search(q)
+    b=index.search(dict(q,_retrieval_price=60000))
+    assert [m['score'] for m in a]!=[m['score'] for m in b]
+    assert np.isfinite(index.vectors).all()
+
+
+def test_hybrid_geometry_ignores_price_and_all_description_features():
+    rows=[dict(r,_market='ask' if i%2 else 'bid',description='Some text',price=10000+i) for i,r in enumerate(sample())]
+    a=ComparableIndex(rows,8)
+    changed=[dict(r,price=999999,description='Completely different text',description_price=888888) for r in rows]
+    b=ComparableIndex(changed,8)
+    assert not a.use_price and not a.use_description_price and a.description_vectors is None
+    assert np.allclose(a.vectors,b.vectors)
+    q=sample()[0]
+    assert len(a.search(q,market='ask'))==5 and len(a.search(q,market='bid'))==5
+    assert all(x['vehicle']['_market']=='ask' for x in a.search(q,market='ask'))
+
+def test_missing_auction_description_price_is_chained_imputed():
+    from pricing.description_price_imputation import DescriptionPriceImputer
+    rows=[dict(r,id=str(i),manufacturer='ford',model='focus') for i,r in enumerate(sample()*4)]
+    price=np.array([10000+i*50 for i in range(len(rows))],dtype=float)
+    signal=price*1.1;signal[60:]=np.nan
+    model=DescriptionPriceImputer().fit(rows,price,signal)
+    values,imputed=model.transform(rows,price)
+    assert np.isfinite(values).all() and imputed[60:].all()
+    assert not imputed[:60].any()
+    assert np.isnan(signal[60:]).all()
+    restored=DescriptionPriceImputer.from_data(model.data())
+    assert restored.transform(rows[-3:],price[-3:])[0]==pytest.approx(values[-3:])

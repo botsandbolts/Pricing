@@ -1,10 +1,14 @@
 """Specific vehicle examples that fill the whole editable Inspector form."""
-import json
+import json,hashlib
 from pathlib import Path
 
 def load(root):
     file=Path(root)/'data/vehicle-examples.json'
-    if file.exists():return json.loads(file.read_text())
+    if file.exists():
+        data=json.loads(file.read_text())
+        data['vehicles']=sorted(data['vehicles'],key=lambda r:hashlib.sha256(('specific-vehicles-v1:'+str(r['id'])).encode()).hexdigest())
+        data['selection']='1,000 specific historical cars: mixed asking adverts and auction records, shuffled. Search year, car, mileage or state; selecting one loads its available details and description. Edit mileage and condition for your valuation date.'
+        return data
     from scripts.build_vehicle_presets import examples
     return examples(root)
 
@@ -37,6 +41,7 @@ def render(root):
             st.session_state['inspector_'+key]=value
         st.session_state['inspector_description']=str(row.get('description') or '')[:8000]
         st.session_state['inspector_grade']=None
+        st.session_state['inspector_source_id']=row['id']
         st.session_state.pop('inspector_result',None);st.session_state.pop('inspector_passport',None);st.session_state.pop('inspector_own_price',None)
     if st.session_state.get('inspector_example_car') is not None and st.session_state.get('inspector_example_car') not in choices:
         st.session_state['inspector_example_car']=None

@@ -102,9 +102,9 @@ def test_inspector_prices_own_car_before_five_neighbour_search(studio):
     at.get('pills')[0].set_value('🔎 Listing Inspector').run(timeout=60)
     assert not at.exception
     at.text_area[0].set_value('Full service history. Needs new tires.')
-    next(b for b in at.button if b.label=='Price my car & find 5 similar cars').click().run(timeout=90)
+    next(b for b in at.button if b.label=='Price my car & find neighbours').click().run(timeout=90)
     assert not at.exception
     assert any(m.label=='Seller’s asking estimate · USD' for m in at.metric)
     assert any(m.label=='Wholesale auction estimate · USD' for m in at.metric)
-    assert sum(c.value.startswith('FAISS cosine similarity:') for c in at.caption)==5
+    assert any('10 neighbours · exact FAISS cosine search' in c.value for c in at.caption)
     assert all(t.label!='Advert checks & questions' for t in at.tabs)

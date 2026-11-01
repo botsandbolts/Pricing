@@ -38,4 +38,4 @@ def build(root,side):
     (folder/(side+'.json')).write_text(json.dumps(report,indent=2,allow_nan=False));print(side,report['rows'],report['artifact_bytes'],flush=True)
 if __name__=='__main__':
     root=Path(__file__).resolve().parents[1]
-    for side in ('ask','bid'):build(root,side)
+    for side in ('ask','bid','hybrid'):build(root,side)
