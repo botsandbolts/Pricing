@@ -92,15 +92,14 @@ def test_cross_brand_search_has_no_compatibility_filter():
     assert all(m['vehicle']['manufacturer']!='volkswagen' for m in matches)
 
 
-def test_log_price_is_in_svd_and_changes_query_representation():
+def test_advert_price_is_dropped_before_svd_even_if_supplied():
     rows=sample();values=np.array([10000+i*2000 for i in range(len(rows))],dtype=float)
     index=ComparableIndex(rows,16,reference_prices=values)
-    assert index.use_price and index.numeric_scaler.n_features_in_==4
+    other=ComparableIndex(rows,16,reference_prices=values*100)
+    assert not index.use_price and index.numeric_scaler.n_features_in_==2
+    assert np.allclose(index.vectors,other.vectors)
     q=dict(rows[4],_retrieval_price=15000)
-    a=index.search(q)
-    b=index.search(dict(q,_retrieval_price=60000))
-    assert [m['score'] for m in a]!=[m['score'] for m in b]
-    assert np.isfinite(index.vectors).all()
+    assert [m['score'] for m in index.search(q)]==[m['score'] for m in index.search(dict(q,_retrieval_price=60000))]
 
 
 def test_hybrid_geometry_ignores_price_and_all_description_features():
@@ -126,3 +125,44 @@ def test_missing_auction_description_price_is_chained_imputed():
     assert np.isnan(signal[60:]).all()
     restored=DescriptionPriceImputer.from_data(model.data())
     assert restored.transform(rows[-3:],price[-3:])[0]==pytest.approx(values[-3:])
+
+
+def test_price_assisted_imputer_drops_context_and_preserves_observations():
+    from pricing.price_context_imputation import PriceContextImputer
+    rows=[dict(id=str(i),manufacturer='ford',model='focus',year=2012+i%5,odometer=30000+i*1000,transmission='manual' if i%3 else 'automatic',fuel=None if i%5 else 'gas',type='sedan') for i in range(120)]
+    prices=np.array([30000-i*100 for i in range(len(rows))],dtype=float)
+    model=PriceContextImputer().fit(rows,prices)
+    restored=PriceContextImputer.from_data(model.data())
+    query=[dict(rows[2],odometer=None,transmission=None,_imputation_price=22000)]
+    a=model.transform(query);b=restored.transform(query)
+    assert a[0]==b[0] and np.allclose(a[1],b[1])
+    assert b[1].shape==(1,2) and np.isfinite(b[1]).all()
+    assert a[0][0][0]=='ford' and a[0][0][1]=='focus'
+    assert 'odometer' in a[2][0] and 'transmission' in a[2][0]
+    assert np.isfinite(model.categorical.initial_imputer_.statistics_[-1])
+    assert len(model.categorical.initial_imputer_.statistics_)==len(model.active)+3
+    # All-missing optional fields remain unknown, not invented observations.
+    untouched=model.transform([rows[0]])
+    assert untouched[1][0][0]==rows[0]['year']
+    assert untouched[1][0][1]==pytest.approx(rows[0]['odometer'],rel=1e-5)
+    assert np.isfinite(restored.transform([dict(rows[0],_imputation_price=None)])[1]).all()
+    index=ComparableIndex(rows,8,imputer=restored)
+    assert not index.use_price and index.numeric_scaler.n_features_in_==2
+    assert np.isfinite(index.vectors).all()
+
+def test_bid_signal_is_the_only_allowed_scalar_price_feature():
+    rows=sample();index=ComparableIndex(rows,8,description_prices=np.linspace(5000,20000,len(rows)))
+    assert index.use_description_price and not index.use_price
+    assert index.numeric_scaler.n_features_in_==4
+
+
+def test_hybrid_neighbours_are_interleaved_by_shared_cosine_and_explained():
+    from pricing.inspector_neighbours import ordered_matches,differences
+    def match(id,score):return {'vehicle':{'id':id},'faiss_cosine_similarity':score}
+    groups={'ask':[match('a',.95),match('c',.85)],'bid':[match('b',.90),match('d',.80)]}
+    result=ordered_matches(groups)
+    assert [side for side,m in result]==['ask','bid','ask','bid']
+    assert [m['faiss_cosine_similarity'] for side,m in result]==[.95,.90,.85,.8]
+    rows=differences({'manufacturer':'Volkswagen','model':'Golf','transmission':'manual'},{'manufacturer':'Audi','model':'A3','transmission':'automatic'})
+    assert rows[0]['Your car']=='Volkswagen' and rows[0]['Neighbour']=='Audi'
+    assert rows[0]['Difference']=='Different'

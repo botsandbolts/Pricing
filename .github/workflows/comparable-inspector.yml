@@ -5,6 +5,8 @@ on:
     paths:
       - 'pricing/comparable_*.py'
       - 'pricing/retrieval_imputation.py'
+      - 'pricing/price_context_imputation.py'
+      - 'scripts/build_price_context_imputation.py'
       - 'pricing/description_price_imputation.py'
       - 'pricing/inspector_neighbours.py'
       - 'pricing/reference_prices.py'
@@ -49,6 +51,7 @@ jobs:
       - run: python -m pytest tests/test_comparable_retrieval.py -q
       - run: python -m scripts.build_retrieval_imputation
       - run: python -m scripts.build_comparable_semantics
+      - run: python -m scripts.build_price_context_imputation
       - run: python -m scripts.build_description_price_imputer
       - name: Verify real semantic matching
         run: |
@@ -81,6 +84,14 @@ jobs:
           next(r for r in at.radio if r.label=='Matching approach').set_value('Bid · auction records').run(timeout=60)
           assert not at.exception
           assert any('5 neighbours · exact FAISS cosine search' in c.value for c in at.caption)
+          from pricing.inspector_neighbours import build_index,asset_version
+          from marketbridge.time_engine import today
+          for side in ['ask','bid','hybrid']:
+              idx,semantic,aux,basis=build_index(str(root),side,asset_version(root),str(today()),None)
+              assert not idx.use_price
+              if side=='hybrid':assert basis is None and not idx.use_description_price and idx.description_vectors is None
+              else:assert basis is not None
+              if side=='bid':assert idx.use_description_price and aux is not None
           print('Real MiniLM query and UI passed')
           PY
       - name: Publish compact reference assets without overwriting newer catalogues
@@ -116,3 +127,4 @@ jobs:
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
+

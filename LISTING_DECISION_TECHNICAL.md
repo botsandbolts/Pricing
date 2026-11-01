@@ -2,13 +2,9 @@
 
 ## Three independent SVDs
 
-| Mode | Fitted reference population | Similarity features | Results |
-|---|---|---|---|
-| Ask | Asking adverts only | Vehicle attributes, same-date log asking price, description-price signal and optional MiniLM semantic block | Five asking adverts |
-| Bid | Auction records only | Vehicle attributes, same-date log auction price and imputed description-price signal | Five auction records |
-| Hybrid | Both populations | Vehicle attributes only; no price, description, embedding or description-price signal | Five asking and five auction neighbours |
+Ask uses asking vehicles and optional MiniLM text similarity. Bid uses auction vehicles and an imputed MiniLM description-price proxy. Hybrid uses both markets' vehicle attributes only, including a separate price/text-free imputer. Ask and Bid each return five neighbours; Hybrid returns five of each, mixed and sorted by the same cosine similarity. Ask rows are purple and auction rows blue.
 
-Hybrid fits one combined vehicle-only projection and searches its asking and auction subsets separately. It never compares coordinates from independently fitted SVDs. Prices can be displayed beside hybrid results but cannot influence its geometry. Asking rows are purple; auction rows are blue. The user-facing Bid label refers to wholesale auction sale records, not observed live buyer offers.
+Adjusted advert/auction prices assist Ask/Bid missing-feature imputation, then are dropped before SVD. The only price-derived scalar SVD feature is the auction description-price proxy. Actual auction descriptions do not exist and are not invented. Detailed neighbour records show source and adjusted prices, year/mileage/specification differences and same-market price differences from the queried car. No FM or LambdaRank is used. See COMPARABLE_INSPECTOR.md for the complete feature and missing-data contract.
 
 ## Architecture and isolation
 
@@ -16,9 +12,9 @@ Hybrid fits one combined vehicle-only projection and searches its asking and auc
 
 ### Comparable retrieval and missing values
 
-FAISS IndexFlatIP performs exact five-neighbour search on L2-normalized 32-dimensional SVD representations of weighted one-hot categories plus standardized numeric inputs. Optional independently normalized SVD/MiniLM blocks are combined at 80%/20% weights and normalized again. Inner product equals cosine similarity. There is no intermediate candidate stage, LambdaRank/FM, reranking or same-make/model/year exclusion. Only invalid representations and explicit self records are omitted. See COMPARABLE_INSPECTOR.md for representation and reference details.
+Three independent 32-dimensional SVDs and exact FAISS IndexFlatIP search use L2-normalized vectors. Ask adds optional 80%/20% SVD/MiniLM semantic blocks. Bid alone adds the imputed log description-price proxy. Hybrid uses vehicle attributes only and searches both subsets in the same combined projection. No direct advert/auction price column enters any SVD.
 
-Offline IterativeImputer uses LightGBM regression for numeric values and native-categorical LightGBM classifiers for optional categorical values. Three categorical and up to five numeric chained iterations use small trees, two CPU threads, no prices and no posterior sampling. Observed values are restored; all-missing unsupported categories remain unknown. Missingness-derived values affect retrieval only, with disclosure on each card. A held-out random-cell masking audit is not proof of missing-not-at-random reconstruction quality. Portable JSON stores the fitted chain and LightGBM text models; a round-trip test checks agreement with sklearn. No serving-time imputer fitting or unsafe pickle load occurs. Reference and model hashes prevent applying the artifact to another catalogue.
+Offline price-assisted IterativeImputer chains use native-categorical LightGBM classifiers and numerical regressors for Ask/Bid; the auxiliary price column is dropped from their output. Original observations are preserved. Hybrid's imputer never sees price or text. Portable hashed JSON stores the fitted schedules and trees; no serving fit or pickle load occurs. Random-cell reconstruction audits do not establish missing-not-at-random quality. See COMPARABLE_INSPECTOR.md for weights, distance, context-date handling and feature provenance.
 
 ### Specific-car selector
 
@@ -53,15 +49,16 @@ A separate symmetric absolute-log-residual radius is calibrated on validation an
 
 ## Historical prices adjusted to the valuation date
 
-Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. In Ask/Bid only, same-date log reference prices and the query’s model estimate are standardized price features in SVD. Neighbour prices therefore cannot independently validate the estimate. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.
+Comparison cards retain the original observed asking/auction price and observation date, then apply the existing depreciation age/mileage ratio and the ratio of the aggregate used-car market index at the valuation and observation dates. The default valuation date follows today. Optional mileage normalization puts each reference at the entered car’s mileage; turning it off holds each reference’s stated mileage fixed. Neither assumption tracks the physical vehicle’s subsequent use or condition. National retail used-car CPI is also a wholesale proxy; when observations lag, the existing damped market forecast is disclosed. In Ask/Bid only, adjusted prices and the query estimate assist missing-feature imputation and are then dropped before SVD. This indirect conditioning prevents treating neighbours as independent validation. Unsupported age ranges or missing source prices/dates/mileage yield an explicit unavailable adjustment, not a guessed current price. These scenarios do not have validated current-vehicle accuracy or prediction coverage.
 
 
-## Price-aware similarity
+## Price-assisted completion, price-free SVD
 
-In Ask/Bid modes, the query uses its own-car estimate for the selected market and pricing view. Reference prices are transported to that same valuation date and, optionally, the query mileage before their log values enter SVD. Nominal 2015 auction dollars are not directly mixed with current query dollars. If original prices or a supported query estimate are unavailable, the interface discloses that the price feature is inactive. This is price-conditioned discovery, not independent confirmation of the model estimate.
+Ask/Bid use the queried car’s selected-market model estimate as auxiliary imputation context where supported. Reference and query context share the saved imputer's dated price basis. The actual price column is dropped before SVD; only Bid retains the separate imputed MiniLM description-price proxy. Hybrid excludes every price/text signal. Displayed historical prices are independently adjusted to the selected date. These are scenarios, not verified current offers or an independent valuation check.
 
 ## Missing auction description-price feature
 
-Auction records contain no seller description. Their description-price feature starts as NaN, not zero or invented text. A shared sklearn IterativeImputer with small native-categorical LightGBM regressors learns from observed asking-description prices, vehicle attributes and reference-2021 price context. The asking signal is the mean of the two installed MiniLM price-head dollar predictions. Known asking signals are preserved; missing asking and all auction signals are imputed. The inferred quantity is an asking-style statistical proxy, not an observed auction description or auction offer. It is used only in Ask/Bid retrieval, never Hybrid or production valuation.
+Auction records contain no seller description. Their description-price feature starts as NaN, not zero or invented text. A shared sklearn IterativeImputer with small native-categorical LightGBM regressors learns from observed asking-description prices, vehicle attributes and reference-2021 price context. The asking signal is the mean of the two installed MiniLM price-head dollar predictions. Known asking signals are preserved; missing asking and all auction signals are imputed. The inferred quantity is an asking-style statistical proxy, not an observed auction description or auction offer. It is used only in Bid retrieval, never Ask, Hybrid or production valuation.
 
 The reconstruction audit masks asking signals and compares dollar error with a median baseline. It does not validate transfer to auction descriptions, which do not exist. Models and schedules are stored in hashed compressed JSON with LightGBM text trees. Hybrid uses a separate vehicle-only imputer, excluding price and text even during missing-value completion.
+

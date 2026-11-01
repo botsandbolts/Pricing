@@ -76,7 +76,7 @@ def render(root):
     with tabs[5]:render_batch(root)
     with tabs[6]:render_information(root)
     with tabs[7]:
-        st.write('Retrieval uses 32-dimensional truncated SVD of weighted one-hot categories and scaled numerical features, followed by L2 normalization and exact cosine search with FAISS IndexFlatIP. No make, model or year compatibility filter is applied. Three independent SVDs are fitted: Ask uses asking adverts, price and description features; Bid uses auction records, price and an imputed description-price feature; Hybrid uses both datasets and vehicle attributes only. Hybrid excludes all prices and description signals.')
+        st.write('Retrieval uses 32-dimensional truncated SVD of weighted one-hot categories and scaled numerical features, followed by L2 normalization and exact cosine search with FAISS IndexFlatIP. No make, model or year compatibility filter is applied. Three independent SVDs are fitted: Ask uses vehicle attributes and optional MiniLM text similarity; Bid uses vehicle attributes and an imputed MiniLM description-price signal; Hybrid uses vehicle attributes from both markets. Advert/auction prices can assist Ask/Bid imputation but are then dropped before SVD. Hybrid excludes price and text even during imputation.')
         st.write('SVD is unsupervised. Ask and Bid return five neighbours from their respective markets. Hybrid returns five asking and five auction neighbours using the same combined vehicle-only projection. In Ask mode, when text is available, separately normalized SVD/MiniLM blocks have 80%/20% weights before final normalization. There is no intermediate candidate pool or second-stage ranker. No LambdaRank or FM model is used. The engineering audit checks 32/64/128 dimensions, cross-brand behaviour, latency and memory; no human-judged relevance gain or NDCG improvement is claimed.')
         st.write('Regional associations and information-premium experiments are separate offline research reports. Duplicate checks and batch queues process your uploaded CSV only on request; no pricing model is retrained. Price comparisons are model outputs, not calibrated bargain probabilities. Nothing here establishes demand, time to sell, realized dealer margin or a causal effect of wording.')
 
@@ -85,3 +85,4 @@ def render(root):
             document=root/name
             if document.exists():
                 with st.expander(label):st.markdown(document.read_text())
+

@@ -24,13 +24,14 @@ class ComparableIndex:
         source=list(rows)
         kept=[i for i,r in enumerate(source) if valid(r,allow_missing_miles=imputer is not None)]
         self.rows=[dict(source[i]) for i in kept]
-        self.reference_prices=np.asarray(reference_prices,dtype=float)[kept] if reference_prices is not None else None
+        # Advert/auction prices may assist the imputer but are never SVD columns.
+        self.reference_prices=None
+        self.use_price=False
+        self.price_support=0
+        self.price_log_median=None
         self.description_prices=np.asarray(description_prices,dtype=float)[kept] if description_prices is not None else None
         self.use_description_price=self.description_prices is not None and bool(np.any(np.isfinite(self.description_prices)&(self.description_prices>0)))
-        self.description_log_median=float(np.nanmedian(np.log(self.description_prices[np.isfinite(self.description_prices)&(self.description_prices>0)]))) if self.use_description_price else None
-        self.use_price=self.reference_prices is not None and bool(np.any(np.isfinite(self.reference_prices)&(self.reference_prices>0)))
-        self.price_support=int(np.sum(np.isfinite(self.reference_prices)&(self.reference_prices>0))) if self.use_price else 0
-        self.price_log_median=float(np.median(np.log(self.reference_prices[np.isfinite(self.reference_prices)&(self.reference_prices>0)]))) if self.use_price else None
+        self.description_log_median=float(np.median(np.log(self.description_prices[np.isfinite(self.description_prices)&(self.description_prices>0)]))) if self.use_description_price else None
         if len(self.rows)<3:raise ValueError('At least three valid reference vehicles required')
         self.encoder=OneHotEncoder(handle_unknown='ignore',sparse_output=True,dtype=np.float32)
         self.imputer=imputer
@@ -139,3 +140,4 @@ def reference_rows(root,market):
         return [dict(x['fields'],id=x['id'],description=x['text'],price_kind='Historical asking advert · price omitted',reference_period='April–May 2021') for x in raw['examples']]
     raw=json.load(gzip.open(root/'data/deal-reference.json.gz','rt'))
     return raw['cases']
+
