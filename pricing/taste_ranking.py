@@ -83,7 +83,7 @@ def load(root):
         if not p.exists() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:raise ValueError('Recommendation asset integrity mismatch')
     with np.load(folder/'features.npz',allow_pickle=False) as data:arrays={key:data[key] for key in data.files}
     n=len(arrays['clusters'])
-    if n!=manifest['rows'] or arrays['codes'].shape!=(n,len(CATEGORICAL)) or arrays['numeric'].shape!=(n,len(NUMERIC)):raise ValueError('Invalid feature matrix')
+    if n!=manifest['rows'] or arrays['codes'].shape!=(n,len(CATEGORICAL)) or arrays['numeric'].shape!=(n,len(NUMERIC)) or arrays['prices'].shape!=(n,) or arrays['source_days'].shape!=(n,):raise ValueError('Invalid feature matrix')
     return manifest,arrays
 
 def records(root,positions):
@@ -101,6 +101,7 @@ def adjusted_price_features(codes,numeric,levels,prices,source_days,when,transpo
     """Bounded vectorized price transport, preserving unsupported values as NaN."""
     from marketbridge.time_engine import today
     frame=features(codes,numeric,levels)
+    for field in CATEGORICAL:frame[field]=frame[field].astype(object)
     frame['year']=numeric[:,0];frame['odometer']=np.expm1(numeric[:,1])
     sources=pd.DatetimeIndex(np.asarray(source_days).astype('datetime64[D]'))
     target=pd.Timestamp(when)

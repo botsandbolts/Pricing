@@ -11,7 +11,7 @@ permissions:
   contents: write
 concurrency:
   group: taste-garage-release
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   build-and-verify:
     runs-on: ubuntu-24.04
@@ -66,6 +66,7 @@ jobs:
           started=time.time()
           from marketbridge.time_engine import TimeTransport,today
           adjusted=adjusted_price_features(arrays['codes'],arrays['numeric'],meta['levels'],arrays['prices'],arrays['source_days'],today(),TimeTransport(root))
+          assert __import__('numpy').isfinite(adjusted).sum()>meta['rows']*.5
           result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted)
           assert len(set(result['positions']))==10
           assert result['final_rows']==meta['rows']

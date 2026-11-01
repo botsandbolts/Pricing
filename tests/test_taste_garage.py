@@ -61,3 +61,25 @@ def test_rating_ui_and_result_staleness(monkeypatch,tmp_path):
     for r in radios:r.set_value(2)
     at.run();assert not at.exception
     assert next(b for b in at.button if b.label=='Find my ten cars →').disabled
+
+
+def test_adjusted_price_features_allow_native_categories_and_keep_missing_facts():
+    from datetime import date
+    from pricing.taste_ranking import adjusted_price_features
+    frame=sample();codes,nums,levels=encode(frame)
+    class Curve:
+        def ratio(self,frame,*args,**kwargs):
+            frame.manufacturer.fillna('unknown')
+            return np.full(len(frame),.5)
+    class Clock:
+        def value(self,*args,**kwargs):return 200.,{}
+        def reference(self,*args,**kwargs):return 100.,'2021-05'
+    class Transport:
+        curves={'ask':Curve()};clock=Clock()
+    days=np.full(len(frame),np.datetime64('2021-05-01').astype(int))
+    nums[0,2]=1
+    price=frame.price.to_numpy(dtype=float)
+    result=adjusted_price_features(codes,nums,levels,price,days,date(2026,11,1),Transport())
+    assert np.isnan(result[0])
+    assert result[1:]==pytest.approx(price[1:])
+    assert price[0]==1000
