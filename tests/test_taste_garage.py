@@ -40,11 +40,14 @@ def test_hdbscan_real_prototypes_and_noise_are_distinguished():
     from scripts.build_taste_garage import density_profiles
     rng=np.random.default_rng(42)
     centres=rng.normal(0,30,(12,5));points=np.concatenate([rng.normal(c,.08,(80,5)) for c in centres])
-    clusters,noise,prototypes,attempts,native=density_profiles(points)
+    clusters,noise,prototypes,attempts,native,memberships=density_profiles(points)
     assert len(prototypes)==len(set(prototypes))==10
     assert set(clusters)==set(range(10))
     assert all(not noise[p] for p in prototypes)
     assert native>=10
+    assert memberships.shape==(len(points),10)
+    assert np.isfinite(memberships).all() and (memberships>=0).all()
+    assert (memberships.sum(axis=1)<=1.0001).all()
     assert all(clusters[p]==i for i,p in enumerate(prototypes))
 
 def test_rating_ui_and_result_staleness(monkeypatch,tmp_path):
@@ -104,3 +107,42 @@ def test_constant_category_leave_out_artifacts_are_not_amplified_by_scaling():
     for key in CATEGORICAL:frame[key]='constant'
     matrix,_=leave_one_out_geometry(frame,np.linspace(1000,30000,len(frame)))
     assert np.all(matrix[:,:len(CATEGORICAL)]==0)
+
+
+
+def test_soft_memberships_train_without_row_expansion():
+    frame=sample();codes,nums,levels=encode(frame)
+    m=np.full((len(frame),10),.01,dtype=float)
+    m[np.arange(len(frame)),np.arange(len(frame))%10]=.7
+    valid=np.arange(len(frame))%5==0
+    result=train_rank(codes,nums,levels,np.argmax(m,axis=1),[1,2,3,4,1,2,3,4,2,3],list(range(10)),valid,rounds=12,prices=frame.price.to_numpy(),memberships=m)
+    assert result['soft_memberships'] and result['final_rows']==len(frame)
+    assert len(result['positions'])==10 and 0<=result['ndcg10']<=1
+    assert not any('membership' in k for k in result['feature_importance'])
+
+def test_medoid_is_actual_minimum_distance_member():
+    from scripts.build_taste_garage import medoid_position
+    points=np.array([[0.,0.],[1.,0.],[4.,0.]])
+    assert medoid_position(points,[10,20,30])==20
+
+
+def test_new_listing_transform_is_frozen_and_target_free():
+    from pricing.taste_ranking import leave_one_out_geometry,transform_new_geometry
+    frame=sample();_,_,state=leave_one_out_geometry(frame,frame.price.to_numpy(),return_state=True)
+    new=frame.iloc[:4].copy();a=transform_new_geometry(new,state)
+    new.price=99999999
+    assert np.array_equal(a,transform_new_geometry(new,state))
+    new.manufacturer='unseen';assert np.isfinite(transform_new_geometry(new,state)).all()
+
+
+def test_frozen_hdbscan_predicts_new_rows_without_refit(monkeypatch):
+    import hdbscan
+    from pricing.taste_ranking import leave_one_out_geometry,predict_new_profiles
+    frame=sample();geometry,_,encoder=leave_one_out_geometry(frame,frame.price.to_numpy(),return_state=True)
+    model=hdbscan.HDBSCAN(min_cluster_size=12,min_samples=3,prediction_data=True).fit(geometry)
+    k=len(set(model.labels_)-{-1});assert k>=2
+    bundle={'encoder':encoder,'hdbscan':model,'macro':np.arange(k)%10,'medoids':geometry[:10]}
+    monkeypatch.setattr(model,'fit',lambda *a,**k: (_ for _ in ()).throw(AssertionError('Refit forbidden')))
+    m,d=predict_new_profiles(frame.iloc[:3],bundle)
+    assert m.shape==d.shape==(3,10)
+    assert np.isfinite(m).all() and (m.sum(axis=1)<=1.0001).all()

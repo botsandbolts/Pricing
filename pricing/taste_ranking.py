@@ -31,14 +31,14 @@ def features(codes,numeric,levels):
     data.update({name:numeric[:,j] for j,name in enumerate(NUMERIC)})
     return pd.DataFrame(data)
 
-def ndcg10(labels,scores):
-    labels=np.asarray(labels,dtype=int);scores=np.asarray(scores,dtype=float)
+def ndcg10(labels,scores,linear=False):
+    labels=np.asarray(labels,dtype=float);scores=np.asarray(scores,dtype=float)
     if len(labels)!=len(scores) or not len(labels):raise ValueError('Nonempty aligned labels/scores required')
     k=min(10,len(labels));order=np.argsort(-scores,kind='stable')[:k];ideal=np.sort(labels)[::-1][:k]
-    discount=np.log2(np.arange(k)+2);den=np.sum(np.expm1(np.log(2)*ideal)/discount)
-    return float(np.sum(np.expm1(np.log(2)*labels[order])/discount)/den) if den>0 else None
+    discount=np.log2(np.arange(k)+2);den=np.sum((ideal if linear else np.expm1(np.log(2)*ideal))/discount)
+    return float(np.sum((labels[order] if linear else np.expm1(np.log(2)*labels[order]))/discount)/den) if den>0 else None
 
-def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validation_mask,rounds=96,prices=None,adjusted_prices=None):
+def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validation_mask,rounds=96,prices=None,adjusted_prices=None,memberships=None):
     from xgboost import XGBRanker
     ratings=np.asarray(ratings,dtype=int)
     if ratings.shape!=(10,) or not np.isin(ratings,[1,2,3,4]).all():raise ValueError('Rate all ten prototypes from 1 to 4')
@@ -46,6 +46,14 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     clusters=np.asarray(clusters,dtype=int)
     if clusters.shape!=(len(codes),) or clusters.min()<0 or clusters.max()>9:raise ValueError('Invalid cluster map')
     target=ratings[clusters]-1
+    soft=memberships is not None
+    if soft:
+        m=np.asarray(memberships,dtype=float)
+        if m.shape!=(len(codes),10) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft memberships')
+        # Unassigned mass contributes neutral prior, never forced nearest cluster.
+        relevance=m@(ratings-1)+(1-m.sum(axis=1))*float(np.mean(ratings-1))
+        target=np.rint(relevance*10).astype(np.int32)
+    else:relevance=target.astype(float)
     valid=np.asarray(validation_mask,dtype=bool).copy();valid[np.asarray(prototype_positions,dtype=int)]=False
     train=~valid
     if train.sum()<30 or valid.sum()<10:raise ValueError('Insufficient distinct vehicles for training and validation')
@@ -60,10 +68,11 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
         x['log_date_adjusted_price']=np.where(supported,np.log(np.maximum(current,1)),np.nan).astype(np.float32)
         x['price_adjustment_missing']=(~supported).astype(np.float32)
     params=dict(objective='rank:ndcg',eval_metric='ndcg@10',tree_method='hist',enable_categorical=True,max_cat_to_onehot=1,max_cat_threshold=32,max_bin=64,max_depth=3,min_child_weight=20,reg_lambda=20.,reg_alpha=1.,learning_rate=.07,lambdarank_pair_method='topk',lambdarank_num_pair_per_sample=10,n_jobs=2,random_state=42)
+    if soft:params['ndcg_exp_gain']=False
     probe=XGBRanker(**params,n_estimators=rounds,early_stopping_rounds=12)
     probe.fit(x.loc[train],target[train],qid=np.zeros(train.sum(),dtype=np.uint32),eval_set=[(x.loc[valid],target[valid])],eval_qid=[np.zeros(valid.sum(),dtype=np.uint32)],verbose=False)
-    held=probe.predict(x.loc[valid]);metric=ndcg10(target[valid],held)
-    rng=np.random.default_rng(42);random_metric=ndcg10(target[valid],rng.random(valid.sum()))
+    held=probe.predict(x.loc[valid]);metric=ndcg10(relevance[valid],held,linear=soft)
+    rng=np.random.default_rng(42);random_metric=ndcg10(relevance[valid],rng.random(valid.sum()),linear=soft)
     iterations=int(probe.best_iteration)+1
     del probe
     # Final fit uses each original advert exactly once. No Cartesian expansion.
@@ -72,7 +81,7 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     scores=model.predict(x)
     scores[np.asarray(prototype_positions,dtype=int)]=-np.inf
     order=np.argsort(-scores,kind='stable')[:10]
-    return {'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':10,'feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
+    return {'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':10,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
 def load(root):
     folder=Path(root)/'data/taste-garage';file=folder/'manifest.json'
@@ -84,6 +93,9 @@ def load(root):
     with np.load(folder/'features.npz',allow_pickle=False) as data:arrays={key:data[key] for key in data.files}
     n=len(arrays['clusters'])
     if n!=manifest['rows'] or arrays['codes'].shape!=(n,len(CATEGORICAL)) or arrays['numeric'].shape!=(n,len(NUMERIC)) or arrays['prices'].shape!=(n,) or arrays['source_days'].shape!=(n,):raise ValueError('Invalid feature matrix')
+    if manifest.get('version',1)>=2:
+        m=arrays.get('memberships')
+        if m is None or m.shape!=(n,10) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft membership asset')
     return manifest,arrays
 
 def records(root,positions):
@@ -118,17 +130,19 @@ def adjusted_price_features(codes,numeric,levels,prices,source_days,when,transpo
     return out
 
 
-def leave_one_out_geometry(frame,prices,smoothing=20.):
+def leave_one_out_geometry(frame,prices,smoothing=20.,return_state=False):
     """Dense category price profiles, excluding each row from group AND prior."""
     from sklearn.preprocessing import StandardScaler
     target=np.log(np.asarray(prices,dtype=float));n=len(target)
     if n<2 or not np.isfinite(target).all():raise ValueError('Finite positive advertised prices required for leave-one-out encoding')
     if smoothing<0:raise ValueError('Smoothing must be nonnegative')
     prior=(target.sum()-target)/(n-1)
-    columns=[];category_counts=[]
+    columns=[];category_counts=[];category_stats={}
     for field in CATEGORICAL:
         values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
         category_counts.append(values.nunique())
+        stats=pd.DataFrame({'category':values.to_numpy(),'target':target}).groupby('category').target.agg(['sum','count'])
+        category_stats[field]={str(k):(float(r['sum']),int(r['count'])) for k,r in stats.iterrows()}
         groups=pd.DataFrame({'category':values.to_numpy(),'target':target}).groupby('category',sort=False).target
         sums=groups.transform('sum').to_numpy();counts=groups.transform('count').to_numpy()
         denominator=counts-1+smoothing
@@ -141,5 +155,36 @@ def leave_one_out_geometry(frame,prices,smoothing=20.):
     informative=(encoded_matrix.std(axis=0)>=max(.001,.001*float(target.std()))) & (np.asarray(category_counts)>1) & (np.asarray(category_counts)<n)
     stable=encoded_matrix.copy();stable[:,~informative]=0.
     matrix=np.column_stack([stable,numeric])
-    scaled=np.clip(StandardScaler().fit_transform(matrix),-6,6).astype(np.float32)
+    scaler=StandardScaler().fit(matrix)
+    scaled=np.clip(scaler.transform(matrix),-6,6).astype(np.float32)
+    if return_state:
+        state={'stats':category_stats,'prior':float(target.mean()),'smoothing':smoothing,'informative':informative,'scaler':scaler,'year_median':float(np.median(numeric[:,0])),'log_mileage_median':float(np.median(numeric[:,1]))}
+        return scaled,encoded_matrix,state
     return scaled,encoded_matrix
+
+
+
+def transform_new_geometry(frame,state):
+    """Frozen inference encoding: reference cohort statistics, never new targets."""
+    cols=[]
+    for field in CATEGORICAL:
+        values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
+        lookup=state['stats'][field];a=state['smoothing'];prior=state['prior']
+        cols.append(np.array([(lookup[v][0]+a*prior)/(lookup[v][1]+a) if v in lookup else prior for v in values]))
+    encoded=np.column_stack(cols);encoded[:,~np.asarray(state['informative'])]=0
+    year=pd.to_numeric(frame.get('year',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+    miles=pd.to_numeric(frame.get('odometer',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+    valid=np.isfinite(miles)&(miles>=0)&(miles<=2e6)
+    numeric=np.column_stack([np.where(np.isfinite(year),year,state['year_median']),np.where(valid,np.log1p(np.maximum(miles,0)),state['log_mileage_median']),~valid])
+    return np.clip(state['scaler'].transform(np.column_stack([encoded,numeric])),-6,6).astype(np.float32)
+
+def predict_new_profiles(frame,bundle):
+    """No refit: frozen encoding/scaling, HDBSCAN affinities, medoid distances."""
+    import hdbscan
+    from scipy.spatial.distance import cdist
+    geometry=transform_new_geometry(frame,bundle['encoder'])
+    raw=np.nan_to_num(hdbscan.membership_vector(bundle['hdbscan'],geometry),nan=0.,posinf=0.,neginf=0.)
+    m=np.zeros((len(frame),10),dtype=np.float32)
+    for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
+    m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
+    return m,cdist(geometry,bundle['medoids']).astype(np.float32)

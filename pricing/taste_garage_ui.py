@@ -54,7 +54,7 @@ def render(root):
         with columns[i%2]:
             with st.container(border=True):
                 st.markdown(f"#### {i+1}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
-                st.caption(f"{p['name']} · represents {p['cars']:,} historical adverts")
+                st.caption(f"Profile {i+1} · {p['cars']:,} historical adverts · real representative")
                 car_details(root,car,when)
                 st.radio('Your reaction',list(LABELS),index=None,format_func=LABELS.get,horizontal=True,key=rating_keys[i])
                 with st.expander(f'Description & details · car {i+1}'):
@@ -72,7 +72,7 @@ def render(root):
             with st.spinner('Learning your ordering from vehicle features and prices, then scoring the catalogue…'):
                 try:adjusted=adjusted_price_features(arrays['codes'],arrays['numeric'],meta['levels'],arrays['prices'],arrays['source_days'],when,transport(str(root)))
                 except (ValueError,OSError,KeyError,TypeError):adjusted=np.full(meta['rows'],np.nan)
-                result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted)
+                result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays.get('memberships'))
                 result['adjusted_price_support']=int(np.isfinite(adjusted).sum())
             st.session_state['taste_result']=(signature,result)
         except (ValueError,OSError,RuntimeError,MemoryError) as exc:
@@ -85,21 +85,26 @@ def render(root):
         cars=records(root,result['positions'])
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
             profile=int(arrays['clusters'][position]);p=meta['profiles'][profile]
+            membership=arrays.get('memberships')
             with st.container(border=True):
                 st.markdown(f"#### {rank}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
                 car_details(root,car,when)
-                st.write(f"Related profile: {p['name']} · you rated its representative {LABELS[ratings[profile]]}.")
-                if arrays['noise'][position]:st.caption('Exploratory match: HDBSCAN treated this advert as density noise; its profile was assigned by proximity.')
+                if membership is not None:
+                    weights=membership[position];top=np.argsort(-weights)[:3]
+                    st.write('Profile blend: '+ ' · '.join(f'{j+1}: {weights[j]:.0%}' for j in top if weights[j]>.001))
+                    st.caption(f'Unassigned membership: {max(0,1-float(weights.sum())):.0%}. Membership strengths are model affinities, not probabilities of liking this car.')
+                else:st.write(f'Related profile {profile+1}.')
+                if arrays['noise'][position]:st.caption('Exploratory match: HDBSCAN treated this advert as density noise; its soft affinities remain available without forcing a hard assignment.')
                 with st.expander(f'Original description & specifications · pick {rank}'):
                     st.caption('Short excerpt from the historical advert; source text is not independently verified.')
                     st.text(car.get('description') or 'Description not supplied.')
                     st.write({k:car.get(k) for k in ['condition','drive','cylinders','title_status','paint_color','state']})
         st.markdown('### Model check · what this score really measures')
         a,b,c=st.columns(3)
-        a.metric('Held-out NDCG@10 · inherited labels',f"{result['ndcg10']:.3f}" if result['ndcg10'] is not None else 'Not defined')
+        a.metric('Held-out NDCG@10 · inferred preferences',f"{result['ndcg10']:.3f}" if result['ndcg10'] is not None else 'Not defined')
         b.metric('Random-order baseline',f"{result['random_ndcg10']:.3f}" if result['random_ndcg10'] is not None else 'Not defined')
         c.metric('Actual ratings supplied',10)
-        st.info('This NDCG@10 measures agreement with ratings inherited from clusters. Thousands of adverts still come from only ten actual judgments. It is not measured customer satisfaction or proof the recommendations are good.')
+        st.info('This NDCG@10 measures agreement with soft preferences inferred from cluster memberships. Thousands of adverts still come from only ten actual judgments. It is not measured customer satisfaction or proof the recommendations are good.')
         with st.expander('Optional · rate the shortlist to check it against your real taste'):
             values=[]
             feedback_id=hashlib.sha256(signature.encode()).hexdigest()[:12]
@@ -111,11 +116,14 @@ def render(root):
         with st.expander('Technical result'):
             st.json({k:v for k,v in result.items() if k not in ['positions','scores']},expanded=False)
     with st.expander('Business guide · how the garage learns'):
-        st.write('Smoothed leave-one-out category encoding uses log advertised price, excluding each row’s own target from its category means and global prior. UMAP maps those numerical price profiles and vehicle measurements into five dimensions. HDBSCAN finds dense groups. If it yields more than ten groups, nearby group centroids are merged into ten macroprofiles. Each representative is an actual advert nearest its profile centroid. Density noise gets a nearest-profile assignment and remains flagged.')
-        st.write(f"Catalogue: {meta['rows']:,} original canonical asking adverts. Native density groups: {meta['density_clusters']}. Density noise assigned by proximity: {meta['noise_fraction']:.1%}. No live inventory or verified condition is implied.")
-        st.write('Your rating propagates to adverts in that profile. XGBoost then learns an ordering from vehicle attributes and advertised prices. Original log price and a date-adjusted log-price scenario enter XGBoost, with an explicit indicator where date adjustment is unsupported. Cluster IDs, prototype IDs, descriptions and all user features are excluded from its predictors. The trained ranking and your reactions stay in this Streamlit session.')
+        st.write('Categories use smoothed leave-one-out log asking-price encoding. Numerical features are standardized and clipped before Euclidean HDBSCAN, without UMAP. Density parameters target roughly ten groups. If more than ten native groups are found, their centroids are merged into ten disclosed macroprofiles. Every representative is a real non-noise car selected by medoid distance, never a synthetic centroid.')
+        st.write(f"Catalogue: {meta['rows']:,} original canonical asking adverts. Native density groups: {meta['density_clusters']}. Native density noise: {meta['noise_fraction']:.1%}. No live inventory or verified condition is implied.")
+        st.write('Each car has ten soft memberships. Its expected preference blends your ratings by those memberships; unassigned mass receives the mean of your ten ratings. Low-membership cars are not forced into a profile. XGBoost then learns an ordering from vehicle attributes and advertised prices. Original log price and a date-adjusted log-price scenario enter XGBoost, with an explicit indicator where date adjustment is unsupported. Cluster IDs, prototype IDs, descriptions and all user features are excluded from its predictors. The trained ranking and your reactions stay in this Streamlit session.')
     with st.expander('Technical guide · rank:ndcg, validation and limits'):
         st.code('XGBRanker(objective="rank:ndcg", eval_metric="ndcg@10",\n          tree_method="hist", enable_categorical=True,\n          max_depth=3, n_jobs=2)')
-        st.write('One session is one ranking query group; its all-zero qid is a grouping instruction, never a predictor. Ratings 1–4 map to relevance 0–3. A deterministic vehicle-ID split holds out approximately 20% for early stopping; prototypes stay in training. A final model fits every advert once, then scores the full catalogue. Native categorical partitioning avoids one-hot features in XGBoost. Original and date-adjusted log asking prices are predictors; UMAP/HDBSCAN also use price indirectly through leave-one-out category encoding, without using preference ratings. No FM or Cartesian duplication is used.')
-        st.write('The category vocabulary and price-informed geometry use the full catalogue: this is transductive exploration, not an external benchmark. The held-out targets are still weak labels derived from the same ten judgments. UMAP distances can distort structure; clustered cars can have different appeal. Real additional ratings are needed to test personal preference quality.')
+        st.write('One session is one ranking query group; its all-zero qid is a grouping instruction, never a predictor. Ratings 1–4 map to relevance 0–3. Soft expected relevance is rounded to 0.1 steps for XGBoost’s integer ranking labels. Linear NDCG gains avoid exponential amplification; displayed NDCG uses unrounded soft relevance. A deterministic vehicle-ID split holds out approximately 20% for early stopping; prototypes stay in training. A final model fits every advert once, then scores the full catalogue. Native categorical partitioning avoids one-hot features in XGBoost. Original and date-adjusted log asking prices are predictors; HDBSCAN also uses price indirectly through leave-one-out category encoding, without using preference ratings. No FM or Cartesian duplication is used.')
+        st.write('The category vocabulary and price-informed geometry use the full catalogue: this is transductive exploration, not an external benchmark. The held-out targets are still weak labels derived from the same ten judgments. Scaled target encodings can discard distinctions; clustered cars can have different appeal. Real additional ratings are needed to test personal preference quality.')
+        st.write(meta.get('representatives','Legacy representative selection.'))
         st.caption('Price scenarios use existing depreciation curves and the saved CPI/Holt market clock; current-car accuracy is unvalidated. Source: Craigslist Used Cars, Tom / Zenodo 10457828, CC BY 4.0.')
+
+

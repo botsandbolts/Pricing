@@ -1,4 +1,4 @@
-name: Build original-data UMAP garage and test XGBoost ranking
+name: Build original-data soft HDBSCAN garage and test XGBoost ranking
 on:
   workflow_dispatch:
   push:
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 'xgboost>=3.1,<4' 'umap-learn>=0.5.7,<0.6' 'hdbscan>=0.8.40,<0.9' streamlit==1.66.1 requests pytest
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 'xgboost>=3.1,<4' 'hdbscan>=0.8.40,<0.9' streamlit==1.66.1 requests pytest
       - run: python -m pytest tests/test_taste_garage.py -q
       - uses: actions/cache@v4
         id: original-cohorts
@@ -59,7 +59,7 @@ jobs:
             training-cache/full-cohort.jsonl
             training-cache/full-cohort.meta.json
           key: ${{ steps.original-cohorts.outputs.cache-primary-key }}
-      - name: Fit full-cohort UMAP and HDBSCAN; export ten real prototype cars
+      - name: Fit scaled-feature HDBSCAN; export soft memberships and real medoids
         run: python -m scripts.build_taste_garage training-cache/full-cohort.jsonl
       - name: Verify full-catalogue ranking, memory footprint and UI
         run: |
@@ -69,13 +69,14 @@ jobs:
           from pricing.taste_ranking import load,train_rank,records,adjusted_price_features
           root=Path('.')
           meta,arrays=load(root)
-          assert meta['rows']>100000 and len(meta['profiles'])==10
+          assert meta['rows']>100000 and len(meta['profiles'])==10 and meta['version']==2
+          assert arrays['memberships'].shape==(meta['rows'],10)
           ratings=[1,2,3,4,1,2,3,4,2,3]
           started=time.time()
           from marketbridge.time_engine import TimeTransport,today
           adjusted=adjusted_price_features(arrays['codes'],arrays['numeric'],meta['levels'],arrays['prices'],arrays['source_days'],today(),TimeTransport(root))
           assert __import__('numpy').isfinite(adjusted).sum()>meta['rows']*.5
-          result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted)
+          result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays['memberships'])
           assert len(set(result['positions']))==10
           assert result['final_rows']==meta['rows']
           assert 0<=result['ndcg10']<=1
@@ -92,6 +93,11 @@ jobs:
           name: original-asking-taste-garage
           path: data/taste-garage/
           retention-days: 90
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozen-hdbscan-daily-listing-prediction
+          path: training-cache/taste-incremental/
+          retention-days: 90
       - name: Publish verified catalogue atomically
         run: |
           tar -cf "$RUNNER_TEMP/taste-assets.tar" data/taste-garage
@@ -103,7 +109,8 @@ jobs:
             tar -xf "$RUNNER_TEMP/taste-assets.tar"
             git add data/taste-garage
             if git diff --cached --quiet; then exit 0; fi
-            git commit -m "Install verified full-cohort UMAP/HDBSCAN car prototypes and ranking catalogue"
+            git commit -m "Install verified full-cohort soft HDBSCAN medoids and ranking catalogue"
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
+

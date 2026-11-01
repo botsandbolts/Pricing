@@ -5,29 +5,48 @@ import numpy as np
 import pandas as pd
 from pricing.taste_ranking import CATEGORICAL,encode,clean,leave_one_out_geometry
 
-def density_profiles(embedding):
+def medoid_position(points,positions):
+    """Exact medoid for small groups; bounded candidate medoid for large groups."""
+    from scipy.spatial.distance import cdist
+    positions=np.asarray(positions);n=len(positions)
+    if n<=2000:candidates=np.arange(n)
+    else:
+        rng=np.random.default_rng(42)
+        near=int(np.argmin(np.sum((points-points.mean(axis=0))**2,axis=1)))
+        candidates=np.unique(np.r_[near,rng.choice(n,255,replace=False)])
+    costs=np.zeros(len(candidates))
+    for start in range(0,n,2048):costs+=cdist(points[candidates],points[start:start+2048]).sum(axis=1)
+    return int(positions[candidates[np.argmin(costs)]])
+
+def density_profiles(geometry,return_model=False):
     import hdbscan
     from sklearn.cluster import AgglomerativeClustering
-    from sklearn.metrics import pairwise_distances_argmin
-    n=len(embedding);attempts=[];chosen=None
-    for divisor in [100,250,500,1000]:
+    n=len(geometry);attempts=[];best=None
+    # Tune density support, never create a partition with KMeans or UMAP.
+    for divisor in [50,100,200,400,800]:
         minimum=max(30,n//divisor)
-        model=hdbscan.HDBSCAN(min_cluster_size=minimum,min_samples=10,cluster_selection_method='leaf',metric='euclidean',core_dist_n_jobs=2).fit(embedding)
-        labels=model.labels_;groups=np.unique(labels[labels>=0]);attempts.append({'min_cluster_size':minimum,'density_clusters':len(groups),'noise_fraction':float(np.mean(labels<0))})
-        if len(groups)>=10:chosen=(labels,groups);break
-    if chosen is None:raise ValueError('HDBSCAN did not support ten dense groups; no fabricated clusters are released')
-    labels,groups=chosen;centres=np.array([embedding[labels==g].mean(axis=0) for g in groups])
+        model=hdbscan.HDBSCAN(min_cluster_size=minimum,min_samples=10,cluster_selection_method='eom',metric='euclidean',core_dist_n_jobs=2,prediction_data=True).fit(geometry)
+        labels=model.labels_;groups=np.unique(labels[labels>=0])
+        attempts.append({'min_cluster_size':minimum,'density_clusters':len(groups),'noise_fraction':float(np.mean(labels<0))})
+        if len(groups)>=10 and (best is None or len(groups)<len(best[2])):best=(model,labels,groups)
+        if len(groups)==10:break
+        if best is not None:break
+    if best is None:raise ValueError('HDBSCAN did not support ten dense groups; no fabricated profiles released')
+    model,labels,groups=best
+    centres=np.array([geometry[labels==g].mean(axis=0) for g in groups])
     macro=np.arange(10) if len(groups)==10 else AgglomerativeClustering(n_clusters=10,linkage='ward').fit_predict(centres)
-    mapped=np.full(n,-1,dtype=np.int16)
-    for g,m in zip(groups,macro):mapped[labels==g]=m
-    centres=np.array([embedding[mapped==g].mean(axis=0) for g in range(10)])
-    noise=mapped<0
-    if noise.any():mapped[noise]=pairwise_distances_argmin(embedding[noise],centres).astype(np.int16)
+    memberships=np.zeros((n,10),dtype=np.float32)
+    for start in range(0,n,1024):
+        raw=np.nan_to_num(hdbscan.membership_vector(model,geometry[start:start+1024]),nan=0.,posinf=0.,neginf=0.)
+        for j,m in enumerate(macro):memberships[start:start+len(raw),m]+=raw[:,j]
+    memberships=np.maximum(memberships,0);memberships/=np.maximum(1,memberships.sum(axis=1,keepdims=True))
+    mapped=np.argmax(memberships,axis=1).astype(np.int16);noise=labels<0
     prototypes=[]
     for g in range(10):
-        members=np.flatnonzero((mapped==g)&~noise)
-        prototypes.append(int(members[np.argmin(np.sum((embedding[members]-centres[g])**2,axis=1))]))
-    return mapped,noise,prototypes,attempts,len(groups)
+        native=groups[macro==g];members=np.flatnonzero(np.isin(labels,native))
+        prototypes.append(medoid_position(geometry[members],members))
+    result=(mapped,noise,prototypes,attempts,len(groups),memberships)
+    return result+(model,macro) if return_model else result
 
 def build(source,root):
     started=time.time();root=Path(root);folder=root/'data/taste-garage';folder.mkdir(parents=True,exist_ok=True)
@@ -53,15 +72,16 @@ def build(source,root):
     if len(set(ids))!=count:raise ValueError('Canonical vehicle duplication detected')
     frame=pd.concat(parts,ignore_index=True);del parts;gc.collect()
     codes,numeric,levels=encode(frame)
-    geometry,_=leave_one_out_geometry(frame,np.array(prices,dtype=float),smoothing=20.)
+    geometry,_,encoder=leave_one_out_geometry(frame,np.array(prices,dtype=float),smoothing=20.,return_state=True)
     gc.collect()
-    import umap
-    print('Fitting full-cohort UMAP on',count,'cars',flush=True)
-    embedding=umap.UMAP(n_components=5,n_neighbors=30,min_dist=.05,metric='euclidean',n_epochs=100,low_memory=True,random_state=42,n_jobs=1).fit_transform(geometry)
-    del geometry;gc.collect();print('Fitting HDBSCAN',flush=True)
-    clusters,noise,prototypes,attempts,density_count=density_profiles(embedding)
+    print('Fitting scaled-feature HDBSCAN and soft memberships on',count,'cars',flush=True)
+    clusters,noise,prototypes,attempts,density_count,memberships,model,macro=density_profiles(geometry,return_model=True)
+    import joblib
+    offline=root/'training-cache/taste-incremental';offline.mkdir(parents=True,exist_ok=True)
+    joblib.dump({'encoder':encoder,'hdbscan':model,'macro':macro,'medoids':geometry[prototypes],'source_rows':count},offline/'frozen-profiles.joblib',compress=3)
+    del geometry;gc.collect()
     valid=np.array([int(hashlib.sha256(('taste-validation:'+rid).encode()).hexdigest()[:8],16)%5==0 for rid in ids]);valid[prototypes]=False
-    np.savez_compressed(folder/'features.npz',codes=codes,numeric=numeric,clusters=clusters,noise=noise,validation=valid,prices=np.array(prices,dtype=np.float32),source_days=np.array(source_days,dtype=np.int32))
+    np.savez_compressed(folder/'features.npz',codes=codes,numeric=numeric,memberships=memberships,clusters=clusters,noise=noise,validation=valid,prices=np.array(prices,dtype=np.float32),source_days=np.array(source_days,dtype=np.int32))
     profiles=[]
     from pricing.taste_ranking import records
     # Reading the ten prototypes is bounded; no serving-time full catalogue decode.
@@ -72,8 +92,9 @@ def build(source,root):
         body=next((v for v in bodies.index if v!='__missing__'),'Mixed cars')
         make=next((v for v in makes.index if v!='__missing__'),'Mixed makes')
         profiles.append({'position':pos,'cluster':i,'name':str(body).title()+' · '+str(make).title(),'cars':int(len(subset)),'prototype':cars[i]})
-    manifest={'version':1,'description_excerpt_characters':100,'category_encoding':'Smoothed leave-one-out log advertised price; alpha=20; own row excluded from group and global prior; dense standardized features; no one-hot or SVD before UMAP','rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':list(CATEGORICAL)+['model_year','log_mileage','mileage_missing'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'limits':'Ten prototype ratings propagate as weak labels. HDBSCAN leaf groups are merged to ten macroprofiles when necessary; density noise is assigned to its nearest profile and flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
+    manifest={'version':2,'description_excerpt_characters':100,'category_encoding':'Smoothed leave-one-out log advertised price; alpha=20; own row excluded from group and global prior; dense standardized features; StandardScaler and clipping; no UMAP, one-hot or SVD','rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':list(CATEGORICAL)+['model_year','log_mileage','mileage_missing'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'representatives':'Exact sum-distance medoid for groups up to 2000; deterministic 256-candidate medoid evaluated against every member for larger groups; always an actual non-noise advert','limits':'Ten medoid ratings propagate via a soft membership matrix, retaining unassigned mass. HDBSCAN EOM groups are merged to ten macroprofiles when necessary; noise retains soft memberships and unassigned mass, and is flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
     if database.stat().st_size>90*1024*1024:raise ValueError('Serving catalogue exceeds 90 MiB release budget')
     (folder/'manifest.json').write_text(json.dumps(manifest,indent=2,allow_nan=False));print(json.dumps({k:v for k,v in manifest.items() if k not in ['levels','profiles','sha256']},indent=2),flush=True)
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('--root',default='.');a=p.parse_args();build(a.source,a.root)
+
