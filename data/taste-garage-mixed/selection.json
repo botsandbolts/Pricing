@@ -21,7 +21,7 @@
   ],
   "rarity_threshold": 111,
   "geometry_dimensions": 322,
-  "metric": "0.5 * Dice(one-hot) + 0.5 * mean absolute difference(robust range-scaled numeric)",
+  "metric": "0.5 * mean categorical mismatch + 0.5 * mean bounded numeric absolute difference",
   "weights": {
     "categorical": 0.5,
     "numeric": 0.5
