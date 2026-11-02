@@ -35,7 +35,7 @@
     "text_price_use": "Existing cross-fitted scalar dollar feature; no embeddings or fresh MiniLM inference"
   },
   "category_count_threshold": 111,
-  "neighbour_metric": "rmse",
+  "neighbour_metric": "cosine-unscaled",
   "levels": {
     "manufacturer": [
       "__missing__",
@@ -13639,16 +13639,15 @@
       "numeric": 0.5
     }
   },
-  "method_description": "Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS RMSE compares catalogue-column-standardized common-category indicators and numeric features, without row unit normalization. All session inverse ratings are standardized together with sklearn StandardScaler; higher ratings remain better. Preference evidence shapes the shortlist; XGBoost orders eligible cars.",
+  "method_description": "Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS cosine compares the existing encoded features without extra column StandardScaler or block normalization. L2 normalization is used only to calculate cosine. Reciprocal rating costs use 1/rating, so 4 maps to 0.25; no session scaler. Signed evidence uses the fixed offset 5/12 minus cost. Preference evidence shapes the shortlist; XGBoost orders eligible cars.",
   "representatives": "Exact sum-cosine-distance medoid among actual non-noise members, in balanced original feature blocks",
   "sha256": {
-    "features.npz": "e942c1ac6d87469a242990387e75439d7e67b0cff1964e9973f2f74632959464",
+    "features.npz": "55914fae96b7c9cb05ee5ab01790ca8c0403b2625fb9f0e54d695e538aa3cc71",
     "cars.sqlite": "ebc098f19be944d8d659e1cde0b6d32f21d3a316fda15487af023570105906a4",
     "row-ids.json.gz": "7d2c21b172d459c3534ba589fbf565eac21079e21869c727c1967db051f72b9e",
     "selection.json": "a34c123c88f3c8304af3e74ca05ac59d93f1d0a2001bfbc1bfe2c12b2a0fc846",
-    "text-price-provenance.json": "30156e0a9248cf7d1293333dd4c40bbb642aaca7ad814e81f65417160c1e90e0",
-    "faiss-scaler.json": "1334a63b662bf465a127a0c3fd6bd87dc37c61170dfc9387948518349232a57e"
+    "text-price-provenance.json": "30156e0a9248cf7d1293333dd4c40bbb642aaca7ad814e81f65417160c1e90e0"
   },
-  "rating_transform": "-StandardScaler(1/rating), fitted on all 10 or 25 session ratings",
-  "faiss_scaling": "sklearn StandardScaler fitted per column on all 110832 catalogue cars"
+  "rating_transform": "1/rating cost: 4=0.25, 3=1/3, 2=0.5, 1=1; no scaling",
+  "faiss_scaling": "No additional feature-column scaling; cosine on existing encoded features"
 }
