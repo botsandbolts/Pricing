@@ -11,9 +11,9 @@
       "eligible_cars": 8935,
       "evidence": [
         {
-          "signed": 0.08885327823967501,
-          "positive": 0.13701402453970996,
-          "negative": 0.04816074630003494,
+          "signed": 0.08885327817558591,
+          "positive": 0.1370140245305115,
+          "negative": 0.0481607463549256,
           "liked_profile": 2,
           "liked_distance": 0.19306445012408258,
           "disliked_profile": 5,
@@ -29,11 +29,11 @@
           "disliked_distance": 0.20967623572938918
         },
         {
-          "signed": 0.08884778660677137,
-          "positive": 0.13713854930590713,
-          "negative": 0.04829076269913577,
+          "signed": 0.08884778646861186,
+          "positive": 0.1371385493647727,
+          "negative": 0.04829076289616086,
           "liked_profile": 2,
-          "liked_distance": 0.17624374683864275,
+          "liked_distance": 0.1762437335520948,
           "disliked_profile": 9,
           "disliked_distance": 0.21009260956937995
         },
@@ -47,9 +47,9 @@
           "disliked_distance": 0.1950291053979276
         },
         {
-          "signed": 0.0886185343796757,
-          "positive": 0.13720548488796927,
-          "negative": 0.04858695050829356,
+          "signed": 0.08861853450554122,
+          "positive": 0.13720548490247458,
+          "negative": 0.048586950396933365,
           "liked_profile": 2,
           "liked_distance": 0.15778428072773668,
           "disliked_profile": 5,
@@ -83,9 +83,9 @@
           "disliked_distance": 0.20966898127420266
         },
         {
-          "signed": 0.08836099877424564,
-          "positive": 0.1371732626599351,
-          "negative": 0.04881226388568946,
+          "signed": 0.08836099892181021,
+          "positive": 0.13717326270006383,
+          "negative": 0.04881226377825363,
           "liked_profile": 2,
           "liked_distance": 0.157810508373411,
           "disliked_profile": 8,
@@ -127,8 +127,8 @@
         1.587263822555542,
         1.587263822555542
       ],
-      "ndcg10": 0.9796976032478901,
-      "random_ndcg10": 0.7190941006325017,
+      "ndcg10": 0.9796976033038964,
+      "random_ndcg10": 0.7190941006520295,
       "training_rows": 88711,
       "validation_rows": 22121,
       "final_rows": 110832,
@@ -176,94 +176,94 @@
       "eligible_cars": 23158,
       "evidence": [
         {
-          "signed": 0.09538005445075051,
-          "positive": 0.13948388058593644,
-          "negative": 0.04410382613518594,
+          "signed": 0.09538005446473702,
+          "positive": 0.13948388059108321,
+          "negative": 0.04410382612634619,
           "liked_profile": 14,
           "liked_distance": 0.19353032964177472,
           "disliked_profile": 9,
           "disliked_distance": 0.2089005271998027
         },
         {
-          "signed": 0.09536744523897125,
-          "positive": 0.13948469165893188,
-          "negative": 0.04411724641996062,
+          "signed": 0.09536744510633809,
+          "positive": 0.13948469173570432,
+          "negative": 0.04411724662936624,
           "liked_profile": 15,
-          "liked_distance": 0.1930752786606705,
+          "liked_distance": 0.19307526537412253,
           "disliked_profile": 9,
           "disliked_distance": 0.20863010608915963
         },
         {
-          "signed": 0.09534638136348726,
-          "positive": 0.13945170372037868,
-          "negative": 0.04410532235689142,
+          "signed": 0.09534638136553727,
+          "positive": 0.13945170371728793,
+          "negative": 0.04410532235175066,
           "liked_profile": 18,
           "liked_distance": 0.19524796141593537,
           "disliked_profile": 9,
           "disliked_distance": 0.20871309386772186
         },
         {
-          "signed": 0.09533614984551728,
-          "positive": 0.1394722398258425,
-          "negative": 0.04413608998032523,
+          "signed": 0.09533614988775299,
+          "positive": 0.13947223983865137,
+          "negative": 0.04413608995089838,
           "liked_profile": 6,
           "liked_distance": 0.1931893569614606,
           "disliked_profile": 16,
           "disliked_distance": 0.19361245379471947
         },
         {
-          "signed": 0.09533472230217296,
-          "positive": 0.13945321737363867,
-          "negative": 0.04411849507146571,
+          "signed": 0.09533472227645276,
+          "positive": 0.13945321737364302,
+          "negative": 0.04411849509719027,
           "liked_profile": 18,
           "liked_distance": 0.1953829394566676,
           "disliked_profile": 9,
           "disliked_distance": 0.20860126099353707
         },
         {
-          "signed": 0.09533361119457966,
-          "positive": 0.13948884576399959,
-          "negative": 0.04415523456941993,
+          "signed": 0.09533361116292538,
+          "positive": 0.13948884575236134,
+          "negative": 0.04415523458943596,
           "liked_profile": 23,
           "liked_distance": 0.19351038653328578,
           "disliked_profile": 24,
           "disliked_distance": 0.19355504262098153
         },
         {
-          "signed": 0.09531366692342322,
-          "positive": 0.1394818672623008,
-          "negative": 0.044168200338877577,
+          "signed": 0.09531366697956858,
+          "positive": 0.1394818672732092,
+          "negative": 0.044168200293640596,
           "liked_profile": 7,
           "liked_distance": 0.1935564642816133,
           "disliked_profile": 24,
           "disliked_distance": 0.19381111425982708
         },
         {
-          "signed": 0.09531296855322269,
-          "positive": 0.13959554078721081,
-          "negative": 0.044282572233988134,
+          "signed": 0.0953129685541422,
+          "positive": 0.13959554079394948,
+          "negative": 0.04428257223980727,
           "liked_profile": 15,
           "liked_distance": 0.1762366783951277,
           "disliked_profile": 9,
           "disliked_distance": 0.1762610459240875
         },
         {
-          "signed": 0.09530298070052999,
-          "positive": 0.1394679710728633,
-          "negative": 0.044164990372333304,
+          "signed": 0.09530298071554547,
+          "positive": 0.1394679710787462,
+          "negative": 0.044164990363200735,
           "liked_profile": 15,
           "liked_distance": 0.19310615659813105,
           "disliked_profile": 24,
-          "disliked_distance": 0.19320358685432648
+          "disliked_distance": 0.19320360014087443
         },
         {
-          "signed": 0.09529771916967238,
-          "positive": 0.13946313983319633,
-          "negative": 0.044165420663523955,
+          "signed": 0.0952977191236758,
+          "positive": 0.13946313982719682,
+          "negative": 0.04416542070352102,
           "liked_profile": 6,
           "liked_distance": 0.19317180543160462,
           "disliked_profile": 16,
-          "disliked_distance": 0.19345057049436695
+          "disliked_distance": 0.19345055720781898
         }
       ],
       "preference_method": "signed memberships plus medoid-distance evidence; nearest-dislike exclusion",
@@ -292,8 +292,8 @@
         0.6908839344978333,
         0.6908839344978333
       ],
-      "ndcg10": 0.9875668660369769,
-      "random_ndcg10": 0.8942256363398099,
+      "ndcg10": 0.9875668660310294,
+      "random_ndcg10": 0.8942256363443396,
       "training_rows": 88711,
       "validation_rows": 22121,
       "final_rows": 110832,

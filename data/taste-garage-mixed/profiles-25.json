@@ -14032,7 +14032,7 @@
   "method_description": "Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS RMSE compares original common-category indicators and robust range-scaled numeric features directly, without vector unit normalization. Inverse ratings with a fixed neutral offset shape preference evidence; XGBoost orders eligible cars.",
   "representatives": "Exact sum-cosine-distance medoid among actual non-noise members, in balanced original feature blocks",
   "sha256": {
-    "features-25.npz": "cd1239a3daa28129828474e3a19304dfcb6d0db41e379f0460d6950e2bdc8dc4"
+    "features-25.npz": "7bb786d6262b127e11687b96d6dd36d8f9861bcb8987607799319fc70a03f845"
   },
   "rating_transform": "5/12 - 1/rating; no normalization"
 }
