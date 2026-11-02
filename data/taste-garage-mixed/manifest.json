@@ -35,7 +35,7 @@
     "text_price_use": "Existing cross-fitted scalar dollar feature; no embeddings or fresh MiniLM inference"
   },
   "category_count_threshold": 111,
-  "neighbour_metric": "cosine",
+  "neighbour_metric": "rmse",
   "levels": {
     "manufacturer": [
       "__missing__",
@@ -13639,13 +13639,14 @@
       "numeric": 0.5
     }
   },
-  "method_description": "Only Lemon Squeezer retained training cars. Common-category one-hot indicators, mileage/year, log asking-price scenarios for November 2026, and the existing cross-fitted text-price scalar enter a weighted mixed-distance UMAP. HDBSCAN clusters its 5D output. FAISS cosine compares balanced original feature blocks; a separate XGBoost ranker orders eligible cars.",
+  "method_description": "Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS RMSE compares original common-category indicators and robust range-scaled numeric features directly, without vector unit normalization. Inverse ratings with a fixed neutral offset shape preference evidence; XGBoost orders eligible cars.",
   "representatives": "Exact sum-cosine-distance medoid among actual non-noise members, in balanced original feature blocks",
   "sha256": {
-    "features.npz": "9b2bd3ff75f2c56a5316dcdf4da557e654242f7712093d8271913a6009db4d90",
+    "features.npz": "ff7f142dca14ed450e0c0af73b0d9dcbd4c425d59e4ddd3d71d09b4196a1f1dc",
     "cars.sqlite": "ebc098f19be944d8d659e1cde0b6d32f21d3a316fda15487af023570105906a4",
     "row-ids.json.gz": "7d2c21b172d459c3534ba589fbf565eac21079e21869c727c1967db051f72b9e",
     "selection.json": "a34c123c88f3c8304af3e74ca05ac59d93f1d0a2001bfbc1bfe2c12b2a0fc846",
     "text-price-provenance.json": "30156e0a9248cf7d1293333dd4c40bbb642aaca7ad814e81f65417160c1e90e0"
-  }
+  },
+  "rating_transform": "5/12 - 1/rating; no normalization"
 }
