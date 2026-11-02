@@ -69,4 +69,4 @@ Software: MIT, copyright Amit Steinberg. Datasets, pretrained models and depende
 
 ## Car recommendations
 
-Pick your garage uses **HDBSCAN soft vehicle profiles** with real medoid representatives, signed rating evidence and exact FAISS L2 distance checks. A separate XGBoost LambdaMART ranker orders eligible cars after those checks. Choose 10 or 25 representatives; results contain up to ten historical adverts, never live inventory. See [the complete recommender method](TASTE_GARAGE.md) for encoding, profiles, noise, safeguards, validation and limits.
+Pick your garage uses **HDBSCAN soft vehicle profiles with common-category one-hot encoding, vehicle year and log mileage** with real medoid representatives, signed rating evidence and exact FAISS cosine distance checks. A separate XGBoost LambdaMART ranker orders eligible cars after those checks. Choose 10 or 25 representatives; results contain up to ten historical adverts, never live inventory. See [the complete recommender method](TASTE_GARAGE.md) for encoding, profiles, noise, safeguards, validation and limits.

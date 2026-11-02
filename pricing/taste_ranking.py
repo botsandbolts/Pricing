@@ -161,6 +161,39 @@ def adjusted_price_features(codes,numeric,levels,prices,source_days,when,transpo
     return out
 
 
+def one_hot_geometry(frame,min_count=100,min_fraction=.001,return_state=False):
+    """Target-free common-category indicators plus standardized numeric features.
+
+    Rare, missing-if-rare and unseen values share one explicit bucket per field.
+    Indicators stay 0/1: variance scaling would amplify infrequent categories.
+    """
+    from sklearn.preprocessing import StandardScaler
+    if not len(frame):raise ValueError('A nonempty reference cohort is required')
+    if not isinstance(min_count,(int,np.integer)) or min_count<1 or not np.isfinite(min_fraction) or not 0<=min_fraction<=1:
+        raise ValueError('Use a positive minimum count and a fraction from zero to one')
+    threshold=max(int(min_count),int(np.ceil(len(frame)*min_fraction)))
+    vocab={};names=[]
+    for field in CATEGORICAL:
+        values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
+        counts=values.value_counts();common=sorted(counts[counts>=threshold].index.tolist())
+        # Constant grouped fields carry no useful similarity; omit them completely.
+        grouped=np.where(values.isin(common),values,'__rare_or_unseen__')
+        if len(set(grouped))<2:continue
+        vocab[field]=common
+        names.extend([field+'='+value for value in common]+[field+'=Other (rare/unseen)'])
+    year=pd.to_numeric(frame.get('year',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+    miles=pd.to_numeric(frame.get('odometer',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+    valid=np.isfinite(miles)&(miles>=0)&(miles<=2e6)
+    year_median=float(np.median(year[np.isfinite(year)])) if np.isfinite(year).any() else 2015.
+    mileage_median=float(np.median(np.log1p(miles[valid]))) if valid.any() else float(np.log1p(95000.))
+    numeric=np.column_stack([np.where(np.isfinite(year),year,year_median),np.where(valid,np.log1p(np.maximum(miles,0)),mileage_median),~valid])
+    state={'kind':'common-onehot-v1','min_count':int(min_count),'min_fraction':float(min_fraction),'threshold':threshold,
+           'categories':vocab,'feature_names':names+list(NUMERIC),'onehot_dimensions':len(names),
+           'scaler':StandardScaler().fit(numeric),'year_median':year_median,'log_mileage_median':mileage_median}
+    geometry=transform_new_geometry(frame,state)
+    return (geometry,geometry[:,:len(names)],state) if return_state else (geometry,geometry[:,:len(names)])
+
+
 def leave_one_out_geometry(frame,prices,smoothing=20.,return_state=False):
     """Dense category price profiles, excluding each row from group AND prior."""
     from sklearn.preprocessing import StandardScaler
@@ -197,6 +230,19 @@ def leave_one_out_geometry(frame,prices,smoothing=20.,return_state=False):
 
 def transform_new_geometry(frame,state):
     """Frozen inference encoding: reference cohort statistics, never new targets."""
+    if state.get('kind')=='common-onehot-v1':
+        matrix=np.zeros((len(frame),state['onehot_dimensions']+3),dtype=np.float32)
+        offset=0;rows=np.arange(len(frame))
+        for field,common in state['categories'].items():
+            values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
+            codes=pd.Index(common).get_indexer(values);codes=np.where(codes<0,len(common),codes)
+            matrix[rows,offset+codes]=1.;offset+=len(common)+1
+        year=pd.to_numeric(frame.get('year',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+        miles=pd.to_numeric(frame.get('odometer',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+        valid=np.isfinite(miles)&(miles>=0)&(miles<=2e6)
+        numeric=np.column_stack([np.where(np.isfinite(year),year,state['year_median']),np.where(valid,np.log1p(np.maximum(miles,0)),state['log_mileage_median']),~valid])
+        matrix[:,offset:]=np.clip(state['scaler'].transform(numeric),-6,6)
+        return matrix
     cols=[]
     for field in CATEGORICAL:
         values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)

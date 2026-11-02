@@ -1,9 +1,9 @@
-"""Full canonical asking-cohort UMAP/HDBSCAN, ten actual prototypes, portable assets."""
+"""Full canonical asking-cohort common-category one-hot HDBSCAN and real medoids."""
 import argparse,gc,hashlib,json,re,sqlite3,time,zlib
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from pricing.taste_ranking import CATEGORICAL,encode,clean,leave_one_out_geometry
+from pricing.taste_ranking import CATEGORICAL,encode,clean,one_hot_geometry
 
 def medoid_position(points,positions):
     """Exact medoid for small groups; bounded candidate medoid for large groups."""
@@ -18,14 +18,14 @@ def medoid_position(points,positions):
     for start in range(0,n,2048):costs+=cdist(points[candidates],points[start:start+2048]).sum(axis=1)
     return int(positions[candidates[np.argmin(costs)]])
 
-def density_profiles(geometry,return_model=False):
+def density_profiles(geometry,return_model=False,memory=None,core_jobs=2):
     import hdbscan
     from sklearn.cluster import AgglomerativeClustering
     n=len(geometry);attempts=[];best=None
     # Tune density support, never create a partition with KMeans or UMAP.
     for divisor in [50,100,200,400,800]:
         minimum=max(30,n//divisor)
-        model=hdbscan.HDBSCAN(min_cluster_size=minimum,min_samples=10,cluster_selection_method='eom',metric='euclidean',core_dist_n_jobs=2,prediction_data=True).fit(geometry)
+        model=hdbscan.HDBSCAN(min_cluster_size=minimum,min_samples=10,cluster_selection_method='eom',metric='euclidean',core_dist_n_jobs=core_jobs,algorithm='boruvka_kdtree',memory=memory or __import__('joblib').Memory(None),prediction_data=True).fit(geometry)
         labels=model.labels_;groups=np.unique(labels[labels>=0])
         attempts.append({'min_cluster_size':minimum,'density_clusters':len(groups),'noise_fraction':float(np.mean(labels<0))})
         if len(groups)>=10 and (best is None or len(groups)<len(best[2])):best=(model,labels,groups)
@@ -36,9 +36,9 @@ def density_profiles(geometry,return_model=False):
     centres=np.array([geometry[labels==g].mean(axis=0) for g in groups])
     macro=np.arange(10) if len(groups)==10 else AgglomerativeClustering(n_clusters=10,linkage='ward').fit_predict(centres)
     memberships=np.zeros((n,10),dtype=np.float32)
-    for start in range(0,n,1024):
-        raw=np.nan_to_num(hdbscan.membership_vector(model,geometry[start:start+1024]),nan=0.,posinf=0.,neginf=0.)
-        for j,m in enumerate(macro):memberships[start:start+len(raw),m]+=raw[:,j]
+    raw=np.nan_to_num(hdbscan.all_points_membership_vectors(model),nan=0.,posinf=0.,neginf=0.)
+    for j,m in enumerate(macro):memberships[:,m]+=raw[:,j]
+    del raw
     memberships=np.maximum(memberships,0);memberships/=np.maximum(1,memberships.sum(axis=1,keepdims=True))
     mapped=np.argmax(memberships,axis=1).astype(np.int16);noise=labels<0
     prototypes=[]
@@ -72,7 +72,7 @@ def build(source,root):
     if len(set(ids))!=count:raise ValueError('Canonical vehicle duplication detected')
     frame=pd.concat(parts,ignore_index=True);del parts;gc.collect()
     codes,numeric,levels=encode(frame)
-    geometry,_,encoder=leave_one_out_geometry(frame,np.array(prices,dtype=float),smoothing=20.,return_state=True)
+    geometry,_,encoder=one_hot_geometry(frame,return_state=True)
     gc.collect()
     print('Fitting scaled-feature HDBSCAN and soft memberships on',count,'cars',flush=True)
     clusters,noise,prototypes,attempts,density_count,memberships,model,macro=density_profiles(geometry,return_model=True)
@@ -92,7 +92,7 @@ def build(source,root):
         body=next((v for v in bodies.index if v!='__missing__'),'Mixed cars')
         make=next((v for v in makes.index if v!='__missing__'),'Mixed makes')
         profiles.append({'position':pos,'cluster':i,'name':str(body).title()+' · '+str(make).title(),'cars':int(len(subset)),'prototype':cars[i]})
-    manifest={'version':2,'description_excerpt_characters':100,'category_encoding':'Smoothed leave-one-out log advertised price; alpha=20; own row excluded from group and global prior; dense standardized features; StandardScaler and clipping; no UMAP, one-hot or SVD','rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':list(CATEGORICAL)+['model_year','log_mileage','mileage_missing'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'representatives':'Exact sum-distance medoid for groups up to 2000; deterministic 256-candidate medoid evaluated against every member for larger groups; always an actual non-noise advert','limits':'Ten medoid ratings propagate via a soft membership matrix, retaining unassigned mass. HDBSCAN EOM groups are merged to ten macroprofiles when necessary; noise retains soft memberships and unassigned mass, and is flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
+    manifest={'version':4,'encoding_kind':'common-onehot-v1','clustering_target_free':True,'category_min_count':100,'category_min_fraction':.001,'category_count_threshold':encoder['threshold'],'description_excerpt_characters':100,'category_encoding':'Common-category one-hot indicators; rare/unseen pooled; threshold max(100, ceil(0.001 * rows)); only numeric features standardized and clipped; no price targets, UMAP or SVD','rows':count,'source_sha256':hashlib.sha256(Path(source).read_bytes()).hexdigest(),'source':'Original canonical Craigslist asking cohort; all eligible deduplicated partitions, transductive catalogue exploration','levels':levels,'profiles':profiles,'density_clusters':density_count,'noise_fraction':float(noise.mean()),'clustering_attempts':attempts,'elapsed_seconds':time.time()-started,'features':encoder['feature_names'],'sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in ['features.npz','cars.sqlite']},'representatives':'Exact sum-distance medoid for groups up to 2000; deterministic 256-candidate medoid evaluated against every member for larger groups; always an actual non-noise advert','limits':'Ten medoid ratings propagate via a soft membership matrix, retaining unassigned mass. HDBSCAN EOM groups are merged to ten macroprofiles when necessary; noise retains soft memberships and unassigned mass, and is flagged. No user features, duplicate rows or personal-satisfaction benchmark.'}
     if database.stat().st_size>90*1024*1024:raise ValueError('Serving catalogue exceeds 90 MiB release budget')
     (folder/'manifest.json').write_text(json.dumps(manifest,indent=2,allow_nan=False));print(json.dumps({k:v for k,v in manifest.items() if k not in ['levels','profiles','sha256']},indent=2),flush=True)
 if __name__=='__main__':
