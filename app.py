@@ -14,14 +14,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _garage_tap_controls_release_v2():
+def _garage_ordered_cards_release_v3():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
     for name in ('pricing.navigation','pricing.taste_garage_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_garage_tap_controls_release_v2()
+_garage_ordered_cards_release_v3()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
@@ -30,12 +30,12 @@ from pricing.navigation import render_navigation
 _workspace=render_navigation()
 if _workspace=='🚦 Pick your garage':
     @st.cache_resource(show_spinner=False)
-    def _taste_garage_tappable_preferences_v6():
+    def _taste_garage_ordered_preferences_v7():
         import importlib
         for name in ('pricing.taste_ranking','pricing.taste_garage_ui'):
             importlib.reload(importlib.import_module(name))
         return True
-    _taste_garage_tappable_preferences_v6()
+    _taste_garage_ordered_preferences_v7()
     from pricing.taste_garage_ui import render as render_taste_garage
     render_taste_garage(Path(__file__).parent)
     from pricing.ga_events import render_events
