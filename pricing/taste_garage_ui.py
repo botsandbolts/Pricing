@@ -36,9 +36,16 @@ def render(root):
     root=Path(root)
     page_intro('A little car chemistry','Pick your garage','Find your type. Four honest reactions. Absolutely no awkward goodbye.','💚')
     journey_steps([('Choose your drive','10 cars or 25? You set the pace.'),('Tell us your type','Rate the whole car, from no thanks to love.'),('Meet your shortlist','Up to ten historical cars picked for your taste.')])
-    st.markdown('<div class="garage-test-cards"><div class="garage-test-card"><span class="garage-test-tag">The quick hello</span><strong>Speed Date</strong><p>10 cars. No small talk. A quick feel for your favourites.</p><span class="garage-test-number" aria-hidden="true">10</span></div><div class="garage-test-card long"><span class="garage-test-tag">The scenic route</span><strong>The Long Drive</strong><p>25 cars. Zero commitment. More room to explore your type.</p><span class="garage-test-number" aria-hidden="true">25</span></div></div>',unsafe_allow_html=True)
     tests={'Speed Date · 10 cars, no small talk':10,'The Long Drive · 25 cars, zero commitment':25}
-    chosen=st.radio('Choose your test',list(tests),horizontal=True,key='taste_test_mode')
+    st.session_state.setdefault('taste_test_mode',next(iter(tests)))
+    def choose_test(value):st.session_state['taste_test_mode']=value
+    for col,(value,size) in zip(st.columns(2),tests.items()):
+        with col:
+            with st.container(border=True):
+                st.markdown('**Speed Date**' if size==10 else '**The Long Drive**')
+                st.caption('10 cars. No small talk.' if size==10 else '25 cars. Zero commitment.')
+                st.button('Choose Speed Date · 10 cars' if size==10 else 'Choose The Long Drive · 25 cars',key=f'taste_choose_{size}',on_click=choose_test,args=(value,),type='primary' if st.session_state['taste_test_mode']==value else 'secondary',use_container_width=True)
+    chosen=st.session_state['taste_test_mode']
     profile_count=tests[chosen]
     st.caption('Switch tests without losing your ratings. Both return up to ten recommendations from historical adverts, not live stock.')
     with st.expander('About your ratings & this experiment'):

@@ -7,16 +7,9 @@ def render_navigation():
         st.session_state['landing_studio_workspace']=pending
     elif 'landing_studio_workspace' not in st.session_state:
         st.session_state['landing_studio_workspace']='🌳 Hierarchical model' if st.query_params.get('hierarchy') else '🕵️ Deal Detective' if st.query_params.get('garage') else PAGES[0]
-    current=st.session_state['landing_studio_workspace']
     st.markdown('<div id="studio-workspace"></div>',unsafe_allow_html=True)
-    def picker():
-        return st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed') or PAGES[0]
-    if current==PAGES[0]:
-        st.markdown('<div class="garage-nav-heading"><strong>Where shall we go?</strong><span>Your car, your curiosity. Choose a workspace.</span></div>',unsafe_allow_html=True)
-        page=picker()
-    else:
-        with st.expander('Switch workspace · '+current,expanded=False):
-            page=picker()
+    st.markdown('<div class="garage-nav-heading"><strong>Choose a panel</strong><span>Tap a panel to open it.</span></div>',unsafe_allow_html=True)
+    page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed',persist_state='session') or PAGES[0]
     st.session_state['studio_tabs']=page
     from html import escape
     notes={'🚗 Price my car':'Start here · Your car details → two market estimates.',
