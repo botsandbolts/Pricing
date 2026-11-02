@@ -25,7 +25,7 @@ def main():
   for k in [10,25]:
     meta,a=load(root,k);positions=[p['position'] for p in meta['profiles']]
     d=faiss_cosine(geometry,geometry[positions])[0]
-    for key in ['medoid_cosine','medoid_l2','medoid_l1']:a.pop(key,None)
+    for key in ['medoid_rmse','medoid_l2','medoid_l1']:a.pop(key,None)
     a['medoid_cosine']=d
     file=folder/('features.npz' if k==10 else 'features-25.npz')
     payload=a if k==10 else {key:a[key] for key in ['memberships','clusters','noise','validation','medoid_cosine']}
@@ -45,6 +45,7 @@ def main():
     assert np.all(np.diff([e['liked_distance'] for e in result['evidence']])>=-1e-7)
     checked_meta,checked_arrays=load(root,k)
     assert checked_meta['neighbour_metric']=='cosine-unscaled' and 'medoid_cosine' in checked_arrays
+    assert 'medoid_rmse' not in checked_arrays
     np.testing.assert_allclose(checked_arrays['medoid_cosine'],d)
     ui=exercise_taste_ui(root,k,ratings)
     reports[str(k)]={'passed':True,'rows':len(frame),'metric':'cosine','cosine_l2_normalization':True,'column_standard_scaler':False,'dimensions':geometry.shape[1],'rating_transform':meta['rating_transform'],'test_type':'Artificial-rating mechanical validation, not user satisfaction','model_result':result,'ui_check':ui}
