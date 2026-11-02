@@ -144,6 +144,8 @@ def render(root,*,bayesian=True):
     st.info('The gap is not dealer profit or a promised discount. These models describe different markets and vehicle populations.')
     available=[r for r in results.values() if 'error' not in r]
     if available:
+        from pricing.accessibility import announce
+        announce('Price estimates ready. '+'. '.join(('Seller asking estimate' if side=='ask' else 'Wholesale auction estimate')+f": {r['price']:,.0f} US dollars" for side,r in results.items() if 'error' not in r))
         import plotly.graph_objects as go
         labels={'ask':'Seller asking','bid':'Wholesale auction'}
         colors={'ask':'#207b65','bid':'#a05635'}

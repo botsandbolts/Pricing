@@ -60,7 +60,7 @@ def test_rating_ui_and_result_staleness(monkeypatch,tmp_path):
     at=AppTest.from_string(f"from pathlib import Path\nfrom pricing.taste_garage_ui import render\nrender(Path({str(tmp_path)!r}))").run(timeout=30)
     assert not at.exception
     assert next(b for b in at.button if b.label=='Find my ten cars →').disabled
-    radios=[r for r in at.get('pills') if r.label=='Your reaction'];assert len(radios)==10
+    radios=[r for r in at.get('pills') if r.label.startswith('Your reaction')];assert len(radios)==10
     for r in radios:r.set_value(2)
     at.run();assert not at.exception
     assert next(b for b in at.button if b.label=='Find my ten cars →').disabled
@@ -189,12 +189,12 @@ def test_short_long_ui_keeps_ratings_separate(monkeypatch,tmp_path):
     def cat(root,revision,k):return {'rows':400,'density_clusters':k,'noise_fraction':.1,'profiles':[{'prototype':car,'position':i,'name':str(i),'cars':16} for i in range(k)]},{}
     monkeypatch.setattr(ui,'catalogue',cat);monkeypatch.setattr(ui,'price_view',lambda *a:8000.)
     at=AppTest.from_string(f"from pathlib import Path\nfrom pricing.taste_garage_ui import render\nrender(Path({str(tmp_path)!r}))").run()
-    [r for r in at.get('pills') if r.label=='Your reaction'][0].set_value(4).run()
+    [r for r in at.get('pills') if r.label.startswith('Your reaction')][0].set_value(4).run()
     next(b for b in at.button if b.key=='taste_choose_25').click().run()
-    assert not at.exception and len([r for r in at.get('pills') if r.label=='Your reaction'])==25
-    assert all(r.value is None for r in at.get('pills') if r.label=='Your reaction')
+    assert not at.exception and len([r for r in at.get('pills') if r.label.startswith('Your reaction')])==25
+    assert all(r.value is None for r in at.get('pills') if r.label.startswith('Your reaction'))
     next(b for b in at.button if b.key=='taste_choose_10').click().run()
-    assert not at.exception and [r for r in at.get('pills') if r.label=='Your reaction'][0].value==4
+    assert not at.exception and [r for r in at.get('pills') if r.label.startswith('Your reaction')][0].value==4
 
 
 def test_negative_ratings_penalize_and_noise_is_neutral():

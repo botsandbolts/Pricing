@@ -62,11 +62,13 @@ def render(root):
     meta,arrays=loaded;version=hashlib.sha256((path.read_bytes()+(variant.read_bytes() if profile_count==25 else b'')+str(profile_count).encode())).hexdigest()[:12]
     mode=st.radio('Shortlist price date',['Today','Choose a date'],horizontal=True,key='taste_date_mode')
     when=today() if mode=='Today' else st.date_input('Show price scenarios for',value=today(),key='taste_date')
-    st.markdown(f'### 1 · Rate your {profile_count} representatives')
+    st.markdown(f'## 1 · Rate your {profile_count} representatives')
     st.write('Rate the whole car: Would you want something like this? Compare cars against your own taste, not against each other’s price alone.')
     rating_keys=[f'taste_rating_{version}_{i}' for i in range(profile_count)]
     count=sum(st.session_state.get(k) in LABELS for k in rating_keys)
     st.progress(count/profile_count,text=f'{count} of {profile_count} cars rated')
+    from pricing.accessibility import announce
+    announce(f'{count} of {profile_count} cars rated. '+('All cars rated.' if count==profile_count else f'{profile_count-count} reactions remaining.'))
     memory=st.session_state.setdefault('taste_rating_memory',{})
     for i,p in enumerate(meta['profiles']):
         # One pair per row preserves 1,2,3... when mobile stacks columns.
@@ -75,11 +77,13 @@ def render(root):
         with columns[i%2]:
             with st.container(border=True,key=f'garage_taste_card_{profile_count}_{i}'):
                 car_art(car)
-                st.markdown(f"#### {i+1}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
+                st.markdown(f"### {i+1}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
                 st.caption(f"Profile {i+1} · {p['cars']:,} historical adverts · real representative")
                 car_details(root,car,when)
                 if rating_keys[i] not in st.session_state and rating_keys[i] in memory:st.session_state[rating_keys[i]]=memory[rating_keys[i]]
-                st.pills('Your reaction',list(LABELS),selection_mode='single',format_func=LABELS.get,key=rating_keys[i],persist_state='session')
+                st.markdown('**Your reaction**')
+                reaction_label=f"Your reaction · car {i+1}: {int(car['year'])} {car.get('manufacturer') or 'Unspecified'} {car.get('model') or ''}"
+                st.pills(reaction_label,list(LABELS),selection_mode='single',format_func=LABELS.get,key=rating_keys[i],persist_state='session',label_visibility='collapsed')
                 memory[rating_keys[i]]=st.session_state.get(rating_keys[i])
                 with st.expander(f'Description & details · car {i+1}'):
                     st.caption('Short excerpt from the historical advert; source text is not independently verified.')
@@ -92,7 +96,7 @@ def render(root):
     has_like=any(r in (3,4) for r in ratings)
     if complete and not has_like:st.info('Choose I like it or Love it for at least one car so there is something to recommend.')
     if complete and not different:st.info('Give at least two cars different ratings so the model has an ordering to learn.')
-    st.markdown('### 2 · Let the trees build your shortlist')
+    st.markdown('## 2 · Let the trees build your shortlist')
     if not complete:st.caption(f'{profile_count-count} more reaction'+('s' if profile_count-count!=1 else '')+' to go. Your shortlist unlocks once every car has a rating.')
     if st.button('Find my ten cars →',type='primary',disabled=not complete or not different or not has_like,key='taste_train'):
         try:
@@ -107,7 +111,8 @@ def render(root):
     saved=st.session_state.get('taste_result')
     if saved and saved[0]!=signature:st.info('Your reactions changed. Press Find my ten cars to refresh the shortlist.');saved=None
     if saved:
-        result=saved[1];st.markdown(f"### Your {len(result['positions'])} · tyres optional, taste mandatory")
+        announce('Shortlist ready. '+str(len(saved[1]['positions']))+' historical cars found.')
+        result=saved[1];st.markdown(f"## Your {len(result['positions'])} · tyres optional, taste mandatory")
         st.caption('Passes explicit liked/disliked checks, then ordered by XGBoost preference score; nearest-medoid explanations use exact FAISS L2. These are historical adverts, not available stock. The representatives you already rated are excluded.')
         cars=records(root,result['positions'])
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
@@ -115,7 +120,7 @@ def render(root):
             membership=arrays.get('memberships')
             with st.container(border=True,key=f'garage_shortlist_{rank}'):
                 car_art(car,compact=True)
-                st.markdown(f"#### {rank}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
+                st.markdown(f"### {rank}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
                 car_details(root,car,when)
                 if result.get('evidence'):
                     e=result['evidence'][rank-1]

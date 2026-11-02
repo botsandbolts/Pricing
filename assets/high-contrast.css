@@ -1,0 +1,6 @@
+/* Optional reading preference; native semantics and structure remain unchanged. */
+:root{--garage-ink:#112c24;--garage-muted:#203e36;--garage-line:#65796d}
+[data-testid="stAppViewContainer"],[data-testid="stHeader"]{background:#fffdf5}
+[data-testid="stCaptionContainer"],[data-testid="stCaptionContainer"] p{color:#203e36!important}
+.garage-hero p,.garage-page-intro p,.garage-market-guide p,.garage-step small,.garage-footer,.garage-route-note,.garage-micro,.garage-ticker,.garage-car-art span,.garage-wordmark small{color:#203e36!important}
+[data-baseweb="input"],[data-baseweb="select"]>div,[data-baseweb="textarea"],[data-testid="stButtonGroup"] button,[data-testid="stExpander"]{border-color:#203e36!important}

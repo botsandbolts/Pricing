@@ -10,6 +10,8 @@ CSS = '<style>'+(Path(__file__).resolve().parents[1]/'assets/garage.css').read_t
 
 def install_style():
     st.markdown(CSS,unsafe_allow_html=True)
+    from pricing.accessibility import install
+    install()
 
 
 def origin_badge():
@@ -18,14 +20,16 @@ def origin_badge():
 
 def render_hero():
     from pricing.garage_art import car_svg,hero_svg
-    st.markdown('<div class="garage-nav"><a class="garage-brand" href="#studio-workspace" aria-label="Car Price Studio · skip to workspace"><span class="garage-mark">'+car_svg()+'</span><span class="garage-wordmark"><strong>car price studio</strong><small>A little car love. A lot of curiosity.</small></span></a>'+origin_badge()+'</div>',unsafe_allow_html=True)
+    st.markdown('<div class="garage-nav"><a class="garage-brand" href="#studio-workspace" aria-label="Car Price Studio · skip to workspace"><span class="garage-mark" aria-hidden="true">'+car_svg()+'</span><span class="garage-wordmark"><strong>car price studio</strong><small>A little car love. A lot of curiosity.</small></span></a>'+origin_badge()+'</div>',unsafe_allow_html=True)
+    from pricing.accessibility import reading_options
+    reading_options()
     page=st.session_state.get('_navigate_to') or st.session_state.get('landing_studio_workspace','🚗 Price my car')
     # Keep the large welcome on the calculator, and give other workspaces room.
     if page!='🚗 Price my car':
         return
     st.markdown('''<section class="garage-hero" aria-label="Welcome to Car Price Studio">
 <div><div class="garage-eyebrow">Your friendly neighbourhood car lab</div><h1>Big car feelings.<br><span class="garage-accent">Clearer numbers.</span></h1><p>Price the car you have. Find the kind you love.<br>A friendly garage for exploring what the data says.</p><a class="garage-cta" href="#studio-workspace">Let’s meet your car <span aria-hidden="true">↗</span></a><small class="garage-micro">Free to explore · Open source · Made with curiosity</small></div>
-<div class="garage-art">'''+hero_svg()+'''</div></section>
+<div class="garage-art" aria-hidden="true">'''+hero_svg()+'''</div></section>
 <div class="garage-ticker"><span><b>01</b> Meet your car</span><span><b>02</b> Explore its value</span><span><b>03</b> Find your favourites</span><span class="garage-ticker-note">Historical data. Real models. A little perspective.</span></div>''',unsafe_allow_html=True)
 
 
@@ -34,7 +38,7 @@ def page_intro(kicker,title,description,icon='🚗'):
             '🔎':'<circle cx="13" cy="13" r="9" fill="#dceee2" stroke="#207b65" stroke-width="3"/><path d="M20 20L29 29" stroke="#207b65" stroke-width="4" stroke-linecap="round"/>',
             '🌳':'<path d="M16 30V16" stroke="#806342" stroke-width="4"/><path d="M16 2L28 16H23L30 23H2L9 16H4Z" fill="#207b65"/>'}
     art='<svg viewBox="0 0 32 32" aria-hidden="true">'+shapes.get(icon,'<circle cx="16" cy="16" r="12" fill="#f5d478"/><path d="M12 10L22 16L12 22Z" fill="#52695b"/>')+'</svg>'
-    st.markdown(f'<div class="garage-page-intro"><div><div class="garage-section">{escape(kicker)}</div><h2>{escape(title)}</h2><p>{escape(description)}</p></div><span class="garage-page-icon" aria-hidden="true">{art}</span></div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="garage-page-intro"><div><div class="garage-section">{escape(kicker)}</div><h1>{escape(title)}</h1><p>{escape(description)}</p></div><span class="garage-page-icon" aria-hidden="true">{art}</span></div>',unsafe_allow_html=True)
 
 
 def journey_steps(steps):

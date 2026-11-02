@@ -117,6 +117,9 @@ def render_timeline(root):
         fig=px.line(frame,x='Date',y='USD',color='Market',line_dash='Period',hover_data=['Mileage'])
         fig.update_yaxes(title='Model scenario value · USD',tickprefix='$',tickformat=',.0f')
         st.plotly_chart(fig,width='stretch',key='current_timeline_chart')
+        with st.expander('Read the timeline as a table'):
+            st.caption('The same dates, values, market labels and mileage assumptions as the chart. USD values are model scenarios, not observed sales.')
+            st.table(frame.assign(Date=frame['Date'].astype(str)).round({'USD':2,'Mileage':0}))
         st.download_button('Download this value timeline',frame.to_csv(index=False),'car-value-over-time.csv','text/csv')
         render_market_clock(transport,today(),error)
         st.caption('Solid past values are reconstructions; dashed future values are scenarios. Mileage is floored at zero and capped at two million miles. A monthly index is not a daily transaction feed. Current individual-car accuracy and intervals are unvalidated.')

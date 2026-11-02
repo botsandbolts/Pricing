@@ -1,0 +1,43 @@
+/* Native accessibility improvements; preserve the garage palette and artwork. */
+:root{--garage-muted:#52695f;--garage-control-border:#75877d}
+html{scroll-padding-top:5rem}
+#studio-workspace{scroll-margin-top:5rem}
+.garage-sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.garage-skip-link{position:fixed;top:4rem;left:1rem;transform:translateY(-250%);z-index:10000;background:#203e36;color:#fff!important;padding:12px 18px;border-radius:12px;font-weight:700}
+.garage-skip-link:focus{transform:none}
+/* A dark outer ring and light inner gap remain distinct on both button states. */
+[data-testid="stAppViewContainer"] :is(button,a,input,textarea,select,[role="radio"],[role="tab"],[role="checkbox"],[role="combobox"],summary,[tabindex]):focus-visible{outline:3px solid #203e36!important;outline-offset:3px!important;box-shadow:0 0 0 3px #fffdf5!important}
+[data-testid="stRadio"] label:has(input:focus-visible){outline:3px solid #203e36;outline-offset:3px}
+[data-baseweb="input"]:focus-within,[data-baseweb="select"]:focus-within,[data-baseweb="textarea"]:focus-within{outline:3px solid #203e36;outline-offset:3px}
+[data-testid="stButtonGroup"] button{border-color:var(--garage-control-border)!important;white-space:normal!important;height:auto!important;min-height:44px;max-width:100%;touch-action:manipulation}
+[data-testid="stButtonGroup"] button[aria-checked="true"]{box-shadow:inset 0 -3px 0 #f5d478}
+[data-testid="stButtonGroup"] button p{overflow-wrap:anywhere}
+[data-testid="stRadio"] label:has(input[type="radio"]){border-color:var(--garage-control-border);min-height:44px;max-width:100%;height:auto}
+[data-baseweb="input"],[data-baseweb="select"]>div,[data-baseweb="textarea"]{border-color:var(--garage-control-border)!important}
+[data-testid="stExpander"] summary,[role="tab"],[data-testid="stCheckbox"] label{min-height:44px}
+[data-testid="stCaptionContainer"]{opacity:1!important}
+[data-testid="stCaptionContainer"],[data-testid="stCaptionContainer"] p{color:#52695f!important;font-size:.875rem!important;line-height:1.65!important}
+.garage-wordmark small,.garage-micro,.garage-ticker,.garage-nav-heading span,.garage-route-note,.garage-section,.garage-eyebrow,.garage-step small,.garage-car-art span,.garage-footer{font-size:max(.8125rem,12px);color:#52695f}
+.garage-market-guide p{font-size:.875rem;color:#52695f}
+.garage-origin{font-size:.8125rem}
+.garage-car-art span{padding:.25rem 0}
+.garage-brand{min-width:0}.garage-wordmark{min-width:0}.garage-wordmark strong{overflow-wrap:anywhere}
+.garage-nav{flex-wrap:wrap}.garage-page-intro>div{min-width:0}
+[data-testid="stMarkdownContainer"] :is(p,li,h1,h2,h3,h4){overflow-wrap:anywhere}
+[data-testid="stMarkdownContainer"] p a:not(.garage-cta){text-decoration:underline;text-underline-offset:.18em}
+pre{white-space:pre-wrap!important;overflow-wrap:anywhere}
+@media(max-width:640px){
+ .garage-wordmark small,.garage-origin,.garage-micro,.garage-ticker,.garage-step small{font-size:.8125rem}
+ .garage-nav{align-items:center}.garage-origin{white-space:normal}
+ .garage-hero h1{font-size:clamp(2rem,10vw,2.8rem)}
+ .garage-market-guide,.garage-test-cards{grid-template-columns:1fr}
+ .garage-page-intro{align-items:flex-start}
+ [data-testid="stTabs"] [role="tablist"]{flex-wrap:wrap;height:auto;overflow:visible}
+ [data-testid="stTabs"] [role="tab"]{white-space:normal;max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(forced-colors:active){
+ [data-testid="stButtonGroup"] button,[data-testid="stRadio"] label:has(input){border:1px solid ButtonText!important}
+ [data-testid="stButtonGroup"] button[aria-checked="true"]{outline:2px solid Highlight!important;outline-offset:-4px}
+ :focus-visible{outline:3px solid Highlight!important;box-shadow:none!important}
+}

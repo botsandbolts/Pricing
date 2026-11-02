@@ -14,14 +14,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _garage_ordered_cards_release_v3():
+def _accessible_garage_release_v4():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
-    for name in ('pricing.navigation','pricing.taste_garage_ui'):
+    for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.taste_garage_ui','pricing.current_tools'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_garage_ordered_cards_release_v3()
+_accessible_garage_release_v4()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
@@ -30,12 +30,12 @@ from pricing.navigation import render_navigation
 _workspace=render_navigation()
 if _workspace=='🚦 Pick your garage':
     @st.cache_resource(show_spinner=False)
-    def _taste_garage_ordered_preferences_v7():
+    def _taste_garage_accessible_preferences_v8():
         import importlib
         for name in ('pricing.taste_ranking','pricing.taste_garage_ui'):
             importlib.reload(importlib.import_module(name))
         return True
-    _taste_garage_ordered_preferences_v7()
+    _taste_garage_accessible_preferences_v8()
     from pricing.taste_garage_ui import render as render_taste_garage
     render_taste_garage(Path(__file__).parent)
     from pricing.ga_events import render_events
