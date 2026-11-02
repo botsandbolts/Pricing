@@ -13639,14 +13639,16 @@
       "numeric": 0.5
     }
   },
-  "method_description": "Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS RMSE compares original common-category indicators and robust range-scaled numeric features directly, without vector unit normalization. Inverse ratings with a fixed neutral offset shape preference evidence; XGBoost orders eligible cars.",
+  "method_description": "Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS RMSE compares catalogue-column-standardized common-category indicators and numeric features, without row unit normalization. All session inverse ratings are standardized together with sklearn StandardScaler; higher ratings remain better. Preference evidence shapes the shortlist; XGBoost orders eligible cars.",
   "representatives": "Exact sum-cosine-distance medoid among actual non-noise members, in balanced original feature blocks",
   "sha256": {
-    "features.npz": "77cccc8af3ed279cd49f3c70c4629fbfcefaf15b2be5bc35938f78939358e717",
+    "features.npz": "e942c1ac6d87469a242990387e75439d7e67b0cff1964e9973f2f74632959464",
     "cars.sqlite": "ebc098f19be944d8d659e1cde0b6d32f21d3a316fda15487af023570105906a4",
     "row-ids.json.gz": "7d2c21b172d459c3534ba589fbf565eac21079e21869c727c1967db051f72b9e",
     "selection.json": "a34c123c88f3c8304af3e74ca05ac59d93f1d0a2001bfbc1bfe2c12b2a0fc846",
-    "text-price-provenance.json": "30156e0a9248cf7d1293333dd4c40bbb642aaca7ad814e81f65417160c1e90e0"
+    "text-price-provenance.json": "30156e0a9248cf7d1293333dd4c40bbb642aaca7ad814e81f65417160c1e90e0",
+    "faiss-scaler.json": "1334a63b662bf465a127a0c3fd6bd87dc37c61170dfc9387948518349232a57e"
   },
-  "rating_transform": "5/12 - 1/rating; no normalization"
+  "rating_transform": "-StandardScaler(1/rating), fitted on all 10 or 25 session ratings",
+  "faiss_scaling": "sklearn StandardScaler fitted per column on all 110832 catalogue cars"
 }
