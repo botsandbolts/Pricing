@@ -1,4 +1,4 @@
-"""Reuse original HDBSCAN profiles; verify FAISS cosine and both rating UIs."""
+"""Verify matching frozen HDBSCAN profiles, FAISS cosine and both rating UIs."""
 from pathlib import Path
 import argparse,hashlib,json,time,resource
 import joblib,numpy as np,pandas as pd
@@ -15,6 +15,8 @@ def main():
     assert 'umap' not in selected and selected['source_rows']==meta['rows'] and meta['rows']>100000
     if meta.get('encoding_kind')=='common-onehot-v1':
         assert selected['encoder'].get('kind')=='common-onehot-v1','Refusing to mix one-hot assets with a legacy frozen model'
+        assert selected['encoder']['feature_names'][-3:]==['model_year','log_mileage','mileage_missing']
+        assert selected['encoder']['threshold']==meta['category_count_threshold']
     geometry=selected['hdbscan']._raw_data
     positions=[p['position'] for p in meta['profiles']]
     # Preserve every original representative and membership. Only replace distances.
