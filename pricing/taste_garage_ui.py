@@ -71,7 +71,7 @@ def render(root):
                 st.caption(f"Profile {i+1} · {p['cars']:,} historical adverts · real representative")
                 car_details(root,car,when)
                 if rating_keys[i] not in st.session_state and rating_keys[i] in memory:st.session_state[rating_keys[i]]=memory[rating_keys[i]]
-                st.radio('Your reaction',list(LABELS),index=None,format_func=LABELS.get,horizontal=True,key=rating_keys[i])
+                st.pills('Your reaction',list(LABELS),selection_mode='single',format_func=LABELS.get,key=rating_keys[i],persist_state='session')
                 memory[rating_keys[i]]=st.session_state.get(rating_keys[i])
                 with st.expander(f'Description & details · car {i+1}'):
                     st.caption('Short excerpt from the historical advert; source text is not independently verified.')
