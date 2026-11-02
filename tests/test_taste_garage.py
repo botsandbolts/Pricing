@@ -233,16 +233,16 @@ def test_retired_umap_catalogue_cannot_activate(tmp_path):
     assert active_catalogue_folder(tmp_path)==tmp_path/'data/taste-garage'
 
 
-def test_reciprocal_standardisation_direction_and_scale():
-    from pricing.taste_ranking import reciprocal_rating_scores
+def test_direct_ratings_preserve_order_without_inversion():
+    from pricing.taste_ranking import rating_scores
     r=np.array([1,2,3,4]*3)
-    result=reciprocal_rating_scores(r);inv=1/r
-    np.testing.assert_allclose(result,5/12-inv)
+    result=rating_scores(r)
+    np.testing.assert_allclose(result,r-2.5)
     assert np.all(np.diff(result[:4])>0)
     assert result[0]<result[1]<0<result[2]<result[3]
-    np.testing.assert_allclose(reciprocal_rating_scores([4]*10),np.full(10,1/6))
+    np.testing.assert_allclose(rating_scores([4]*10),np.full(10,1.5))
 
-def test_reciprocal_evidence_prefers_four_over_one():
+def test_direct_evidence_prefers_four_over_one():
     from pricing.taste_ranking import preference_evidence
     ratings=[1,2,3,4,1,2,3,4,1,4]
     e=preference_evidence(np.eye(10),ratings)

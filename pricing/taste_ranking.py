@@ -53,7 +53,7 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
         m=np.asarray(memberships,dtype=float)
         if m.shape!=(len(codes),k) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft memberships')
         evidence=preference_evidence(m,ratings,medoid_distances)
-        bound=max(1.,float(np.max(np.abs(reciprocal_rating_scores(ratings)))))
+        bound=max(1.,float(np.max(np.abs(rating_scores(ratings)))))
         relevance=np.clip((evidence['signed']/bound+1)*1.5,0,3)
         target=np.rint(relevance*10).astype(np.int32)
     else:relevance=target.astype(float)
@@ -354,17 +354,17 @@ def faiss_rmse(queries,references):
     return distances/np.sqrt(q.shape[1]),order
 
 
-def reciprocal_rating_scores(ratings):
-    """Reciprocal rating cost, with a fixed neutral offset for signed evidence."""
+def rating_scores(ratings):
+    """Direct ratings centered at neutral 2.5; no reciprocal or scaler."""
     r=np.asarray(ratings,dtype=float)
     if r.ndim!=1 or not len(r) or not np.isfinite(r).all() or not np.isin(r,[1,2,3,4]).all():
         raise ValueError('Ratings must be a nonempty vector of 1, 2, 3 or 4')
-    return 5/12-1.0/r
+    return r-2.5
 
 def preference_evidence(memberships,ratings,distances=None):
     """Signed evidence: negative reactions lower preference; no approval from noise."""
     m=np.asarray(memberships,dtype=float);r=np.asarray(ratings,dtype=int)
-    signed=reciprocal_rating_scores(r);positive=m@np.maximum(signed,0);negative=m@np.maximum(-signed,0)
+    signed=rating_scores(r);positive=m@np.maximum(signed,0);negative=m@np.maximum(-signed,0)
     allowed=np.ones(len(m),dtype=bool)
     if distances is not None:
         d=np.asarray(distances,dtype=float)

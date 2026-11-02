@@ -34,8 +34,8 @@ def main():
     meta['neighbour_metric']='cosine-unscaled'
     meta['faiss_scaling']='No additional feature-column scaling; cosine on existing encoded features'
     meta['sha256'].pop('faiss-scaler.json',None)
-    meta['rating_transform']='1/rating cost: 4=0.25, 3=1/3, 2=0.5, 1=1; no scaling'
-    meta['method_description']='Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS cosine compares the existing encoded features without extra column StandardScaler or block normalization. L2 normalization is used only to calculate cosine. Reciprocal rating costs use 1/rating, so 4 maps to 0.25; no session scaler. Signed evidence uses the fixed offset 5/12 minus cost. Preference evidence shapes the shortlist; XGBoost orders eligible cars.'
+    meta['rating_transform']='Direct ratings 1,2,3,4; signed evidence rating - 2.5; no inversion or scaler'
+    meta['method_description']='Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS cosine compares the existing encoded features without extra column StandardScaler or block normalization. L2 normalization is used only to calculate cosine. Direct ratings keep 4 highest and 1 lowest. Signed evidence uses rating minus 2.5, without reciprocal transform or session scaler. Preference evidence shapes the shortlist; XGBoost orders eligible cars.'
     (folder/('manifest.json' if k==10 else 'profiles-25.json')).write_text(json.dumps(meta,indent=2))
     ratings=[1+i%4 for i in range(k)]
     result=train_rank(a['codes'],a['numeric'],meta['levels'],a['clusters'],ratings,positions,a['validation'],prices=a['prices'],adjusted_prices=adjusted,memberships=a['memberships'],medoid_distances=d)

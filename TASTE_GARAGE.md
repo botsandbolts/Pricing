@@ -49,3 +49,7 @@ Session ratings: inverse-transform all 10 or 25 ratings, fit a separate sklearn 
 
 ## Current release: cosine, no extra column scaling
 FAISS uses existing encoded catalogue vectors directly; the added column StandardScaler and block normalization are disabled for comparisons. FAISS IndexFlatIP uses L2 normalization solely to calculate cosine similarity. Distance = 1 − cosine similarity. Reciprocal rating costs are 1/r: 4=0.25, 3=1/3, 2=0.5, 1=1, without session standardization. Signed preference evidence uses 5/12 minus cost. Selected recommendations display ascending cosine distance to the nearest liked representative. This supersedes the StandardScaler/RMSE release; existing unsupervised cluster geometry is unchanged.
+
+
+## Current direct-rating release
+The user ratings are no longer inverted. Signed preference evidence is rating − 2.5, mapping 1,2,3,4 to −1.5,−0.5,+0.5,+1.5, without a reciprocal or session scaler. Four is best. Cosine comparison has no added feature-column StandardScaler. Selected shortlist presentation remains descending cosine distance to the nearest liked representative (largest first), as explicitly requested. Earlier reciprocal-rating descriptions are superseded.
