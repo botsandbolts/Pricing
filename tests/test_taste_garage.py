@@ -237,10 +237,10 @@ def test_reciprocal_standardisation_direction_and_scale():
     from pricing.taste_ranking import reciprocal_rating_scores
     r=np.array([1,2,3,4]*3)
     result=reciprocal_rating_scores(r);inv=1/r
-    np.testing.assert_allclose(result,-(inv-inv.mean())/inv.std())
+    np.testing.assert_allclose(result,5/12-inv)
     assert np.all(np.diff(result[:4])>0)
-    assert abs(result.mean())<1e-12 and abs(result.std()-1)<1e-12
-    np.testing.assert_allclose(reciprocal_rating_scores([4]*10),np.zeros(10))
+    assert result[0]<result[1]<0<result[2]<result[3]
+    np.testing.assert_allclose(reciprocal_rating_scores([4]*10),np.full(10,1/6))
 
 def test_reciprocal_evidence_prefers_four_over_one():
     from pricing.taste_ranking import preference_evidence

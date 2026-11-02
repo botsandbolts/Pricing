@@ -289,12 +289,12 @@ def predict_new_profiles(frame,bundle):
     m=np.zeros((len(frame),len(bundle['medoids'])),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
     m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
-    if bundle['encoder'].get('kind')=='lemon-textprice-onehot-umap-v1' and bundle.get('neighbour_metric')!='rmse':
+    if bundle['encoder'].get('kind')=='lemon-textprice-onehot-umap-v1' and bundle.get('neighbour_metric') not in ('rmse','cosine-unscaled'):
         from pricing.mixed_garage import comparison_vectors
         geometry=comparison_vectors(geometry,bundle['encoder'])
-    if bundle.get('faiss_scaler') is not None:
+    if bundle.get('faiss_scaler') is not None and bundle.get('neighbour_metric')!='cosine-unscaled':
         geometry=apply_faiss_scaler(geometry,bundle['faiss_scaler'])
-    return m,(faiss_rmse if bundle.get('neighbour_metric')=='rmse' else faiss_cosine if bundle.get('neighbour_metric')=='cosine' else faiss_l2)(geometry,bundle['medoids'])[0]
+    return m,(faiss_rmse if bundle.get('neighbour_metric')=='rmse' else faiss_cosine if bundle.get('neighbour_metric') in ('cosine','cosine-unscaled') else faiss_l2)(geometry,bundle['medoids'])[0]
 
 
 def faiss_l2(queries,references):
@@ -355,12 +355,11 @@ def faiss_rmse(queries,references):
 
 
 def reciprocal_rating_scores(ratings):
-    """StandardScaler of inverse ratings across the session; higher rating scores higher."""
+    """Reciprocal rating cost, with a fixed neutral offset for signed evidence."""
     r=np.asarray(ratings,dtype=float)
     if r.ndim!=1 or not len(r) or not np.isfinite(r).all() or not np.isin(r,[1,2,3,4]).all():
         raise ValueError('Ratings must be a nonempty vector of 1, 2, 3 or 4')
-    from sklearn.preprocessing import StandardScaler
-    return -StandardScaler().fit_transform((1.0/r).reshape(-1,1)).ravel()
+    return 5/12-1.0/r
 
 def preference_evidence(memberships,ratings,distances=None):
     """Signed evidence: negative reactions lower preference; no approval from noise."""
