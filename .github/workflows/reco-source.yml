@@ -1,0 +1,45 @@
+name: Export existing Lemon Squeezer text-price column
+on:
+  push:
+    branches: ['recommender-onehot-mileage']
+    paths: ['.github/workflows/reco-source.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: minilm-cleaning-and-evaluation-evidence
+          run-id: 41225149395
+          github-token: ${{ github.token }}
+          path: evidence
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy
+      - name: Export stored cross-fitted price values without recomputing MiniLM
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,json,pandas as pd,numpy as np
+          base=next(Path('evidence').glob('**/minilm-cleaned/ask'))
+          prices=pd.read_csv(base/'text-price-oof.csv.gz',dtype={'row_id':str})
+          audit=pd.read_csv(base/'cleaning-audit.csv.gz',dtype={'row_id':str})
+          retained=set(audit.loc[audit.retained.astype(str).str.lower().eq('true'),'row_id'])
+          assert len(retained)==110832 and prices.row_id.is_unique and set(prices.row_id)==retained
+          assert np.isfinite(prices.predicted_text_price).all() and (prices.predicted_text_price>0).all()
+          out=Path('export');out.mkdir()
+          prices[['row_id','predicted_text_price']].to_csv(out/'retained-text-prices.csv.gz',index=False)
+          (out/'provenance.json').write_text(json.dumps({'run_id':41225149395,'artifact':'minilm-cleaning-and-evaluation-evidence','path':'minilm-cleaned/ask/text-price-oof.csv.gz','original_sha256':hashlib.file_digest(open(base/'text-price-oof.csv.gz','rb'),'sha256').hexdigest(),'rows':len(prices),'recomputed':False},indent=2))
+          print('EXPORTED',len(prices),'existing scalar prices')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lemon-existing-text-prices
+          path: export/
+          retention-days: 90
