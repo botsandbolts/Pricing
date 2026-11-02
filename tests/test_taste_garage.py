@@ -257,3 +257,11 @@ def test_rmse_uses_raw_vector_magnitude_without_normalization():
     np.testing.assert_allclose(d,np.sqrt(np.mean((q[:,None,:]-r[None,:,:])**2,axis=2)),atol=1e-5)
     assert d[0,0]==0 and d[1,0]>10
     assert order[0,0]==0 and order[1,0]==1
+
+
+def test_presentation_lowest_liked_rmse_first_and_stable_ties():
+    from pricing.taste_ranking import closest_liked_first
+    distances=np.array([[.4,.9],[.1,.8],[.3,.7],[.1,.6]])
+    ordered=closest_liked_first([0,1,2,3],distances,[4,1])
+    assert ordered.tolist()==[1,3,2,0]
+    assert set(ordered)=={0,1,2,3}

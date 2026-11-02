@@ -90,6 +90,8 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     if not len(candidates):raise ValueError('No cars pass your positive and negative preference checks; revise your ratings')
     # Soft preference breaks tree-leaf ties; source row order never decides the shortlist.
     order=candidates[np.lexsort((-relevance[candidates],-scores[candidates]))[:10]]
+    if medoid_distances is not None:
+        order=closest_liked_first(order,medoid_distances,ratings)
     explanations=[]
     if soft:
         for i in order:
@@ -100,6 +102,15 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
                 if len(bad):item['disliked_profile']=int(bad[np.argmin(d[bad])]);item['disliked_distance']=float(d[item['disliked_profile']])
             explanations.append(item)
     return {'eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus medoid-distance evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
+
+def closest_liked_first(positions,distances,ratings):
+    """Present the selected shortlist by ascending distance to its nearest liked car."""
+    positions=np.asarray(positions,dtype=int)
+    d=np.asarray(distances,dtype=float);liked=np.asarray(ratings)>=3
+    if not liked.any():raise ValueError('At least one liked representative is required')
+    nearest=d[positions][:,liked].min(axis=1)
+    return positions[np.argsort(nearest,kind='stable')]
+
 
 def active_catalogue_folder(root):
     root=Path(root);fallback=root/'data/taste-garage';pointer=root/'data/taste-garage-release.json'
