@@ -13642,7 +13642,7 @@
   "method_description": "Existing mixed UMAP/HDBSCAN clusters and real representatives preserved. FAISS cosine compares the existing encoded features without extra column StandardScaler or block normalization. L2 normalization is used only to calculate cosine. Reciprocal rating costs use 1/rating, so 4 maps to 0.25; no session scaler. Signed evidence uses the fixed offset 5/12 minus cost. Preference evidence shapes the shortlist; XGBoost orders eligible cars.",
   "representatives": "Exact sum-cosine-distance medoid among actual non-noise members, in balanced original feature blocks",
   "sha256": {
-    "features.npz": "55914fae96b7c9cb05ee5ab01790ca8c0403b2625fb9f0e54d695e538aa3cc71",
+    "features.npz": "68983656b17453b2c1fa421dbcfead05eefbd5c12a905203b0c7f4624a88573b",
     "cars.sqlite": "ebc098f19be944d8d659e1cde0b6d32f21d3a316fda15487af023570105906a4",
     "row-ids.json.gz": "7d2c21b172d459c3534ba589fbf565eac21079e21869c727c1967db051f72b9e",
     "selection.json": "a34c123c88f3c8304af3e74ca05ac59d93f1d0a2001bfbc1bfe2c12b2a0fc846",
