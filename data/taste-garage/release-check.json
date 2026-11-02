@@ -3,95 +3,95 @@
     "test_type": "Mechanical full-cohort test with artificial ratings; not user satisfaction",
     "rows": 211844,
     "profile_count": 10,
-    "ranking_seconds": 3.6176443099975586,
+    "ranking_seconds": 2.190945863723755,
     "model_result": {
       "eligible_cars": 24393,
       "evidence": [
         {
-          "signed": 0.25409359689885985,
-          "positive": 0.27531530141042676,
-          "negative": 0.021221704511566894,
+          "signed": 0.2540935961143091,
+          "positive": 0.27531530111083913,
+          "negative": 0.021221704996530057,
           "liked_profile": 2,
           "liked_distance": 1.4092190265655518,
           "disliked_profile": 0,
           "disliked_distance": 3.648329496383667
         },
         {
-          "signed": 0.2521558091234714,
-          "positive": 0.268959648612282,
-          "negative": 0.016803839488810573,
+          "signed": 0.2521558101353133,
+          "positive": 0.26895964890296903,
+          "negative": 0.016803838767655743,
           "liked_profile": 2,
           "liked_distance": 1.721201777458191,
           "disliked_profile": 0,
-          "disliked_distance": 4.190591335296631
+          "disliked_distance": 4.190591812133789
         },
         {
-          "signed": 0.25099104964444996,
-          "positive": 0.26989396377913516,
-          "negative": 0.018902914134685207,
+          "signed": 0.25099105039554825,
+          "positive": 0.26989396572635005,
+          "negative": 0.018902915330801788,
           "liked_profile": 2,
-          "liked_distance": 1.6600788831710815,
+          "liked_distance": 1.660078763961792,
           "disliked_profile": 0,
           "disliked_distance": 3.642047882080078
         },
         {
-          "signed": 0.25095915039047517,
-          "positive": 0.26983145199587133,
-          "negative": 0.018872301605396134,
+          "signed": 0.25095915002874897,
+          "positive": 0.26983145173850676,
+          "negative": 0.018872301709757795,
           "liked_profile": 2,
           "liked_distance": 1.6633224487304688,
           "disliked_profile": 0,
           "disliked_distance": 3.6483445167541504
         },
         {
-          "signed": 0.2505215252086139,
-          "positive": 0.2650841408877209,
-          "negative": 0.014562615679106982,
+          "signed": 0.25052152485336093,
+          "positive": 0.26508414057867713,
+          "negative": 0.01456261572531618,
           "liked_profile": 2,
           "liked_distance": 1.9554580450057983,
           "disliked_profile": 0,
-          "disliked_distance": 4.575601100921631
+          "disliked_distance": 4.575601577758789
         },
         {
-          "signed": 0.25027968816722046,
-          "positive": 0.2686845435984614,
-          "negative": 0.018404855431240937,
+          "signed": 0.25027968889881924,
+          "positive": 0.2686845443310943,
+          "negative": 0.01840485543227505,
           "liked_profile": 2,
           "liked_distance": 1.723681926727295,
           "disliked_profile": 0,
           "disliked_distance": 3.647503614425659
         },
         {
-          "signed": 0.24977684044961107,
-          "positive": 0.2666425263533594,
-          "negative": 0.016865685903748304,
+          "signed": 0.2497768397268003,
+          "positive": 0.2666425255026351,
+          "negative": 0.016865685775834832,
           "liked_profile": 2,
           "liked_distance": 1.8670965433120728,
           "disliked_profile": 0,
-          "disliked_distance": 3.637878656387329
+          "disliked_distance": 3.637878894805908
         },
         {
-          "signed": 0.24974921443289347,
-          "positive": 0.2649598624246576,
-          "negative": 0.015210647991764109,
+          "signed": 0.24974921344954845,
+          "positive": 0.2649598617532143,
+          "negative": 0.015210648303665846,
           "liked_profile": 2,
           "liked_distance": 1.9989805221557617,
           "disliked_profile": 0,
           "disliked_distance": 3.8871288299560547
         },
         {
-          "signed": 0.24951864772342985,
-          "positive": 0.26654026485255744,
-          "negative": 0.01702161712912759,
+          "signed": 0.24951864837786755,
+          "positive": 0.26654026353533383,
+          "negative": 0.01702161515746627,
           "liked_profile": 2,
-          "liked_distance": 1.8599473237991333,
+          "liked_distance": 1.8599474430084229,
           "disliked_profile": 0,
           "disliked_distance": 3.749981641769409
         },
         {
-          "signed": 0.24939050258949863,
-          "positive": 0.26151516819924714,
-          "negative": 0.012124665609748507,
+          "signed": 0.2493905034089452,
+          "positive": 0.26151516853420975,
+          "negative": 0.012124665125264545,
           "liked_profile": 2,
           "liked_distance": 2.294602632522583,
           "disliked_profile": 0,
@@ -124,8 +124,8 @@
         0.7206904888153076,
         0.7206904888153076
       ],
-      "ndcg10": 0.6071167913630077,
-      "random_ndcg10": 0.2578221964119978,
+      "ndcg10": 0.6071167915882157,
+      "random_ndcg10": 0.25782219649066446,
       "training_rows": 169451,
       "validation_rows": 42393,
       "final_rows": 211844,
@@ -152,101 +152,108 @@
         "log_date_adjusted_price": 0.002166521502658725,
         "price_adjustment_missing": 0.0
       }
+    },
+    "ui_check": {
+      "profile_count": 10,
+      "rating_control": "pills",
+      "ratings_verified": 10,
+      "recommendations": 10,
+      "test_selector_key": "taste_choose_10"
     }
   },
   "25": {
     "test_type": "Mechanical full-cohort test with artificial ratings; not user satisfaction",
     "rows": 211844,
     "profile_count": 25,
-    "ranking_seconds": 6.551465034484863,
+    "ranking_seconds": 4.193318605422974,
     "model_result": {
       "eligible_cars": 31388,
       "evidence": [
         {
-          "signed": 0.7664176383821281,
-          "positive": 0.7837846658031651,
-          "negative": 0.017367027421037008,
+          "signed": 0.7664176382392203,
+          "positive": 0.7837846659137391,
+          "negative": 0.0173670276745188,
           "liked_profile": 15,
           "liked_distance": 1.5653821229934692,
           "disliked_profile": 13,
           "disliked_distance": 2.5331673622131348
         },
         {
-          "signed": 0.7664175463260396,
-          "positive": 0.7837783327998151,
-          "negative": 0.01736078647377546,
+          "signed": 0.766417545775242,
+          "positive": 0.7837783326097054,
+          "negative": 0.017360786834463352,
           "liked_profile": 15,
           "liked_distance": 1.5656466484069824,
           "disliked_profile": 13,
           "disliked_distance": 2.5329654216766357
         },
         {
-          "signed": 0.763320528796301,
-          "positive": 0.7810292895567456,
-          "negative": 0.0177087607604446,
+          "signed": 0.763320528981294,
+          "positive": 0.7810292897495629,
+          "negative": 0.01770876076826887,
           "liked_profile": 15,
           "liked_distance": 1.6052212715148926,
           "disliked_profile": 13,
           "disliked_distance": 2.5751614570617676
         },
         {
-          "signed": 0.763320528796301,
-          "positive": 0.7810292895567456,
-          "negative": 0.0177087607604446,
+          "signed": 0.763320528981294,
+          "positive": 0.7810292897495629,
+          "negative": 0.01770876076826887,
           "liked_profile": 15,
           "liked_distance": 1.6052212715148926,
           "disliked_profile": 13,
           "disliked_distance": 2.5751614570617676
         },
         {
-          "signed": 0.763320528796301,
-          "positive": 0.7810292895567456,
-          "negative": 0.0177087607604446,
+          "signed": 0.763320528981294,
+          "positive": 0.7810292897495629,
+          "negative": 0.01770876076826887,
           "liked_profile": 15,
           "liked_distance": 1.6052212715148926,
           "disliked_profile": 13,
           "disliked_distance": 2.5751614570617676
         },
         {
-          "signed": 0.7618386078673465,
-          "positive": 0.7787886241587803,
-          "negative": 0.01695001629143376,
+          "signed": 0.7618386100616228,
+          "positive": 0.7787886279512835,
+          "negative": 0.01695001788966063,
           "liked_profile": 15,
-          "liked_distance": 1.6718705892562866,
+          "liked_distance": 1.671870470046997,
           "disliked_profile": 13,
           "disliked_distance": 2.562361478805542
         },
         {
-          "signed": 0.7617113027292773,
-          "positive": 0.7773144781674068,
-          "negative": 0.015603175438129507,
+          "signed": 0.7617113026811221,
+          "positive": 0.777314478084856,
+          "negative": 0.015603175403733868,
           "liked_profile": 15,
           "liked_distance": 1.7452799081802368,
           "disliked_profile": 13,
           "disliked_distance": 2.649670362472534
         },
         {
-          "signed": 0.761335696695655,
-          "positive": 0.7753204566283873,
-          "negative": 0.013984759932732307,
+          "signed": 0.7613356990857628,
+          "positive": 0.7753204599625896,
+          "negative": 0.01398476087682675,
           "liked_profile": 15,
-          "liked_distance": 1.860794186592102,
+          "liked_distance": 1.8607940673828125,
           "disliked_profile": 13,
           "disliked_distance": 2.8796885013580322
         },
         {
-          "signed": 0.7613341147196216,
-          "positive": 0.7753174997258644,
-          "negative": 0.013983385006242776,
+          "signed": 0.7613341175677257,
+          "positive": 0.7753175034341435,
+          "negative": 0.013983385866417761,
           "liked_profile": 15,
-          "liked_distance": 1.860919713973999,
+          "liked_distance": 1.8609195947647095,
           "disliked_profile": 13,
           "disliked_distance": 2.87973952293396
         },
         {
-          "signed": 0.7611936037368422,
-          "positive": 0.7763117303745068,
-          "negative": 0.01511812663766467,
+          "signed": 0.761193602657197,
+          "positive": 0.7763117296907721,
+          "negative": 0.01511812703357506,
           "liked_profile": 15,
           "liked_distance": 1.798620343208313,
           "disliked_profile": 13,
@@ -279,8 +286,8 @@
         1.1218814849853516,
         1.1218814849853516
       ],
-      "ndcg10": 0.9468135666676732,
-      "random_ndcg10": 0.5144231958321253,
+      "ndcg10": 0.9468135666309399,
+      "random_ndcg10": 0.5144231958327385,
       "training_rows": 169459,
       "validation_rows": 42385,
       "final_rows": 211844,
@@ -307,7 +314,14 @@
         "log_date_adjusted_price": 0.006364440079778433,
         "price_adjustment_missing": 0.0
       }
+    },
+    "ui_check": {
+      "profile_count": 25,
+      "rating_control": "pills",
+      "ratings_verified": 25,
+      "recommendations": 10,
+      "test_selector_key": "taste_choose_25"
     }
   },
-  "process_peak_rss_mib": 1059.96875
+  "process_peak_rss_mib": 1047.65625
 }
