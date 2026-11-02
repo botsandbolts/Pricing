@@ -46,15 +46,8 @@ def main():
     assert all(x['signed']>0 for x in result['evidence'])
     assert result['score_range']>1e-7 and sum(result['feature_importance'].values())>0 and len(set(result['positions']))==10
     reports[str(k)]={'test_type':'Mechanical full-cohort test with artificial ratings; not user satisfaction','rows':meta['rows'],'profile_count':k,'ranking_seconds':time.time()-started,'model_result':result}
-    from streamlit.testing.v1 import AppTest
-    at=AppTest.from_string("from pathlib import Path\nfrom pricing.taste_garage_ui import render\nrender(Path('.'))").run(timeout=60)
-    if k==25:
-        next(r for r in at.radio if r.label=='Choose your test').set_value('The Long Drive · 25 cars, zero commitment').run(timeout=60)
-    assert not at.exception
-    radios=[r for r in at.radio if r.label=='Your reaction'];assert len(radios)==k
-    for r,v in zip(radios,ratings):r.set_value(v)
-    at.run(timeout=60);next(b for b in at.button if b.label=='Find my ten cars →').click().run(timeout=120)
-    assert not at.exception and any('Your 10' in h.value for h in at.markdown)
+    from scripts.taste_ui_check import exercise_taste_ui
+    reports[str(k)]['ui_check']=exercise_taste_ui(root,k,ratings)
  reports['process_peak_rss_mib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024
  Path('data/taste-garage/release-check.json').write_text(json.dumps(reports,indent=2));print(json.dumps(reports,indent=2))
 if __name__=='__main__':main()

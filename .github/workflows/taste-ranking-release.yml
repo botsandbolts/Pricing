@@ -6,8 +6,10 @@ on:
       - 'pricing/taste_*.py'
       - 'scripts/assign_taste_listings.py'
       - 'scripts/verify_taste_release.py'
+      - 'scripts/taste_ui_check.py'
       - 'scripts/build_long_taste.py'
       - 'tests/test_taste_garage.py'
+      - 'tests/test_taste_release_ui.py'
       - '.github/workflows/taste-ranking-release.yml'
 permissions:
   contents: write
@@ -29,7 +31,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 'xgboost>=3.1,<4' hdbscan==0.8.44 faiss-cpu streamlit==1.66.1 requests pytest
-      - run: python -m pytest tests/test_taste_garage.py -q
+      - run: python -m pytest tests/test_taste_garage.py tests/test_taste_release_ui.py -q
       - uses: actions/download-artifact@v4
         with:
           name: frozen-hdbscan-daily-listing-prediction
@@ -73,3 +75,4 @@ jobs:
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
+
