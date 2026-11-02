@@ -45,3 +45,7 @@ The frozen UMAP transform and density model are exported as offline artifacts fo
 `cluster-comparison.json` reports the old/new largest profile shares, all profile sizes and native noise fractions. These describe structure and coverage, not personal relevance. The original category encoding remains price-informed. UMAP cannot manufacture missing preference signals, may distort density and can introduce artificial splits; neither a balanced partition nor inherited-label NDCG proves better recommendations. Use additional independent shortlist ratings to assess personal relevance.
 
 Method reference: https://umap-learn.readthedocs.io/en/latest/clustering.html
+
+
+## Cosine preference comparison
+New UMAP catalogues use exact FAISS IndexFlatIP on L2-normalized original scaled vectors. Distance is 1 minus cosine similarity (0–2), with zero vectors assigned neutral similarity zero. Both representative affinity and the nearest-liked versus nearest-disliked exclusion use this same distance. This changes preference comparison, not the Euclidean UMAP/HDBSCAN density metric or the original-space medoid objective. Cosine emphasizes direction rather than magnitude and is not a proven relevance improvement. Legacy catalogues retain their labelled Euclidean distances until the verified cosine assets replace them.

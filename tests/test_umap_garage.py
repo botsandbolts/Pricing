@@ -30,3 +30,17 @@ def test_new_listing_uses_umap_for_density_but_original_features_for_faiss(monke
     m,d=predict_new_profiles(frame.iloc[:3],bundle)
     assert calls==[('transform',(3,14)),('density',(3,5))]
     assert m.shape==d.shape==(3,10) and np.isfinite(d).all()
+
+
+def test_cosine_faiss_matches_normalized_dot_and_preserves_inputs():
+    from pricing.taste_ranking import faiss_cosine
+    q=np.array([[1.,2.],[0.,0.],[-1.,-2.]],dtype=np.float32)
+    r=np.array([[2.,4.],[2.,-1.],[-2.,-4.]],dtype=np.float32)
+    before=q.copy();d,order=faiss_cosine(q,r)
+    qn=q/np.maximum(np.linalg.norm(q,axis=1,keepdims=True),1e-12)
+    rn=r/np.linalg.norm(r,axis=1,keepdims=True)
+    expected=1-np.clip(qn@rn.T,-1,1)
+    np.testing.assert_allclose(d,expected,atol=1e-6)
+    np.testing.assert_array_equal(q,before)
+    assert order[0,0]==0 and order[2,0]==2
+    np.testing.assert_allclose(d[1],1)

@@ -2,7 +2,7 @@
 from pathlib import Path
 import argparse,gc,hashlib,json,time
 import joblib,numpy as np
-from pricing.taste_ranking import load,records,faiss_l2,predict_new_profiles
+from pricing.taste_ranking import load,records,faiss_cosine,predict_new_profiles
 from scripts.build_long_taste import select_long_model,l2_medoid
 
 UMAP_PARAMETERS={'n_neighbors':30,'min_dist':0.,'n_components':5,'metric':'euclidean','n_epochs':200,'random_state':42,'low_memory':True,'n_jobs':1}
@@ -41,16 +41,16 @@ def build(root,bundle_path):
             # A real medoid in interpretable original features, within its UMAP density cluster.
             positions.append(l2_medoid(original[ids],ids))
         assert len(set(positions))==k
-        distances,_=faiss_l2(original,original[positions]);validation=base['validation'].copy();validation[positions]=False
-        arrays={'memberships':memberships,'clusters':np.argmax(memberships,axis=1).astype(np.int16),'noise':model.labels_<0,'validation':validation,'medoid_l2':distances}
+        distances,_=faiss_cosine(original,original[positions]);validation=base['validation'].copy();validation[positions]=False
+        arrays={'memberships':memberships,'clusters':np.argmax(memberships,axis=1).astype(np.int16),'noise':model.labels_<0,'validation':validation,'medoid_cosine':distances}
         if k==10:arrays.update({key:base[key] for key in ['codes','numeric','prices','source_days']})
         file=folder/('features.npz' if k==10 else 'features-25.npz');np.savez_compressed(file,**arrays)
         cars=records(root,positions)
         profiles=[{'position':p,'cluster':j,'name':f'Profile {j+1}','cars':int((model.labels_==j).sum()),'prototype':cars[j]} for j,p in enumerate(positions)]
-        meta={'version':4,'profile_count':k,'rows':len(original),'source_sha256':base_meta['source_sha256'],'profiles':profiles,'density_clusters':k,'noise_fraction':float(np.mean(model.labels_<0)),'embedding':dict(UMAP_PARAMETERS),'method_description':'Smoothed leave-one-out category encoding and standardized numerical features → 5D UMAP (30 neighbours, min_dist=0) → HDBSCAN. The 10- and 25-car tests select separate cuts of the density hierarchy. Medoids and FAISS L2 explanations use original scaled features; the embedding is not used as a substitute for interpretable vehicle distance.','representatives':'Real non-noise cars; original-feature L2 medoid objective, exact up to 2000 members and deterministic 256-candidate approximation for larger groups','reference_database':'../taste-garage/cars.sqlite; canonical row positions unchanged','sha256':{file.name:hashlib.sha256(file.read_bytes()).hexdigest()}}
+        meta={'version':4,'neighbour_metric':'cosine','profile_count':k,'rows':len(original),'source_sha256':base_meta['source_sha256'],'profiles':profiles,'density_clusters':k,'noise_fraction':float(np.mean(model.labels_<0)),'embedding':dict(UMAP_PARAMETERS),'method_description':'Smoothed leave-one-out category encoding and standardized numerical features → 5D UMAP (30 neighbours, min_dist=0) → HDBSCAN. The 10- and 25-car tests select separate cuts of the density hierarchy. Medoids use original scaled features; FAISS cosine explanations use their L2-normalized vectors; the embedding is not used as a substitute for interpretable vehicle distance.','representatives':'Real non-noise cars; original-feature L2 medoid objective, exact up to 2000 members and deterministic 256-candidate approximation for larger groups','reference_database':'../taste-garage/cars.sqlite; canonical row positions unchanged','sha256':{file.name:hashlib.sha256(file.read_bytes()).hexdigest()}}
         if k==10:meta['levels']=base_meta['levels']
         (folder/('manifest.json' if k==10 else 'profiles-25.json')).write_text(json.dumps(meta,indent=2))
-        bundle={'encoder':frozen['encoder'],'umap':reducer,'hdbscan':model,'macro':np.arange(k),'medoids':original[positions],'source_rows':len(original),'source_sha256':base_meta['source_sha256'],'prediction_method':'flat','embedding_parameters':UMAP_PARAMETERS}
+        bundle={'encoder':frozen['encoder'],'umap':reducer,'hdbscan':model,'macro':np.arange(k),'medoids':original[positions],'source_rows':len(original),'source_sha256':base_meta['source_sha256'],'neighbour_metric':'cosine','prediction_method':'flat','embedding_parameters':UMAP_PARAMETERS}
         joblib.dump(bundle,offline/f'frozen-profiles-{k}.joblib',compress=3)
         new_m,new_d=predict_new_profiles(pd.DataFrame(cars[:3]),bundle)
         assert new_m.shape==new_d.shape==(3,k) and np.isfinite(new_m).all() and np.isfinite(new_d).all()

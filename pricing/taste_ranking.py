@@ -98,7 +98,7 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
                 item['liked_profile']=int(good[np.argmin(d[good])]);item['liked_distance']=float(d[item['liked_profile']])
                 if len(bad):item['disliked_profile']=int(bad[np.argmin(d[bad])]);item['disliked_distance']=float(d[item['disliked_profile']])
             explanations.append(item)
-    return {'eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus L2 evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
+    return {'eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus medoid-distance evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
 def active_catalogue_folder(root):
     root=Path(root);candidate=root/'data/taste-garage-umap'
@@ -224,7 +224,7 @@ def predict_new_profiles(frame,bundle):
     m=np.zeros((len(frame),len(bundle['medoids'])),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
     m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
-    return m,faiss_l2(geometry,bundle['medoids'])[0]
+    return m,(faiss_cosine if bundle.get('neighbour_metric')=='cosine' else faiss_l2)(geometry,bundle['medoids'])[0]
 
 
 def faiss_l2(queries,references):
@@ -242,6 +242,24 @@ def faiss_l2(queries,references):
     return distances,orders
 
 
+def faiss_cosine(queries,references):
+    """Exact cosine distance (1 - normalized inner product); zero vectors are neutral."""
+    import faiss
+    q=np.array(queries,dtype=np.float32,order='C',copy=True)
+    r=np.array(references,dtype=np.float32,order='C',copy=True)
+    if q.ndim!=2 or r.ndim!=2 or q.shape[1]!=r.shape[1] or not len(r) or not q.shape[1] or not np.isfinite(q).all() or not np.isfinite(r).all():raise ValueError('Finite aligned feature matrices required')
+    faiss.normalize_L2(q);faiss.normalize_L2(r)
+    index=faiss.IndexFlatIP(r.shape[1]);index.add(r)
+    distances=np.empty((len(q),len(r)),dtype=np.float32)
+    orders=np.empty((len(q),len(r)),dtype=np.int32)
+    for start in range(0,len(q),2048):
+        similarity,order=index.search(q[start:start+2048],len(r))
+        distance=1-np.clip(similarity,-1,1)
+        distances[start:start+len(order)]=np.take_along_axis(distance,np.argsort(order,axis=1),axis=1)
+        orders[start:start+len(order)]=order
+    return distances,orders
+
+
 def preference_evidence(memberships,ratings,distances=None):
     """Signed evidence: negative reactions lower preference; no approval from noise."""
     m=np.asarray(memberships,dtype=float);r=np.asarray(ratings,dtype=int)
@@ -249,7 +267,7 @@ def preference_evidence(memberships,ratings,distances=None):
     allowed=np.ones(len(m),dtype=bool)
     if distances is not None:
         d=np.asarray(distances,dtype=float)
-        if d.shape!=m.shape or not np.isfinite(d).all() or (d<0).any():raise ValueError('Invalid L2 medoid distances')
+        if d.shape!=m.shape or not np.isfinite(d).all() or (d<0).any():raise ValueError('Invalid medoid distances')
         affinity=1/(1+d*d);confidence=affinity.max(axis=1);weights=affinity/np.maximum(affinity.sum(axis=1,keepdims=True),1e-12)
         positive=.75*positive+.25*(weights@np.maximum(signed,0))*confidence
         negative=.75*negative+.25*(weights@np.maximum(-signed,0))*confidence

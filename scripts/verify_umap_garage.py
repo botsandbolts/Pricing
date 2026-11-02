@@ -13,8 +13,8 @@ def verify(root):
         assert meta['embedding']['min_dist']==0 and meta['embedding']['n_neighbors']==30 and meta['embedding']['n_components']==5
         if current is None:current=adjusted_price_features(a['codes'],a['numeric'],meta['levels'],a['prices'],a['source_days'],today(),TimeTransport(root))
         ratings=[1+i%4 for i in range(k)];started=time.time()
-        r=train_rank(a['codes'],a['numeric'],meta['levels'],a['clusters'],ratings,[p['position'] for p in meta['profiles']],a['validation'],prices=a['prices'],adjusted_prices=current,memberships=a['memberships'],medoid_distances=a['medoid_l2'])
-        positions=np.array(r['positions']);d=a['medoid_l2'][positions];good=np.array(ratings)>=3
+        r=train_rank(a['codes'],a['numeric'],meta['levels'],a['clusters'],ratings,[p['position'] for p in meta['profiles']],a['validation'],prices=a['prices'],adjusted_prices=current,memberships=a['memberships'],medoid_distances=a['medoid_cosine'])
+        positions=np.array(r['positions']);d=a['medoid_cosine'][positions];good=np.array(ratings)>=3
         assert len(set(positions))==10 and np.all(d[:,good].min(axis=1)<d[:,~good].min(axis=1))
         assert all(e['signed']>0 for e in r['evidence']) and r['score_range']>1e-7
         ui=exercise_taste_ui(root,k,ratings)

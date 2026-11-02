@@ -105,7 +105,7 @@ def render(root):
             with st.spinner('Learning your ordering from vehicle features and prices, then scoring the catalogue…'):
                 try:adjusted=adjusted_price_features(arrays['codes'],arrays['numeric'],meta['levels'],arrays['prices'],arrays['source_days'],when,transport(str(root)))
                 except (ValueError,OSError,KeyError,TypeError):adjusted=np.full(meta['rows'],np.nan)
-                result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays.get('memberships'),medoid_distances=arrays.get('medoid_l2'))
+                result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays.get('memberships'),medoid_distances=arrays.get('medoid_cosine',arrays.get('medoid_l2')))
                 result['adjusted_price_support']=int(np.isfinite(adjusted).sum())
             st.session_state['taste_result']=(signature,result)
         except (ValueError,OSError,RuntimeError,MemoryError) as exc:
@@ -116,7 +116,7 @@ def render(root):
         announce('Shortlist ready. '+str(len(saved[1]['positions']))+' historical cars found.')
         result=saved[1];st.markdown(f"## Your {len(result['positions'])} · tyres optional, taste mandatory")
         st.write('**HDBSCAN finds your car profiles. Your ratings shape the shortlist.**')
-        st.caption('Soft HDBSCAN memberships and exact FAISS L2 distances carry your likes and dislikes across the catalogue. Cars must pass the preference checks; a separate XGBoost ranker orders the eligible matches. These are historical adverts, not available stock. Cars you already rated are excluded.')
+        st.caption('Soft HDBSCAN memberships and exact FAISS distance distances carry your likes and dislikes across the catalogue. Cars must pass the preference checks; a separate XGBoost ranker orders the eligible matches. These are historical adverts, not available stock. Cars you already rated are excluded.')
         cars=records(root,result['positions'])
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
             profile=int(arrays['clusters'][position]);p=meta['profiles'][profile]
@@ -128,17 +128,17 @@ def render(root):
                 if result.get('evidence'):
                     e=result['evidence'][rank-1]
                     st.write(f"Preference evidence: +{e['positive']:.2f} appeal − {e['negative']:.2f} dislike = {e['signed']:+.2f}.")
-                    if 'liked_profile' in e:st.caption(f"Nearest liked representative: Profile {e['liked_profile']+1} · L2 {e['liked_distance']:.3f}.")
-                    if 'disliked_profile' in e:st.caption(f"Nearest disliked representative: Profile {e['disliked_profile']+1} · L2 {e['disliked_distance']:.3f}. This car is closer to a liked representative.")
+                    if 'liked_profile' in e:st.caption(f"Nearest liked representative: Profile {e['liked_profile']+1} · distance {e['liked_distance']:.3f}.")
+                    if 'disliked_profile' in e:st.caption(f"Nearest disliked representative: Profile {e['disliked_profile']+1} · distance {e['disliked_distance']:.3f}. This car is closer to a liked representative.")
                 if membership is not None:
                     weights=membership[position];top=np.argsort(-weights)[:3]
                     st.write('Profile blend: '+ ' · '.join(f'{j+1}: {weights[j]:.0%}' for j in top if weights[j]>.001))
                     st.caption(f'Unassigned membership: {max(0,1-float(weights.sum())):.0%}. Membership strengths are model affinities, not probabilities of liking this car.')
                 else:st.write(f'Related profile {profile+1}.')
-                if 'medoid_l2' in arrays:
-                    distances=arrays['medoid_l2'][position];near=np.argsort(distances)[:3]
-                    st.caption('Nearest representatives · FAISS L2: '+ ' · '.join(f'Profile {j+1}: {distances[j]:.3f}' for j in near))
-                    st.caption('L2 is Euclidean distance across scaled features. Lower means closer. This is not a dollar error or a probability; soft memberships and preference ranking are separate.')
+                if 'medoid_cosine' in arrays or 'medoid_l2' in arrays:
+                    distances=arrays.get('medoid_cosine',arrays.get('medoid_l2'))[position];near=np.argsort(distances)[:3]
+                    st.caption('Nearest representatives · FAISS distance: '+ ' · '.join(f'Profile {j+1}: {distances[j]:.3f}' for j in near))
+                    st.caption(('Cosine distance is 1 minus normalized inner product, from 0 to 2. It compares feature direction; zero vectors have neutral similarity.' if 'medoid_cosine' in arrays else 'This catalogue uses Euclidean distance across scaled features.')+' Lower means closer; this is not a dollar error or probability.')
                 if arrays['noise'][position]:st.caption('Exploratory match: HDBSCAN treated this advert as density noise; its soft affinities remain available without forcing a hard assignment.')
                 with st.expander(f'Original description & specifications · pick {rank}'):
                     st.caption('Short excerpt from the historical advert; source text is not independently verified.')
@@ -161,15 +161,15 @@ def render(root):
         with st.expander('Technical result'):
             st.json({k:v for k,v in result.items() if k not in ['positions','scores']},expanded=False)
     with st.expander('Business guide · HDBSCAN profiles, FAISS distances & ranking'):
-        st.write('UMAP learns a lower-dimensional neighbourhood representation; HDBSCAN discovers soft density profiles there. FAISS measures exact L2 distance to real representative cars in the original scaled feature space. XGBoost orders candidates after the like/dislike safeguards. These are separate jobs, not a guarantee of personal relevance.')
+        st.write('UMAP learns a lower-dimensional neighbourhood representation; HDBSCAN discovers soft density profiles there. FAISS measures exact cosine distance to real representative cars in the original scaled feature space. XGBoost orders candidates after the like/dislike safeguards. These are separate jobs, not a guarantee of personal relevance.')
         st.write(meta.get('method_description','Legacy scaled-feature HDBSCAN: smoothed leave-one-out category encoding and standardized numerical features, without UMAP.'))
         st.write(f"Catalogue: {meta['rows']:,} original canonical asking adverts. Native density groups: {meta['density_clusters']}. Native density noise: {meta['noise_fraction']:.1%}. No live inventory or verified condition is implied.")
-        st.write('Ratings 1 and 2 subtract preference; ratings 3 and 4 add preference. Unassigned membership contributes zero. Soft density evidence gets 75% weight and L2-medoid affinity 25%. Cars closer to a disliked representative than to a liked one are excluded, and the remaining cars need positive net evidence. Low-membership cars are not forced into a profile. XGBoost then learns an ordering from vehicle attributes and advertised prices. Original log price and a date-adjusted log-price scenario enter XGBoost, with an explicit indicator where date adjustment is unsupported. Cluster IDs, prototype IDs, descriptions and all user features are excluded from its predictors. The trained ranking and your reactions stay in this Streamlit session.')
+        st.write('Ratings 1 and 2 subtract preference; ratings 3 and 4 add preference. Unassigned membership contributes zero. Soft density evidence gets 75% weight and medoid affinity 25%. Cars closer to a disliked representative than to a liked one are excluded, and the remaining cars need positive net evidence. Low-membership cars are not forced into a profile. XGBoost then learns an ordering from vehicle attributes and advertised prices. Original log price and a date-adjusted log-price scenario enter XGBoost, with an explicit indicator where date adjustment is unsupported. Cluster IDs, prototype IDs, descriptions and all user features are excluded from its predictors. The trained ranking and your reactions stay in this Streamlit session.')
     with st.expander('Technical guide · rank:ndcg, validation and limits'):
         st.code('XGBRanker(objective="rank:ndcg", eval_metric="ndcg@10",\n          tree_method="hist", enable_categorical=True,\n          max_depth=3, n_jobs=2)')
         st.write('One session is one ranking query group; its all-zero qid is a grouping instruction, never a predictor. Ratings 1–4 map to relevance 0–3. Signed evidence is shifted to nonnegative relevance for LambdaMART and rounded to 0.1 steps for XGBoost’s integer ranking labels. Linear NDCG gains avoid exponential amplification; displayed NDCG uses unrounded soft relevance. A deterministic vehicle-ID split holds out approximately 20% for early stopping; prototypes stay in training. A final model fits every advert once, then scores the full catalogue. Native categorical partitioning avoids one-hot features in XGBoost. Original and date-adjusted log asking prices are predictors; HDBSCAN also uses price indirectly through leave-one-out category encoding, without using preference ratings. No FM or Cartesian duplication is used.')
         st.write('The category vocabulary and price-informed geometry use the full catalogue: this is transductive exploration, not an external benchmark. The held-out targets are still weak labels derived from the same representative judgments. Scaled target encodings can discard distinctions; clustered cars can have different appeal. Real additional ratings are needed to test personal preference quality.')
-        st.write('Both tests select their clusters from the fitted density hierarchy. In the UMAP version, new listings pass through the frozen category encoder, scaler and UMAP transform before HDBSCAN membership prediction. FAISS explanations and dislike safeguards use original scaled features, not distorted embedding distances. L2 is the square root of squared-L2 output, without division by dimension or cosine normalization.')
+        st.write('Both tests select their clusters from the fitted density hierarchy. In the UMAP version, new listings pass through the frozen category encoder, scaler and UMAP transform before HDBSCAN membership prediction. FAISS explanations and dislike safeguards use original scaled features, not distorted embedding distances. The new catalogue uses FAISS IndexFlatIP after L2-normalizing each original feature vector: cosine distance = 1 − inner product. The same distance drives explanations and the nearest-dislike safeguard. UMAP/HDBSCAN retain their separate Euclidean clustering geometry.')
         if meta.get('embedding'):st.json(meta['embedding'],expanded=False)
         st.caption('UMAP can distort density and split continuous groups. Cluster coverage, size balance and inherited-label NDCG do not establish user satisfaction; please rate the shortlist to give independent feedback.')
         st.write(meta.get('representatives','Legacy representative selection.'))
