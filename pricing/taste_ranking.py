@@ -67,21 +67,23 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
         supported=np.isfinite(current)&(current>0)
         x['log_date_adjusted_price']=np.where(supported,np.log(np.maximum(current,1)),np.nan).astype(np.float32)
         x['price_adjustment_missing']=(~supported).astype(np.float32)
-    params=dict(objective='rank:ndcg',eval_metric='ndcg@10',tree_method='hist',enable_categorical=True,max_cat_to_onehot=1,max_cat_threshold=32,max_bin=64,max_depth=3,min_child_weight=20,reg_lambda=20.,reg_alpha=1.,learning_rate=.07,lambdarank_pair_method='topk',lambdarank_num_pair_per_sample=10,n_jobs=2,random_state=42)
+    params=dict(objective='rank:ndcg',eval_metric='ndcg@10',tree_method='hist',enable_categorical=True,max_cat_to_onehot=1,max_cat_threshold=32,max_bin=64,max_depth=3,min_child_weight=.001,reg_lambda=1.,reg_alpha=0.,learning_rate=.07,lambdarank_pair_method='topk',lambdarank_num_pair_per_sample=10,n_jobs=2,random_state=42)
     if soft:params['ndcg_exp_gain']=False
-    probe=XGBRanker(**params,n_estimators=rounds,early_stopping_rounds=12)
+    probe=XGBRanker(**params,n_estimators=rounds,early_stopping_rounds=20)
     probe.fit(x.loc[train],target[train],qid=np.zeros(train.sum(),dtype=np.uint32),eval_set=[(x.loc[valid],target[valid])],eval_qid=[np.zeros(valid.sum(),dtype=np.uint32)],verbose=False)
-    held=probe.predict(x.loc[valid]);metric=ndcg10(relevance[valid],held,linear=soft)
+    iterations=min(probe.get_booster().num_boosted_rounds(),max(16,int(probe.best_iteration)+1))
+    held=probe.predict(x.loc[valid],iteration_range=(0,iterations));metric=ndcg10(relevance[valid],held,linear=soft)
     rng=np.random.default_rng(42);random_metric=ndcg10(relevance[valid],rng.random(valid.sum()),linear=soft)
-    iterations=int(probe.best_iteration)+1
     del probe
     # Final fit uses each original advert exactly once. No Cartesian expansion.
     model=XGBRanker(**params,n_estimators=iterations)
     model.fit(x,target,qid=np.zeros(len(x),dtype=np.uint32),verbose=False)
     scores=model.predict(x)
+    score_range=float(np.ptp(scores))
+    if score_range<1e-7:raise ValueError('Ranking model learned no ordering; a constant shortlist is not released')
     scores[np.asarray(prototype_positions,dtype=int)]=-np.inf
     order=np.argsort(-scores,kind='stable')[:10]
-    return {'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':10,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
+    return {'score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':10,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
 def load(root):
     folder=Path(root)/'data/taste-garage';file=folder/'manifest.json'
@@ -181,10 +183,24 @@ def transform_new_geometry(frame,state):
 def predict_new_profiles(frame,bundle):
     """No refit: frozen encoding/scaling, HDBSCAN affinities, medoid distances."""
     import hdbscan
-    from scipy.spatial.distance import cdist
     geometry=transform_new_geometry(frame,bundle['encoder'])
     raw=np.nan_to_num(hdbscan.membership_vector(bundle['hdbscan'],geometry),nan=0.,posinf=0.,neginf=0.)
     m=np.zeros((len(frame),10),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
     m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
-    return m,cdist(geometry,bundle['medoids']).astype(np.float32)
+    return m,faiss_rmse(geometry,bundle['medoids'])[0]
+
+
+def faiss_rmse(queries,references):
+    """Exact FAISS L2 search; RMSE in scaled feature units, column-aligned distances."""
+    import faiss
+    q=np.ascontiguousarray(queries,dtype=np.float32);r=np.ascontiguousarray(references,dtype=np.float32)
+    if q.ndim!=2 or r.ndim!=2 or q.shape[1]!=r.shape[1] or not len(r) or not q.shape[1] or not np.isfinite(q).all() or not np.isfinite(r).all():raise ValueError('Finite aligned feature matrices required')
+    index=faiss.IndexFlatL2(r.shape[1]);index.add(r)
+    distances=np.empty((len(q),len(r)),dtype=np.float32);orders=np.empty((len(q),len(r)),dtype=np.int32)
+    for start in range(0,len(q),2048):
+        squared,order=index.search(q[start:start+2048],len(r))
+        rmse=np.sqrt(np.maximum(squared,0)/r.shape[1])
+        distances[start:start+len(order)]=np.take_along_axis(rmse,np.argsort(order,axis=1),axis=1)
+        orders[start:start+len(order)]=order
+    return distances,orders

@@ -81,7 +81,7 @@ def render(root):
     if saved and saved[0]!=signature:st.info('Your reactions changed. Press Find my ten cars to refresh the shortlist.');saved=None
     if saved:
         result=saved[1];st.markdown('### Your ten · tyres optional, taste mandatory')
-        st.caption('Ordered by XGBoost preference score. These are historical adverts, not available stock. The ten prototypes you already rated are excluded.')
+        st.caption('Ordered by XGBoost preference score; nearest-medoid explanations use exact FAISS RMSE. These are historical adverts, not available stock. The ten prototypes you already rated are excluded.')
         cars=records(root,result['positions'])
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
             profile=int(arrays['clusters'][position]);p=meta['profiles'][profile]
@@ -94,6 +94,10 @@ def render(root):
                     st.write('Profile blend: '+ ' · '.join(f'{j+1}: {weights[j]:.0%}' for j in top if weights[j]>.001))
                     st.caption(f'Unassigned membership: {max(0,1-float(weights.sum())):.0%}. Membership strengths are model affinities, not probabilities of liking this car.')
                 else:st.write(f'Related profile {profile+1}.')
+                if 'medoid_rmse' in arrays:
+                    distances=arrays['medoid_rmse'][position];near=np.argsort(distances)[:3]
+                    st.caption('Nearest representatives · FAISS RMSE: '+ ' · '.join(f'Profile {j+1}: {distances[j]:.3f}' for j in near))
+                    st.caption('Lower means closer in standardized vehicle features. This is not a dollar error or a probability; soft memberships and preference ranking are separate.')
                 if arrays['noise'][position]:st.caption('Exploratory match: HDBSCAN treated this advert as density noise; its soft affinities remain available without forcing a hard assignment.')
                 with st.expander(f'Original description & specifications · pick {rank}'):
                     st.caption('Short excerpt from the historical advert; source text is not independently verified.')

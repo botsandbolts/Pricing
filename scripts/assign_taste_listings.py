@@ -11,5 +11,5 @@ def main():
         for frame in pd.read_json(a.listings,lines=True,chunksize=1024):
             m,d=predict_new_profiles(frame,bundle)
             for idx,(weights,distances) in enumerate(zip(m,d)):
-                out.write(json.dumps({'id':str(frame.iloc[idx].get('row_id',frame.index[idx])),'memberships':weights.tolist(),'unassigned':max(0.,1-float(weights.sum())),'medoid_distances':distances.tolist()})+'\n')
+                out.write(json.dumps({'id':str(frame.iloc[idx].get('row_id',frame.index[idx])),'memberships':weights.tolist(),'unassigned':max(0.,1-float(weights.sum())),'medoid_rmse':distances.tolist(),'nearest_medoid_profiles':distances.argsort().tolist(),'distance_units':'RMSE of frozen scaled features; not dollars'})+'\n')
 if __name__=='__main__':main()

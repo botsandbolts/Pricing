@@ -117,6 +117,7 @@ def test_soft_memberships_train_without_row_expansion():
     valid=np.arange(len(frame))%5==0
     result=train_rank(codes,nums,levels,np.argmax(m,axis=1),[1,2,3,4,1,2,3,4,2,3],list(range(10)),valid,rounds=12,prices=frame.price.to_numpy(),memberships=m)
     assert result['soft_memberships'] and result['final_rows']==len(frame)
+    assert result['score_range']>1e-7
     assert len(result['positions'])==10 and 0<=result['ndcg10']<=1
     assert not any('membership' in k for k in result['feature_importance'])
 
@@ -146,3 +147,13 @@ def test_frozen_hdbscan_predicts_new_rows_without_refit(monkeypatch):
     m,d=predict_new_profiles(frame.iloc[:3],bundle)
     assert m.shape==d.shape==(3,10)
     assert np.isfinite(m).all() and (m.sum(axis=1)<=1.0001).all()
+
+
+def test_faiss_rmse_matches_direct_calculation_and_order():
+    from pricing.taste_ranking import faiss_rmse
+    q=np.array([[1.,2.,3.],[0.,0.,0.]],dtype=np.float32)
+    r=np.array([[3.,4.,5.],[1.,2.,3.],[5.,6.,7.]],dtype=np.float32)
+    d,order=faiss_rmse(q,r)
+    expected=np.sqrt(np.mean((q[:,None,:]-r[None,:,:])**2,axis=2))
+    np.testing.assert_allclose(d,expected,atol=1e-5)
+    assert order.tolist()==np.argsort(expected,axis=1).tolist()
