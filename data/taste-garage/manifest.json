@@ -25400,9 +25400,10 @@
     "mileage_missing"
   ],
   "sha256": {
-    "features.npz": "f45c886dc658e3740e75024644abf0322b71acad5794888a69836559159f9622",
+    "features.npz": "69109d86a6eba080866504d0a2edf01e6943656c46350a5ed7853b139c557a03",
     "cars.sqlite": "d067c2980e04fe8128766abf6f5b5c4884754244282b4c538c85b7876fb54c46"
   },
   "representatives": "Exact sum-distance medoid for groups up to 2000; deterministic 256-candidate medoid evaluated against every member for larger groups; always an actual non-noise advert",
-  "limits": "Ten medoid ratings propagate via a soft membership matrix, retaining unassigned mass. HDBSCAN EOM groups are merged to ten macroprofiles when necessary; noise retains soft memberships and unassigned mass, and is flagged. No user features, duplicate rows or personal-satisfaction benchmark."
+  "limits": "Ten medoid ratings propagate via a soft membership matrix, retaining unassigned mass. HDBSCAN EOM groups are merged to ten macroprofiles when necessary; noise retains soft memberships and unassigned mass, and is flagged. No user features, duplicate rows or personal-satisfaction benchmark.",
+  "neighbour_distance": "Exact FAISS IndexFlatL2; RMSE = sqrt(squared L2 / 14 scaled features); not dollars"
 }
