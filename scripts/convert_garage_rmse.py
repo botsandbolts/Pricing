@@ -37,6 +37,9 @@ def main():
     chosen=np.array(result['positions']);good=np.array(ratings)>=3
     assert len(set(chosen))==10 and np.all(d[chosen][:,good].min(axis=1)<d[chosen][:,~good].min(axis=1))
     assert all(e['signed']>0 for e in result['evidence'])
+    checked_meta,checked_arrays=load(root,k)
+    assert checked_meta['neighbour_metric']=='rmse' and 'medoid_rmse' in checked_arrays
+    np.testing.assert_allclose(checked_arrays['medoid_rmse'],d)
     ui=exercise_taste_ui(root,k,ratings)
     reports[str(k)]={'passed':True,'rows':len(frame),'metric':'rmse','unit_normalization':False,'dimensions':geometry.shape[1],'rating_transform':meta['rating_transform'],'test_type':'Artificial-rating mechanical validation, not user satisfaction','model_result':result,'ui_check':ui}
  (folder/'release-check.json').write_text(json.dumps(reports,indent=2))
