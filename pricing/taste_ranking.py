@@ -126,7 +126,7 @@ def load(root,profile_count=10,catalogue_path=None):
         for name,digest in extra['sha256'].items():
             if hashlib.sha256((folder/name).read_bytes()).hexdigest()!=digest:raise ValueError('Long-test asset integrity mismatch')
         with np.load(folder/'features-25.npz',allow_pickle=False) as data:arrays.update({key:data[key] for key in data.files})
-        arrays.pop('medoid_rmse',None);manifest.update(extra)
+        manifest.update(extra)
     elif profile_count!=10:raise ValueError('Choose the 10- or 25-car test')
     k=len(manifest['profiles'])
     n=len(arrays['clusters'])
