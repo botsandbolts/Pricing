@@ -68,8 +68,9 @@ def render(root):
     count=sum(st.session_state.get(k) in LABELS for k in rating_keys)
     st.progress(count/profile_count,text=f'{count} of {profile_count} cars rated')
     memory=st.session_state.setdefault('taste_rating_memory',{})
-    columns=st.columns(2)
     for i,p in enumerate(meta['profiles']):
+        # One pair per row preserves 1,2,3... when mobile stacks columns.
+        if i%2==0:columns=st.columns(2)
         car=p['prototype']
         with columns[i%2]:
             with st.container(border=True,key=f'garage_taste_card_{profile_count}_{i}'):
