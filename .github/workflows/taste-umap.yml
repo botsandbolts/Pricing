@@ -1,63 +1,8 @@
-name: Build and verify UMAP HDBSCAN garage
+name: Retired UMAP experiment
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'scripts/build_umap_garage.py'
-      - '.github/workflows/taste-umap.yml'
-permissions:
-  contents: write
-  actions: read
-concurrency:
-  group: taste-umap-build
-  cancel-in-progress: false
 jobs:
-  build-verify-publish:
+  retired:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    env:
-      OPENBLAS_NUM_THREADS: '2'
-      OMP_NUM_THREADS: '2'
-      NUMBA_NUM_THREADS: '2'
-      STREAMLIT_BROWSER_GATHER_USAGE_STATS: 'false'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 'xgboost>=3.1,<4' hdbscan==0.8.44 umap-learn==0.5.12 faiss-cpu streamlit==1.66.1 requests pytest
-      - run: python -m pytest tests/test_taste_garage.py tests/test_taste_release_ui.py tests/test_umap_garage.py -q
-      - uses: actions/download-artifact@v4
-        with:
-          name: frozen-hdbscan-daily-listing-prediction
-          run-id: 41344075483
-          github-token: ${{ github.token }}
-          path: training-cache/taste-incremental
-      - name: Fit full-cohort UMAP then HDBSCAN; export 10 and 25 real medoid profiles
-        run: python -m scripts.build_umap_garage --bundle training-cache/taste-incremental/frozen-profiles.joblib
-      - name: Verify full-catalogue ranking and both live UI paths
-        run: python -m scripts.verify_umap_garage
-      - uses: actions/upload-artifact@v4
-        with:
-          name: umap-hdbscan-frozen-models
-          path: training-cache/umap-hdbscan/
-          retention-days: 90
-      - uses: actions/upload-artifact@v4
-        with:
-          name: verified-umap-hdbscan-serving
-          path: data/taste-garage-umap/
-          retention-days: 90
-      - name: Publish verified serving arrays atomically
-        run: |
-          tar -cf "$RUNNER_TEMP/umap-serving.tar" data/taste-garage-umap
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          for attempt in 1 2 3; do
-            git fetch origin main
-            git reset --hard origin/main
-            tar -xf "$RUNNER_TEMP/umap-serving.tar"
-            git add data/taste-garage-umap
-            git commit -m "Install verified UMAP HDBSCAN profiles for both garage tests"
-            if git push origin HEAD:main; then exit 0; fi
-          done
-          exit 1
+      - run: echo 'Retired. Production reuses original HDBSCAN with FAISS cosine.'

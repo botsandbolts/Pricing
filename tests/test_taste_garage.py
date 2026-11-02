@@ -212,3 +212,22 @@ def test_nearest_disliked_car_is_excluded_even_with_positive_density_evidence():
     e=preference_evidence(m,[4,1]+[2]*8,distances)
     assert e['signed'][0]>0 and not e['eligible'][0]
     assert e['eligible'][1]
+
+
+def test_cosine_search_and_zero_vector_neutrality():
+    from pricing.taste_ranking import faiss_cosine
+    q=np.array([[1.,2.],[0.,0.],[-1.,-2.]],dtype=np.float32)
+    r=np.array([[2.,4.],[2.,-1.],[-2.,-4.]],dtype=np.float32)
+    before=q.copy();d,order=faiss_cosine(q,r)
+    qn=q/np.maximum(np.linalg.norm(q,axis=1,keepdims=True),1e-12)
+    rn=r/np.linalg.norm(r,axis=1,keepdims=True)
+    np.testing.assert_allclose(d,1-np.clip(qn@rn.T,-1,1),atol=1e-6)
+    np.testing.assert_array_equal(q,before)
+    assert order[0,0]==0 and order[2,0]==2
+    np.testing.assert_allclose(d[1],1)
+
+def test_retired_umap_catalogue_cannot_activate(tmp_path):
+    from pricing.taste_ranking import active_catalogue_folder
+    path=tmp_path/'data/taste-garage-umap';path.mkdir(parents=True)
+    for name in ['manifest.json','features.npz','profiles-25.json','features-25.npz']:(path/name).write_text('old')
+    assert active_catalogue_folder(tmp_path)==tmp_path/'data/taste-garage'
