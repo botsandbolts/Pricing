@@ -149,11 +149,49 @@ def test_frozen_hdbscan_predicts_new_rows_without_refit(monkeypatch):
     assert np.isfinite(m).all() and (m.sum(axis=1)<=1.0001).all()
 
 
-def test_faiss_rmse_matches_direct_calculation_and_order():
-    from pricing.taste_ranking import faiss_rmse
+def test_faiss_l1_matches_direct_calculation_and_order():
+    from pricing.taste_ranking import faiss_l1
     q=np.array([[1.,2.,3.],[0.,0.,0.]],dtype=np.float32)
     r=np.array([[3.,4.,5.],[1.,2.,3.],[5.,6.,7.]],dtype=np.float32)
-    d,order=faiss_rmse(q,r)
-    expected=np.sqrt(np.mean((q[:,None,:]-r[None,:,:])**2,axis=2))
+    d,order=faiss_l1(q,r)
+    expected=np.sum(np.abs(q[:,None,:]-r[None,:,:]),axis=2)
     np.testing.assert_allclose(d,expected,atol=1e-5)
     assert order.tolist()==np.argsort(expected,axis=1).tolist()
+
+
+def test_25_ratings_and_soft_memberships_train_without_expansion():
+    frame=sample();codes,nums,levels=encode(frame);n=len(frame)
+    labels=np.arange(n)%25;m=np.full((n,25),.001);m[np.arange(n),labels]=.95
+    result=train_rank(codes,nums,levels,labels,[1+i%4 for i in range(25)],list(range(25)),np.arange(n)%5==0,rounds=20,prices=frame.price.to_numpy(),memberships=m)
+    assert result['direct_judgments']==25 and result['final_rows']==n and len(result['positions'])==10
+    assert not set(result['positions']).intersection(range(25))
+
+
+def test_25_clusters_reuse_saved_hierarchy_without_fit(monkeypatch):
+    import hdbscan
+    from scripts.build_long_taste import select_long_model
+    rng=np.random.default_rng(19)
+    centres=rng.normal(0,30,(30,5));x=np.concatenate([rng.normal(c,.05,(35,5)) for c in centres])
+    model=hdbscan.HDBSCAN(min_cluster_size=15,min_samples=3,prediction_data=True).fit(x)
+    monkeypatch.setattr(model,'fit',lambda *a,**k:(_ for _ in ()).throw(AssertionError('Refit forbidden')))
+    selected=select_long_model(model)
+    assert len(set(selected.labels_)-{-1})==25
+    from hdbscan.flat import membership_vector_flat
+    m=membership_vector_flat(selected,x[:4]);assert m.shape==(4,25) and np.isfinite(m).all()
+
+
+def test_short_long_ui_keeps_ratings_separate(monkeypatch,tmp_path):
+    import pricing.taste_garage_ui as ui
+    from streamlit.testing.v1 import AppTest
+    folder=tmp_path/'data/taste-garage';folder.mkdir(parents=True)
+    (folder/'manifest.json').write_text('{}');(folder/'profiles-25.json').write_text('{}')
+    car=dict(year=2015,manufacturer='Ford',model='Focus',price=10000,observed_date='2021-05-01',odometer=50000)
+    def cat(root,revision,k):return {'rows':400,'density_clusters':k,'noise_fraction':.1,'profiles':[{'prototype':car,'position':i,'name':str(i),'cars':16} for i in range(k)]},{}
+    monkeypatch.setattr(ui,'catalogue',cat);monkeypatch.setattr(ui,'price_view',lambda *a:8000.)
+    at=AppTest.from_string(f"from pathlib import Path\nfrom pricing.taste_garage_ui import render\nrender(Path({str(tmp_path)!r}))").run()
+    [r for r in at.radio if r.label=='Your reaction'][0].set_value(4).run()
+    next(r for r in at.radio if r.label=='Choose your test').set_value('The Long Drive · 25 cars, zero commitment').run()
+    assert not at.exception and len([r for r in at.radio if r.label=='Your reaction'])==25
+    assert all(r.value is None for r in at.radio if r.label=='Your reaction')
+    next(r for r in at.radio if r.label=='Choose your test').set_value('Speed Date · 10 cars, no small talk').run()
+    assert not at.exception and [r for r in at.radio if r.label=='Your reaction'][0].value==4

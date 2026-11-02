@@ -41,15 +41,16 @@ def ndcg10(labels,scores,linear=False):
 def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validation_mask,rounds=96,prices=None,adjusted_prices=None,memberships=None):
     from xgboost import XGBRanker
     ratings=np.asarray(ratings,dtype=int)
-    if ratings.shape!=(10,) or not np.isin(ratings,[1,2,3,4]).all():raise ValueError('Rate all ten prototypes from 1 to 4')
+    k=len(ratings)
+    if k not in (10,25) or ratings.shape!=(k,) or not np.isin(ratings,[1,2,3,4]).all():raise ValueError('Rate every representative from 1 to 4')
     if len(set(ratings))<2:raise ValueError('At least two different ratings are needed to learn an ordering')
     clusters=np.asarray(clusters,dtype=int)
-    if clusters.shape!=(len(codes),) or clusters.min()<0 or clusters.max()>9:raise ValueError('Invalid cluster map')
+    if clusters.shape!=(len(codes),) or clusters.min()<0 or clusters.max()>=k:raise ValueError('Invalid cluster map')
     target=ratings[clusters]-1
     soft=memberships is not None
     if soft:
         m=np.asarray(memberships,dtype=float)
-        if m.shape!=(len(codes),10) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft memberships')
+        if m.shape!=(len(codes),k) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft memberships')
         # Unassigned mass contributes neutral prior, never forced nearest cluster.
         relevance=m@(ratings-1)+(1-m.sum(axis=1))*float(np.mean(ratings-1))
         target=np.rint(relevance*10).astype(np.int32)
@@ -83,9 +84,9 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     if score_range<1e-7:raise ValueError('Ranking model learned no ordering; a constant shortlist is not released')
     scores[np.asarray(prototype_positions,dtype=int)]=-np.inf
     order=np.argsort(-scores,kind='stable')[:10]
-    return {'score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':10,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
+    return {'score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
-def load(root):
+def load(root,profile_count=10):
     folder=Path(root)/'data/taste-garage';file=folder/'manifest.json'
     if not file.exists():return None
     manifest=json.loads(file.read_text())
@@ -93,11 +94,22 @@ def load(root):
         p=folder/name
         if not p.exists() or hashlib.sha256(p.read_bytes()).hexdigest()!=digest:raise ValueError('Recommendation asset integrity mismatch')
     with np.load(folder/'features.npz',allow_pickle=False) as data:arrays={key:data[key] for key in data.files}
+    if profile_count==25:
+        variant=folder/'profiles-25.json'
+        if not variant.exists():return None
+        extra=json.loads(variant.read_text())
+        if extra['source_sha256']!=manifest['source_sha256']:raise ValueError('Profile source mismatch')
+        for name,digest in extra['sha256'].items():
+            if hashlib.sha256((folder/name).read_bytes()).hexdigest()!=digest:raise ValueError('Long-test asset integrity mismatch')
+        with np.load(folder/'features-25.npz',allow_pickle=False) as data:arrays.update({key:data[key] for key in data.files})
+        arrays.pop('medoid_rmse',None);manifest.update(extra)
+    elif profile_count!=10:raise ValueError('Choose the 10- or 25-car test')
+    k=len(manifest['profiles'])
     n=len(arrays['clusters'])
     if n!=manifest['rows'] or arrays['codes'].shape!=(n,len(CATEGORICAL)) or arrays['numeric'].shape!=(n,len(NUMERIC)) or arrays['prices'].shape!=(n,) or arrays['source_days'].shape!=(n,):raise ValueError('Invalid feature matrix')
     if manifest.get('version',1)>=2:
         m=arrays.get('memberships')
-        if m is None or m.shape!=(n,10) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft membership asset')
+        if m is None or m.shape!=(n,k) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft membership asset')
     return manifest,arrays
 
 def records(root,positions):
@@ -184,23 +196,27 @@ def predict_new_profiles(frame,bundle):
     """No refit: frozen encoding/scaling, HDBSCAN affinities, medoid distances."""
     import hdbscan
     geometry=transform_new_geometry(frame,bundle['encoder'])
-    raw=np.nan_to_num(hdbscan.membership_vector(bundle['hdbscan'],geometry),nan=0.,posinf=0.,neginf=0.)
-    m=np.zeros((len(frame),10),dtype=np.float32)
+    if bundle.get('prediction_method')=='flat':
+        from hdbscan.flat import membership_vector_flat
+        raw=membership_vector_flat(bundle['hdbscan'],geometry)
+    else:raw=hdbscan.membership_vector(bundle['hdbscan'],geometry)
+    raw=np.nan_to_num(raw,nan=0.,posinf=0.,neginf=0.)
+    m=np.zeros((len(frame),len(bundle['medoids'])),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
     m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
-    return m,faiss_rmse(geometry,bundle['medoids'])[0]
+    return m,faiss_l1(geometry,bundle['medoids'])[0]
 
 
-def faiss_rmse(queries,references):
-    """Exact FAISS L2 search; RMSE in scaled feature units, column-aligned distances."""
+def faiss_l1(queries,references):
+    """Exact FAISS L1 search; summed absolute distance in scaled feature units, column-aligned distances."""
     import faiss
     q=np.ascontiguousarray(queries,dtype=np.float32);r=np.ascontiguousarray(references,dtype=np.float32)
     if q.ndim!=2 or r.ndim!=2 or q.shape[1]!=r.shape[1] or not len(r) or not q.shape[1] or not np.isfinite(q).all() or not np.isfinite(r).all():raise ValueError('Finite aligned feature matrices required')
-    index=faiss.IndexFlatL2(r.shape[1]);index.add(r)
+    index=faiss.IndexFlat(r.shape[1],faiss.METRIC_L1);index.add(r)
     distances=np.empty((len(q),len(r)),dtype=np.float32);orders=np.empty((len(q),len(r)),dtype=np.int32)
     for start in range(0,len(q),2048):
-        squared,order=index.search(q[start:start+2048],len(r))
-        rmse=np.sqrt(np.maximum(squared,0)/r.shape[1])
-        distances[start:start+len(order)]=np.take_along_axis(rmse,np.argsort(order,axis=1),axis=1)
+        l1,order=index.search(q[start:start+2048],len(r))
+        l1=np.maximum(l1,0)
+        distances[start:start+len(order)]=np.take_along_axis(l1,np.argsort(order,axis=1),axis=1)
         orders[start:start+len(order)]=order
     return distances,orders

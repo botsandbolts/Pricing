@@ -1,29 +1,33 @@
-# Pick your garage: soft HDBSCAN
+# Pick your garage
 
-## Business guide
-Rate ten real representative cars from very bad to very good. Each historical car has ten overlapping profile affinities, rather than a forced cluster rating. Your reactions blend through these affinities to form an inferred preference. Unassigned membership receives your average rating. XGBoost learns the ordering and returns ten historical adverts; these are not live stock.
+## Two tests, one shortlist
+Speed Date · 10 cars, no small talk: ten real representatives for a short introduction to your taste.
 
-## Technical guide
-The full canonical Craigslist cohort is encoded using smoothed leave-one-out category means of log advertised price (alpha 20); both the category sum and global prior exclude the row. Constant and identifier-like category columns are suppressed. Year, log mileage and mileage missingness join the dense matrix. StandardScaler and clipping at six standard deviations precede Euclidean HDBSCAN. No UMAP or SVD is used.
+The Long Drive · 25 cars, zero commitment: twenty-five real representatives and finer density profiles. More judgments are requested; better recommendations are not assumed without independent user testing.
 
-HDBSCAN EOM varies min_cluster_size with min_samples=10, seeking approximately ten native groups. If it first supports more than ten, Ward merging of native centroids produces exactly ten macroprofiles. This is explicitly different from claiming ten native density clusters. Soft native memberships from HDBSCAN membership_vector are summed across merged groups, in bounded batches, to form M with shape n_cars by 10. Row sums may be below one; this noise mass is retained. Argmax is only a display association, not a training label. No HDBSCAN object is loaded by the web app.
+Both tests return ten historical adverts, exclude the representatives you rated, preserve separate ratings when switching, and show original asking prices beside supported date-adjusted scenarios. These are not live offers.
 
-A representative is a real non-noise advert selected by sum of Euclidean distances to group members. Groups up to 2,000 use exact medoids. Larger groups use a deterministic 256-candidate approximate medoid, evaluated against every member; this approximation bounds CPU and memory and is disclosed in the technical UI. A centroid is never presented as a car.
+## Geometry and density profiles
+Category encoding is smoothed leave-one-out mean log asking price, alpha 20. Both category sums and global prior exclude the row. Constant and identifier-like columns are suppressed. Year, log mileage and missingness join the matrix, then StandardScaler and clipping at six standard deviations. No UMAP, SVD or one-hot features enter this geometry.
 
-For ratings r in 0..3, soft relevance is M @ r + (1 - row_sum(M)) * mean(r). The XGBRanker uses rank:ndcg, eval_metric ndcg@10, ndcg_exp_gain=False. It requires integer labels, so training relevance is rounded to 0.1 steps (integers 0..30), preserving blended preferences rather than taking an argmax rating. The displayed linear-gain NDCG uses unrounded soft relevance. Native categorical vehicle features, original log advertised price, supported log date-adjusted price and its missing indicator are predictors. Memberships, profile IDs and user features are not predictors. Each original advert appears exactly once, with no Cartesian expansion.
+The short test uses the completed full-cohort HDBSCAN fit: eleven EOM clusters merged to ten macroprofiles. The long test reuses its saved single-linkage hierarchy, recondenses when necessary and chooses a leaf-selection epsilon supporting exactly 25 clusters. The neighbour graph is not rebuilt. The release fails if 25 real clusters cannot be selected. The internal hierarchy-selection adapter is tested with hdbscan 0.8.44 pinned in the release environment.
 
-An approximately 20% deterministic vehicle-ID split chooses the iteration count. The ten directly rated medoids remain in training and are excluded from recommendations. The final model refits all rows once. Validation labels are inferred from only ten real judgments; NDCG is weak-label agreement, not measured satisfaction. Price-informed geometry is transductive, using the full catalogue. Additional shortlist ratings can assess displayed ordering but cannot measure catalogue-wide recall.
+Every representative is an actual non-noise car. Short-test medoids retain their original Euclidean objective. Long-test medoids minimize summed L1 distances. For up to 2,000 members the medoid search is exact; larger groups evaluate a deterministic 256-candidate approximation against every member. No centroid is presented as a real car.
 
-## Dates and sources
-Today follows the calendar. Historical advertised prices remain visible beside depreciation/CPI/Holt date-adjusted scenarios. Current-date accuracy is unvalidated. Craigslist Used Cars: Tom, Zenodo 10457828, CC BY 4.0. Source descriptions are excerpts, not verified vehicle facts. Existing pricing, Bayesian, BART and comparison panels remain separate.
+## Soft memberships and ranking
+Each test has its own n_cars by K membership matrix, K=10 or 25. Native HDBSCAN membership strengths are retained without forcing uncertain cars into a group. Unassigned mass is one minus the row sum. For ratings r mapped to 0..3, inferred relevance is M @ r + (1-row_sum(M))*mean(r).
 
-## New daily listings: no refit
-The separate frozen-hdbscan-daily-listing-prediction Actions artifact contains the training category statistics, fitted scaler, HDBSCAN prediction data, fixed macro mapping and actual medoid vectors. It is intentionally excluded from the memory-sensitive web app. New rows use reference-category smoothed means (their own target is never needed), saved scaling and hdbscan.membership_vector. Unseen categories fall back to the training global prior. Euclidean distances to fixed medoids are additional explanations, not substitutes for density memberships. No UMAP transform is involved. Training rows retain leave-one-out encoding; inference uses the full frozen reference statistics.
+XGBRanker uses rank:ndcg, eval_metric ndcg@10, native categorical features and linear NDCG gains. Soft relevance is quantized to 0.1 steps for integer training labels; displayed held-out NDCG uses unrounded relevance. Vehicle attributes, original log asking price, supported date-adjusted log price and its missing indicator enter XGBoost. No user identity, cluster IDs or membership columns are predictors. Each advert occurs once; no Cartesian expansion.
 
-Run python -m scripts.assign_taste_listings frozen-profiles.joblib daily.jsonl --output assigned.jsonl using the trusted build artifact. This creates affinities for supplied new listings; it does not claim that a daily source feed has been connected or automatically append new inventory to the web catalogue. Refit only when intentionally updating the reference model to address drift.
+A deterministic approximately 20% vehicle-ID split chooses the iteration count, with rated representatives kept in training. At least 16 trees are fitted for production, and constant predictions fail the release gate. The final model fits all rows once and produces ten recommendations. NDCG measures agreement with inferred labels, not independently measured satisfaction. The long test is not claimed to outperform the short test. Additional real ratings are needed to assess preference quality.
 
-## FAISS RMSE distance
-Exact IndexFlatL2 searches the fixed real medoid vectors. FAISS returns squared L2; displayed RMSE is sqrt(squared_L2 / number_of_scaled_features). Vectors are not unit-normalized, so this is not cosine distance. Lower is nearer; units are standardized feature units, never dollars. HDBSCAN memberships still come from its density prediction, and XGBoost preference scores order the shortlist. New-listing inference uses the same FAISS distance without refitting. The offline clustering result is reused when changing ranking or distance presentation.
+## Exact FAISS L1
+FAISS IndexFlat with METRIC_L1 returns the sum of absolute coordinate differences in the frozen scaled feature space. Lower is closer. There is no square, square root, division by dimension, or unit-vector normalization. These are not dollar errors or liking probabilities. FAISS supplies nearest-medoid explanations; HDBSCAN supplies density memberships; XGBoost orders recommendations. Existing Listing Inspector SVD/cosine tools are separate and unchanged.
 
-## Ranking release checks
-A ranking with constant predictions is rejected. Lower minimum child Hessian and moderate regularization allow LambdaMART to split despite top-k pair sampling in a single large query. At least 16 trees are fitted after validation chooses the best iteration. Score range and comparison with random ordering are reported; weak-label NDCG is still not independent evidence of user satisfaction.
+## New listings without refitting
+Trusted offline artifacts contain the frozen category statistics, fitted scaler, density prediction data, profile mapping and medoid vectors for each test. New categories fall back to the training global prior. New listing targets are not required to encode features. Membership prediction uses the corresponding fixed hierarchy; L1 explanations use the same fixed medoids. The 25-profile artifact uses membership_vector_flat so epsilon-selected labels and prediction data agree. Neither path refits HDBSCAN.
+
+Run python -m scripts.assign_taste_listings TRUSTED-BUNDLE.joblib daily.jsonl --output assigned.jsonl. Outputs contain memberships, unassigned mass, medoid_l1 and nearest profile ordering. A daily inventory feed has not been connected automatically. The memory-sensitive web app loads compact arrays and requested advert rows, not the full HDBSCAN object.
+
+## Sources, dates and limits
+211,844 canonical Craigslist adverts from Tom, Zenodo 10457828, CC BY 4.0. This is price-informed, transductive catalogue exploration; source descriptions and recorded mileage are not verified facts. Date-adjusted scenarios reuse existing depreciation curves and CPI/Holt market transport. Current-date individual accuracy is unvalidated. Existing pricing, Bayesian, BART, sharing and comparison panels remain separate.
