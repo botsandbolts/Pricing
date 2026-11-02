@@ -231,3 +231,19 @@ def test_retired_umap_catalogue_cannot_activate(tmp_path):
     path=tmp_path/'data/taste-garage-umap';path.mkdir(parents=True)
     for name in ['manifest.json','features.npz','profiles-25.json','features-25.npz']:(path/name).write_text('old')
     assert active_catalogue_folder(tmp_path)==tmp_path/'data/taste-garage'
+
+
+def test_reciprocal_standardisation_direction_and_scale():
+    from pricing.taste_ranking import reciprocal_rating_scores
+    r=np.array([1,2,3,4]*3)
+    result=reciprocal_rating_scores(r);inv=1/r
+    np.testing.assert_allclose(result,-(inv-inv.mean())/inv.std())
+    assert np.all(np.diff(result[:4])>0)
+    assert abs(result.mean())<1e-12 and abs(result.std()-1)<1e-12
+    np.testing.assert_array_equal(reciprocal_rating_scores([4]*10),np.zeros(10))
+
+def test_reciprocal_evidence_prefers_four_over_one():
+    from pricing.taste_ranking import preference_evidence
+    ratings=[1,2,3,4,1,2,3,4,1,4]
+    e=preference_evidence(np.eye(10),ratings)
+    assert e['signed'][3]>e['signed'][2]>e['signed'][1]>e['signed'][0]

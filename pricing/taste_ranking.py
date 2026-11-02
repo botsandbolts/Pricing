@@ -53,7 +53,8 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
         m=np.asarray(memberships,dtype=float)
         if m.shape!=(len(codes),k) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft memberships')
         evidence=preference_evidence(m,ratings,medoid_distances)
-        relevance=(evidence['signed']+1)*1.5
+        bound=max(1.,float(np.max(np.abs(reciprocal_rating_scores(ratings)))))
+        relevance=np.clip((evidence['signed']/bound+1)*1.5,0,3)
         target=np.rint(relevance*10).astype(np.int32)
     else:relevance=target.astype(float)
     valid=np.asarray(validation_mask,dtype=bool).copy();valid[np.asarray(prototype_positions,dtype=int)]=False
@@ -316,10 +317,18 @@ def faiss_cosine(queries,references):
     return distances,orders
 
 
+def reciprocal_rating_scores(ratings):
+    """Negative population z-score of reciprocal ratings; larger ratings score higher."""
+    r=np.asarray(ratings,dtype=float)
+    if r.ndim!=1 or not len(r) or not np.isfinite(r).all() or not np.isin(r,[1,2,3,4]).all():
+        raise ValueError('Ratings must be a nonempty vector of 1, 2, 3 or 4')
+    inverse=1.0/r;spread=float(inverse.std(ddof=0))
+    return np.zeros_like(inverse) if spread<1e-12 else -(inverse-inverse.mean())/spread
+
 def preference_evidence(memberships,ratings,distances=None):
     """Signed evidence: negative reactions lower preference; no approval from noise."""
     m=np.asarray(memberships,dtype=float);r=np.asarray(ratings,dtype=int)
-    signed=(2*r-5)/3.;positive=m@np.maximum(signed,0);negative=m@np.maximum(-signed,0)
+    signed=reciprocal_rating_scores(r);positive=m@np.maximum(signed,0);negative=m@np.maximum(-signed,0)
     allowed=np.ones(len(m),dtype=bool)
     if distances is not None:
         d=np.asarray(distances,dtype=float)

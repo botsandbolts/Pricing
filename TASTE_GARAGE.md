@@ -31,3 +31,7 @@ Source IDs, the original canonical-cohort hash, retained-ID digest and existing 
 New listings use the frozen one-hot vocabulary and numeric ranges, then the saved UMAP transform and HDBSCAN membership prediction without a refit. Supply an existing `predicted_text_price` scalar when available; the recommender does not call MiniLM to create it. Missing feature values are flagged and imputed using reference medians. The GUI loads compact arrays and selected advert rows, not the heavy offline models.
 
 Publish the matching code, both verified profile assets, SQLite catalogue and `data/taste-garage-release.json` pointer together. The previous catalogue remains the fallback until the new release is complete. Routine code checks do not overwrite new assets with old fixed-run models.
+
+
+## Reciprocal rating standardisation
+Session ratings use negative population-standardized reciprocals: score = −(1/r − mean(1/r))/std(1/r). Higher ratings always have higher scores. Equal ratings safely yield zero (the UI requires variation). Zero indicates the session average, rather than a fixed like/dislike threshold. Explicit nearest-liked/disliked exclusion still uses ratings 3–4 versus 1–2. Before integer ranking labels are formed, signed evidence is bounded and mapped to 0–3; no negative relevance labels reach XGBoost. Saved session recommendations are invalidated when this scoring version changes. Similarity models and trained catalogue assets are unchanged.
