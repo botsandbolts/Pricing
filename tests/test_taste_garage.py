@@ -149,12 +149,12 @@ def test_frozen_hdbscan_predicts_new_rows_without_refit(monkeypatch):
     assert np.isfinite(m).all() and (m.sum(axis=1)<=1.0001).all()
 
 
-def test_faiss_l1_matches_direct_calculation_and_order():
-    from pricing.taste_ranking import faiss_l1
+def test_faiss_l2_matches_direct_calculation_and_order():
+    from pricing.taste_ranking import faiss_l2
     q=np.array([[1.,2.,3.],[0.,0.,0.]],dtype=np.float32)
     r=np.array([[3.,4.,5.],[1.,2.,3.],[5.,6.,7.]],dtype=np.float32)
-    d,order=faiss_l1(q,r)
-    expected=np.sum(np.abs(q[:,None,:]-r[None,:,:]),axis=2)
+    d,order=faiss_l2(q,r)
+    expected=np.sqrt(np.sum((q[:,None,:]-r[None,:,:])**2,axis=2))
     np.testing.assert_allclose(d,expected,atol=1e-5)
     assert order.tolist()==np.argsort(expected,axis=1).tolist()
 
@@ -195,3 +195,20 @@ def test_short_long_ui_keeps_ratings_separate(monkeypatch,tmp_path):
     assert all(r.value is None for r in at.radio if r.label=='Your reaction')
     next(r for r in at.radio if r.label=='Choose your test').set_value('Speed Date · 10 cars, no small talk').run()
     assert not at.exception and [r for r in at.radio if r.label=='Your reaction'][0].value==4
+
+
+def test_negative_ratings_penalize_and_noise_is_neutral():
+    from pricing.taste_ranking import preference_evidence
+    ratings=[4,1]+[2]*8
+    m=np.zeros((3,10));m[0,0]=.9;m[1,1]=.9
+    e=preference_evidence(m,ratings)
+    assert e['signed'][0]>0 and e['signed'][1]<0 and e['signed'][2]==0
+    assert e['eligible'].tolist()==[True,False,False]
+
+def test_nearest_disliked_car_is_excluded_even_with_positive_density_evidence():
+    from pricing.taste_ranking import preference_evidence
+    m=np.zeros((2,10));m[:,0]=1
+    distances=np.full((2,10),10.);distances[0,:2]=[2.,.1];distances[1,:2]=[.1,2.]
+    e=preference_evidence(m,[4,1]+[2]*8,distances)
+    assert e['signed'][0]>0 and not e['eligible'][0]
+    assert e['eligible'][1]

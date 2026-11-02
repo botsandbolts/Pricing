@@ -38,11 +38,12 @@ def ndcg10(labels,scores,linear=False):
     discount=np.log2(np.arange(k)+2);den=np.sum((ideal if linear else np.expm1(np.log(2)*ideal))/discount)
     return float(np.sum((labels[order] if linear else np.expm1(np.log(2)*labels[order]))/discount)/den) if den>0 else None
 
-def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validation_mask,rounds=96,prices=None,adjusted_prices=None,memberships=None):
+def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validation_mask,rounds=96,prices=None,adjusted_prices=None,memberships=None,medoid_distances=None):
     from xgboost import XGBRanker
     ratings=np.asarray(ratings,dtype=int)
     k=len(ratings)
     if k not in (10,25) or ratings.shape!=(k,) or not np.isin(ratings,[1,2,3,4]).all():raise ValueError('Rate every representative from 1 to 4')
+    if not np.any(ratings>=3):raise ValueError('Rate at least one representative Good or Very good')
     if len(set(ratings))<2:raise ValueError('At least two different ratings are needed to learn an ordering')
     clusters=np.asarray(clusters,dtype=int)
     if clusters.shape!=(len(codes),) or clusters.min()<0 or clusters.max()>=k:raise ValueError('Invalid cluster map')
@@ -51,8 +52,8 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     if soft:
         m=np.asarray(memberships,dtype=float)
         if m.shape!=(len(codes),k) or not np.isfinite(m).all() or (m<0).any() or (m.sum(axis=1)>1.0001).any():raise ValueError('Invalid soft memberships')
-        # Unassigned mass contributes neutral prior, never forced nearest cluster.
-        relevance=m@(ratings-1)+(1-m.sum(axis=1))*float(np.mean(ratings-1))
+        evidence=preference_evidence(m,ratings,medoid_distances)
+        relevance=(evidence['signed']+1)*1.5
         target=np.rint(relevance*10).astype(np.int32)
     else:relevance=target.astype(float)
     valid=np.asarray(validation_mask,dtype=bool).copy();valid[np.asarray(prototype_positions,dtype=int)]=False
@@ -82,9 +83,22 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     scores=model.predict(x)
     score_range=float(np.ptp(scores))
     if score_range<1e-7:raise ValueError('Ranking model learned no ordering; a constant shortlist is not released')
-    scores[np.asarray(prototype_positions,dtype=int)]=-np.inf
-    order=np.argsort(-scores,kind='stable')[:10]
-    return {'score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
+    eligible=evidence['eligible'].copy() if soft else np.ones(len(scores),dtype=bool)
+    eligible[np.asarray(prototype_positions,dtype=int)]=False
+    candidates=np.flatnonzero(eligible)
+    if not len(candidates):raise ValueError('No cars pass your positive and negative preference checks; revise your ratings')
+    # Soft preference breaks tree-leaf ties; source row order never decides the shortlist.
+    order=candidates[np.lexsort((-relevance[candidates],-scores[candidates]))[:10]]
+    explanations=[]
+    if soft:
+        for i in order:
+            item={key:float(evidence[key][i]) for key in ['signed','positive','negative']}
+            if medoid_distances is not None:
+                good=np.flatnonzero(ratings>=3);bad=np.flatnonzero(ratings<=2);d=np.asarray(medoid_distances)[i]
+                item['liked_profile']=int(good[np.argmin(d[good])]);item['liked_distance']=float(d[item['liked_profile']])
+                if len(bad):item['disliked_profile']=int(bad[np.argmin(d[bad])]);item['disliked_distance']=float(d[item['disliked_profile']])
+            explanations.append(item)
+    return {'eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus L2 evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
 def load(root,profile_count=10):
     folder=Path(root)/'data/taste-garage';file=folder/'manifest.json'
@@ -204,19 +218,37 @@ def predict_new_profiles(frame,bundle):
     m=np.zeros((len(frame),len(bundle['medoids'])),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
     m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
-    return m,faiss_l1(geometry,bundle['medoids'])[0]
+    return m,faiss_l2(geometry,bundle['medoids'])[0]
 
 
-def faiss_l1(queries,references):
-    """Exact FAISS L1 search; summed absolute distance in scaled feature units, column-aligned distances."""
+def faiss_l2(queries,references):
+    """Exact FAISS L2 search; Euclidean distance in scaled feature units, column-aligned distances."""
     import faiss
     q=np.ascontiguousarray(queries,dtype=np.float32);r=np.ascontiguousarray(references,dtype=np.float32)
     if q.ndim!=2 or r.ndim!=2 or q.shape[1]!=r.shape[1] or not len(r) or not q.shape[1] or not np.isfinite(q).all() or not np.isfinite(r).all():raise ValueError('Finite aligned feature matrices required')
-    index=faiss.IndexFlat(r.shape[1],faiss.METRIC_L1);index.add(r)
+    index=faiss.IndexFlatL2(r.shape[1]);index.add(r)
     distances=np.empty((len(q),len(r)),dtype=np.float32);orders=np.empty((len(q),len(r)),dtype=np.int32)
     for start in range(0,len(q),2048):
-        l1,order=index.search(q[start:start+2048],len(r))
-        l1=np.maximum(l1,0)
-        distances[start:start+len(order)]=np.take_along_axis(l1,np.argsort(order,axis=1),axis=1)
+        squared,order=index.search(q[start:start+2048],len(r))
+        l2=np.sqrt(np.maximum(squared,0))
+        distances[start:start+len(order)]=np.take_along_axis(l2,np.argsort(order,axis=1),axis=1)
         orders[start:start+len(order)]=order
     return distances,orders
+
+
+def preference_evidence(memberships,ratings,distances=None):
+    """Signed evidence: negative reactions lower preference; no approval from noise."""
+    m=np.asarray(memberships,dtype=float);r=np.asarray(ratings,dtype=int)
+    signed=(2*r-5)/3.;positive=m@np.maximum(signed,0);negative=m@np.maximum(-signed,0)
+    allowed=np.ones(len(m),dtype=bool)
+    if distances is not None:
+        d=np.asarray(distances,dtype=float)
+        if d.shape!=m.shape or not np.isfinite(d).all() or (d<0).any():raise ValueError('Invalid L2 medoid distances')
+        affinity=1/(1+d*d);confidence=affinity.max(axis=1);weights=affinity/np.maximum(affinity.sum(axis=1,keepdims=True),1e-12)
+        positive=.75*positive+.25*(weights@np.maximum(signed,0))*confidence
+        negative=.75*negative+.25*(weights@np.maximum(-signed,0))*confidence
+        good=r>=3;bad=r<=2
+        if not good.any():allowed[:]=False
+        elif bad.any():allowed=d[:,good].min(axis=1)<d[:,bad].min(axis=1)
+    score=positive-negative
+    return {'signed':score,'positive':positive,'negative':negative,'eligible':allowed&(score>1e-8)}

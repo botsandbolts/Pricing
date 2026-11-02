@@ -20,12 +20,12 @@ from pricing.navigation import render_navigation
 _workspace=render_navigation()
 if _workspace=='🚦 Pick your garage':
     @st.cache_resource(show_spinner=False)
-    def _taste_garage_l1_two_tests_release_v4():
+    def _taste_garage_l2_signed_preferences_v5():
         import importlib
         for name in ('pricing.taste_ranking','pricing.taste_garage_ui'):
             importlib.reload(importlib.import_module(name))
         return True
-    _taste_garage_l1_two_tests_release_v4()
+    _taste_garage_l2_signed_preferences_v5()
     from pricing.taste_garage_ui import render as render_taste_garage
     render_taste_garage(Path(__file__).parent)
     from pricing.ga_events import render_events

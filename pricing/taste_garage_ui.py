@@ -36,7 +36,7 @@ def render(root):
     tests={'Speed Date · 10 cars, no small talk':10,'The Long Drive · 25 cars, zero commitment':25}
     chosen=st.radio('Choose your test',list(tests),horizontal=True,key='taste_test_mode')
     profile_count=tests[chosen]
-    st.caption('Short: ten representatives. Long: twenty-five finer profiles. Both return ten recommendations. You can switch without losing the other test’s ratings.')
+    st.caption('Short: ten representatives. Long: twenty-five finer profiles. Both return up to ten recommendations. You can switch without losing the other test’s ratings.')
     st.caption('An experimental content-based recommender using your current-session ratings and vehicle features. No user ID, demographic features or duplicated adverts.')
     path=root/'data/taste-garage/manifest.json'
     if not path.exists():
@@ -75,14 +75,16 @@ def render(root):
     complete=all(r in LABELS for r in ratings)
     signature=json.dumps([version,ratings,str(when)])
     different=len(set(ratings))>1 if complete else False
+    has_like=any(r in (3,4) for r in ratings)
+    if complete and not has_like:st.info('Give at least one representative Good or Very good so there is something to recommend.')
     if complete and not different:st.info('Give at least two cars different ratings so the model has an ordering to learn.')
     st.markdown('### 2 · Let the trees build your shortlist')
-    if st.button('Find my ten cars →',type='primary',disabled=not complete or not different,key='taste_train'):
+    if st.button('Find my ten cars →',type='primary',disabled=not complete or not different or not has_like,key='taste_train'):
         try:
             with st.spinner('Learning your ordering from vehicle features and prices, then scoring the catalogue…'):
                 try:adjusted=adjusted_price_features(arrays['codes'],arrays['numeric'],meta['levels'],arrays['prices'],arrays['source_days'],when,transport(str(root)))
                 except (ValueError,OSError,KeyError,TypeError):adjusted=np.full(meta['rows'],np.nan)
-                result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays.get('memberships'))
+                result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays.get('memberships'),medoid_distances=arrays.get('medoid_l2'))
                 result['adjusted_price_support']=int(np.isfinite(adjusted).sum())
             st.session_state['taste_result']=(signature,result)
         except (ValueError,OSError,RuntimeError,MemoryError) as exc:
@@ -90,8 +92,8 @@ def render(root):
     saved=st.session_state.get('taste_result')
     if saved and saved[0]!=signature:st.info('Your reactions changed. Press Find my ten cars to refresh the shortlist.');saved=None
     if saved:
-        result=saved[1];st.markdown('### Your ten · tyres optional, taste mandatory')
-        st.caption('Ordered by XGBoost preference score; nearest-medoid explanations use exact FAISS L1. These are historical adverts, not available stock. The representatives you already rated are excluded.')
+        result=saved[1];st.markdown(f"### Your {len(result['positions'])} · tyres optional, taste mandatory")
+        st.caption('Passes explicit liked/disliked checks, then ordered by XGBoost preference score; nearest-medoid explanations use exact FAISS L2. These are historical adverts, not available stock. The representatives you already rated are excluded.')
         cars=records(root,result['positions'])
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
             profile=int(arrays['clusters'][position]);p=meta['profiles'][profile]
@@ -99,15 +101,20 @@ def render(root):
             with st.container(border=True):
                 st.markdown(f"#### {rank}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
                 car_details(root,car,when)
+                if result.get('evidence'):
+                    e=result['evidence'][rank-1]
+                    st.write(f"Preference evidence: +{e['positive']:.2f} appeal − {e['negative']:.2f} dislike = {e['signed']:+.2f}.")
+                    if 'liked_profile' in e:st.caption(f"Nearest liked representative: Profile {e['liked_profile']+1} · L2 {e['liked_distance']:.3f}.")
+                    if 'disliked_profile' in e:st.caption(f"Nearest disliked representative: Profile {e['disliked_profile']+1} · L2 {e['disliked_distance']:.3f}. This car is closer to a liked representative.")
                 if membership is not None:
                     weights=membership[position];top=np.argsort(-weights)[:3]
                     st.write('Profile blend: '+ ' · '.join(f'{j+1}: {weights[j]:.0%}' for j in top if weights[j]>.001))
                     st.caption(f'Unassigned membership: {max(0,1-float(weights.sum())):.0%}. Membership strengths are model affinities, not probabilities of liking this car.')
                 else:st.write(f'Related profile {profile+1}.')
-                if 'medoid_l1' in arrays:
-                    distances=arrays['medoid_l1'][position];near=np.argsort(distances)[:3]
-                    st.caption('Nearest representatives · FAISS L1: '+ ' · '.join(f'Profile {j+1}: {distances[j]:.3f}' for j in near))
-                    st.caption('L1 adds absolute differences across scaled features. Lower means closer. This is not a dollar error or a probability; soft memberships and preference ranking are separate.')
+                if 'medoid_l2' in arrays:
+                    distances=arrays['medoid_l2'][position];near=np.argsort(distances)[:3]
+                    st.caption('Nearest representatives · FAISS L2: '+ ' · '.join(f'Profile {j+1}: {distances[j]:.3f}' for j in near))
+                    st.caption('L2 is Euclidean distance across scaled features. Lower means closer. This is not a dollar error or a probability; soft memberships and preference ranking are separate.')
                 if arrays['noise'][position]:st.caption('Exploratory match: HDBSCAN treated this advert as density noise; its soft affinities remain available without forcing a hard assignment.')
                 with st.expander(f'Original description & specifications · pick {rank}'):
                     st.caption('Short excerpt from the historical advert; source text is not independently verified.')
@@ -124,20 +131,20 @@ def render(root):
             feedback_id=hashlib.sha256(signature.encode()).hexdigest()[:12]
             for i,car in enumerate(cars):values.append(st.radio(f"{i+1}. {int(car['year'])} {car.get('manufacturer')} {car.get('model')}",list(LABELS),index=None,format_func=LABELS.get,horizontal=True,key=f'taste_feedback_{feedback_id}_{i}'))
             if all(v in LABELS for v in values) and len(set(values))>1:
-                direct=ndcg10(np.array(values)-1,np.arange(10,0,-1))
+                direct=ndcg10(np.array(values)-1,np.arange(len(cars),0,-1))
                 st.metric('NDCG@10 against your additional ratings',f'{direct:.3f}')
-                st.caption('Evaluates ordering within these ten displayed cars only. It does not measure catalogue-wide recall. This feedback is not used to train the displayed list.')
+                st.caption('Evaluates ordering within the displayed cars only. It does not measure catalogue-wide recall. This feedback is not used to train the displayed list.')
         with st.expander('Technical result'):
             st.json({k:v for k,v in result.items() if k not in ['positions','scores']},expanded=False)
     with st.expander('Business guide · how the garage learns'):
         st.write('Categories use smoothed leave-one-out log asking-price encoding. Numerical features are standardized and clipped before Euclidean HDBSCAN, without UMAP. Density parameters target the chosen number of groups. The short test merges eleven native density groups into ten macroprofiles. The long test selects exactly 25 clusters at a finer cut of the saved density hierarchy. Every representative is a real non-noise car selected by medoid distance, never a synthetic centroid.')
         st.write(f"Catalogue: {meta['rows']:,} original canonical asking adverts. Native density groups: {meta['density_clusters']}. Native density noise: {meta['noise_fraction']:.1%}. No live inventory or verified condition is implied.")
-        st.write('Each car has one soft membership per profile. Its expected preference blends your ratings by those memberships; unassigned mass receives the mean of your representative ratings. Low-membership cars are not forced into a profile. XGBoost then learns an ordering from vehicle attributes and advertised prices. Original log price and a date-adjusted log-price scenario enter XGBoost, with an explicit indicator where date adjustment is unsupported. Cluster IDs, prototype IDs, descriptions and all user features are excluded from its predictors. The trained ranking and your reactions stay in this Streamlit session.')
+        st.write('Ratings 1 and 2 subtract preference; ratings 3 and 4 add preference. Unassigned membership contributes zero. Soft density evidence gets 75% weight and L2-medoid affinity 25%. Cars closer to a disliked representative than to a liked one are excluded, and the remaining cars need positive net evidence. Low-membership cars are not forced into a profile. XGBoost then learns an ordering from vehicle attributes and advertised prices. Original log price and a date-adjusted log-price scenario enter XGBoost, with an explicit indicator where date adjustment is unsupported. Cluster IDs, prototype IDs, descriptions and all user features are excluded from its predictors. The trained ranking and your reactions stay in this Streamlit session.')
     with st.expander('Technical guide · rank:ndcg, validation and limits'):
         st.code('XGBRanker(objective="rank:ndcg", eval_metric="ndcg@10",\n          tree_method="hist", enable_categorical=True,\n          max_depth=3, n_jobs=2)')
-        st.write('One session is one ranking query group; its all-zero qid is a grouping instruction, never a predictor. Ratings 1–4 map to relevance 0–3. Soft expected relevance is rounded to 0.1 steps for XGBoost’s integer ranking labels. Linear NDCG gains avoid exponential amplification; displayed NDCG uses unrounded soft relevance. A deterministic vehicle-ID split holds out approximately 20% for early stopping; prototypes stay in training. A final model fits every advert once, then scores the full catalogue. Native categorical partitioning avoids one-hot features in XGBoost. Original and date-adjusted log asking prices are predictors; HDBSCAN also uses price indirectly through leave-one-out category encoding, without using preference ratings. No FM or Cartesian duplication is used.')
+        st.write('One session is one ranking query group; its all-zero qid is a grouping instruction, never a predictor. Ratings 1–4 map to relevance 0–3. Signed evidence is shifted to nonnegative relevance for LambdaMART and rounded to 0.1 steps for XGBoost’s integer ranking labels. Linear NDCG gains avoid exponential amplification; displayed NDCG uses unrounded soft relevance. A deterministic vehicle-ID split holds out approximately 20% for early stopping; prototypes stay in training. A final model fits every advert once, then scores the full catalogue. Native categorical partitioning avoids one-hot features in XGBoost. Original and date-adjusted log asking prices are predictors; HDBSCAN also uses price indirectly through leave-one-out category encoding, without using preference ratings. No FM or Cartesian duplication is used.')
         st.write('The category vocabulary and price-informed geometry use the full catalogue: this is transductive exploration, not an external benchmark. The held-out targets are still weak labels derived from the same representative judgments. Scaled target encodings can discard distinctions; clustered cars can have different appeal. Real additional ratings are needed to test personal preference quality.')
-        st.write('The long test selects 25 clusters from the saved HDBSCAN density hierarchy without rebuilding its neighbour graph. FAISS uses exact Manhattan (L1) distance, with no square root, squaring or cosine normalization.')
+        st.write('The long test selects 25 clusters from the saved HDBSCAN density hierarchy without rebuilding its neighbour graph. FAISS uses exact Euclidean L2 distance: the square root of its squared-L2 output, without cosine normalization or division by dimension.')
         st.write(meta.get('representatives','Legacy representative selection.'))
         st.caption('Price scenarios use existing depreciation curves and the saved CPI/Holt market clock; current-car accuracy is unvalidated. Source: Craigslist Used Cars, Tom / Zenodo 10457828, CC BY 4.0.')
 

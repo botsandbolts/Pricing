@@ -1,4 +1,4 @@
-name: Verify soft ranking and FAISS L1 and 25-profile release
+name: Verify soft ranking and FAISS L2 and preference and 25-profile release
 on:
   workflow_dispatch:
   push:
@@ -14,7 +14,7 @@ permissions:
   actions: read
 concurrency:
   group: taste-ranking-release
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   verify-and-publish:
     runs-on: ubuntu-24.04
@@ -36,7 +36,18 @@ jobs:
           run-id: 41344075483
           github-token: ${{ github.token }}
           path: training-cache/taste-incremental
-      - name: Reuse frozen clusters; test FAISS, 10/25 profiles, nonconstant ranking and both UIs
+      - name: Read completed 25-profile catalogue if available
+        run: |
+          git fetch origin main
+          git checkout origin/main -- data/taste-garage
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: frozen-hdbscan-25-daily-listing-prediction
+          run-id: 41376230365
+          github-token: ${{ github.token }}
+          path: training-cache/taste-incremental
+      - name: Reuse frozen clusters; test FAISS, 10/25 profiles, signed preference checks and both UIs
         run: python -m scripts.verify_taste_release --bundle training-cache/taste-incremental/frozen-profiles.joblib
       - uses: actions/upload-artifact@v4
         with:
@@ -58,7 +69,7 @@ jobs:
             tar -xf "$RUNNER_TEMP/taste-assets.tar"
             git add data/taste-garage
             if git diff --cached --quiet; then exit 0; fi
-            git commit -m "Publish verified nonconstant soft ranking and FAISS L1 and 25-profile evidence"
+            git commit -m "Publish verified nonconstant soft ranking and FAISS L2 and preference and 25-profile evidence"
             if git push origin HEAD:main; then exit 0; fi
           done
           exit 1
