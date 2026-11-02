@@ -237,13 +237,23 @@ def test_reciprocal_standardisation_direction_and_scale():
     from pricing.taste_ranking import reciprocal_rating_scores
     r=np.array([1,2,3,4]*3)
     result=reciprocal_rating_scores(r);inv=1/r
-    np.testing.assert_allclose(result,-(inv-inv.mean())/inv.std())
+    np.testing.assert_allclose(result,5/12-inv)
     assert np.all(np.diff(result[:4])>0)
-    assert abs(result.mean())<1e-12 and abs(result.std()-1)<1e-12
-    np.testing.assert_array_equal(reciprocal_rating_scores([4]*10),np.zeros(10))
+    assert result[0]<result[1]<0<result[2]<result[3]
+    np.testing.assert_allclose(reciprocal_rating_scores([4]*10),np.full(10,1/6))
 
 def test_reciprocal_evidence_prefers_four_over_one():
     from pricing.taste_ranking import preference_evidence
     ratings=[1,2,3,4,1,2,3,4,1,4]
     e=preference_evidence(np.eye(10),ratings)
     assert e['signed'][3]>e['signed'][2]>e['signed'][1]>e['signed'][0]
+
+
+def test_rmse_uses_raw_vector_magnitude_without_normalization():
+    from pricing.taste_ranking import faiss_rmse
+    q=np.array([[1.,2.],[10.,20.]],dtype=np.float32)
+    r=np.array([[1.,2.],[2.,4.]],dtype=np.float32)
+    d,order=faiss_rmse(q,r)
+    np.testing.assert_allclose(d,np.sqrt(np.mean((q[:,None,:]-r[None,:,:])**2,axis=2)),atol=1e-5)
+    assert d[0,0]==0 and d[1,0]>10
+    assert order[0,0]==0 and order[1,0]==1

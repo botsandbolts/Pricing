@@ -1,0 +1,48 @@
+name: Verify and deploy unnormalized RMSE inverse-rating garage
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/convert_garage_rmse.py'
+      - '.github/workflows/taste-rmse.yml'
+permissions:
+  contents: write
+concurrency:
+  group: taste-geometry-release
+  cancel-in-progress: false
+jobs:
+  convert-verify-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      OPENBLAS_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+      NUMBA_NUM_THREADS: '2'
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 'xgboost>=3.1,<4' hdbscan==0.8.44 faiss-cpu streamlit==1.66.1 umap-learn==0.5.9.post2 requests pytest
+      - run: python -m pytest tests/test_taste_garage.py tests/test_taste_release_ui.py -q
+      - run: python -m scripts.convert_garage_rmse
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rmse-inverse-release-check
+          path: data/taste-garage-mixed/release-check.json
+      - name: Publish verified matching RMSE arrays and manifests
+        run: |
+          tar -cf "$RUNNER_TEMP/rmse.tar" data/taste-garage-mixed
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            tar -xf "$RUNNER_TEMP/rmse.tar"
+            git add data/taste-garage-mixed
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Deploy verified raw-feature RMSE and inverse rating garage"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1

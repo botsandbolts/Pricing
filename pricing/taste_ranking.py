@@ -278,10 +278,10 @@ def predict_new_profiles(frame,bundle):
     m=np.zeros((len(frame),len(bundle['medoids'])),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
     m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
-    if bundle['encoder'].get('kind')=='lemon-textprice-onehot-umap-v1':
+    if bundle['encoder'].get('kind')=='lemon-textprice-onehot-umap-v1' and bundle.get('neighbour_metric')!='rmse':
         from pricing.mixed_garage import comparison_vectors
         geometry=comparison_vectors(geometry,bundle['encoder'])
-    return m,(faiss_cosine if bundle.get('neighbour_metric')=='cosine' else faiss_l2)(geometry,bundle['medoids'])[0]
+    return m,(faiss_rmse if bundle.get('neighbour_metric')=='rmse' else faiss_cosine if bundle.get('neighbour_metric')=='cosine' else faiss_l2)(geometry,bundle['medoids'])[0]
 
 
 def faiss_l2(queries,references):
@@ -317,13 +317,20 @@ def faiss_cosine(queries,references):
     return distances,orders
 
 
+def faiss_rmse(queries,references):
+    """Per-feature RMSE on supplied scaled features; no unit normalization."""
+    q=np.asarray(queries)
+    distances,order=faiss_l2(queries,references)
+    return distances/np.sqrt(q.shape[1]),order
+
+
 def reciprocal_rating_scores(ratings):
-    """Negative population z-score of reciprocal ratings; larger ratings score higher."""
+    """Inverse ratings with a fixed neutral offset; no z-score or unit normalization."""
     r=np.asarray(ratings,dtype=float)
     if r.ndim!=1 or not len(r) or not np.isfinite(r).all() or not np.isin(r,[1,2,3,4]).all():
         raise ValueError('Ratings must be a nonempty vector of 1, 2, 3 or 4')
-    inverse=1.0/r;spread=float(inverse.std(ddof=0))
-    return np.zeros_like(inverse) if spread<1e-12 else -(inverse-inverse.mean())/spread
+    # Fixed neutral point between ratings 2 and 3; no standardization.
+    return (1/2+1/3)/2-1.0/r
 
 def preference_evidence(memberships,ratings,distances=None):
     """Signed evidence: negative reactions lower preference; no approval from noise."""

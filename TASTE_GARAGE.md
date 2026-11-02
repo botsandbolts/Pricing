@@ -35,3 +35,7 @@ Publish the matching code, both verified profile assets, SQLite catalogue and `d
 
 ## Reciprocal rating standardisation
 Session ratings use negative population-standardized reciprocals: score = −(1/r − mean(1/r))/std(1/r). Higher ratings always have higher scores. Equal ratings safely yield zero (the UI requires variation). Zero indicates the session average, rather than a fixed like/dislike threshold. Explicit nearest-liked/disliked exclusion still uses ratings 3–4 versus 1–2. Before integer ranking labels are formed, signed evidence is bounded and mapped to 0–3; no negative relevance labels reach XGBoost. Saved session recommendations are invalidated when this scoring version changes. Similarity models and trained catalogue assets are unchanged.
+
+
+## Current RMSE / inverse release
+Replaces vector-normalized cosine preference comparisons with per-feature RMSE on the original scaled mixed features: sqrt(sum((x-y)^2)/D), computed by FAISS IndexFlatL2. No unit normalization is applied; vector magnitude matters. Existing clusters, soft memberships and representatives are preserved. Rating evidence uses 5/12 − 1/rating: an inverse transform plus a fixed neutral offset between ratings 2 and 3, with no z-score, unit normalization or session-dependent centering. This keeps ratings 1–2 negative and 3–4 positive, with 4 best. Earlier standardized-reciprocal descriptions are superseded. RMSE measures feature differences, not dollar prediction error.
