@@ -1,0 +1,8 @@
+{
+  "run_id": 41225149395,
+  "artifact": "minilm-cleaning-and-evaluation-evidence",
+  "path": "minilm-cleaned/ask/text-price-oof.csv.gz",
+  "original_sha256": "ad31d2b88296b8ee22782c012c692d955d7d39de6c526abec2aae65fc6fe8aa7",
+  "rows": 110832,
+  "recomputed": false
+}

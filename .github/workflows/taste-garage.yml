@@ -1,9 +1,6 @@
-name: Build original-data soft HDBSCAN garage and test XGBoost ranking
+name: Legacy source rebuild (use one-hot release for both tests)
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'scripts/build_taste_garage.py'
 permissions:
   contents: write
 concurrency:
@@ -11,6 +8,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-and-verify:
+    if: false
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:

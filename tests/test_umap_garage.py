@@ -2,17 +2,25 @@ import numpy as np
 import pandas as pd
 
 def test_clustering_embedding_parameters_follow_guide():
-    from scripts.build_umap_garage import make_embedding
-    p=make_embedding().get_params()
+    from scripts.build_mixed_garage import make_embedding
+    p=make_embedding({'onehot_dimensions':10,'numeric_dimensions':7}).get_params()
+    from pricing.mixed_garage import mixed_distance
+    assert p['metric'] is mixed_distance and p['metric_kwds']=={'n_cat':10,'n_num':7}
     assert p['n_neighbors']==30 and p['min_dist']==0 and p['n_components']==5 and p['random_state']==42
 
 def test_incomplete_umap_assets_do_not_replace_working_catalogue(tmp_path):
+    import json
     from pricing.taste_ranking import active_catalogue_folder
-    new=tmp_path/'data/taste-garage-umap';new.mkdir(parents=True)
-    for f in ['manifest.json','features.npz','profiles-25.json']:(new/f).write_text('pending')
+    new=tmp_path/'data/taste-garage-mixed';new.mkdir(parents=True)
+    pointer=tmp_path/'data/taste-garage-release.json'
+    pointer.write_text('invalid json')
     assert active_catalogue_folder(tmp_path)==tmp_path/'data/taste-garage'
-    (new/'features-25.npz').write_text('ready')
+    pointer.write_text(json.dumps({'directory':'taste-garage-mixed','encoding_kind':'lemon-textprice-onehot-umap-v1','verified':True}))
+    for f in ['manifest.json','features.npz','profiles-25.json','features-25.npz','cars.sqlite']:(new/f).write_text('pending')
+    assert active_catalogue_folder(tmp_path)==tmp_path/'data/taste-garage'
+    (new/'release-check.json').write_text('verified')
     assert active_catalogue_folder(tmp_path)==new
+
 
 def test_new_listing_uses_umap_for_density_but_original_features_for_faiss(monkeypatch):
     import hdbscan

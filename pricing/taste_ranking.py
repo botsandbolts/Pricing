@@ -101,7 +101,13 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     return {'eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus medoid-distance evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
 def active_catalogue_folder(root):
-    return Path(root)/'data/taste-garage'
+    root=Path(root);fallback=root/'data/taste-garage';pointer=root/'data/taste-garage-release.json'
+    if not pointer.exists():return fallback
+    try:info=json.loads(pointer.read_text())
+    except (OSError,ValueError,TypeError):return fallback
+    folder=root/'data/taste-garage-mixed'
+    if isinstance(info,dict) and info.get('directory')=='taste-garage-mixed' and info.get('encoding_kind')=='lemon-textprice-onehot-umap-v1' and info.get('verified') is True and all((folder/f).exists() for f in ['manifest.json','features.npz','profiles-25.json','features-25.npz','cars.sqlite','release-check.json']):return folder
+    return fallback
 
 def load(root,profile_count=10,catalogue_path=None):
     folder=Path(catalogue_path) if catalogue_path is not None else active_catalogue_folder(root);file=folder/'manifest.json' 
@@ -130,7 +136,7 @@ def load(root,profile_count=10,catalogue_path=None):
     return manifest,arrays
 
 def records(root,positions):
-    path=(Path(root)/'data/taste-garage/cars.sqlite').resolve()
+    path=(active_catalogue_folder(root)/'cars.sqlite').resolve()
     with sqlite3.connect(path.as_uri()+'?mode=ro',uri=True) as conn:
         output=[]
         for pos in positions:
@@ -159,6 +165,39 @@ def adjusted_price_features(codes,numeric,levels,prices,source_days,when,transpo
     values=np.asarray(prices)[ids]*factors*current/np.array([lookup[months[i]] for i in ids])
     good=np.isfinite(values)&(values>0)&(values<=1e7);out[ids[good]]=values[good]
     return out
+
+
+def one_hot_geometry(frame,min_count=100,min_fraction=.001,return_state=False):
+    """Target-free common-category indicators plus standardized numeric features.
+
+    Rare, missing-if-rare and unseen values share one explicit bucket per field.
+    Indicators stay 0/1: variance scaling would amplify infrequent categories.
+    """
+    from sklearn.preprocessing import StandardScaler
+    if not len(frame):raise ValueError('A nonempty reference cohort is required')
+    if not isinstance(min_count,(int,np.integer)) or min_count<1 or not np.isfinite(min_fraction) or not 0<=min_fraction<=1:
+        raise ValueError('Use a positive minimum count and a fraction from zero to one')
+    threshold=max(int(min_count),int(np.ceil(len(frame)*min_fraction)))
+    vocab={};names=[]
+    for field in CATEGORICAL:
+        values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
+        counts=values.value_counts();common=sorted(counts[counts>=threshold].index.tolist())
+        # Constant grouped fields carry no useful similarity; omit them completely.
+        grouped=np.where(values.isin(common),values,'__rare_or_unseen__')
+        if len(set(grouped))<2:continue
+        vocab[field]=common
+        names.extend([field+'='+value for value in common]+[field+'=Other (rare/unseen)'])
+    year=pd.to_numeric(frame.get('year',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+    miles=pd.to_numeric(frame.get('odometer',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+    valid=np.isfinite(miles)&(miles>=0)&(miles<=2e6)
+    year_median=float(np.median(year[np.isfinite(year)])) if np.isfinite(year).any() else 2015.
+    mileage_median=float(np.median(np.log1p(miles[valid]))) if valid.any() else float(np.log1p(95000.))
+    numeric=np.column_stack([np.where(np.isfinite(year),year,year_median),np.where(valid,np.log1p(np.maximum(miles,0)),mileage_median),~valid])
+    state={'kind':'common-onehot-v1','min_count':int(min_count),'min_fraction':float(min_fraction),'threshold':threshold,
+           'categories':vocab,'feature_names':names+list(NUMERIC),'onehot_dimensions':len(names),
+           'scaler':StandardScaler().fit(numeric),'year_median':year_median,'log_mileage_median':mileage_median}
+    geometry=transform_new_geometry(frame,state)
+    return (geometry,geometry[:,:len(names)],state) if return_state else (geometry,geometry[:,:len(names)])
 
 
 def leave_one_out_geometry(frame,prices,smoothing=20.,return_state=False):
@@ -197,6 +236,22 @@ def leave_one_out_geometry(frame,prices,smoothing=20.,return_state=False):
 
 def transform_new_geometry(frame,state):
     """Frozen inference encoding: reference cohort statistics, never new targets."""
+    if state.get('kind')=='lemon-textprice-onehot-umap-v1':
+        from pricing.mixed_garage import transform_geometry
+        return transform_geometry(frame,state)
+    if state.get('kind')=='common-onehot-v1':
+        matrix=np.zeros((len(frame),state['onehot_dimensions']+3),dtype=np.float32)
+        offset=0;rows=np.arange(len(frame))
+        for field,common in state['categories'].items():
+            values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
+            codes=pd.Index(common).get_indexer(values);codes=np.where(codes<0,len(common),codes)
+            matrix[rows,offset+codes]=1.;offset+=len(common)+1
+        year=pd.to_numeric(frame.get('year',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+        miles=pd.to_numeric(frame.get('odometer',pd.Series(np.nan,index=frame.index)),errors='coerce').to_numpy(float)
+        valid=np.isfinite(miles)&(miles>=0)&(miles<=2e6)
+        numeric=np.column_stack([np.where(np.isfinite(year),year,state['year_median']),np.where(valid,np.log1p(np.maximum(miles,0)),state['log_mileage_median']),~valid])
+        matrix[:,offset:]=np.clip(state['scaler'].transform(numeric),-6,6)
+        return matrix
     cols=[]
     for field in CATEGORICAL:
         values=frame[field].map(clean) if field in frame else pd.Series('__missing__',index=frame.index)
@@ -213,7 +268,7 @@ def predict_new_profiles(frame,bundle):
     """No refit: frozen encoding/scaling, HDBSCAN affinities, medoid distances."""
     import hdbscan
     geometry=transform_new_geometry(frame,bundle['encoder'])
-    cluster_geometry=geometry
+    cluster_geometry=bundle['umap'].transform(geometry) if 'umap' in bundle else geometry
     if bundle.get('prediction_method')=='flat':
         from hdbscan.flat import membership_vector_flat
         raw=membership_vector_flat(bundle['hdbscan'],cluster_geometry)
@@ -222,6 +277,9 @@ def predict_new_profiles(frame,bundle):
     m=np.zeros((len(frame),len(bundle['medoids'])),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
     m=np.maximum(m,0);m/=np.maximum(1,m.sum(axis=1,keepdims=True))
+    if bundle['encoder'].get('kind')=='lemon-textprice-onehot-umap-v1':
+        from pricing.mixed_garage import comparison_vectors
+        geometry=comparison_vectors(geometry,bundle['encoder'])
     return m,(faiss_cosine if bundle.get('neighbour_metric')=='cosine' else faiss_l2)(geometry,bundle['medoids'])[0]
 
 
