@@ -1,4 +1,4 @@
-name: Verify and deploy unnormalized RMSE inverse-rating garage
+name: Verify and deploy column-scaled RMSE session-scaled ratings
 on:
   workflow_dispatch:
   push:
@@ -31,6 +31,11 @@ jobs:
         with:
           name: rmse-inverse-release-check
           path: data/taste-garage-mixed/release-check.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozen-faiss-standardscaler-preprocessor
+          path: training-cache/rmse-standardized/faiss-preprocessor.joblib
+          retention-days: 90
       - name: Publish verified matching RMSE arrays and manifests
         run: |
           tar -cf "$RUNNER_TEMP/rmse.tar" data/taste-garage-mixed

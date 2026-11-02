@@ -292,6 +292,8 @@ def predict_new_profiles(frame,bundle):
     if bundle['encoder'].get('kind')=='lemon-textprice-onehot-umap-v1' and bundle.get('neighbour_metric')!='rmse':
         from pricing.mixed_garage import comparison_vectors
         geometry=comparison_vectors(geometry,bundle['encoder'])
+    if bundle.get('faiss_scaler') is not None:
+        geometry=apply_faiss_scaler(geometry,bundle['faiss_scaler'])
     return m,(faiss_rmse if bundle.get('neighbour_metric')=='rmse' else faiss_cosine if bundle.get('neighbour_metric')=='cosine' else faiss_l2)(geometry,bundle['medoids'])[0]
 
 
@@ -328,6 +330,23 @@ def faiss_cosine(queries,references):
     return distances,orders
 
 
+def standardize_faiss_vectors(vectors):
+    """Fit column statistics on the reference catalogue, not individual queries."""
+    from sklearn.preprocessing import StandardScaler
+    x=np.asarray(vectors,dtype=np.float32)
+    if x.ndim!=2 or not len(x) or not x.shape[1] or not np.isfinite(x).all():
+        raise ValueError('Finite nonempty feature matrix required')
+    scaler=StandardScaler().fit(x)
+    state={'mean':scaler.mean_.tolist(),'scale':scaler.scale_.tolist(),'dimensions':x.shape[1],'rows':len(x)}
+    return np.ascontiguousarray(scaler.transform(x),dtype=np.float32),state
+
+def apply_faiss_scaler(vectors,state):
+    x=np.asarray(vectors,dtype=np.float32)
+    if x.ndim!=2 or x.shape[1]!=state['dimensions'] or not np.isfinite(x).all():
+        raise ValueError('Feature dimensions must match the frozen catalogue scaler')
+    return np.ascontiguousarray((x-np.asarray(state['mean']))/np.asarray(state['scale']),dtype=np.float32)
+
+
 def faiss_rmse(queries,references):
     """Per-feature RMSE on supplied scaled features; no unit normalization."""
     q=np.asarray(queries)
@@ -336,12 +355,12 @@ def faiss_rmse(queries,references):
 
 
 def reciprocal_rating_scores(ratings):
-    """Inverse ratings with a fixed neutral offset; no z-score or unit normalization."""
+    """StandardScaler of inverse ratings across the session; higher rating scores higher."""
     r=np.asarray(ratings,dtype=float)
     if r.ndim!=1 or not len(r) or not np.isfinite(r).all() or not np.isin(r,[1,2,3,4]).all():
         raise ValueError('Ratings must be a nonempty vector of 1, 2, 3 or 4')
-    # Fixed neutral point between ratings 2 and 3; no standardization.
-    return (1/2+1/3)/2-1.0/r
+    from sklearn.preprocessing import StandardScaler
+    return -StandardScaler().fit_transform((1.0/r).reshape(-1,1)).ravel()
 
 def preference_evidence(memberships,ratings,distances=None):
     """Signed evidence: negative reactions lower preference; no approval from noise."""

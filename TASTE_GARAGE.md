@@ -39,3 +39,9 @@ Session ratings use negative population-standardized reciprocals: score = −(1/
 
 ## Current RMSE / inverse release
 Replaces vector-normalized cosine preference comparisons with per-feature RMSE on the original scaled mixed features: sqrt(sum((x-y)^2)/D), computed by FAISS IndexFlatL2. No unit normalization is applied; vector magnitude matters. Existing clusters, soft memberships and representatives are preserved. Rating evidence uses 5/12 − 1/rating: an inverse transform plus a fixed neutral offset between ratings 2 and 3, with no z-score, unit normalization or session-dependent centering. This keeps ratings 1–2 negative and 3–4 positive, with 4 best. Earlier standardized-reciprocal descriptions are superseded. RMSE measures feature differences, not dollar prediction error.
+
+
+## Current StandardScaler release
+FAISS vectors: sklearn StandardScaler is fitted per feature column on all 110832 catalogue rows. Saved means and scales transform the entire catalogue, its representatives and new queries. Constant columns have scale 1. There is no row unit normalization. Distances are RMSE in standardized feature units and the selected shortlist displays lowest RMSE first. HDBSCAN memberships and original representatives stay unchanged. The frozen scaler is saved as faiss-scaler.json; a matching offline feature encoder and scaler are exported together for new-listing inference.
+
+Session ratings: inverse-transform all 10 or 25 ratings, fit a separate sklearn StandardScaler across that session, then negate, yielding −z(1/rating). Rating 4 remains highest; zero now means session average. Explicit nearest-liked/disliked safeguards still use ratings 3–4 versus 1–2. Earlier inverse-only/fixed-offset descriptions are superseded. No independently measured relevance improvement is claimed.

@@ -237,10 +237,10 @@ def test_reciprocal_standardisation_direction_and_scale():
     from pricing.taste_ranking import reciprocal_rating_scores
     r=np.array([1,2,3,4]*3)
     result=reciprocal_rating_scores(r);inv=1/r
-    np.testing.assert_allclose(result,5/12-inv)
+    np.testing.assert_allclose(result,-(inv-inv.mean())/inv.std())
     assert np.all(np.diff(result[:4])>0)
-    assert result[0]<result[1]<0<result[2]<result[3]
-    np.testing.assert_allclose(reciprocal_rating_scores([4]*10),np.full(10,1/6))
+    assert abs(result.mean())<1e-12 and abs(result.std()-1)<1e-12
+    np.testing.assert_allclose(reciprocal_rating_scores([4]*10),np.zeros(10))
 
 def test_reciprocal_evidence_prefers_four_over_one():
     from pricing.taste_ranking import preference_evidence
@@ -265,3 +265,14 @@ def test_presentation_lowest_liked_rmse_first_and_stable_ties():
     ordered=closest_liked_first([0,1,2,3],distances,[4,1])
     assert ordered.tolist()==[1,3,2,0]
     assert set(ordered)=={0,1,2,3}
+
+
+def test_catalogue_scaler_matches_sklearn_and_freezes_query_statistics():
+    from sklearn.preprocessing import StandardScaler
+    from pricing.taste_ranking import standardize_faiss_vectors,apply_faiss_scaler
+    x=np.array([[0.,100.,7.],[1.,200.,7.],[0.,300.,7.]],dtype=np.float32)
+    got,state=standardize_faiss_vectors(x);expected=StandardScaler().fit(x)
+    np.testing.assert_allclose(got,expected.transform(x),atol=1e-6)
+    q=np.array([[1.,900.,7.]],dtype=np.float32)
+    np.testing.assert_allclose(apply_faiss_scaler(q,state),expected.transform(q),atol=1e-6)
+    assert state['scale'][2]==1 and np.all(got[:,2]==0)
