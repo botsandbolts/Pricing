@@ -116,3 +116,5 @@ tokenizers>=0.23.1,<0.24
 # Exact cosine nearest-neighbour retrieval in Listing Inspector.
 faiss-cpu>=1.8,<2
 # Illustrated garage facelift: restart imported presentation modules.
+
+# Accessibility release: cold restart for reading preferences and semantic UI updates.
