@@ -7,6 +7,11 @@ MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
+if st.query_params.get('accessibility_report') == '1':
+    from pricing.accessibility_report import render as render_accessibility_report
+    render_accessibility_report()
+    st.stop()
+
 # Keep troubleshooting reachable without importing/loading any pricing models.
 if st.query_params.get('connection_check') == '1':
     from pricing.analytics import render_connection_check
@@ -14,14 +19,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _accessible_garage_release_v4():
+def _accessible_garage_release_v5():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
     for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.taste_garage_ui','pricing.current_tools'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_accessible_garage_release_v4()
+_accessible_garage_release_v5()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()

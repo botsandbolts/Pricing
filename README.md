@@ -66,3 +66,7 @@ The release workflow verifies original data identities, rebuilds the OOF models 
 Asking: original Craigslist Used Cars dataset, with original cohort and text-training evidence supplied through [botsandbolts/pricing on Kaggle](https://www.kaggle.com/datasets/botsandbolts/pricing/). Auction: Kaggle/tunguz Used Car Auction Prices, reported 2014–2015 sales. These are different historical datasets.
 
 Software: MIT, copyright Amit Steinberg. Datasets, pretrained models and dependencies retain their respective licences. The author’s LinkedIn link is in the GUI footer.
+
+## Car recommendations
+
+Pick your garage uses **HDBSCAN soft vehicle profiles** with real medoid representatives, signed rating evidence and exact FAISS L2 distance checks. A separate XGBoost LambdaMART ranker orders eligible cars after those checks. Choose 10 or 25 representatives; results contain up to ten historical adverts, never live inventory. See [the complete recommender method](TASTE_GARAGE.md) for encoding, profiles, noise, safeguards, validation and limits.

@@ -26,7 +26,7 @@ def encode(frame):
     return np.column_stack(codes),numeric,levels
 
 def features(codes,numeric,levels):
-    # Native categorical partitioning in XGBoost, no one-hot/user/cluster/price features.
+    # Base vehicle attributes use native categorical partitioning; price features are appended by train_rank. No user or cluster predictors.
     data={field:pd.Categorical.from_codes(codes[:,j],categories=levels[field]) for j,field in enumerate(CATEGORICAL)}
     data.update({name:numeric[:,j] for j,name in enumerate(NUMERIC)})
     return pd.DataFrame(data)

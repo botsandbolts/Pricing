@@ -96,7 +96,7 @@ def render(root):
     has_like=any(r in (3,4) for r in ratings)
     if complete and not has_like:st.info('Choose I like it or Love it for at least one car so there is something to recommend.')
     if complete and not different:st.info('Give at least two cars different ratings so the model has an ordering to learn.')
-    st.markdown('## 2 · Let the trees build your shortlist')
+    st.markdown('## 2 · Build your HDBSCAN-based shortlist')
     if not complete:st.caption(f'{profile_count-count} more reaction'+('s' if profile_count-count!=1 else '')+' to go. Your shortlist unlocks once every car has a rating.')
     if st.button('Find my ten cars →',type='primary',disabled=not complete or not different or not has_like,key='taste_train'):
         try:
@@ -113,7 +113,8 @@ def render(root):
     if saved:
         announce('Shortlist ready. '+str(len(saved[1]['positions']))+' historical cars found.')
         result=saved[1];st.markdown(f"## Your {len(result['positions'])} · tyres optional, taste mandatory")
-        st.caption('Passes explicit liked/disliked checks, then ordered by XGBoost preference score; nearest-medoid explanations use exact FAISS L2. These are historical adverts, not available stock. The representatives you already rated are excluded.')
+        st.write('**HDBSCAN finds your car profiles. Your ratings shape the shortlist.**')
+        st.caption('Soft HDBSCAN memberships and exact FAISS L2 distances carry your likes and dislikes across the catalogue. Cars must pass the preference checks; a separate XGBoost ranker orders the eligible matches. These are historical adverts, not available stock. Cars you already rated are excluded.')
         cars=records(root,result['positions'])
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
             profile=int(arrays['clusters'][position]);p=meta['profiles'][profile]
@@ -157,7 +158,8 @@ def render(root):
                 st.caption('Evaluates ordering within the displayed cars only. It does not measure catalogue-wide recall. This feedback is not used to train the displayed list.')
         with st.expander('Technical result'):
             st.json({k:v for k,v in result.items() if k not in ['positions','scores']},expanded=False)
-    with st.expander('Business guide · how the garage learns'):
+    with st.expander('Business guide · HDBSCAN profiles, FAISS distances & ranking'):
+        st.write('Three different jobs: HDBSCAN discovers soft vehicle profiles; FAISS measures exact L2 distance to real representative cars; XGBoost learns the final ordering after the like/dislike safeguards. HDBSCAN is the clustering method, not a price predictor.')
         st.write('Categories use smoothed leave-one-out log asking-price encoding. Numerical features are standardized and clipped before Euclidean HDBSCAN, without UMAP. Density parameters target the chosen number of groups. The short test merges eleven native density groups into ten macroprofiles. The long test selects exactly 25 clusters at a finer cut of the saved density hierarchy. Every representative is a real non-noise car selected by medoid distance, never a synthetic centroid.')
         st.write(f"Catalogue: {meta['rows']:,} original canonical asking adverts. Native density groups: {meta['density_clusters']}. Native density noise: {meta['noise_fraction']:.1%}. No live inventory or verified condition is implied.")
         st.write('Ratings 1 and 2 subtract preference; ratings 3 and 4 add preference. Unassigned membership contributes zero. Soft density evidence gets 75% weight and L2-medoid affinity 25%. Cars closer to a disliked representative than to a liked one are excluded, and the remaining cars need positive net evidence. Low-membership cars are not forced into a profile. XGBoost then learns an ordering from vehicle attributes and advertised prices. Original log price and a date-adjusted log-price scenario enter XGBoost, with an explicit indicator where date adjustment is unsupported. Cluster IDs, prototype IDs, descriptions and all user features are excluded from its predictors. The trained ranking and your reactions stay in this Streamlit session.')

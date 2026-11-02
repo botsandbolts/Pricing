@@ -41,3 +41,8 @@ pre{white-space:pre-wrap!important;overflow-wrap:anywhere}
  [data-testid="stButtonGroup"] button[aria-checked="true"]{outline:2px solid Highlight!important;outline-offset:-4px}
  :focus-visible{outline:3px solid Highlight!important;box-shadow:none!important}
 }
+/* Streamlit's toolbar has a rem-based minimum wider than a narrow enlarged-text viewport. */
+@media(max-width:480px){
+ [data-testid="stToolbar"]>div{min-width:0!important;max-width:100%!important}
+ [data-testid="stToolbar"]>div>div:last-child{min-width:0!important;width:100%!important;max-width:100%!important;flex:1 1 auto!important;flex-wrap:wrap!important;justify-content:flex-end!important}
+}

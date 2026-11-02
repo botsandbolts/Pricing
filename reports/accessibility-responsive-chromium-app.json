@@ -1,0 +1,1414 @@
+{
+  "date": "2026-11-02",
+  "sourceNote": "Base commit plus the working-tree UI changes delivered with this report.",
+  "source": "9062945d45e2df742d396a86af0703bb37c130c6",
+  "scope": "Locally served production app, real installed catalogue; initial calculator and 10/25 rating forms. Model execution and completed recommendations not tested.",
+  "tools": {
+    "playwright": "1.62.1",
+    "axe": "4.14.0"
+  },
+  "screens": [
+    {
+      "state": "calculator entry",
+      "width": 320,
+      "height": 568,
+      "viewport": 320,
+      "document": 320,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 360,
+      "height": 800,
+      "viewport": 360,
+      "document": 360,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 375,
+      "height": 667,
+      "viewport": 375,
+      "document": 375,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "document": 390,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 412,
+      "height": 915,
+      "viewport": 412,
+      "document": 412,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 568,
+      "height": 320,
+      "viewport": 568,
+      "document": 568,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 667,
+      "height": 375,
+      "viewport": 667,
+      "document": 667,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 768,
+      "height": 1024,
+      "viewport": 768,
+      "document": 768,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 820,
+      "height": 1180,
+      "viewport": 820,
+      "document": 820,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 1024,
+      "height": 768,
+      "viewport": 1024,
+      "document": 1024,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 1280,
+      "height": 720,
+      "viewport": 1280,
+      "document": 1280,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 1366,
+      "height": 768,
+      "viewport": 1366,
+      "document": 1366,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 1440,
+      "height": 900,
+      "viewport": 1440,
+      "document": 1440,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 1536,
+      "height": 864,
+      "viewport": 1536,
+      "document": 1536,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 1920,
+      "height": 1080,
+      "viewport": 1920,
+      "document": 1920,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 2560,
+      "height": 1440,
+      "viewport": 2560,
+      "document": 2560,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "calculator entry",
+      "width": 3840,
+      "height": 2160,
+      "viewport": 3840,
+      "document": 3840,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 320,
+      "height": 568,
+      "viewport": 320,
+      "document": 320,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 360,
+      "height": 800,
+      "viewport": 360,
+      "document": 360,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 375,
+      "height": 667,
+      "viewport": 375,
+      "document": 375,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "document": 390,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 412,
+      "height": 915,
+      "viewport": 412,
+      "document": 412,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 568,
+      "height": 320,
+      "viewport": 568,
+      "document": 568,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 667,
+      "height": 375,
+      "viewport": 667,
+      "document": 667,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 768,
+      "height": 1024,
+      "viewport": 768,
+      "document": 768,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 820,
+      "height": 1180,
+      "viewport": 820,
+      "document": 820,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 1024,
+      "height": 768,
+      "viewport": 1024,
+      "document": 1024,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 1280,
+      "height": 720,
+      "viewport": 1280,
+      "document": 1280,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 1366,
+      "height": 768,
+      "viewport": 1366,
+      "document": 1366,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 1440,
+      "height": 900,
+      "viewport": 1440,
+      "document": 1440,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 1536,
+      "height": 864,
+      "viewport": 1536,
+      "document": 1536,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 1920,
+      "height": 1080,
+      "viewport": 1920,
+      "document": 1920,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 2560,
+      "height": 1440,
+      "viewport": 2560,
+      "document": 2560,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "10-car garage",
+      "width": 3840,
+      "height": 2160,
+      "viewport": 3840,
+      "document": 3840,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 320,
+      "height": 568,
+      "viewport": 320,
+      "document": 320,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 360,
+      "height": 800,
+      "viewport": 360,
+      "document": 360,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 375,
+      "height": 667,
+      "viewport": 375,
+      "document": 375,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "document": 390,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 412,
+      "height": 915,
+      "viewport": 412,
+      "document": 412,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 568,
+      "height": 320,
+      "viewport": 568,
+      "document": 568,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 667,
+      "height": 375,
+      "viewport": 667,
+      "document": 667,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 768,
+      "height": 1024,
+      "viewport": 768,
+      "document": 768,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 820,
+      "height": 1180,
+      "viewport": 820,
+      "document": 820,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 1024,
+      "height": 768,
+      "viewport": 1024,
+      "document": 1024,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 1280,
+      "height": 720,
+      "viewport": 1280,
+      "document": 1280,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 1366,
+      "height": 768,
+      "viewport": 1366,
+      "document": 1366,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 1440,
+      "height": 900,
+      "viewport": 1440,
+      "document": 1440,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 1536,
+      "height": 864,
+      "viewport": 1536,
+      "document": 1536,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 1920,
+      "height": 1080,
+      "viewport": 1920,
+      "document": 1920,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 2560,
+      "height": 1440,
+      "viewport": 2560,
+      "document": 2560,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage",
+      "width": 3840,
+      "height": 2160,
+      "viewport": 3840,
+      "document": 3840,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 320,
+      "height": 568,
+      "viewport": 320,
+      "document": 320,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 360,
+      "height": 800,
+      "viewport": 360,
+      "document": 360,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 375,
+      "height": 667,
+      "viewport": 375,
+      "document": 375,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "document": 390,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 412,
+      "height": 915,
+      "viewport": 412,
+      "document": 412,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 568,
+      "height": 320,
+      "viewport": 568,
+      "document": 568,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 667,
+      "height": 375,
+      "viewport": 667,
+      "document": 667,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 768,
+      "height": 1024,
+      "viewport": 768,
+      "document": 768,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 820,
+      "height": 1180,
+      "viewport": 820,
+      "document": 820,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 1024,
+      "height": 768,
+      "viewport": 1024,
+      "document": 1024,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 1280,
+      "height": 720,
+      "viewport": 1280,
+      "document": 1280,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 1366,
+      "height": 768,
+      "viewport": 1366,
+      "document": 1366,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 1440,
+      "height": 900,
+      "viewport": 1440,
+      "document": 1440,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 1536,
+      "height": 864,
+      "viewport": 1536,
+      "document": 1536,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 1920,
+      "height": 1080,
+      "viewport": 1920,
+      "document": 1920,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 2560,
+      "height": 1440,
+      "viewport": 2560,
+      "document": 2560,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "width": 3840,
+      "height": 2160,
+      "viewport": 3840,
+      "document": 3840,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 320,
+      "height": 568,
+      "viewport": 320,
+      "document": 320,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 360,
+      "height": 800,
+      "viewport": 360,
+      "document": 360,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 375,
+      "height": 667,
+      "viewport": 375,
+      "document": 375,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 390,
+      "height": 844,
+      "viewport": 390,
+      "document": 390,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 412,
+      "height": 915,
+      "viewport": 412,
+      "document": 412,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 568,
+      "height": 320,
+      "viewport": 568,
+      "document": 568,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 667,
+      "height": 375,
+      "viewport": 667,
+      "document": 667,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 768,
+      "height": 1024,
+      "viewport": 768,
+      "document": 768,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 820,
+      "height": 1180,
+      "viewport": 820,
+      "document": 820,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 1024,
+      "height": 768,
+      "viewport": 1024,
+      "document": 1024,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 1280,
+      "height": 720,
+      "viewport": 1280,
+      "document": 1280,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 1366,
+      "height": 768,
+      "viewport": 1366,
+      "document": 1366,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 1440,
+      "height": 900,
+      "viewport": 1440,
+      "document": 1440,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 1536,
+      "height": 864,
+      "viewport": 1536,
+      "document": 1536,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 1920,
+      "height": 1080,
+      "viewport": 1920,
+      "document": 1920,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 2560,
+      "height": 1440,
+      "viewport": 2560,
+      "document": 2560,
+      "overflow": [],
+      "pass": true
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "width": 3840,
+      "height": 2160,
+      "viewport": 3840,
+      "document": 3840,
+      "overflow": [],
+      "pass": true
+    }
+  ],
+  "scans": [
+    {
+      "state": "calculator entry",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "tags": [
+            "cat.color",
+            "wcag2aa",
+            "wcag143",
+            "TTv5",
+            "TT13.c",
+            "EN-301-549",
+            "EN-9.1.4.3",
+            "ACT",
+            "RGAAv4",
+            "RGAA-3.2.1"
+          ],
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "bold",
+                    "messageKey": "bgOverlap",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined because it is overlapped by another element"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<text x=\"230\" y=\"86\" text-anchor=\"middle\" font-size=\"11\" font-weight=\"700\" letter-spacing=\"2\" fill=\"#fffdf4\" font-family=\"sans-serif\">THE GARAGE</text>",
+              "target": [
+                "text[x=\"230\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+            },
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "7.5pt (10px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgOverlap",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined because it is overlapped by another element"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<text x=\"346\" y=\"183\" fill=\"#547367\" font-size=\"10\" font-family=\"sans-serif\">A little more clarity.</text>",
+              "target": [
+                "text[x=\"346\"]"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+            }
+          ]
+        }
+      ],
+      "passedRules": [
+        "aria-allowed-attr",
+        "aria-conditional-attr",
+        "aria-deprecated-role",
+        "aria-hidden-focus",
+        "aria-prohibited-attr",
+        "aria-required-attr",
+        "aria-roles",
+        "aria-valid-attr-value",
+        "aria-valid-attr",
+        "avoid-inline-spacing",
+        "button-name",
+        "color-contrast",
+        "duplicate-id-aria",
+        "form-field-multiple-labels",
+        "label",
+        "link-name",
+        "nested-interactive",
+        "role-img-alt",
+        "scrollable-region-focusable",
+        "summary-name",
+        "target-size"
+      ]
+    },
+    {
+      "state": "10-car garage",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "tags": [
+            "cat.color",
+            "wcag2aa",
+            "wcag143",
+            "TTv5",
+            "TT13.c",
+            "EN-301-549",
+            "EN-9.1.4.3",
+            "ACT",
+            "RGAAv4",
+            "RGAA-3.2.1"
+          ],
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "9.8pt (13px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgGradient",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<div class=\"garage-car-art\">",
+                      "target": [
+                        ".st-key-garage_taste_card_10_1 > .st-emotion-cache-jdqcwj.stElementContainer[data-stale=\"true\"]:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined due to a background gradient"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<span>Body-style illustration · not a listing photo</span>",
+              "target": [
+                ".st-key-garage_taste_card_10_1 > .st-emotion-cache-jdqcwj.stElementContainer[data-stale=\"true\"]:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art > span"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            }
+          ]
+        }
+      ],
+      "passedRules": [
+        "aria-allowed-attr",
+        "aria-conditional-attr",
+        "aria-deprecated-role",
+        "aria-hidden-focus",
+        "aria-progressbar-name",
+        "aria-prohibited-attr",
+        "aria-required-attr",
+        "aria-roles",
+        "aria-valid-attr-value",
+        "aria-valid-attr",
+        "avoid-inline-spacing",
+        "button-name",
+        "color-contrast",
+        "duplicate-id-aria",
+        "form-field-multiple-labels",
+        "label",
+        "link-name",
+        "nested-interactive",
+        "role-img-alt",
+        "scrollable-region-focusable",
+        "summary-name",
+        "svg-img-alt",
+        "target-size"
+      ]
+    },
+    {
+      "state": "25-car garage",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "tags": [
+            "cat.color",
+            "wcag2aa",
+            "wcag143",
+            "TTv5",
+            "TT13.c",
+            "EN-301-549",
+            "EN-9.1.4.3",
+            "ACT",
+            "RGAAv4",
+            "RGAA-3.2.1"
+          ],
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "9.8pt (13px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgGradient",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<div class=\"garage-car-art\">",
+                      "target": [
+                        ".st-key-garage_taste_card_25_0 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined due to a background gradient"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<span>Body-style illustration · not a listing photo</span>",
+              "target": [
+                ".st-key-garage_taste_card_25_0 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art > span"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            },
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "9.8pt (13px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgGradient",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<div class=\"garage-car-art\">",
+                      "target": [
+                        ".st-key-garage_taste_card_25_1 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined due to a background gradient"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<span>Body-style illustration · not a listing photo</span>",
+              "target": [
+                ".st-key-garage_taste_card_25_1 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art > span"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            },
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "9.8pt (13px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgGradient",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<div class=\"garage-car-art\">",
+                      "target": [
+                        ".st-key-garage_taste_card_25_2 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined due to a background gradient"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<span>Body-style illustration · not a listing photo</span>",
+              "target": [
+                ".st-key-garage_taste_card_25_2 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art > span"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            },
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "9.8pt (13px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgGradient",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<div class=\"garage-car-art\">",
+                      "target": [
+                        ".st-key-garage_taste_card_25_3 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined due to a background gradient"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<span>Body-style illustration · not a listing photo</span>",
+              "target": [
+                ".st-key-garage_taste_card_25_3 > .st-emotion-cache-3pwa5w.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art > span"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            }
+          ]
+        }
+      ],
+      "passedRules": [
+        "aria-allowed-attr",
+        "aria-conditional-attr",
+        "aria-deprecated-role",
+        "aria-hidden-focus",
+        "aria-progressbar-name",
+        "aria-prohibited-attr",
+        "aria-required-attr",
+        "aria-roles",
+        "aria-valid-attr-value",
+        "aria-valid-attr",
+        "avoid-inline-spacing",
+        "button-name",
+        "color-contrast",
+        "duplicate-id-aria",
+        "form-field-multiple-labels",
+        "label",
+        "link-name",
+        "nested-interactive",
+        "role-img-alt",
+        "scrollable-region-focusable",
+        "summary-name",
+        "svg-img-alt",
+        "target-size"
+      ]
+    },
+    {
+      "state": "25-car garage: larger text and higher contrast",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "tags": [
+            "cat.color",
+            "wcag2aa",
+            "wcag143",
+            "TTv5",
+            "TT13.c",
+            "EN-301-549",
+            "EN-9.1.4.3",
+            "ACT",
+            "RGAAv4",
+            "RGAA-3.2.1"
+          ],
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "11.0pt (14.625px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgGradient",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<div class=\"garage-car-art\">",
+                      "target": [
+                        ".st-key-garage_taste_card_25_0 > .st-emotion-cache-jdqcwj.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined due to a background gradient"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<span>Body-style illustration · not a listing photo</span>",
+              "target": [
+                ".st-key-garage_taste_card_25_0 > .st-emotion-cache-jdqcwj.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art > span"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            },
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "11.0pt (14.625px)",
+                    "fontWeight": "normal",
+                    "messageKey": "bgGradient",
+                    "expectedContrastRatio": "4.5:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<div class=\"garage-car-art\">",
+                      "target": [
+                        ".st-key-garage_taste_card_25_1 > .st-emotion-cache-jdqcwj.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined due to a background gradient"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<span>Body-style illustration · not a listing photo</span>",
+              "target": [
+                ".st-key-garage_taste_card_25_1 > .st-emotion-cache-jdqcwj.stElementContainer.element-container:nth-child(1) > .stMarkdown[data-testid=\"stMarkdown\"] > .st-emotion-cache-k2h9z6.e1o1x6gp2 > .st-emotion-cache-1qso5j.e12uj6qz0[data-testid=\"stMarkdownContainer\"] > .garage-car-art > span"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined due to a background gradient"
+            }
+          ]
+        }
+      ],
+      "passedRules": [
+        "aria-allowed-attr",
+        "aria-conditional-attr",
+        "aria-deprecated-role",
+        "aria-hidden-focus",
+        "aria-progressbar-name",
+        "aria-prohibited-attr",
+        "aria-required-attr",
+        "aria-roles",
+        "aria-valid-attr-value",
+        "aria-valid-attr",
+        "avoid-inline-spacing",
+        "button-name",
+        "color-contrast",
+        "duplicate-id-aria",
+        "form-field-multiple-labels",
+        "label",
+        "link-name",
+        "nested-interactive",
+        "role-img-alt",
+        "scrollable-region-focusable",
+        "summary-name",
+        "svg-img-alt",
+        "target-size"
+      ]
+    },
+    {
+      "state": "25-car garage: 200% base text",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "tags": [
+            "cat.color",
+            "wcag2aa",
+            "wcag143",
+            "TTv5",
+            "TT13.c",
+            "EN-301-549",
+            "EN-9.1.4.3",
+            "ACT",
+            "RGAAv4",
+            "RGAA-3.2.1"
+          ],
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.14/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "19.2pt (25.6px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscured",
+                    "expectedContrastRatio": "3:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<b>01</b>",
+                      "target": [
+                        ".garage-step:nth-child(1) > b"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined because it's partially obscured by another element"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<b>01</b>",
+              "target": [
+                ".garage-step:nth-child(1) > b"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "19.2pt (25.6px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscured",
+                    "expectedContrastRatio": "3:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<b>02</b>",
+                      "target": [
+                        ".garage-step:nth-child(2) > b"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined because it's partially obscured by another element"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<b>02</b>",
+              "target": [
+                ".garage-step:nth-child(2) > b"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            },
+            {
+              "any": [
+                {
+                  "id": "color-contrast",
+                  "data": {
+                    "contrastRatio": 0,
+                    "fontSize": "19.2pt (25.6px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscured",
+                    "expectedContrastRatio": "3:1"
+                  },
+                  "relatedNodes": [
+                    {
+                      "html": "<b>03</b>",
+                      "target": [
+                        ".garage-step:nth-child(3) > b"
+                      ]
+                    }
+                  ],
+                  "impact": "serious",
+                  "message": "Element's background color could not be determined because it's partially obscured by another element"
+                }
+              ],
+              "all": [],
+              "none": [],
+              "impact": "serious",
+              "html": "<b>03</b>",
+              "target": [
+                ".garage-step:nth-child(3) > b"
+              ],
+              "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+            }
+          ]
+        }
+      ],
+      "passedRules": [
+        "aria-allowed-attr",
+        "aria-conditional-attr",
+        "aria-deprecated-role",
+        "aria-hidden-focus",
+        "aria-progressbar-name",
+        "aria-prohibited-attr",
+        "aria-required-attr",
+        "aria-roles",
+        "aria-valid-attr-value",
+        "aria-valid-attr",
+        "avoid-inline-spacing",
+        "button-name",
+        "color-contrast",
+        "duplicate-id-aria",
+        "form-field-multiple-labels",
+        "label",
+        "link-name",
+        "nested-interactive",
+        "role-img-alt",
+        "scrollable-region-focusable",
+        "summary-name",
+        "svg-img-alt",
+        "target-size"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "name": "Rating selection in touch-capable context",
+      "pass": true
+    }
+  ],
+  "browser": "153.0.8010.0"
+}
