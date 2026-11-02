@@ -3,7 +3,7 @@
     "test_type": "Mechanical full-cohort test with artificial ratings; not user satisfaction",
     "rows": 211844,
     "profile_count": 10,
-    "ranking_seconds": 3.6237845420837402,
+    "ranking_seconds": 3.6176443099975586,
     "model_result": {
       "eligible_cars": 24393,
       "evidence": [
@@ -158,7 +158,7 @@
     "test_type": "Mechanical full-cohort test with artificial ratings; not user satisfaction",
     "rows": 211844,
     "profile_count": 25,
-    "ranking_seconds": 6.585114002227783,
+    "ranking_seconds": 6.551465034484863,
     "model_result": {
       "eligible_cars": 31388,
       "evidence": [
@@ -309,5 +309,5 @@
       }
     }
   },
-  "process_peak_rss_mib": 1048.0859375
+  "process_peak_rss_mib": 1059.96875
 }
