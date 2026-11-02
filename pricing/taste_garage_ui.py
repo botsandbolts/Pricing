@@ -95,7 +95,7 @@ def render(root):
                     st.write({k:car.get(k) for k in ['condition','drive','cylinders','title_status','paint_color','state']})
     ratings=[st.session_state.get(k) for k in rating_keys]
     complete=all(r in LABELS for r in ratings)
-    signature=json.dumps(['cosine-no-column-scaler-inverse-v6',version,ratings,str(when)])
+    signature=json.dumps(['cosine-distance-descending-v7',version,ratings,str(when)])
     different=len(set(ratings))>1 if complete else False
     has_like=any(r in (3,4) for r in ratings)
     if complete and not has_like:st.info('Choose I like it or Love it for at least one car so there is something to recommend.')
@@ -117,7 +117,7 @@ def render(root):
     if saved:
         announce('Shortlist ready. '+str(len(saved[1]['positions']))+' historical cars found.')
         result=saved[1];st.markdown(f"## Your {len(result['positions'])} · tyres optional, taste mandatory")
-        st.write('**Closest matches first.** Sorted by cosine distance to the nearest representative you liked, from lowest to highest.')
+        st.write('**Largest cosine distance first.** Sorted by distance to the nearest representative you liked, from highest to lowest.')
         st.caption('Soft HDBSCAN memberships and exact FAISS cosine distances distances carry your likes and dislikes across the catalogue. Cars must pass the preference checks; a separate XGBoost ranker orders the eligible matches. These are historical adverts, not available stock. Cars you already rated are excluded.')
         cars=records(root,result['positions'])
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
@@ -151,7 +151,7 @@ def render(root):
         a.metric('Held-out NDCG@10 · inferred preferences',f"{result['ndcg10']:.3f}" if result['ndcg10'] is not None else 'Not defined')
         b.metric('Random-order baseline',f"{result['random_ndcg10']:.3f}" if result['random_ndcg10'] is not None else 'Not defined')
         c.metric('Actual ratings supplied',profile_count)
-        st.info('The displayed list is reordered by lowest cosine distance. NDCG below evaluates the underlying ranker before this presentation sort. This NDCG@10 measures agreement with soft preferences inferred from cluster memberships. Thousands of adverts still come from only the representative ratings you supplied. It is not measured customer satisfaction or proof the recommendations are good.')
+        st.info('The displayed list is reordered by highest cosine distance. NDCG below evaluates the underlying ranker before this presentation sort. This NDCG@10 measures agreement with soft preferences inferred from cluster memberships. Thousands of adverts still come from only the representative ratings you supplied. It is not measured customer satisfaction or proof the recommendations are good.')
         with st.expander('Optional · rate the shortlist to check it against your real taste'):
             values=[]
             feedback_id=hashlib.sha256(signature.encode()).hexdigest()[:12]

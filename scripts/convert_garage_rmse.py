@@ -42,7 +42,7 @@ def main():
     chosen=np.array(result['positions']);good=np.array(ratings)>=3
     assert len(set(chosen))==10 and np.all(d[chosen][:,good].min(axis=1)<d[chosen][:,~good].min(axis=1))
     assert all(e['signed']>0 for e in result['evidence'])
-    assert np.all(np.diff([e['liked_distance'] for e in result['evidence']])>=-1e-7)
+    assert np.all(np.diff([e['liked_distance'] for e in result['evidence']])<=1e-7)
     checked_meta,checked_arrays=load(root,k)
     assert checked_meta['neighbour_metric']=='cosine-unscaled' and 'medoid_cosine' in checked_arrays
     assert 'medoid_rmse' not in checked_arrays

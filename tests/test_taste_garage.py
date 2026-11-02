@@ -259,11 +259,11 @@ def test_rmse_uses_raw_vector_magnitude_without_normalization():
     assert order[0,0]==0 and order[1,0]==1
 
 
-def test_presentation_lowest_liked_rmse_first_and_stable_ties():
-    from pricing.taste_ranking import closest_liked_first
+def test_presentation_descending_cosine_distance_and_stable_ties():
+    from pricing.taste_ranking import descending_liked_distance
     distances=np.array([[.4,.9],[.1,.8],[.3,.7],[.1,.6]])
-    ordered=closest_liked_first([0,1,2,3],distances,[4,1])
-    assert ordered.tolist()==[1,3,2,0]
+    ordered=descending_liked_distance([0,1,2,3],distances,[4,1])
+    assert ordered.tolist()==[0,2,1,3]
     assert set(ordered)=={0,1,2,3}
 
 
