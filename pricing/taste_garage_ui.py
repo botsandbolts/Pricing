@@ -6,7 +6,7 @@ import numpy as np
 import streamlit as st
 from pricing.taste_ranking import load,records,train_rank,ndcg10,adjusted_price_features
 
-LABELS={1:'1 · Very bad',2:'2 · Bad',3:'3 · Good',4:'4 · Very good'}
+LABELS={1:'1 · 😣 No thanks',2:'2 · 🙁 Not my type',3:'3 · 🙂 I like it',4:'4 · 😍 Love it'}
 
 @st.cache_resource(max_entries=1,show_spinner=False)
 def catalogue(root,version,profile_count=10):return load(root,profile_count)
@@ -31,13 +31,18 @@ def car_details(root,car,when):
 
 def render(root):
     from marketbridge.time_engine import today
-    root=Path(root);st.title('🚦 Pick your garage')
-    st.write('Find your type. Four honest reactions. Absolutely no awkward goodbye.')
+    from pricing.studio_design import page_intro,journey_steps
+    from pricing.garage_art import car_art
+    root=Path(root)
+    page_intro('A little car chemistry','Pick your garage','Find your type. Four honest reactions. Absolutely no awkward goodbye.','💚')
+    journey_steps([('Choose your drive','10 cars or 25? You set the pace.'),('Tell us your type','Rate the whole car, from no thanks to love.'),('Meet your shortlist','Up to ten historical cars picked for your taste.')])
+    st.markdown('<div class="garage-test-cards"><div class="garage-test-card"><span class="garage-test-tag">The quick hello</span><strong>Speed Date</strong><p>10 cars. No small talk. A quick feel for your favourites.</p><span class="garage-test-number" aria-hidden="true">10</span></div><div class="garage-test-card long"><span class="garage-test-tag">The scenic route</span><strong>The Long Drive</strong><p>25 cars. Zero commitment. More room to explore your type.</p><span class="garage-test-number" aria-hidden="true">25</span></div></div>',unsafe_allow_html=True)
     tests={'Speed Date · 10 cars, no small talk':10,'The Long Drive · 25 cars, zero commitment':25}
     chosen=st.radio('Choose your test',list(tests),horizontal=True,key='taste_test_mode')
     profile_count=tests[chosen]
-    st.caption('Short: ten representatives. Long: twenty-five finer profiles. Both return up to ten recommendations. You can switch without losing the other test’s ratings.')
-    st.caption('An experimental content-based recommender using your current-session ratings and vehicle features. No user ID, demographic features or duplicated adverts.')
+    st.caption('Switch tests without losing your ratings. Both return up to ten recommendations from historical adverts, not live stock.')
+    with st.expander('About your ratings & this experiment'):
+        st.write('An experimental content-based recommender using your current-session ratings and vehicle features. No user ID, demographic features or duplicated adverts. Short: ten representatives. Long: twenty-five finer profiles.')
     path=root/'data/taste-garage/manifest.json'
     if not path.exists():
         st.info('The original-data car profiles are being built offline. This panel will unlock when the tested catalogue is installed; no substitute or invented prototypes are shown.');return
@@ -60,7 +65,8 @@ def render(root):
     for i,p in enumerate(meta['profiles']):
         car=p['prototype']
         with columns[i%2]:
-            with st.container(border=True):
+            with st.container(border=True,key=f'garage_taste_card_{profile_count}_{i}'):
+                car_art(car)
                 st.markdown(f"#### {i+1}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
                 st.caption(f"Profile {i+1} · {p['cars']:,} historical adverts · real representative")
                 car_details(root,car,when)
@@ -76,9 +82,10 @@ def render(root):
     signature=json.dumps([version,ratings,str(when)])
     different=len(set(ratings))>1 if complete else False
     has_like=any(r in (3,4) for r in ratings)
-    if complete and not has_like:st.info('Give at least one representative Good or Very good so there is something to recommend.')
+    if complete and not has_like:st.info('Choose I like it or Love it for at least one car so there is something to recommend.')
     if complete and not different:st.info('Give at least two cars different ratings so the model has an ordering to learn.')
     st.markdown('### 2 · Let the trees build your shortlist')
+    if not complete:st.caption(f'{profile_count-count} more reaction'+('s' if profile_count-count!=1 else '')+' to go. Your shortlist unlocks once every car has a rating.')
     if st.button('Find my ten cars →',type='primary',disabled=not complete or not different or not has_like,key='taste_train'):
         try:
             with st.spinner('Learning your ordering from vehicle features and prices, then scoring the catalogue…'):
@@ -98,7 +105,8 @@ def render(root):
         for rank,(position,car) in enumerate(zip(result['positions'],cars),1):
             profile=int(arrays['clusters'][position]);p=meta['profiles'][profile]
             membership=arrays.get('memberships')
-            with st.container(border=True):
+            with st.container(border=True,key=f'garage_shortlist_{rank}'):
+                car_art(car,compact=True)
                 st.markdown(f"#### {rank}. {int(car['year'])} {str(car.get('manufacturer') or 'Unspecified').title()} {car.get('model') or 'model not supplied'}")
                 car_details(root,car,when)
                 if result.get('evidence'):

@@ -128,7 +128,7 @@ def render(root,*,bayesian=True):
 
     for col,side,title,meaning in zip(st.columns(2),['ask','bid'],["Seller’s asking price","Wholesale auction estimate"],["What might a seller put in the advert? Before negotiation; not a completed retail sale.","What might a comparable car sell for at wholesale auction? Not a live bid or dealer offer."]):
         with col:
-            with st.container(border=True):
+            with st.container(border=True,key='garage_'+side+'_receipt'):
                 st.markdown('#### '+title);r=results[side]
                 if 'error' in r:st.warning(r['error']);continue
                 st.metric(f"Estimated value · {date:%d %b %Y}",f"${r['price']:,.0f}");st.caption(meaning)
@@ -146,7 +146,7 @@ def render(root,*,bayesian=True):
     if available:
         import plotly.graph_objects as go
         labels={'ask':'Seller asking','bid':'Wholesale auction'}
-        colors={'ask':'#6752d4','bid':'#17846e'}
+        colors={'ask':'#207b65','bid':'#a05635'}
         fig=go.Figure()
         for side,r in results.items():
             if 'error' in r:continue

@@ -1,0 +1,119 @@
+/* Car Price Studio: a warm, illustrated garage. No remote fonts or assets. */
+:root{--garage-ink:#203e36;--garage-purple:#207b65;--garage-lime:#f5d478;--garage-coral:#f8b39c;--garage-paper:#faf8f1;--garage-muted:#62786f;--garage-line:#dce4da;--garage-teal:#207b65;--garage-radius:22px}
+[data-testid="stAppViewContainer"]{background:var(--garage-paper);color:var(--garage-ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+[data-testid="stMarkdownContainer"],[data-testid="stWidgetLabel"],[data-testid="stCaptionContainer"],[data-testid="stRadio"],[data-testid="stExpander"],.garage-origin,.garage-ticker,.garage-micro{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+[data-testid="stHeader"]{background:#faf8f1f0}
+[data-testid="stMainBlockContainer"]{max-width:1280px;padding:3.6rem 2.5rem 4rem}
+[data-testid="stSidebar"]{background:#eff3e9;border-right:1px solid var(--garage-line)}
+h1,h2,h3,h4{color:var(--garage-ink);letter-spacing:-.035em}
+[data-testid="stMarkdownContainer"] p{line-height:1.65}
+[data-testid="stCaptionContainer"]{color:var(--garage-muted)}
+[data-testid="stWidgetLabel"] p{font-size:.86rem;font-weight:650;color:var(--garage-ink)}
+[data-baseweb="input"],[data-baseweb="select"]>div,[data-baseweb="textarea"]{border-radius:12px!important;background:#fffefb!important;border-color:#d4dfd4!important}
+input,textarea{color:var(--garage-ink)!important}
+[data-baseweb="input"]:focus-within,[data-baseweb="select"]:focus-within,[data-baseweb="textarea"]:focus-within{outline:3px solid #88c6b1;outline-offset:2px}
+[data-testid="stForm"]{background:#fffefa;border:1px solid var(--garage-line);padding:1.5rem;border-radius:var(--garage-radius);box-shadow:0 6px 24px #203e3604}
+[data-testid="stButton"] button,[data-testid="stFormSubmitButton"] button,[data-testid="stDownloadButton"] button{border-radius:12px;font-weight:700;min-height:2.9rem;transition:background .18s,transform .18s;}
+button[kind="primary"],button[kind="primaryFormSubmit"]{background:var(--garage-teal)!important;border:1px solid var(--garage-teal)!important;color:white!important;box-shadow:0 4px 0 #15533f}
+button[kind="primary"]:not(:disabled):hover,button[kind="primaryFormSubmit"]:not(:disabled):hover{background:#155c4b!important;transform:translateY(-1px)}
+button:disabled{opacity:.5;box-shadow:none!important}
+button:focus-visible,a:focus-visible{outline:3px solid #e6a84b!important;outline-offset:4px}
+[data-testid="stButtonGroup"]{margin-bottom:.25rem}
+[data-testid="stButtonGroup"] button{border-radius:12px!important;min-height:44px;padding:9px 15px!important;border-color:#dce4da!important;background:#fffdf8;color:var(--garage-ink)}
+[data-testid="stButtonGroup"] button[aria-checked="true"]{background:#203e36!important;color:#fffdf5!important;border-color:#203e36!important}
+[data-testid="stRadio"] [role="radiogroup"]{gap:.6rem}
+[data-testid="stRadio"] label:has(input[type="radio"]){border:1px solid #dce4da;border-radius:12px;background:#fffdf8;padding:.55rem .8rem;margin:0;min-height:44px}
+[data-testid="stRadio"] label:has(input:checked){background:#e2f0e5;border-color:#207b65;box-shadow:0 0 0 1px #207b65}
+[data-testid="stRadio"] label p{font-size:.88rem}
+[data-testid="stTabs"] [role="tablist"]{gap:.45rem;border-bottom:1px solid var(--garage-line);padding:0 0 10px;overflow-x:auto}
+[data-testid="stTabs"] [role="tab"]{border-radius:12px;padding:9px 16px;height:auto;white-space:nowrap;background:#eef1e8;color:#466056}
+[data-testid="stTabs"] [role="tab"][aria-selected="true"]{background:#203e36;color:#fff}
+[data-testid="stTabs"] [role="tab"] p{font-size:.88rem;font-weight:700}
+[data-baseweb="tab-highlight"],[data-baseweb="tab-border"]{display:none}
+[data-testid="stTabs"] [role="tabpanel"]{padding-top:1rem}
+[data-testid="stExpander"]{border-radius:15px;border-color:var(--garage-line);background:#fffdf880}
+[data-testid="stVerticalBlockBorderWrapper"]>[data-testid="stVerticalBlock"]{border-radius:var(--garage-radius)}
+[data-testid="stMetricLabel"] p{font-weight:650;color:#547367}
+[data-testid="stMetricValue"]{font-variant-numeric:tabular-nums;letter-spacing:-.055em;color:var(--garage-ink)}
+[data-testid="stAlert"]{border-radius:14px}
+[data-testid="stProgress"] [role="progressbar"]{border-radius:20px}
+.garage-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:0 0 1.5rem}
+.garage-brand{display:flex;align-items:center;gap:.7rem;color:var(--garage-ink)!important;text-decoration:none!important}
+.garage-mark{display:block;width:62px;height:48px;flex-shrink:0;overflow:hidden}
+.garage-mark svg{display:block;width:82px;height:48px;margin-left:-10px}
+.garage-wordmark{display:flex;flex-direction:column;line-height:1.1;gap:5px}
+.garage-wordmark strong{font-size:1.35rem;letter-spacing:-.055em;font-weight:800}
+.garage-wordmark small{font-size:.65rem;letter-spacing:.07em;color:#62786f}
+.garage-origin{display:inline-flex;align-items:center;gap:9px;white-space:nowrap;border:1px solid #dedfd2;background:#fffdf5;padding:9px 13px;border-radius:30px;font-size:.72rem;font-weight:650;color:#52695f}
+.garage-flag{display:inline-block;width:23px;height:15px;border-radius:3px;background:linear-gradient(to bottom,#242424 0 33.333%,#d7433e 33.333% 66.666%,#f4c542 66.666%);box-shadow:0 0 0 1px #0001;flex-shrink:0}
+.garage-hero{position:relative;display:grid;grid-template-columns:1.1fr 1fr;align-items:center;gap:1rem;padding:2.4rem 2.8rem;background:#edf2e6;border:1px solid #dce5d3;border-radius:28px;overflow:hidden;margin-bottom:1rem}
+.garage-eyebrow{display:flex;align-items:center;gap:8px;font-size:.68rem;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:#557366;margin-bottom:1rem}
+.garage-eyebrow:before{content:"";width:7px;height:7px;background:#36856a;border-radius:100%}
+.garage-hero h1{font-family:ui-rounded,"Trebuchet MS",Arial,sans-serif;font-size:clamp(2.6rem,4.7vw,4.05rem);line-height:1.04;font-weight:800;letter-spacing:-.065em;margin:0 0 1rem;padding:0}
+.garage-hero [data-testid="stHeaderActionElements"],.garage-page-intro [data-testid="stHeaderActionElements"]{display:none}
+.garage-accent{color:#207b65}
+.garage-hero p{color:#526b5d;font-size:.97rem;line-height:1.7;max-width:410px;margin:0 0 1.35rem}
+.garage-cta{display:inline-flex;align-items:center;gap:15px;background:#207b65;color:white!important;padding:12px 19px;border-radius:12px;font-size:.85rem;font-weight:700;text-decoration:none!important;box-shadow:0 3px 0 #15533f}
+.garage-cta:hover{background:#155c4b}
+.garage-micro{display:block;margin-top:13px;color:#62786f;font-size:.7rem}
+.garage-art{min-width:0;width:100%;max-width:440px;justify-self:center}
+.garage-art svg{display:block;width:100%;height:auto}
+.garage-ticker{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem;padding:.3rem .4rem 1rem;color:#61786c;font-size:.73rem}
+.garage-ticker span{display:flex;align-items:center;gap:8px}
+.garage-ticker b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#edeedc;color:#586d58;font-size:.65rem}
+.garage-nav-heading{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:1.1rem 0 .65rem}
+.garage-nav-heading strong{font-size:1.05rem;letter-spacing:-.025em}
+.garage-nav-heading span{font-size:.73rem;color:#62786f}
+.garage-route-note{font-size:.78rem;color:#62786f;margin:.2rem 0 1.1rem;padding-bottom:1rem;border-bottom:1px solid var(--garage-line)}
+.garage-section{font-size:.67rem;letter-spacing:.13em;text-transform:uppercase;font-weight:800;margin:0 0 .6rem;color:#62786f}
+.garage-card-title{font-size:1.65rem;font-weight:800;line-height:1.15;letter-spacing:-.045em;margin:0 0 .5rem}
+.garage-page-intro{display:flex;justify-content:space-between;align-items:center;gap:1.5rem;border:1px solid var(--garage-line);border-radius:22px;background:#eef2e6;padding:1.35rem 1.6rem;margin:.3rem 0 1.2rem}
+.garage-page-intro h1,.garage-page-intro h2{font-size:1.8rem;margin:0 0 .35rem;padding:0}
+.garage-page-intro p{font-size:.86rem;color:#587265;margin:0;max-width:650px}
+.garage-page-icon{font-size:2.3rem;background:#fffaf0;width:72px;height:72px;display:grid;place-items:center;border-radius:23px;flex-shrink:0;transform:rotate(5deg)}
+.garage-page-icon svg{width:32px;height:32px}
+.garage-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:.8rem 0 1.25rem}
+.garage-step{display:flex;align-items:center;gap:12px;border:1px solid var(--garage-line);background:#fffdf7;border-radius:17px;padding:14px 16px}
+.garage-step b{display:grid;place-items:center;flex:0 0 31px;width:31px;height:31px;border-radius:11px;background:#e6efdf;color:#42634e;font-size:.8rem}
+.garage-step strong{display:block;font-size:.8rem;margin-bottom:2px}
+.garage-step small{display:block;color:#687d70;font-size:.7rem;line-height:1.45}
+.garage-test-cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:.7rem 0 1rem}
+.garage-test-card{position:relative;border:1px solid #d7e4d7;background:#e9f2e5;border-radius:20px;padding:1.2rem 1.4rem;overflow:hidden}
+.garage-test-card.long{background:#fcf0e6;border-color:#efddcf}
+.garage-test-card strong{display:block;font-size:1.15rem;letter-spacing:-.025em;margin:.2rem 0 .3rem}
+.garage-test-card p{margin:0;color:#5c7465;font-size:.8rem;max-width:78%}
+.garage-test-card .garage-test-number{position:absolute;right:16px;bottom:4px;font-size:3.9rem;font-weight:850;color:#207b651c;letter-spacing:-.09em}
+.garage-test-card.long .garage-test-number{color:#bc6d3925}
+.garage-test-tag{font-size:.61rem;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:#5c7465}
+.garage-car-art{position:relative;margin:-.1rem 0 .7rem;background:linear-gradient(150deg,#edf4e8,#faf8ed);border-radius:16px;overflow:hidden;padding:.2rem 1rem .45rem;text-align:center}
+.garage-car-art svg{display:block;width:100%;height:150px}
+.garage-car-art span{font-size:.59rem;color:#687e70;display:block}
+.garage-car-art-small svg{height:110px}
+.garage-market-guide{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:.6rem 0 1.2rem}
+.garage-market-guide article{border-radius:17px;padding:1rem 1.2rem;border:1px solid #d5e3d3;background:#eaf1e4}
+.garage-market-guide article:last-child{background:#fcf0e5;border-color:#ebdbcc}
+.garage-market-guide strong{display:block;font-size:.86rem;margin-bottom:.3rem}
+.garage-market-guide p{font-size:.76rem;color:#5b7164;margin:0}
+.st-key-garage_ask_receipt{background:#eaf1e4;border:1px solid #cddfc8!important;border-radius:22px;padding:1.3rem}
+.st-key-garage_bid_receipt{background:#fcf0e5;border:1px solid #ebdbcc!important;border-radius:22px;padding:1.3rem}
+.st-key-garage_ask_receipt [data-testid="stMetricValue"]{color:#207b65}
+.st-key-garage_bid_receipt [data-testid="stMetricValue"]{color:#a05635}
+.st-key-vehicle_editor{background:#fffefa;padding:1.6rem;border:1px solid var(--garage-line);border-radius:24px}
+.st-key-price_receipt{background:#eaf1e4;padding:1.6rem;border:1px solid #d5e3d3;border-radius:24px}
+.st-key-auction_receipt{background:#fcf0e5;border:1px solid #ebdbcc;border-radius:20px;padding:1.3rem}
+.garage-empty-number{font-size:4.4rem;font-weight:800;letter-spacing:-.08em;line-height:1.15;color:#89a38c;padding:1rem 0}
+.garage-empty-note{font-size:.9rem;color:#5b7164}
+.garage-receipt-tag{display:inline-block;padding:5px 9px;border-radius:30px;background:#fff9;font-weight:750;font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:#547367;margin-bottom:1rem}
+.garage-science-note{background:#edf2e6;border-left:3px solid #93bba1;padding:1rem 1.2rem;border-radius:0 14px 14px 0;margin:1rem 0;font-size:.85rem;color:#52695b}
+.st-key-story_receipt{background:#fffefa;border:1px solid var(--garage-line);border-radius:24px;padding:1.7rem 2rem;margin:1.5rem 0}
+.formula-release{display:flex;gap:1rem;align-items:center;background:#203e36;color:#fffdf5;border-radius:22px;padding:1.5rem 1.8rem;margin:.3rem 0 1.2rem}
+.formula-release h2{color:#f5d478;font-size:1.6rem;line-height:1.1;margin:0 0 .5rem}
+.formula-release p{font-size:.85rem;color:#dce5d8;margin:0}
+.formula-badge{font-size:.65rem;padding:8px 12px;border:1px solid #8ba496;border-radius:30px;white-space:nowrap}
+.formula-number{font-size:4rem;font-weight:850;color:#f5d478;margin-left:auto}
+.formula-number span{display:block;font-size:.65rem}
+.garage-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;border-top:1px solid var(--garage-line);margin-top:2.5rem;padding:1.3rem 0 .8rem;color:#62786f;font-size:.75rem}
+.garage-footer strong{color:var(--garage-ink)}
+@media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:4.2rem 1.1rem 3rem}.garage-hero{padding:1.8rem}.garage-hero h1{font-size:3rem}.garage-nav-heading span{display:none}.garage-step{padding:12px}}
+@media(max-width:640px){.garage-nav{gap:.6rem;margin-bottom:1rem}.garage-mark{width:43px}.garage-wordmark strong{font-size:1.04rem}.garage-wordmark small{font-size:.54rem;letter-spacing:0}.garage-origin{font-size:.62rem;gap:6px;padding:8px}.garage-flag{width:18px;height:12px}.garage-hero{grid-template-columns:1fr;padding:1.5rem;gap:0}.garage-hero h1{font-size:2.8rem}.garage-hero p{font-size:.88rem;margin-bottom:1rem}.garage-art{max-width:290px;margin-top:-.5rem}.garage-micro{font-size:.65rem}.garage-ticker{font-size:.65rem;gap:.5rem}.garage-ticker .garage-ticker-note{display:none}.garage-page-intro{padding:1rem;gap:.5rem}.garage-page-intro h1,.garage-page-intro h2{font-size:1.5rem}.garage-page-icon{width:49px;height:49px;font-size:1.6rem;border-radius:16px}.garage-page-intro p{font-size:.8rem}.garage-steps{grid-template-columns:1fr;gap:.4rem}.garage-step{padding:10px 12px}.garage-step small{font-size:.7rem}.garage-test-cards{gap:.5rem}.garage-test-card{padding:1rem}.garage-test-card strong{font-size:1rem}.garage-test-card p{font-size:.72rem;max-width:100%}.garage-test-number{display:none}.garage-market-guide{grid-template-columns:1fr}.garage-car-art svg{height:130px}[data-testid="stForm"]{padding:1rem}.st-key-vehicle_editor,.st-key-price_receipt{padding:1.1rem}.formula-release{flex-wrap:wrap;padding:1.2rem}.formula-number{display:none}.garage-footer{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

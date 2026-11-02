@@ -7,8 +7,23 @@ def render_navigation():
         st.session_state['landing_studio_workspace']=pending
     elif 'landing_studio_workspace' not in st.session_state:
         st.session_state['landing_studio_workspace']='🌳 Hierarchical model' if st.query_params.get('hierarchy') else '🕵️ Deal Detective' if st.query_params.get('garage') else PAGES[0]
-    st.markdown('### Explore the studio')
-    page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed') or PAGES[0]
+    current=st.session_state['landing_studio_workspace']
+    st.markdown('<div id="studio-workspace"></div>',unsafe_allow_html=True)
+    def picker():
+        return st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed') or PAGES[0]
+    if current==PAGES[0]:
+        st.markdown('<div class="garage-nav-heading"><strong>Where shall we go?</strong><span>Your car, your curiosity. Choose a workspace.</span></div>',unsafe_allow_html=True)
+        page=picker()
+    else:
+        with st.expander('Switch workspace · '+current,expanded=False):
+            page=picker()
     st.session_state['studio_tabs']=page
+    from html import escape
+    notes={'🚗 Price my car':'Start here · Your car details → two market estimates.',
+           '🔎 Listing Inspector':'Look a little closer · Compare vehicles and explore the evidence.',
+           '🚦 Pick your garage':'A little car chemistry · Rate real representatives, then discover your shortlist.',
+           '📅 Value over time':'Take the long view · Explore how the same car’s price scenario changes.',
+           '🧠 The science':'Under the bonnet · Methods, assumptions and what the models can tell you.'}
+    st.markdown('<div class="garage-route-note">'+escape(notes.get(page,'The curious corner · Explore the models, evidence and historical comparisons.'))+'</div>',unsafe_allow_html=True)
     return page
 

@@ -52,9 +52,10 @@ def render(root):
     st.markdown('<div id="studio-calculator"></div>',unsafe_allow_html=True)
     from pricing.description_features import label
     feature_label=label(root)
-    st.markdown('## 🍋 The Mini Lemon Squeezer' if feature_label.startswith('MiniLM') else '## 🍋 The Sparse Lemon Squeezer')
-    st.caption('Regular prices first. Bayesian family advice when you want a second opinion.')
+    from pricing.studio_design import page_intro,market_guide
     hierarchy_page=st.session_state.get('studio_tabs')=='🌳 Hierarchical model'
+    if hierarchy_page:
+        page_intro('The price studio','A second opinion for your car.','Explore Bayesian estimates and historical uncertainty. Your car details carry across from regular pricing.','🌳')
     views=['🌳 Bayesian pricing','📊 Accuracy comparison','🧠 How it works'] if hierarchy_page else ['🚗 Regular pricing','🌳 Bayesian pricing','📊 Accuracy comparison','🧠 How it works']
     panel=st.radio('Pricing view',views,horizontal=True,key='hierarchical_pricing_view' if hierarchy_page else 'separate_pricing_panel',persist_state='session')
     if panel=='📊 Accuracy comparison':
@@ -63,6 +64,7 @@ def render(root):
     if panel=='🧠 How it works':
         explain(root)
         return
+    market_guide()
     bayesian=panel=='🌳 Bayesian pricing' or st.session_state.get('studio_tabs')=='🌳 Hierarchical model'
     if bayesian:
         st.markdown('### 🌳 Bayesian pricing · the family council')
@@ -71,9 +73,7 @@ def render(root):
         scorecard(root)
         st.info('The matched historical errors above show whether the correction helped each market. Regular pricing remains available separately.')
     else:
-        st.markdown('### 🚗 Regular pricing · straight from the trees')
-        st.write(f'Cleaned XGBoost uses AFT for asking prices, with {feature_label} as its description input. Auction prices use median quantile regression.')
-        st.caption('Choose Bayesian pricing for the additional correction and historical ranges. Your car details carry across.')
+        st.caption('Regular pricing gives you two market perspectives. Choose Bayesian pricing for a second opinion and historical ranges. Your car details carry across.')
     from pricing.hierarchy_sparse_live import render as live
     live(root,bayesian=bayesian)
 

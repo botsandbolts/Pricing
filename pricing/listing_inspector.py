@@ -10,8 +10,9 @@ def render(root):
     import gzip,json
     import pandas as pd
     import streamlit as st
-    st.title('🔎 Listing Inspector')
-    st.write('Compare similar cars. Explore prices, uncertainty and market evidence.')
+    from pricing.studio_design import page_intro,journey_steps
+    page_intro('Look a little closer','Listing Inspector','Compare similar cars. Explore prices, uncertainty and market evidence.','🔎')
+    journey_steps([('Bring a listing','Start with the car and its description.'),('Meet the neighbours','Compare similar historical vehicles.'),('Explore the evidence','Price scenarios, checks and market context.')])
     st.caption('Historical comparisons and statistical appraisal tools. Existing pricing models are unchanged.')
     from pricing.vehicle_presets import render as render_examples
     render_examples(root)
