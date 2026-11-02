@@ -25400,11 +25400,12 @@
     "mileage_missing"
   ],
   "sha256": {
-    "features.npz": "fd25a46a3b91d0dc8f2b76c21df68c68caedb07d9a1cd0c37c2a222eb5ca5600",
-    "cars.sqlite": "d067c2980e04fe8128766abf6f5b5c4884754244282b4c538c85b7876fb54c46"
+    "features.npz": "20ef9e1d58cfa932f19c55b0ab2c2caab2a392bf5646dc7ad9971601c1967662"
   },
   "representatives": "Exact sum-distance medoid for groups up to 2000; deterministic 256-candidate medoid evaluated against every member for larger groups; always an actual non-noise advert",
   "limits": "Ten medoid ratings propagate via a soft membership matrix, retaining unassigned mass. HDBSCAN EOM groups are merged to ten macroprofiles when necessary; noise retains soft memberships and unassigned mass, and is flagged. No user features, duplicate rows or personal-satisfaction benchmark.",
-  "neighbour_distance": "Exact FAISS IndexFlatL2; Euclidean square root of squared-L2 output in scaled features; not dollars",
-  "profile_count": 10
+  "neighbour_distance": "Exact FAISS IndexFlatIP on L2-normalized scaled features; distance = 1 - cosine similarity",
+  "profile_count": 10,
+  "neighbour_metric": "cosine",
+  "method_description": "Existing HDBSCAN on scaled vehicle features, without dimensionality reduction. Original representatives and memberships preserved. FAISS cosine distance carries liked and disliked representative evidence; a separate XGBoost ranker orders eligible cars."
 }

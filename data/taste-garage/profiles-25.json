@@ -25749,12 +25749,14 @@
     "mileage_missing"
   ],
   "sha256": {
-    "features-25.npz": "e7c0fe6f24df9a2d3c1f60af7c1399d2cd11976bf949a0c8205e9212c03ec9bc"
+    "features-25.npz": "8df94ebbdd3d2a8f5e3c22ced52440f7601117956ba981b4e29ae97a0d84a4b8"
   },
   "representatives": "Real Euclidean L2 medoids; exact to 2000 members, deterministic 256-candidate approximation for larger groups",
   "limits": "Ten medoid ratings propagate via a soft membership matrix, retaining unassigned mass. HDBSCAN EOM groups are merged to ten macroprofiles when necessary; noise retains soft memberships and unassigned mass, and is flagged. No user features, duplicate rows or personal-satisfaction benchmark.",
-  "neighbour_distance": "Exact FAISS IndexFlatL2; Euclidean square root of squared-L2 output in scaled features; not dollars",
+  "neighbour_distance": "Exact FAISS IndexFlatIP on L2-normalized scaled features; distance = 1 - cosine similarity",
   "profile_count": 25,
+  "neighbour_metric": "cosine",
+  "method_description": "Existing HDBSCAN on scaled vehicle features, without dimensionality reduction. Original representatives and memberships preserved. FAISS cosine distance carries liked and disliked representative evidence; a separate XGBoost ranker orders eligible cars.",
   "selection": "25 flat HDBSCAN leaf clusters selected from the saved single-linkage hierarchy; no graph refit or invented clusters",
   "min_cluster_size": 529,
   "cluster_selection_epsilon": 0.9413131399625528
