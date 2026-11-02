@@ -81,3 +81,15 @@ def transform_geometry(frame,state):
     raw,_=numeric_view(frame,state['time_transport']);filled=np.where(np.isfinite(raw),raw,state['medians'])
     numeric=np.clip((filled-state['low'])/state['spans'],0,1)
     return np.column_stack([hot,numeric]).astype(np.float32)
+
+
+def direct_hdbscan_geometry(matrix,state):
+    """Weighted L1 equals 50% nominal mismatch rate + 50% mean numeric difference."""
+    c=int(state['onehot_dimensions']);n=int(state['numeric_dimensions'])
+    fields=len(state['categorical']['categories'])
+    if fields<1 or n<1:raise ValueError('Categorical and numeric feature blocks are required')
+    weights=np.r_[np.full(c,.25/fields),np.full(n,.5/n)].astype(np.float64)
+    x=np.asarray(matrix,dtype=np.float64)
+    if x.ndim!=2 or x.shape[1]!=len(weights) or not np.isfinite(x).all():
+        raise ValueError('Finite aligned mixed feature matrix required')
+    return np.ascontiguousarray(x*weights),weights

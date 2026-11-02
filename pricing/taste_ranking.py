@@ -281,6 +281,8 @@ def predict_new_profiles(frame,bundle):
     import hdbscan
     geometry=transform_new_geometry(frame,bundle['encoder'])
     cluster_geometry=bundle['umap'].transform(geometry) if 'umap' in bundle else geometry
+    if bundle.get('cluster_weights') is not None:
+        cluster_geometry=np.ascontiguousarray(geometry*np.asarray(bundle['cluster_weights']),dtype=np.float64)
     if bundle.get('prediction_method')=='flat':
         from hdbscan.flat import membership_vector_flat
         raw=membership_vector_flat(bundle['hdbscan'],cluster_geometry)
