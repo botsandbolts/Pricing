@@ -1,0 +1,87 @@
+name: Assemble verified Lemon release and deploy atomically
+on:
+  push:
+    branches: ['recommender-lemon-release']
+    paths: ['.github/workflows/deploy-lemon.yml']
+permissions:
+  contents: write
+concurrency:
+  group: taste-geometry-release
+  cancel-in-progress: false
+jobs:
+  assemble-verify-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OPENBLAS_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+      NUMBA_NUM_THREADS: '2'
+      STREAMLIT_BROWSER_GATHER_USAGE_STATS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/workflows
+            pricing
+            scripts
+            tests
+            assets
+            marketbridge
+            data/taste-garage-mixed
+            data/taste-garage
+            models/time-transport
+            reco-release-parts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Assemble and verify every large-file byte
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          for item in json.loads(Path('reco-release-parts/assembly.json').read_text()):
+              path=Path(item['path']);path.parent.mkdir(parents=True,exist_ok=True)
+              with path.open('wb') as out:
+                  for part in item['parts']:
+                      b=Path(part['path']).read_bytes()
+                      assert len(b)==part['size']
+                      assert hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()==part['git_sha']
+                      out.write(b)
+              assert path.stat().st_size==item['size']
+              assert hashlib.file_digest(path.open('rb'),'sha256').hexdigest()==item['sha256']
+              print('VERIFIED',path,item['size'])
+          PY
+      - run: pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' scikit-learn==1.8.0 'xgboost>=3.1,<4' hdbscan==0.8.44 faiss-cpu streamlit==1.66.1 umap-learn==0.5.9.post2 requests pytest
+      - run: python -m pytest tests/test_onehot_garage.py tests/test_mixed_garage.py tests/test_umap_garage.py tests/test_taste_garage.py tests/test_taste_release_ui.py -q
+      - name: Verify serving contract and stored prices
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,numpy as np
+          from pricing.taste_ranking import load,records,active_catalogue_folder
+          root=Path('.')
+          assert active_catalogue_folder(root)==root/'data/taste-garage-mixed'
+          report=json.loads((active_catalogue_folder(root)/'release-check.json').read_text())
+          for k in [10,25]:
+              meta,a=load(root,k)
+              assert meta['rows']==110832 and meta['encoding_kind']=='lemon-textprice-onehot-umap-v1'
+              assert a['memberships'].shape==(110832,k) and a['medoid_cosine'].shape==(110832,k)
+              assert report[str(k)]['passed'] and not report[str(k)]['raw_text_embeddings']
+              cars=records(root,[p['position'] for p in meta['profiles']])
+              assert all(np.isfinite(c['predicted_text_price']) and c['predicted_text_price']>0 for c in cars)
+              print('SERVING CONTRACT VERIFIED',k)
+          PY
+      - name: Publish one clean commit, preserving the expected main head
+        run: |
+          git fetch origin main
+          expected=2b226731dee176a1dda4cd6db6086bd280634b59
+          test "$(git rev-parse origin/main)" = "$expected"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add data/taste-garage-mixed data/taste-garage-release.json
+          git rm -r reco-release-parts .github/workflows/deploy-lemon.yml
+          tree=$(git write-tree)
+          printf '%s\n' 'Deploy verified Lemon text-price one-hot UMAP HDBSCAN and FAISS cosine' > "$RUNNER_TEMP/message.txt"
+          commit=$(git commit-tree "$tree" -p "$expected" < "$RUNNER_TEMP/message.txt")
+          git push origin "$commit":refs/heads/main
+          echo "DEPLOYMENT_COMMIT=$commit"

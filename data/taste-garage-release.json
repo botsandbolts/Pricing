@@ -1,0 +1,7 @@
+{
+  "directory": "taste-garage-mixed",
+  "encoding_kind": "lemon-textprice-onehot-umap-v1",
+  "verified": true,
+  "rows": 110832,
+  "price_date": "2026-11-01"
+}

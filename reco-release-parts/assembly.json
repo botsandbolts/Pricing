@@ -1,0 +1,95 @@
+[
+  {
+    "path": "data/taste-garage-mixed/features-25.npz",
+    "size": 16006183,
+    "sha256": "6c5dee23c1a75f2552d0e3e42ffe5f45d7175dd006718c51e021171e25301825",
+    "git_sha": "67c5d7becb4b9beab0b20f30c6eb99551dd8e9b1",
+    "parts": [
+      {
+        "path": "reco-release-parts/features-25.npz.part00",
+        "source": "data/taste-garage-mixed/features-25.npz",
+        "offset": 0,
+        "size": 6000000,
+        "git_sha": "c74d4e263d7d57654e7caa768ff66495d0d47da5"
+      },
+      {
+        "path": "reco-release-parts/features-25.npz.part01",
+        "source": "data/taste-garage-mixed/features-25.npz",
+        "offset": 6000000,
+        "size": 6000000,
+        "git_sha": "c8cc7ae82c2b986bbeff6cf8fcd27cdfd2960bb0"
+      },
+      {
+        "path": "reco-release-parts/features-25.npz.part02",
+        "source": "data/taste-garage-mixed/features-25.npz",
+        "offset": 12000000,
+        "size": 4006183,
+        "git_sha": "b146497497eece42acf170ac65368060f3c73156"
+      }
+    ]
+  },
+  {
+    "path": "data/taste-garage-mixed/cars.sqlite",
+    "size": 45322240,
+    "sha256": "ebc098f19be944d8d659e1cde0b6d32f21d3a316fda15487af023570105906a4",
+    "git_sha": "d2c7b77e6ff30fb7aff65033d05fd1ec54af0628",
+    "parts": [
+      {
+        "path": "reco-release-parts/cars.sqlite.part00",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 0,
+        "size": 6000000,
+        "git_sha": "383f6063322d1cee73b05802f54b167bf08a459e"
+      },
+      {
+        "path": "reco-release-parts/cars.sqlite.part01",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 6000000,
+        "size": 6000000,
+        "git_sha": "4c02beddf7f6d8adca770d9318a2b2ab29b623df"
+      },
+      {
+        "path": "reco-release-parts/cars.sqlite.part02",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 12000000,
+        "size": 6000000,
+        "git_sha": "1449fac4406991268b1a73261235d2034f2dbeb4"
+      },
+      {
+        "path": "reco-release-parts/cars.sqlite.part03",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 18000000,
+        "size": 6000000,
+        "git_sha": "281e9d4910a30cc6b8e68918b0982bf5d0be2aa0"
+      },
+      {
+        "path": "reco-release-parts/cars.sqlite.part04",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 24000000,
+        "size": 6000000,
+        "git_sha": "fffabee483b74f93fa77862e75cf1a57356b2577"
+      },
+      {
+        "path": "reco-release-parts/cars.sqlite.part05",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 30000000,
+        "size": 6000000,
+        "git_sha": "9dc40ff043aec07f5e2c76af0850d6ccd1357a3f"
+      },
+      {
+        "path": "reco-release-parts/cars.sqlite.part06",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 36000000,
+        "size": 6000000,
+        "git_sha": "96bab73458cece8f93686f0e50b6ea661c8b3001"
+      },
+      {
+        "path": "reco-release-parts/cars.sqlite.part07",
+        "source": "data/taste-garage-mixed/cars.sqlite",
+        "offset": 42000000,
+        "size": 3322240,
+        "git_sha": "c0605300befc9d12b689b79461fed7e1011fd457"
+      }
+    ]
+  }
+]
