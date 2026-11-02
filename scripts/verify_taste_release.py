@@ -2,10 +2,13 @@
 from pathlib import Path
 import argparse,hashlib,json,time,resource
 import joblib,numpy as np,pandas as pd
-from pricing.taste_ranking import load,faiss_l2,train_rank,adjusted_price_features,predict_new_profiles,records
+from pricing.taste_ranking import load,faiss_l2,train_rank,adjusted_price_features,predict_new_profiles,records,active_catalogue_folder
 
 def main():
  p=argparse.ArgumentParser();p.add_argument('--bundle',required=True);args=p.parse_args();root=Path('.')
+ if active_catalogue_folder(root).name=='taste-garage-umap':
+    from scripts.verify_umap_garage import verify
+    verify(root);return
  meta,a=load(root);bundle=joblib.load(args.bundle)
  assert meta['rows']>100000 and bundle['source_rows']==meta['rows']
  d,_=faiss_l2(bundle['hdbscan']._raw_data,bundle['medoids']);a.pop('medoid_rmse',None);a.pop('medoid_l1',None);a['medoid_l2']=d

@@ -100,8 +100,13 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
             explanations.append(item)
     return {'eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus L2 evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
-def load(root,profile_count=10):
-    folder=Path(root)/'data/taste-garage';file=folder/'manifest.json'
+def active_catalogue_folder(root):
+    root=Path(root);candidate=root/'data/taste-garage-umap'
+    if all((candidate/f).exists() for f in ['manifest.json','features.npz','profiles-25.json','features-25.npz']):return candidate
+    return root/'data/taste-garage'
+
+def load(root,profile_count=10,catalogue_path=None):
+    folder=Path(catalogue_path) if catalogue_path is not None else active_catalogue_folder(root);file=folder/'manifest.json' 
     if not file.exists():return None
     manifest=json.loads(file.read_text())
     for name,digest in manifest['sha256'].items():
@@ -210,10 +215,11 @@ def predict_new_profiles(frame,bundle):
     """No refit: frozen encoding/scaling, HDBSCAN affinities, medoid distances."""
     import hdbscan
     geometry=transform_new_geometry(frame,bundle['encoder'])
+    cluster_geometry=bundle['umap'].transform(geometry) if 'umap' in bundle else geometry
     if bundle.get('prediction_method')=='flat':
         from hdbscan.flat import membership_vector_flat
-        raw=membership_vector_flat(bundle['hdbscan'],geometry)
-    else:raw=hdbscan.membership_vector(bundle['hdbscan'],geometry)
+        raw=membership_vector_flat(bundle['hdbscan'],cluster_geometry)
+    else:raw=hdbscan.membership_vector(bundle['hdbscan'],cluster_geometry)
     raw=np.nan_to_num(raw,nan=0.,posinf=0.,neginf=0.)
     m=np.zeros((len(frame),len(bundle['medoids'])),dtype=np.float32)
     for j,k in enumerate(bundle['macro']):m[:,k]+=raw[:,j]
