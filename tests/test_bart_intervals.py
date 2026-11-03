@@ -50,3 +50,27 @@ with patch('pricing.bart_summary.SummaryEngine',side_effect=RuntimeError('contro
     text=' '.join(x.value for x in app.markdown)
     for number in ['19,876','14,500','27,300','14,765','11,200','18,900']:assert number in text
     assert 'PRIVATE INTERNAL STORY' not in text
+
+def test_unsupported_numeric_draft_retries_without_changing_exact_receipt():
+    from streamlit.testing.v1 import AppTest
+    source="""
+from unittest.mock import patch
+import streamlit as st
+from pricing.bart_summary import render_story
+class Engine:
+    def encode(self,text):return text.split()
+    def decode(self,tokens):return ' '.join(tokens)
+    def generate(self,text,forbid_numbers=False):
+        st.session_state['calls']=st.session_state.get('calls',0)+1
+        return 'A vehicle valuation based on historical data.' if forbid_numbers else 'The price is 999999999 dollars.'
+with patch('pricing.bart_summary.SummaryEngine',Engine):
+    render_story({'manufacturer':'Toyota','model':'Corolla'},'PRIVATE SOURCE',st.session_state['_valuation_report'])
+"""
+    app=AppTest.from_string(source)
+    app.session_state['_valuation_report']=valuation()
+    app.run(timeout=30)
+    assert not app.exception
+    assert app.session_state['calls']==2
+    text=' '.join(x.value for x in app.markdown)
+    assert '999999999' not in text and 'historical data' in text
+    assert all(n in text for n in ['19,876','14,500','27,300','14,765','11,200','18,900'])
