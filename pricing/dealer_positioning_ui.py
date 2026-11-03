@@ -34,6 +34,12 @@ def render(root):
         st.subheader('Shared inventory support')
         st.dataframe(pd.DataFrame(audit['primary']['summary']),hide_index=True,width='stretch')
         st.write(audit['primary']['time_holdout'])
+        missing=audit['primary']['missing_counts']
+        st.write('Missing comparison fields among confidence-selected adverts:')
+        st.dataframe(pd.DataFrame([{'Field':k,'Missing adverts':v} for k,v in missing.items()]),hide_index=True,width='stretch')
+        if not any(x['shared_support_adverts']>=50 for x in audit['primary']['summary']):
+            st.warning('No merchant has sufficient joint support for this specification. Dealer percentage estimates and within-support refitting are blocked. More complete trim and listing-date evidence is required.')
+
         with st.expander('Inventory distributions and alternative merchant-match threshold'):
             st.json(audit)
     else:st.info('The overlap audit is running. Existing residual percentages are not evidence of comparable inventory.')
