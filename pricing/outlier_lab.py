@@ -143,10 +143,16 @@ def render(root):
         folder=Path(root)/'models/xgboost-hierarchy'/side
         cleaning=json.loads((folder/'cleaning.json').read_text())
         st.subheader('Asking · Craigslist' if side=='ask' else 'Wholesale · auction')
-        a,b,c=st.columns(3)
-        a.metric('Training candidates',f"{cleaning['original_training_rows']:,}")
-        b.metric('Removed',f"{cleaning['removed_training_rows']:,}")
-        c.metric('Retained',f"{cleaning['original_training_rows']-cleaning['removed_training_rows']:,}")
+        original=cleaning.get('original_training_rows')
+        removed=cleaning.get('removed_training_rows')
+        if isinstance(original,int) and isinstance(removed,int):
+            a,b,c=st.columns(3)
+            a.metric('Training candidates',f"{original:,}")
+            b.metric('Removed',f"{removed:,}")
+            c.metric('Retained',f"{original-removed:,}")
+        else:
+            st.info('This release inherits a frozen retained cohort. Original and removed row counts were not stored in this receipt; no counts are inferred.')
+            if cleaning.get('fraction') is not None:st.caption(f"Recorded trim fraction: {cleaning['fraction']:.0%}. "+cleaning.get('selection_limit',''))
         with st.expander(side.title()+' · exact training and evaluation receipt'):
             st.json(cleaning)
             st.json(json.loads((folder/'evaluation.json').read_text()))

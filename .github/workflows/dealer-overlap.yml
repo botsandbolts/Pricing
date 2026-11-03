@@ -15,7 +15,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pandas
+      - run: pip install pandas streamlit requests pytest
+      - run: python -m scripts.check_dealer_positioning_ui
       - run: python -m scripts.audit_dealer_overlap
       - uses: actions/upload-artifact@v4
         with:

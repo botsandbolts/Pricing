@@ -36,6 +36,9 @@ def audit(threshold):
     distributions={c: d.groupby(['dealer',c],dropna=False).size().rename('n').reset_index().astype(str).to_dict('records') for c in ['model','trim','age_band','mileage_band','state','listing_month']}
     return {'threshold':threshold,'summary':summary,'distributions':distributions,
        'missing_counts':{c:int(d[c].isna().sum()) for c in required},
+       'catalogue_fields':sorted(cars[0]),
+       'total_selected_adverts':len(d),'total_shared_support_adverts':int(complete.shared.sum()),
+       'refit_status':'Blocked: no eligible shared-support merchant groups' if not any(s['shared_support_adverts']>=50 for s in summary) else 'Requires within-support refit before estimates can be displayed',
        'time_holdout':'Not evaluated: requires date-ordered baseline retraining; random-fold residuals cannot substitute',
        'estimates':'Suppressed until within-support refit and uncertainty evaluation complete'}
 out=Path('reports/dealer-overlap');out.mkdir(parents=True,exist_ok=True)

@@ -35,9 +35,11 @@ def test_current_estimate_drivers_sharing_and_bayesian_route(studio):
     assert not at.exception
     assert at.get('pills')[0].value=='🕵️ Deal Detective'
     assert '⬇ Download image card · PNG' in [x.label for x in at.get('download_button')]
-    at.get('pills')[0].set_value('🌳 Hierarchical model').run()
+    at.session_state['_navigate_to']='🌳 Hierarchical model'
+    at.run()
     assert not at.exception
-    assert any(m.label=='Bayesian MAE' for m in at.metric)
+    assert at.get('pills')[0].value=='🚗 Price my car'
+    assert at.session_state['hierarchy_sparse_result']['inference_mode']=='hierarchical-only-v1'
     assert any('Historical 90% range' in m.value for m in at.markdown)
 
 @pytest.mark.parametrize('page',['📊 Evaluation','🧹 Outlier lab','🧠 The science','📅 Value over time','🧪 Model lab','↔ Two-market garage'])
