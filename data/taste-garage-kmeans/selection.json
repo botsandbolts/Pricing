@@ -1,0 +1,30 @@
+{
+  "source_rows": 211844,
+  "retained_rows": 110832,
+  "scope": "Only retained calibration/training rows; validation/test excluded",
+  "source_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "selection_evidence_sha256": "a118ea7d4e6ed07a6193be7796a9ceeb6fe59d1a41f000701a46f96e0eec49e3",
+  "retained_id_sha256": "e421de8a4abf4289c67f9e90f15670f205a09e342b4dbfb72758a3d91bd5de86",
+  "text_price_file_sha256": "351bd570f9a4798236af887979b87657e13cc5d6ae30f9b0cace1a0d7db8a2fe",
+  "text_price_source": "Stored minilm-cleaned/ask/text-price-oof.csv.gz cross-fitted dollar means; no embeddings or fresh MiniLM inference",
+  "price_date": "2026-11-01",
+  "price_scenario_assumption": "Recorded mileage held constant; age/market-index transport, not a live transaction quote",
+  "supported_price_scenarios": 106626,
+  "numeric_features": [
+    "vehicle_year",
+    "log_mileage",
+    "mileage_missing",
+    "log_asking_price_nov2026",
+    "asking_price_nov2026_missing",
+    "log_predicted_text_price",
+    "predicted_text_price_missing"
+  ],
+  "rarity_threshold": 111,
+  "geometry_dimensions": 322,
+  "metric": "sqrt(0.5 * mean categorical mismatch + 0.5 * mean bounded numeric squared difference)",
+  "weights": {
+    "categorical": 0.5,
+    "numeric": 0.5
+  },
+  "text_price_use": "Existing cross-fitted scalar dollar feature; no embeddings or fresh MiniLM inference"
+}

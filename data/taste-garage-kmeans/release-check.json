@@ -1,0 +1,26 @@
+{
+  "10": {
+    "passed": true,
+    "method": "MiniBatchKMeans top-three distance softmax; not HDBSCAN",
+    "rows": 110832,
+    "ui": {
+      "profile_count": 10,
+      "rating_control": "pills",
+      "ratings_verified": 10,
+      "recommendations": 10,
+      "test_selector_key": "taste_choose_10"
+    }
+  },
+  "25": {
+    "passed": true,
+    "method": "MiniBatchKMeans top-three distance softmax; not HDBSCAN",
+    "rows": 110832,
+    "ui": {
+      "profile_count": 25,
+      "rating_control": "pills",
+      "ratings_verified": 25,
+      "recommendations": 10,
+      "test_selector_key": "taste_choose_25"
+    }
+  }
+}
