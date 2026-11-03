@@ -1,9 +1,173 @@
 {
   "10": {
     "passed": true,
-    "method": "MiniBatchKMeans top-three distance softmax; not HDBSCAN",
+    "test_type": "Retained-cohort mechanical validation with artificial ratings; not measured satisfaction",
     "rows": 110832,
-    "ui": {
+    "encoding_kind": "lemon-textprice-onehot-umap-v1",
+    "stored_text_price": true,
+    "raw_text_embeddings": false,
+    "price_date": "2026-11-01",
+    "embedding": {
+      "n_neighbors": 30,
+      "min_dist": 0.0,
+      "n_components": 5,
+      "n_epochs": 200,
+      "random_state": 42,
+      "metric": "cosine"
+    },
+    "ranking_seconds": 7.860907554626465,
+    "model_result": {
+      "flat_ranker": false,
+      "ordering_basis": "learned ranking with preference tie-breaks",
+      "eligible_cars": 18463,
+      "evidence": [
+        {
+          "signed": 1.0851057458299396,
+          "positive": 1.2006891989728399,
+          "negative": 0.11558345314290033,
+          "liked_profile": 7,
+          "liked_distance": 0.5579110383987427,
+          "disliked_profile": 5,
+          "disliked_distance": 0.564165472984314
+        },
+        {
+          "signed": 1.0843240270632926,
+          "positive": 1.201903970149328,
+          "negative": 0.11757994308603546,
+          "liked_profile": 7,
+          "liked_distance": 0.5387594699859619,
+          "disliked_profile": 9,
+          "disliked_distance": 0.5432957410812378
+        },
+        {
+          "signed": 1.084159201751966,
+          "positive": 1.2036553536760315,
+          "negative": 0.11949615192406567,
+          "liked_profile": 2,
+          "liked_distance": 0.4979879856109619,
+          "disliked_profile": 5,
+          "disliked_distance": 0.499957799911499
+        },
+        {
+          "signed": 1.0845211826597714,
+          "positive": 1.2051049250440233,
+          "negative": 0.12058374238425199,
+          "liked_profile": 2,
+          "liked_distance": 0.482494592666626,
+          "disliked_profile": 9,
+          "disliked_distance": 0.556290864944458
+        },
+        {
+          "signed": 1.0844002840287856,
+          "positive": 1.2053488794137681,
+          "negative": 0.12094859538498245,
+          "liked_profile": 2,
+          "liked_distance": 0.4790358543395996,
+          "disliked_profile": 5,
+          "disliked_distance": 0.5541824102401733
+        },
+        {
+          "signed": 1.0843141121516493,
+          "positive": 1.2054266290564377,
+          "negative": 0.12111251690478837,
+          "liked_profile": 2,
+          "liked_distance": 0.4775834083557129,
+          "disliked_profile": 5,
+          "disliked_distance": 0.5528163909912109
+        },
+        {
+          "signed": 1.0840021342109862,
+          "positive": 1.2095781949919724,
+          "negative": 0.12557606078098613,
+          "liked_profile": 2,
+          "liked_distance": 0.41176533699035645,
+          "disliked_profile": 5,
+          "disliked_distance": 0.49026477336883545
+        },
+        {
+          "signed": 1.0861836610668614,
+          "positive": 1.2113619019396271,
+          "negative": 0.1251782408727657,
+          "liked_profile": 2,
+          "liked_distance": 0.40760040283203125,
+          "disliked_profile": 5,
+          "disliked_distance": 0.48521530628204346
+        },
+        {
+          "signed": 1.084207725618203,
+          "positive": 1.2101409241587535,
+          "negative": 0.1259331985405504,
+          "liked_profile": 2,
+          "liked_distance": 0.39344704151153564,
+          "disliked_profile": 5,
+          "disliked_distance": 0.4678462743759155
+        },
+        {
+          "signed": 1.086098062591572,
+          "positive": 1.2120302251254698,
+          "negative": 0.1259321625338978,
+          "liked_profile": 2,
+          "liked_distance": 0.38616466522216797,
+          "disliked_profile": 5,
+          "disliked_distance": 0.45886147022247314
+        }
+      ],
+      "preference_method": "signed memberships plus medoid-distance evidence; nearest-dislike exclusion",
+      "score_range": 1.433849573135376,
+      "positions": [
+        88185,
+        63107,
+        87814,
+        31591,
+        63263,
+        38768,
+        109032,
+        57232,
+        95238,
+        22537
+      ],
+      "scores": [
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076,
+        0.7123897075653076
+      ],
+      "ndcg10": 0.9929237753127533,
+      "random_ndcg10": 0.7134704818948293,
+      "training_rows": 88714,
+      "validation_rows": 22118,
+      "final_rows": 110832,
+      "rounds": 16,
+      "direct_judgments": 10,
+      "soft_memberships": true,
+      "gain": "linear soft relevance; 0.1 ordinal training resolution",
+      "feature_importance": {
+        "manufacturer": 0.0,
+        "model": 0.7189990282058716,
+        "type": 0.007468096446245909,
+        "fuel": 5.889511885470711e-05,
+        "transmission": 0.0,
+        "drive": 0.05780869722366333,
+        "title_status": 0.0,
+        "condition": 0.021360324695706367,
+        "cylinders": 0.10401076823472977,
+        "paint_color": 3.3212947414540395e-07,
+        "state": 0.07866954803466797,
+        "model_year": 0.0,
+        "log_mileage": 0.011624282225966454,
+        "mileage_missing": 0.0,
+        "log_advertised_price": 0.0,
+        "log_date_adjusted_price": 0.0,
+        "price_adjustment_missing": 0.0
+      }
+    },
+    "ui_check": {
       "profile_count": 10,
       "rating_control": "pills",
       "ratings_verified": 10,
@@ -13,9 +177,173 @@
   },
   "25": {
     "passed": true,
-    "method": "MiniBatchKMeans top-three distance softmax; not HDBSCAN",
+    "test_type": "Retained-cohort mechanical validation with artificial ratings; not measured satisfaction",
     "rows": 110832,
-    "ui": {
+    "encoding_kind": "lemon-textprice-onehot-umap-v1",
+    "stored_text_price": true,
+    "raw_text_embeddings": false,
+    "price_date": "2026-11-01",
+    "embedding": {
+      "n_neighbors": 30,
+      "min_dist": 0.0,
+      "n_components": 5,
+      "n_epochs": 200,
+      "random_state": 42,
+      "metric": "cosine"
+    },
+    "ranking_seconds": 10.153445959091187,
+    "model_result": {
+      "flat_ranker": false,
+      "ordering_basis": "learned ranking with preference tie-breaks",
+      "eligible_cars": 8514,
+      "evidence": [
+        {
+          "signed": 1.1140971508113544,
+          "positive": 1.2288061501578578,
+          "negative": 0.11470899934650344,
+          "liked_profile": 23,
+          "liked_distance": 0.4336671829223633,
+          "disliked_profile": 24,
+          "disliked_distance": 0.44152742624282837
+        },
+        {
+          "signed": 1.112345367122397,
+          "positive": 1.2305132301485529,
+          "negative": 0.11816786302615583,
+          "liked_profile": 22,
+          "liked_distance": 0.3740025758743286,
+          "disliked_profile": 8,
+          "disliked_distance": 0.4520041346549988
+        },
+        {
+          "signed": 1.1168490368897115,
+          "positive": 1.2343046518114982,
+          "negative": 0.11745561492178665,
+          "liked_profile": 22,
+          "liked_distance": 0.33239299058914185,
+          "disliked_profile": 21,
+          "disliked_distance": 0.40391695499420166
+        },
+        {
+          "signed": 1.112864718119184,
+          "positive": 1.2365269691847587,
+          "negative": 0.1236622510655748,
+          "liked_profile": 11,
+          "liked_distance": 0.29120463132858276,
+          "disliked_profile": 21,
+          "disliked_distance": 0.3012515902519226
+        },
+        {
+          "signed": 1.1145778675960705,
+          "positive": 1.2368788320892254,
+          "negative": 0.12230096449315488,
+          "liked_profile": 23,
+          "liked_distance": 0.2884700298309326,
+          "disliked_profile": 9,
+          "disliked_distance": 0.3586195111274719
+        },
+        {
+          "signed": 1.1136503992390838,
+          "positive": 1.23697459279407,
+          "negative": 0.12332419355498629,
+          "liked_profile": 23,
+          "liked_distance": 0.2881372570991516,
+          "disliked_profile": 13,
+          "disliked_distance": 0.2888844609260559
+        },
+        {
+          "signed": 1.1143977250148231,
+          "positive": 1.2368742181971129,
+          "negative": 0.12247649318228966,
+          "liked_profile": 23,
+          "liked_distance": 0.28512150049209595,
+          "disliked_profile": 21,
+          "disliked_distance": 0.29642510414123535
+        },
+        {
+          "signed": 1.1134375029737609,
+          "positive": 1.237029654573598,
+          "negative": 0.12359215159983701,
+          "liked_profile": 23,
+          "liked_distance": 0.28373628854751587,
+          "disliked_profile": 9,
+          "disliked_distance": 0.2842729687690735
+        },
+        {
+          "signed": 1.1155787005963196,
+          "positive": 1.2400089049743528,
+          "negative": 0.12443020437803311,
+          "liked_profile": 22,
+          "liked_distance": 0.23400551080703735,
+          "disliked_profile": 21,
+          "disliked_distance": 0.3849889039993286
+        },
+        {
+          "signed": 1.1102583311609444,
+          "positive": 1.238736931662444,
+          "negative": 0.12847860050149945,
+          "liked_profile": 19,
+          "liked_distance": 0.22803497314453125,
+          "disliked_profile": 17,
+          "disliked_distance": 0.2292281985282898
+        }
+      ],
+      "preference_method": "signed memberships plus medoid-distance evidence; nearest-dislike exclusion",
+      "score_range": 1.4613792896270752,
+      "positions": [
+        60867,
+        10435,
+        10389,
+        69016,
+        6062,
+        31719,
+        78885,
+        1381,
+        75705,
+        8211
+      ],
+      "scores": [
+        0.37071311473846436,
+        0.588937520980835,
+        0.32976725697517395,
+        0.7280054092407227,
+        0.32976725697517395,
+        0.7280054092407227,
+        0.7280054092407227,
+        0.7280054092407227,
+        0.32976725697517395,
+        0.7280054092407227
+      ],
+      "ndcg10": 0.9679938531516992,
+      "random_ndcg10": 0.6205551167418115,
+      "training_rows": 88716,
+      "validation_rows": 22116,
+      "final_rows": 110832,
+      "rounds": 16,
+      "direct_judgments": 25,
+      "soft_memberships": true,
+      "gain": "linear soft relevance; 0.1 ordinal training resolution",
+      "feature_importance": {
+        "manufacturer": 0.0,
+        "model": 0.5399433374404907,
+        "type": 0.060389444231987,
+        "fuel": 0.0,
+        "transmission": 0.15605688095092773,
+        "drive": 0.07372341305017471,
+        "title_status": 0.0020148446783423424,
+        "condition": 0.011552046984434128,
+        "cylinders": 0.01571671850979328,
+        "paint_color": 0.01728554628789425,
+        "state": 0.10688962787389755,
+        "model_year": 0.0,
+        "log_mileage": 0.0,
+        "mileage_missing": 0.0,
+        "log_advertised_price": 0.0,
+        "log_date_adjusted_price": 0.016428258270025253,
+        "price_adjustment_missing": 0.0
+      }
+    },
+    "ui_check": {
       "profile_count": 25,
       "rating_control": "pills",
       "ratings_verified": 25,
