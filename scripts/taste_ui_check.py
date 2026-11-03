@@ -15,6 +15,8 @@ def exercise_taste_ui(root,profile_count,ratings):
     assert profile_count in (10,25) and len(ratings)==profile_count
     app=AppTest.from_string(f"from pathlib import Path\nfrom pricing.taste_garage_ui import render\nrender(Path({str(Path(root))!r}))").run(timeout=60)
     _healthy(app,'Initial render')
+    assert any('Drive Chemistry' in m.value for m in app.markdown),'Branded introduction must be visible'
+    assert any(e.label=='How Drive Chemistry picks your cars' for e in app.expander),'Plain-language guide must be available'
     buttons=[b for b in app.button if b.key==f'taste_choose_{profile_count}']
     assert len(buttons)==1,f'Missing test selector taste_choose_{profile_count}'
     buttons[0].click().run(timeout=60);_healthy(app,'Choose test')

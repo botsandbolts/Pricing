@@ -1,61 +1,52 @@
-# Pick your garage · Lemon-only mixed-data UMAP + HDBSCAN
+# Drive Chemistry
+Rate a few cars. Find your type. Skip the awkward small talk.
 
-The catalogue contains **110,832 retained Lemon Squeezer training cars**. It excludes the discarded training rows and all pricing validation/test rows. The saved cross-fitted `predicted_text_price` scalar is reused by row ID. No MiniLM embeddings or fresh text-model inference are computed for this recommender.
+## For drivers
+Drive Chemistry is the car-discovery experience inside Car Price Studio’s “Pick your garage” panel. It is free to explore without registration. Choose Speed Date (10 cars) or The Long Drive (25 cars), react to every car from 1 — No thanks to 4 — Love it, then build a shortlist of up to ten other historical cars.
 
-## Inputs
+Each taste-test car is a real advert representing a learned group. Rate the whole car, including its price. The longer test offers finer profiles; it is not a guarantee of better recommendations. You can switch tests without losing the ratings saved for that test and catalogue version.
 
-Common categorical values get independent one-hot indicators; rare and unseen values share an Other bucket per field. Common means at least `max(100, ceil(0.001 × retained_rows))`, or **111 cars** for this release. Constant grouped fields are omitted. Category encoding uses no price-target statistics.
+The current discovery order is **largest cosine distance first** to the nearest representative you liked. It puts more different selected cars ahead of closer ones. It is not “best match first.” Every displayed car has already passed the preference checks. This order follows the requested product setting.
 
-The numeric view includes vehicle year, **log(1 + mileage)**, a missing-mileage indicator, log asking-price scenarios for **November 2026**, and log of the **existing text-price scalar**. Unsupported asking-price transport and unavailable future text-price values have explicit missing indicators. Training requires the stored positive text-price value for every retained row. No tree-model `predicted_price` is substituted for `predicted_text_price`.
+Open “Why this car?” for the positive and negative taste signals, related profiles and distances. Open the original advert excerpt for specifications. “Did we find your type?” collects additional ratings for a limited check of the displayed ordering. Those ratings do not change the list already displayed.
 
-The November scenario uses 1 November 2026 as the monthly reference date, existing depreciation curves and the dated market-index transport. Recorded mileage is held constant. This is an extrapolated scenario, not a live sale value. The existing text-price scalar is retained on its original historical dollar basis. Numeric values use frozen medians and 1st/99th percentile ranges, clipped to [0,1]; flags remain [0,1]. Clipping is a feature transform, not an additional row filter.
+## For businesses
+The experience demonstrates discovery from a small amount of explicit preference feedback, without user IDs, demographics or a history of clicks. Vehicle groups are prepared offline; session reactions personalize filtering and ranking. It can illustrate alternatives in a classified-listing or dealership journey.
 
-## Mixed distance and clustering
+The catalogue contains retained historical Craigslist asking adverts, not live stock. Price displays are date-adjusted asking-price scenarios at recorded mileage, not verified transactions, binding offers or guaranteed present-day values. Changing the date updates the scenario and ranking price features; it does not refit the vehicle groups. Seller claims and condition are not verified.
 
-UMAP uses `0.5 × Dice(one-hot) + 0.5 × mean absolute numeric difference`. Dice ignores joint-zero category indicators. Numeric differences are computed after robust range scaling. The 50/50 view weights are explicit heuristic choices, not a proven optimal metric. Arbitrary category integers and Euclidean distance across an unscaled mixed matrix are not used.
+Broad clusters and omitted preferences can produce poor matches. Coverage and automatic ranking scores do not prove customer satisfaction, conversion uplift or commercial accuracy.
 
-Every retained row enters an approximate mixed-distance neighbour graph. UMAP uses 30 neighbours, min_dist=0, five output dimensions, 200 epochs and seed 42, following the clustering-oriented setup in the [UMAP clustering guide](https://umap-learn.readthedocs.io/en/latest/clustering.html). The [mixed-view documentation](https://umap-learn.readthedocs.io/en/latest/composing_models.html) discusses applying different metrics to categorical and numerical inputs. UMAP can alter density and split structure; it does not establish that the resulting profiles are objectively correct.
+## Technical design
+### 1. Reference data and features
+The current catalogue uses 110,832 retained Lemon Squeezer training/calibration cars; validation and test rows of the pricing experiment are excluded. Common nominal categories use one-hot indicators. Rare, missing-if-rare and unseen values share a per-field Other bucket. The seven numeric columns include year, log mileage, mileage-missing, log November-2026 asking-price scenario, scenario-missing, stored cross-fitted MiniLM description-price scalar and its missing indicator. Numeric values use frozen robust range scaling and imputation. No raw text embeddings, newly computed transformer prices or preference ratings enter clustering.
 
-HDBSCAN uses Euclidean distance in the five-dimensional UMAP output, with min_samples=10 and initial min_cluster_size=500. The 10- and 25-car tests select separate cuts of that fitted hierarchy. Representatives are actual non-noise cars, never UMAP centroids.
+### 2. Soft vehicle groups
+HDBSCAN fits directly in the encoded feature space. Weighted Manhattan distance equals:
+- 50% of the fraction of categorical fields that differ;
+- 50% of the mean absolute difference across bounded numeric features.
 
-## FAISS cosine and ranking
+For F categorical fields, each one-hot indicator has weight 0.25/F: changing a category flips two indicators, counting one mismatch. Each of N numeric columns has weight 0.5/N. There is no additional column StandardScaler, reduced-dimensional embedding or full all-pairs distance matrix. The KD-tree Boruvka path uses Manhattan distance, min_samples=10 and an initial min_cluster_size=500. Supported hierarchy cuts produce separate 10/25-profile tests. The workflow never invents clusters to meet a requested count.
 
-For representative comparisons, categorical and numeric blocks are individually normalized, equally weighted, concatenated and normalized again. **Exact FAISS cosine distance** operates in these balanced original features, including mileage and both price features, rather than on UMAP coordinates. Each representative is the actual within-cluster sum-cosine-distance medoid. All members are considered for this objective.
+Soft memberships are nonnegative and sum to at most one. Remaining mass is unassigned. Density noise can still have soft affinities; it is not forced into a hard group. The saved encoder and distance weights transform new cars for membership prediction without refitting HDBSCAN.
 
-Ratings map to -1, -1/3, +1/3 and +1. Soft HDBSCAN membership evidence has 75% weight; representative-distance affinity has 25%. Unassigned mass contributes zero. A candidate needs positive net evidence and must be strictly closer to a liked representative than a disliked one when both exist. Distance ties and rated prototypes are excluded. A separate native-categorical XGBoost ranker orders eligible cars; the one-hot change applies to the unsupervised profile/comparison features. Up to ten historical adverts are shown, not live stock.
+Representatives are real non-noise members, selected by minimum summed cosine distance among their group’s original encoded vectors. They are examples, not synthetic average cars.
 
-## Verification and deployment
+### 3. Personal preference
+Raw ratings preserve their direction. Signed evidence is r − 2.5, giving −1.5, −0.5, +0.5, +1.5. There is no reciprocal transform or session StandardScaler. Soft group evidence receives 75% weight and representative-distance affinity receives 25%. Unassigned membership adds no preference evidence. Candidates need positive net evidence. When both liked and disliked representatives exist, the nearest liked representative must be strictly closer than the nearest disliked one; ties fail. Taste-test representatives are excluded.
 
-Source IDs, the original canonical-cohort hash, retained-ID digest and existing text-price export are checked. The release verifies mileage/text-price features, frozen future-listing transforms, real representatives, cosine/dislike safeguards and both complete Streamlit rating flows. Mechanical NDCG measures agreement with inferred labels, not independent customer satisfaction.
+### 4. Similarity, ranking and presentation
+FAISS IndexFlatIP computes exact cosine after the L2 normalization necessary for cosine. Inputs are original encoded feature vectors without added column scaling or block normalization. Distance = 1 − cosine similarity. Smaller distance means more similar.
 
-New listings use the frozen one-hot vocabulary and numeric ranges, then the saved UMAP transform and HDBSCAN membership prediction without a refit. Supply an existing `predicted_text_price` scalar when available; the recommender does not call MiniLM to create it. Missing feature values are flagged and imputed using reference medians. The GUI loads compact arrays and selected advert rows, not the heavy offline models.
+A session XGBRanker uses rank:ndcg and ndcg@10, native categorical partitioning, max_depth=3 and two CPU threads. Predictors are vehicle attributes and original/date-adjusted log asking-price features. User, demographic, cluster and prototype IDs are excluded. Each original car appears once; there is no Cartesian expansion.
 
-Publish the matching code, both verified profile assets, SQLite catalogue and `data/taste-garage-release.json` pointer together. The previous catalogue remains the fallback until the new release is complete. Routine code checks do not overwrite new assets with old fixed-run models.
+Inherited signed preference evidence is bounded and shifted to nonnegative relevance. Ranking labels are quantized in 0.1 steps; displayed inherited-label NDCG uses unrounded relevance and linear gains. A deterministic vehicle-ID holdout of roughly 20% supports early stopping; representatives stay in training. The final ranker fits every catalogue row. It selects up to ten eligible cars, and the display then sorts this selection by descending nearest-liked cosine distance. Display sort and learned ordering are separate.
 
+### 5. Evaluation, privacy and release
+Held-out NDCG measures agreement with weak preferences inherited from the same representative reactions, before display sorting. It is not independent satisfaction or catalogue-wide relevance. Optional additional ratings check only ordering within the displayed cars.
 
-## Reciprocal rating standardisation
-Session ratings use negative population-standardized reciprocals: score = −(1/r − mean(1/r))/std(1/r). Higher ratings always have higher scores. Equal ratings safely yield zero (the UI requires variation). Zero indicates the session average, rather than a fixed like/dislike threshold. Explicit nearest-liked/disliked exclusion still uses ratings 3–4 versus 1–2. Before integer ranking labels are formed, signed evidence is bounded and mapped to 0–3; no negative relevance labels reach XGBoost. Saved session recommendations are invalidated when this scoring version changes. Similarity models and trained catalogue assets are unchanged.
+Ratings and the trained personal ordering stay in the Streamlit session. No registration is required for discovery. The broader app’s analytics and cookie controls apply separately.
 
+New catalogue assets publish only after source-alignment checks, soft-membership/new-point checks, full-catalogue ranking and both real Streamlit rating flows pass. UI revisions preserve stable control keys, ordered mobile cards, accessible reaction labels, progress announcements and mode-specific rating memory.
 
-## Current RMSE / inverse release
-Replaces vector-normalized cosine preference comparisons with per-feature RMSE on the original scaled mixed features: sqrt(sum((x-y)^2)/D), computed by FAISS IndexFlatL2. No unit normalization is applied; vector magnitude matters. Existing clusters, soft memberships and representatives are preserved. Rating evidence uses 5/12 − 1/rating: an inverse transform plus a fixed neutral offset between ratings 2 and 3, with no z-score, unit normalization or session-dependent centering. This keeps ratings 1–2 negative and 3–4 positive, with 4 best. Earlier standardized-reciprocal descriptions are superseded. RMSE measures feature differences, not dollar prediction error.
-
-
-## Current StandardScaler release
-FAISS vectors: sklearn StandardScaler is fitted per feature column on all 110832 catalogue rows. Saved means and scales transform the entire catalogue, its representatives and new queries. Constant columns have scale 1. There is no row unit normalization. Distances are RMSE in standardized feature units and the selected shortlist displays lowest RMSE first. HDBSCAN memberships and original representatives stay unchanged. The frozen scaler is saved as faiss-scaler.json; a matching offline feature encoder and scaler are exported together for new-listing inference.
-
-Session ratings: inverse-transform all 10 or 25 ratings, fit a separate sklearn StandardScaler across that session, then negate, yielding −z(1/rating). Rating 4 remains highest; zero now means session average. Explicit nearest-liked/disliked safeguards still use ratings 3–4 versus 1–2. Earlier inverse-only/fixed-offset descriptions are superseded. No independently measured relevance improvement is claimed.
-
-
-## Current release: cosine, no extra column scaling
-FAISS uses existing encoded catalogue vectors directly; the added column StandardScaler and block normalization are disabled for comparisons. FAISS IndexFlatIP uses L2 normalization solely to calculate cosine similarity. Distance = 1 − cosine similarity. Reciprocal rating costs are 1/r: 4=0.25, 3=1/3, 2=0.5, 1=1, without session standardization. Signed preference evidence uses 5/12 minus cost. Selected recommendations display ascending cosine distance to the nearest liked representative. This supersedes the StandardScaler/RMSE release; existing unsupervised cluster geometry is unchanged.
-
-
-## Current direct-rating release
-The user ratings are no longer inverted. Signed preference evidence is rating − 2.5, mapping 1,2,3,4 to −1.5,−0.5,+0.5,+1.5, without a reciprocal or session scaler. Four is best. Cosine comparison has no added feature-column StandardScaler. Selected shortlist presentation remains descending cosine distance to the nearest liked representative (largest first), as explicitly requested. Earlier reciprocal-rating descriptions are superseded.
-
-
-## Direct HDBSCAN retraining without UMAP
-The new direct training fits every retained Lemon car in its original one-hot plus numeric feature space. No UMAP or reduced-dimensional proxy enters clustering. The distance is 0.5 times the fraction of categorical fields that differ, plus 0.5 times the mean absolute difference across the seven bounded numeric columns. Each one-hot entry is weighted 0.25/number_of_categorical_fields; numeric columns are weighted 0.5/number_of_numeric_features, and HDBSCAN uses Manhattan distance. A categorical swap changes two one-hot entries, so its contribution is counted once per field, not twice. No StandardScaler inflates rare one-hot columns. This is a Gower-style mixed distance, not a claim of universally optimal relevance.
-
-The KD-tree Boruvka path avoids allocating the full all-pairs distance matrix. Numeric preprocessing remains frozen robust range scaling. Features include mileage, year, November-2026 asking-price scenarios and stored MiniLM text-price scalars. The fitted HDBSCAN hierarchy yields requested 10/25 leaf cuts only when supported; no fabricated clusters are released. Soft memberships and real non-noise representative cars are exported. New cars use the frozen encoder and saved distance weights before membership prediction. FAISS retains the separately requested cosine comparisons, direct user ratings and descending-distance presentation. Both complete UI flows and original-source alignment must pass before automatic publication. Until then the last verified catalogue remains active.
+Data: Craigslist Used Cars, Tom / Zenodo 10457828, CC BY 4.0. Price scenarios use saved depreciation curves and the CPI/Holt market clock.
