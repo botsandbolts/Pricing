@@ -29,7 +29,7 @@ jobs:
             tests
             assets
             marketbridge
-            data/taste-garage-mixed
+            data/taste-garage-kmeans
             data/taste-garage
             models/time-transport
       - uses: actions/setup-python@v5
@@ -48,14 +48,14 @@ jobs:
           retention-days: 90
       - name: Publish matching verified assets and release pointer
         run: |
-          tar -cf "$RUNNER_TEMP/mixed-assets.tar" data/taste-garage-mixed data/taste-garage-release.json
+          tar -cf "$RUNNER_TEMP/mixed-assets.tar" data/taste-garage-kmeans
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           for attempt in 1 2 3; do
             git fetch origin main
             git reset --hard origin/main
             tar -xf "$RUNNER_TEMP/mixed-assets.tar"
-            git add data/taste-garage-mixed data/taste-garage-release.json
+            git add data/taste-garage-kmeans
             if git diff --cached --quiet; then exit 0; fi
             git commit -m "Install verified direct mixed Manhattan HDBSCAN without UMAP"
             if git push origin HEAD:main; then exit 0; fi

@@ -117,6 +117,12 @@ def descending_liked_distance(positions,distances,ratings):
 
 def active_catalogue_folder(root):
     root=Path(root);fallback=root/'data/taste-garage';pointer=root/'data/taste-garage-release.json'
+    try:
+        import streamlit as st
+        if st.session_state.get('taste_model_choice')=='KMeans':
+            candidate=root/'data/taste-garage-kmeans'
+            if all((candidate/f).exists() for f in ['manifest.json','features.npz','profiles-25.json','features-25.npz','release-check.json','cars.sqlite']):return candidate
+    except (ImportError,RuntimeError):pass
     if not pointer.exists():return fallback
     try:info=json.loads(pointer.read_text())
     except (OSError,ValueError,TypeError):return fallback

@@ -35,7 +35,7 @@ def build(root,prepared,jobs=4):
                       'price_scenarios_available':int(np.isfinite(prices_nov).sum()),'metric':state['metric']}),flush=True)
     offline=root/'training-cache/lemon-mixed';offline.mkdir(parents=True,exist_ok=True)
     density=None
-    folder=root/'data/taste-garage-mixed';folder.mkdir(parents=True,exist_ok=True)
+    folder=root/'data/taste-garage-kmeans';folder.mkdir(parents=True,exist_ok=True)
     db=folder/'cars.sqlite';db.unlink(missing_ok=True)
     conn=sqlite3.connect(db);conn.execute('CREATE TABLE cars(position INTEGER PRIMARY KEY,payload BLOB NOT NULL)')
     cars=[]

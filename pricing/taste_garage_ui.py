@@ -37,6 +37,19 @@ def render(root):
     page_intro('Your personal car discovery studio','Drive Chemistry','Rate a few cars. Find your type. Skip the awkward small talk.','💚')
     st.caption('Free to explore · No registration · Real historical cars, not live inventory')
     journey_steps([('Pick your pace','A quick taste test or a deeper dive.'),('Trust your gut','Four reactions. No car expertise required.'),('Explore your ten','See the cars, the prices and why they made it.')])
+    st.session_state.setdefault('taste_model_choice','HDBSCAN')
+    def choose_model(name):
+        st.session_state['taste_model_choice']=name
+        st.session_state['taste_kmeans_enabled']=name=='KMeans'
+        st.session_state['taste_hdbscan_enabled']=name=='HDBSCAN'
+    model_columns=st.columns(2)
+    with model_columns[0]:
+        st.checkbox('KMeans · quick taste groups',value=st.session_state['taste_model_choice']=='KMeans',key='taste_kmeans_enabled',on_change=choose_model,args=('KMeans',))
+    with model_columns[1]:
+        st.checkbox('HDBSCAN · density taste groups',value=st.session_state['taste_model_choice']=='HDBSCAN',key='taste_hdbscan_enabled',on_change=choose_model,args=('HDBSCAN',))
+    st.caption('Choose one model at a time. Both models are retained; each keeps its own ratings.')
+    if st.session_state['taste_model_choice']=='KMeans' and not (root/'data/taste-garage-kmeans/release-check.json').exists():
+        st.info('KMeans is still being prepared. HDBSCAN remains available through its checkbox.');return
     tests={'Speed Date · 10 cars, no small talk':10,'The Long Drive · 25 cars, zero commitment':25}
     st.session_state.setdefault('taste_test_mode',next(iter(tests)))
     def choose_test(value):st.session_state['taste_test_mode']=value
@@ -56,7 +69,7 @@ def render(root):
     if not path.exists():
         st.info('The original-data car profiles are being built offline. This panel will unlock when the tested catalogue is installed; no substitute or invented prototypes are shown.');return
     variant=folder/'profiles-25.json'
-    revision=(path.stat().st_mtime_ns,path.stat().st_size,variant.stat().st_mtime_ns if variant.exists() else 0)
+    revision=(str(folder),path.stat().st_mtime_ns,path.stat().st_size,variant.stat().st_mtime_ns if variant.exists() else 0)
     try:loaded=catalogue(str(root),revision,profile_count)
     except (ValueError,OSError,KeyError):st.warning('The recommendation catalogue could not be verified. Your pricing and comparison tools remain available.');return
     if loaded is None:
@@ -97,7 +110,7 @@ def render(root):
                     st.write({k:car.get(k) for k in ['condition','drive','cylinders','title_status','paint_color','state']})
     ratings=[st.session_state.get(k) for k in rating_keys]
     complete=all(r in LABELS for r in ratings)
-    signature=json.dumps(['direct-ratings-cosine-descending-v8',version,ratings,str(when)])
+    signature=json.dumps(['direct-ratings-cosine-descending-v8',st.session_state['taste_model_choice'],version,ratings,str(when)])
     different=len(set(ratings))>1 if complete else False
     has_like=any(r in (3,4) for r in ratings)
     if complete and not has_like:st.info('Choose I like it or Love it for at least one car so there is something to recommend.')
