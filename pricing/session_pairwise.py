@@ -10,7 +10,8 @@ from sklearn.preprocessing import StandardScaler
 NUMERIC=('year','odometer','price')
 CATEGORICAL=('manufacturer','model','type','fuel','transmission','drive','condition','title_status','cylinders')
 def catalogue_features(folder):
-    numeric=[]; categories=[]
+    numeric=[]; categories=[]; blocks=[]
+    hasher=FeatureHasher(n_features=512,input_type='dict',alternate_sign=False)
     with sqlite3.connect(str(folder/'cars.sqlite')) as db:
         for expected,(position,payload) in enumerate(db.execute('SELECT position,payload FROM cars ORDER BY position')):
             if position!=expected: raise ValueError('Catalogue position mismatch')
@@ -22,8 +23,11 @@ def catalogue_features(folder):
                 row.append(value if np.isfinite(value) else np.nan)
             numeric.append(row)
             categories.append({field+'='+str(car[field]).strip().lower():1. for field in CATEGORICAL if car.get(field) is not None and str(car[field]).strip().lower() not in ('','unknown','nan','none')})
+            if len(categories)>=2048:
+                blocks.append(hasher.transform(categories).astype(np.float32));categories=[]
+    if categories:blocks.append(hasher.transform(categories).astype(np.float32))
     # Stateless hashing avoids fitting a catalogue vocabulary or huge one-hot matrix.
-    return np.asarray(numeric,dtype=np.float32), FeatureHasher(n_features=512,input_type='dict',alternate_sign=False).transform(categories).astype(np.float32)
+    return np.asarray(numeric,dtype=np.float32), sparse.vstack(blocks,format='csr')
 
 def design(semantic,numeric,categories,train):
     med=np.array([np.median(c[np.isfinite(c)]) if np.isfinite(c).any() else 0 for c in numeric[train].T])
