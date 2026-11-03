@@ -1,8 +1,8 @@
-"""Direct weighted-Manhattan HDBSCAN on retained one-hot/numeric cars; no UMAP."""
+"""Direct weighted-Euclidean HDBSCAN on retained one-hot/numeric cars; no UMAP."""
 import argparse,gc,gzip,hashlib,json,re,sqlite3,time,zlib
 from pathlib import Path
 import joblib,numpy as np,pandas as pd
-from pricing.mixed_garage import KIND,AS_OF,mixed_distance,fit_geometry,comparison_vectors,normalized,direct_hdbscan_geometry
+from pricing.mixed_garage import KIND,AS_OF,mixed_distance,fit_geometry,comparison_vectors,normalized,euclidean_hdbscan_geometry
 from pricing.taste_ranking import CATEGORICAL,encode,faiss_cosine
 from scripts.build_long_taste import select_long_model
 
@@ -27,16 +27,16 @@ def build(root,prepared,jobs=4):
     ids=json.loads((prepared/'row-ids.json').read_text());assert frame.row_id.tolist()==ids and len(ids)==selection['retained_rows']
     geometry,state,prices_nov=fit_geometry(frame,TimeTransport(root))
     comparison=geometry
-    clustered,cluster_weights=direct_hdbscan_geometry(geometry,state)
-    state['metric']='0.5 * mean categorical mismatch + 0.5 * mean bounded numeric absolute difference'
+    clustered,cluster_weights=euclidean_hdbscan_geometry(geometry,state)
+    state['metric']='sqrt(0.5 * mean categorical mismatch + 0.5 * mean bounded numeric squared difference)'
     print('Direct feature dimensions:',clustered.shape,flush=True)
     print(json.dumps({'stage':'mixed geometry','rows':len(frame),'dimensions':geometry.shape[1],
                       'common_category_threshold':state['categorical']['threshold'],'price_date':AS_OF.isoformat(),
                       'price_scenarios_available':int(np.isfinite(prices_nov).sum()),'metric':state['metric']}),flush=True)
     offline=root/'training-cache/lemon-mixed';offline.mkdir(parents=True,exist_ok=True)
-    print('Fitting direct HDBSCAN with weighted Manhattan; no UMAP or NxN distance matrix',flush=True)
+    print('Fitting direct HDBSCAN with weighted Euclidean; no UMAP or NxN distance matrix',flush=True)
     density=hdbscan.HDBSCAN(min_cluster_size=500,min_samples=10,cluster_selection_method='leaf',
-                           metric='manhattan',algorithm='boruvka_kdtree',approx_min_span_tree=False,
+                           metric='euclidean',algorithm='boruvka_kdtree',approx_min_span_tree=False,
                            prediction_data=True,core_dist_n_jobs=jobs).fit(clustered)
     print('Fitted direct HDBSCAN',flush=True)
     folder=root/'data/taste-garage-mixed';folder.mkdir(parents=True,exist_ok=True)
@@ -75,11 +75,11 @@ def build(root,prepared,jobs=4):
         if k==10:arrays.update(codes=codes,numeric=numeric,prices=frame.price.to_numpy(dtype=np.float32),source_days=days,asking_prices_nov2026=prices_nov.astype(np.float32))
         file=folder/('features.npz' if k==10 else 'features-25.npz');np.savez_compressed(file,**arrays)
         meta=dict(version=5,encoding_kind=KIND,profile_count=k,rows=len(frame),source_sha256=selection['source_sha256'],
-                  selection=selection,category_count_threshold=state['categorical']['threshold'],neighbour_metric='cosine-unscaled',density_method='direct-weighted-manhattan',
+                  selection=selection,category_count_threshold=state['categorical']['threshold'],neighbour_metric='cosine-unscaled',density_method='direct-weighted-euclidean',
                   levels=levels,profiles=[dict(position=int(p),cluster=i,name=f'Profile {i+1}',cars=int((model.labels_==i).sum()),prototype=cars[p]) for i,p in enumerate(positions)],
                   density_clusters=k,noise_fraction=float(np.mean(model.labels_<0)),
-                  clustering={'metric':'manhattan','categorical_weight':.5,'numeric_weight':.5,'dimensions':geometry.shape[1],'umap':False,'min_samples':10},
-                  method_description='Only Lemon Squeezer retained training cars. Direct HDBSCAN uses weighted Manhattan distance: half categorical mismatch rate and half mean range-scaled numeric absolute difference. No UMAP or dimensionality reduction. Features include common one-hot categories, mileage/year, log November-2026 ask prices and stored text-price scalar. FAISS cosine compares original encoded vectors without extra column scaling; direct user ratings shape the shortlist. Display order is descending cosine distance.',
+                  clustering={'metric':'euclidean','categorical_weight':.5,'numeric_weight':.5,'dimensions':geometry.shape[1],'umap':False,'min_samples':10},
+                  method_description='Only Lemon Squeezer retained training cars. Direct HDBSCAN uses weighted Euclidean distance: the square root of half categorical mismatch rate plus half mean range-scaled numeric squared difference. No UMAP or dimensionality reduction. Features include common one-hot categories, mileage/year, log November-2026 ask prices and stored text-price scalar. FAISS cosine compares original encoded vectors without extra column scaling; direct user ratings shape the shortlist. Display order is descending cosine distance.',
                   representatives='Exact sum-cosine-distance medoid among actual non-noise members, in original encoded feature vectors',
                   sha256={file.name:digest(file)})
         if k==10:meta['sha256'].update({name:digest(folder/name) for name in ['cars.sqlite','row-ids.json.gz','selection.json']})

@@ -20,3 +20,12 @@ def test_direct_hdbscan_supports_soft_memberships_and_new_points():
     m=hdbscan.all_points_membership_vectors(model)
     assert m.shape==(80,2) and np.isfinite(m).all()
     new=membership_vector(model,x[:2]);assert new.shape==(2,2) and np.isfinite(new).all()
+
+
+def test_balanced_euclidean_distance():
+    from pricing.mixed_garage import euclidean_hdbscan_geometry
+    state={'onehot_dimensions':4,'numeric_dimensions':2,'categorical':{'categories':{'a':[],'b':[]}}}
+    x=np.array([[1,0,1,0,0.,0.],[0,1,1,0,1.,0.],[0,1,0,1,1.,1.]])
+    y,w=euclidean_hdbscan_geometry(x,state)
+    assert np.isclose(np.linalg.norm(y[0]-y[1]),np.sqrt(.5))
+    assert np.isclose(np.linalg.norm(y[0]-y[2]),1)

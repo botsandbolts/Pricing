@@ -18,9 +18,9 @@ def verify(root):
     with patch('pricing.taste_ranking.active_catalogue_folder',return_value=folder), patch('pricing.taste_garage_ui.active_catalogue_folder',return_value=folder):
       for k in [10,25]:
         meta,a=load(root,k);assert meta['version']==5 and meta['encoding_kind']==KIND and meta['rows']==110832
-        assert meta['density_method']=='direct-weighted-manhattan' and 'embedding' not in meta
+        assert meta['density_method']=='direct-weighted-euclidean' and 'embedding' not in meta
         bundle=joblib.load(root/f'training-cache/lemon-mixed/frozen-profiles-{k}.joblib')
-        assert bundle['encoder']['kind']==KIND and 'umap' not in bundle and bundle['hdbscan'].metric=='manhattan'
+        assert bundle['encoder']['kind']==KIND and 'umap' not in bundle and bundle['hdbscan'].metric=='euclidean'
         assert 'log_mileage' in bundle['encoder']['numeric_names'] and 'log_predicted_text_price' in bundle['encoder']['numeric_names']
         prototypes=[p['position'] for p in meta['profiles']]
         # Probe contains the stored scalar price, not MiniLM text or embedding inputs.

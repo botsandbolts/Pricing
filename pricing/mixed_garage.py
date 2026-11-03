@@ -93,3 +93,14 @@ def direct_hdbscan_geometry(matrix,state):
     if x.ndim!=2 or x.shape[1]!=len(weights) or not np.isfinite(x).all():
         raise ValueError('Finite aligned mixed feature matrix required')
     return np.ascontiguousarray(x*weights),weights
+
+
+def euclidean_hdbscan_geometry(matrix,state):
+    """Balance nominal mismatches and numeric squared differences before Euclidean HDBSCAN."""
+    c=int(state['onehot_dimensions']);n=int(state['numeric_dimensions'])
+    fields=len(state['categorical']['categories'])
+    if fields<1 or n<1:raise ValueError('Both feature blocks are required')
+    weights=np.r_[np.full(c,np.sqrt(.25/fields)),np.full(n,np.sqrt(.5/n))]
+    x=np.asarray(matrix,dtype=np.float64)
+    if x.ndim!=2 or x.shape[1]!=len(weights) or not np.isfinite(x).all():raise ValueError('Invalid mixed features')
+    return np.ascontiguousarray(x*weights),weights
