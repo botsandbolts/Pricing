@@ -51,6 +51,13 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
           tar -xf "$RUNNER_TEMP/bart.tar"
-          git add models/bart-cpu reports/bart-int8
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('requirements.txt')
+          marker='# BART INT8 CPU release: restart the worker to release the previous PyTorch summary runtime.'
+          text=p.read_text()
+          if marker not in text:p.write_text(text+'\n'+marker+'\n')
+          PY
+          git add models/bart-cpu reports/bart-int8 requirements.txt
           git commit -m "Install verified INT8 BART for automatic price and interval overview"
           git push origin HEAD:main
