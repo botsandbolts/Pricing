@@ -1,0 +1,35 @@
+name: Audit dealer shared support
+on:
+  push:
+    paths:
+      - 'scripts/audit_dealer_overlap.py'
+      - '.github/workflows/dealer-overlap.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas
+      - run: python -m scripts.audit_dealer_overlap
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dealer-overlap-audit
+          path: reports/dealer-overlap
+      - run: |
+          cp reports/dealer-overlap/audit.json "$RUNNER_TEMP/audit.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          git reset --hard origin/main
+          mkdir -p reports/dealer-overlap
+          cp "$RUNNER_TEMP/audit.json" reports/dealer-overlap/audit.json
+          git add reports/dealer-overlap
+          git diff --cached --quiet && exit 0
+          git commit -m "Publish inventory overlap and merchant threshold audit"
+          git push origin HEAD:main

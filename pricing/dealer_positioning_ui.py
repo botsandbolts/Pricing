@@ -27,7 +27,16 @@ def render(root):
     st.write('Percentages describe residual asking-price associations after the research model’s vehicle controls. Zero is the overall residual baseline, not a fair-price threshold. A positive value does not establish overpricing; a negative value does not establish a bargain.')
     st.error('Interval limitation: these conditional 95% Bayesian intervals omit dealer-identification errors, baseline-model uncertainty and prior uncertainty. They are not calibrated total-uncertainty intervals. Branches may be conflated, and one business may appear under several names.')
     table=table.rename(columns={'inferred_dealer':'Inferred name · unverified','distinct_vehicle_groups':'Distinct vehicle groups','adjusted_association_pct':'Residual association (%)','conditional_95_low_pct':'Conditional 95% lower (%)','conditional_95_high_pct':'Conditional 95% upper (%)'})
-    st.dataframe(table.round(2),hide_index=True,width='stretch')
+    st.warning('Named residual percentages are withheld pending shared-support checks, within-support refitting, and temporal sensitivity evaluation.')
+    audit_path=Path(root)/'reports/dealer-overlap/audit.json'
+    if audit_path.exists():
+        audit=json.loads(audit_path.read_text())
+        st.subheader('Shared inventory support')
+        st.dataframe(pd.DataFrame(audit['primary']['summary']),hide_index=True,width='stretch')
+        st.write(audit['primary']['time_holdout'])
+        with st.expander('Inventory distributions and alternative merchant-match threshold'):
+            st.json(audit)
+    else:st.info('The overlap audit is running. Existing residual percentages are not evidence of comparable inventory.')
     with st.expander('Business explanation'):
         st.write('The model first estimates historical asking prices without dealer names. We examine the errors by inferred name group, borrowing evidence from the overall population so small samples are pulled toward zero. Absence of a dealer name means unknown seller type, not a private seller. Historical cohort selection and missing service information limit interpretation.')
     with st.expander('Technical method, assumptions and limitations'):
