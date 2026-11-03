@@ -1,0 +1,10 @@
+{
+  "rows": 110832,
+  "base_oof_mae_usd": 3153.6701230057915,
+  "dealer_features_oof_mae_usd": 3137.9072452958912,
+  "eligible_named_groups": 22,
+  "status": "Research only; no production promotion",
+  "limitations": "Historical asking prices, not sales. No date control where catalogue dates are unavailable. Hashed vehicle controls; omitted condition/service variables; catalogue selected by prior cleaning. NER names unverified. Absence of extraction is unknown, not private. Conditional normal intervals exclude identity, base-model and prior uncertainty; not calibrated coverage. Not a dealer quality or overcharging ranking.",
+  "services": "Differences may reflect warranties, preparation, inspection, delivery, financing or other services that vary considerably between merchants.",
+  "method": "Five-fold grouped vehicle CV; XGBoost log squared error research baseline, dealer-free residuals. Separate confidence-weighted dealer feature comparator. Fixed normal random-effect prior SD .10; residual SD plug-in; minimum 50 distinct vehicle groups and single NER candidate score >=.90. No causal claims. Not the existing AFT/hierarchy refit."
+}

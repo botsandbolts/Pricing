@@ -19,20 +19,27 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _bart_interval_release_v9():
+def _bart_interval_release_dealer_v10():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
     for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.bart_summary'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_bart_interval_release_v9()
+_bart_interval_release_dealer_v10()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
+if _workspace=='🏪 Merchant lens':
+    from pricing.dealer_positioning_ui import render as render_dealer_positioning
+    render_dealer_positioning(Path(__file__).parent)
+    from pricing.ga_events import render_events
+    render_events()
+    footer()
+    st.stop()
 if _workspace=='🚦 Pick your garage':
     @st.cache_resource(show_spinner=False)
     def _taste_garage_svd_v32():
