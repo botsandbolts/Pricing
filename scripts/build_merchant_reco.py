@@ -66,7 +66,7 @@ def main():
     meta={'version':1,'rows':len(frame),'merchant_candidates':len(keys),'linked_rows':len(linked),'identity_status':'inferred, not verified legal identity','semantic_model':'all-MiniLM-L6-v2 + 96D projection','source_sha256':hashlib.file_digest(open(source,'rb'),'sha256').hexdigest(),'seeds':seeds,'types':types,'prices':prices.tolist(),'mechanical_checks':checks,'relevance_evaluation':'No independent user relevance benchmark; merchant identity precision not yet manually audited'}
     (folder/'manifest.json').write_text(json.dumps(meta))
     from streamlit.testing.v1 import AppTest
-    app=AppTest.from_string("from pathlib import Path\\nfrom pricing.merchant_discovery_ui import render\\nrender(Path('.'))".replace('\\\\n','\\n')).run(timeout=120)
+    app=AppTest.from_string(chr(10).join(["from pathlib import Path","from pricing.merchant_discovery_ui import render","render(Path('.'))"])).run(timeout=120)
     assert not app.exception
     for control in app.get('pills'):
         if str(control.key).startswith('merchant_rating_'):control.set_value(4 if str(control.key).endswith('_'+str(seeds[0])) else 1)
