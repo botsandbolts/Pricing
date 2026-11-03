@@ -4,6 +4,8 @@ on:
     paths:
       - 'pricing/dealer_positioning_ui.py'
       - 'pricing/same_car_markets.py'
+      - 'scripts/check_dealer_positioning_ui.py'
+      - 'reports/dealer-overlap/completed-analysis.json'
       - 'tests/test_same_car_markets.py'
       - 'reports/dealer-positioning/**'
       - '.github/workflows/dealer-panel.yml'
@@ -15,6 +17,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            tests
+            reports
+          sparse-checkout-cone-mode: true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
