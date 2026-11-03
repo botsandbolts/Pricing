@@ -1,0 +1,35 @@
+name: Publish verified MiniLM discovery default
+on:
+  push:
+    paths: ['scripts/install_minilm_release.py', '.github/workflows/publish-minilm.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: merchant-minilm-cpu-alternative
+          run-id: 41590272294
+          github-token: ${{ github.token }}
+          path: training-cache/minilm-artifact
+      - run: pip install 'numpy<3' scipy pandas scikit-learn streamlit pytest requests
+      - run: python -m scripts.install_minilm_release
+      - run: python -m pytest tests/test_merchant_reco.py -q
+      - run: python -m scripts.check_doc2vec_ui
+      - name: Publish tested assets and UI together
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add data/merchant-discovery-minilm pricing/merchant_discovery_ui.py pricing/taste_garage_ui.py app.py MERCHANT_DISCOVERY.md scripts/check_doc2vec_ui.py
+          git commit -m "Activate tested MiniLM discovery in place of Doc2Vec"
+          git pull --rebase origin main
+          git push origin HEAD:main
