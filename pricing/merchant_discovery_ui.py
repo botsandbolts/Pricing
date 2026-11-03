@@ -3,7 +3,7 @@ import hashlib,json,sqlite3,zlib
 from pathlib import Path
 import numpy as np,streamlit as st
 from pricing.merchant_reco import recommend,seed_cars
-from pricing.session_pairwise import catalogue_features,recommend_pairwise
+from pricing.svd_discovery import recommend_svd
 from pricing.dealer_signals import load_dealers,dealer_caption
 @st.cache_resource(max_entries=1,show_spinner=False)
 def assets(folder,revision):
@@ -11,7 +11,7 @@ def assets(folder,revision):
     meta=json.loads((p/'manifest.json').read_text())
     semantic=np.load(p/'semantic.npy',mmap_mode='r')
     meta['seeds']=seed_cars(semantic,count=25)
-    return meta,semantic,np.load(p/'inventory.npy',mmap_mode='r'),catalogue_features(p)
+    return meta,np.load(p/'shrunk-svd.npy',mmap_mode='r')
 def cars(folder,positions):
     with sqlite3.connect(str(folder/'cars.sqlite')) as conn:
         return [json.loads(zlib.decompress(conn.execute('SELECT payload FROM cars WHERE position=?',(int(i),)).fetchone()[0])) for i in positions]
@@ -24,7 +24,10 @@ def render(root):
     if not path.exists():st.info('The merchant and semantic catalogue is being built offline. Existing profile models remain available.');return
     dealer_path=folder/'dealers.json'
     dealer_revision=dealer_path.stat().st_mtime_ns if dealer_path.exists() else 0
-    meta,semantic,inventory,(numeric,categories)=assets(str(folder),(path.stat().st_mtime_ns,dealer_revision))
+    svd_path=folder/'shrunk-svd.npy'
+    if not svd_path.exists():
+        st.info('The updated SVD catalogue is being prepared. Please return shortly.');return
+    meta,vectors=assets(str(folder),(path.stat().st_mtime_ns,dealer_revision,svd_path.stat().st_mtime_ns))
     dealers=load_dealers(folder)
     st.caption('MiniLM + vehicle details + confidence-weighted GLiNER dealer candidates.' if dealers else 'MiniLM + vehicle details active. Dealer signals are awaiting publication.')
     version=hashlib.sha256(path.read_bytes()).hexdigest()[:12]
@@ -48,16 +51,11 @@ def render(root):
         budget=st.number_input('Maximum historical asking price · USD',min_value=1000.,max_value=150000.,value=30000.,step=1000.)
     ready=all(i in memory for i in seeds) and any(v>=3 for v in memory.values())
     if st.button('Find my 25 cars',type='primary',disabled=not ready,key='merchant_find'):
-        with st.spinner('Learning your preferences and checking unseen rated cars…'):
-            st.session_state['merchant_pairwise_dealers_v2_'+version]=recommend_pairwise(semantic,numeric,categories,memory,meta['types'],np.array(meta['prices']),budget=budget,k=25) if len(set(memory.values()))>1 else {**recommend(semantic,inventory,memory,meta['types'],np.array(meta['prices']),budget=budget,k=25),'method':'Description similarity fallback: all ratings are equal'}
-    result=st.session_state.get('merchant_pairwise_dealers_v2_'+version)
+        with st.spinner('Finding similar cars and balancing the shortlist…'):
+            st.session_state['merchant_svd_v3_'+version]=recommend_svd(vectors,memory,meta['types'],np.array(meta['prices']),budget=budget,k=25)
+    result=st.session_state.get('merchant_svd_v3_'+version)
     if result:
         st.caption(result['method'])
-        evidence=result.get('validation',{})
-        if evidence.get('accuracy') is not None:
-            st.metric('Held-out preference agreement',f"{evidence['accuracy']:.0%}")
-            st.caption(f"Five-fold whole-car validation · {evidence['pairs']} unseen unequal-rating pairs. Small session diagnostic; 50% is chance agreement.")
-        else:st.caption('Not enough unequal held-out ratings for a validation score.')
         st.markdown(f"## Your shortlist · {len(result['positions'])} cars · strongest preference first")
         for n,(pos,car) in enumerate(zip(result['positions'],cars(folder,result['positions']))):
             with st.container(border=True):
@@ -76,14 +74,11 @@ def render(root):
                 if extra is not None:memory[pos]=extra
         st.caption('Rate results, then press Find my 25 cars again to refine. Previously rated cars are excluded.')
     with st.expander('How it works · business explanation'):
-        st.write('Your ratings create comparisons: four should rank above two. Strongly regularized learning combines description meaning with historical price, year, mileage and vehicle details. Four means love it; one means no thanks. Ratings stay in this session. Original GLiNER dealer candidates now supply an additional soft identity signal when installed. Dealer identity does not guarantee a car suits you.')
-        st.write('Highest preference first, previously rated cars excluded, at most two of an exact make/model. Budget refers to historical advertised prices, not current valuations.')
+        st.write('Your likes and dislikes score nearby cars in a shared vehicle space. We keep MiniLM description meaning, vehicle details and confidence-weighted dealer candidates. Weak SVD components are shrunk strongly. No preference regression is fitted from your 25 ratings.')
+        st.write('A similarity penalty reduces repetitive shortlists, then selected cars appear strongest preference first. Previously rated cars are excluded; at most two of an exact make/model. An interest in one classic can still suggest classics; variety is encouraged, not guaranteed.')
     with st.expander('Technical method and evidence limits'):
-        st.write('L2 pairwise logistic regression, fixed C=1, no intercept, gap-weighted mirrored unequal-rating pairs with fixed total weight. Inputs: 96D MiniLM, year, log mileage/price, missingness indicators and 512 hashed categorical features (collisions possible). Numeric medians and scaling use training cars only, clipped at five standard deviations.')
-        st.write('Five-fold shuffled whole-car validation: training pairs use training cars only; validation pairs use held-out cars only. No hyperparameter selection on these results. Ties earn half credit. Final fitting uses all session ratings. This small prototype-panel diagnostic is not an independent relevance benchmark. Equal ratings use a labelled semantic fallback.')
-
-    with st.expander('Dealer signals · business and technical details'):
-        st.write('Dealers often specialize in particular cars. Your reactions can teach the ranker an association with a named dealer alongside vehicle features. Names are original network guesses, not verified sellers; mistaken names can affect results. Unidentified adverts stay eligible.')
-        st.write('Exact case/whitespace-normalized sparse one-hot identities; maximum score across repeated mentions; final feature value 0.5 × NER score / sqrt(number of candidates). No blacklist, fuzzy resolution, website requirement, hard dealer filter or dealer-only ordering. All weights are learned with the same L2 penalty and whole-car cross-validation. Dealer scores are not calibrated probabilities. This learns dealer associations from session ratings, not a verified merchant inventory graph.')
+        st.write('64D truncated SVD fitted offline to catalogue vehicle/dealer features. Ridge-style spectral weights s²/(s² + 0.25 × largest singular value²). Numeric median/scaling uses the catalogue without ratings; dealer sparse one-hot confidence signals remain included. Normalize the shrunk block; combine equally with normalized MiniLM; normalize the combined vector.')
+        st.write('Score = strongest rating-weighted liked cosine similarity minus 0.35 × strongest disliked similarity. Select 25 greedily from the top 2000 with a 0.25 cosine redundancy penalty. This is unsupervised transductive catalogue retrieval, not the former supervised cross-validation model. No validated relevance improvement is claimed.')
+    with st.expander('Dealer names and evidence'):
+        st.write('Original GLiNER candidates are inferred and unverified. Repeated mentions use maximum confidence; ambiguous candidates share feature weight. No manual blocklist or fuzzy name merges. Historical adverts are not live dealer inventory.')
         if dealers:st.json(dealers['report'])
-

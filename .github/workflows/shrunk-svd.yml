@@ -1,0 +1,42 @@
+name: Publish shrunk SVD discovery
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/build_shrunk_svd.py'
+      - '.github/workflows/shrunk-svd.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'numpy<3' scipy scikit-learn streamlit pytest requests
+      - run: python -m scripts.build_shrunk_svd
+      - run: python -m pytest tests/test_svd_discovery.py -q
+      - run: python -m scripts.check_doc2vec_ui
+      - name: Publish tested SVD catalogue
+        run: |
+          cp data/merchant-discovery-minilm/shrunk-svd.npy "$RUNNER_TEMP/svd.npy"
+          cp data/merchant-discovery-minilm/shrunk-svd.json "$RUNNER_TEMP/svd.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$RUNNER_TEMP/svd.npy" data/merchant-discovery-minilm/shrunk-svd.npy
+            cp "$RUNNER_TEMP/svd.json" data/merchant-discovery-minilm/shrunk-svd.json
+            git add data/merchant-discovery-minilm/shrunk-svd.*
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Publish tested shrunk SVD MiniLM vehicle and dealer retrieval"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
