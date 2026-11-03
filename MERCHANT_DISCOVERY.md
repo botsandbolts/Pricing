@@ -2,7 +2,7 @@
 A separate Drive Chemistry engine, enabled only after its verified catalogue is installed.
 
 ## Business behavior
-Five diverse real cars collect direct reactions. Every liked car supplies a separate semantic interest; dislikes subtract graded evidence instead of vetoing entire clusters. The shortlist is scored highest-first. Rating results and resubmitting refines the session, excluding already-rated cars. A historical asking-price limit is optional and explicit. Price displays are historical and not current valuations.
+Twenty-five diverse real cars collect direct reactions. The taste test shows progress out of 25 and preserves existing ratings. The final shortlist contains ten cars. Every liked car supplies a separate semantic interest; dislikes subtract graded evidence instead of vetoing entire clusters. The shortlist is scored highest-first. Rating results and resubmitting refines the session, excluding already-rated cars. A historical asking-price limit is optional and explicit. Price displays are historical and not current valuations.
 
 Merchant groups require an automotive organization mention and one corroborating non-platform domain. Conflicting organization identities remain unresolved. These are inferred candidates, not verified businesses; legal identity, ownership and merchant expertise have not been audited.
 
@@ -18,7 +18,7 @@ Merchant inventory counts use shared make, body and make/model columns. Row norm
 The initial hybrid uses 80% semantic and 20% inventory association where available, with a graded dislike penalty of 35%. Unavailable inventory falls back to semantics. Each liked vehicle contributes separately using its rating strength. Up to 500 candidates enter diversity selection, with at most two exact make/model types. No same-make restriction applies. These weights are declared baselines, not learned optima.
 
 ## Verification and limits
-Unit checks cover platform/lender ambiguity, preference ordering, explicit budget filtering and exclusion of rated cars. Each initial seed is tested as the sole like against four dislikes and must return ten distinct cars. A real Streamlit five-rating/submit/shortlist-render test gates publication.
+Unit checks cover platform/lender ambiguity, preference ordering, explicit budget filtering and exclusion of rated cars. Each initial seed is tested as the sole like against four dislikes and must return ten distinct cars. The current Streamlit UI check submits all 25 ratings and verifies that ten distinct recommendations render without exceptions. Functional checks do not establish recommendation relevance.
 
 There is no independently labelled relevance benchmark or manually audited entity precision yet. Existing canonical preparation has already deduplicated text/VINs, so this first catalogue is not an untouched original-advert archive. Dealer co-stock affinity is not evidence that a shopper wants the same cars. No fraud, transaction or conversion claims are made.
 
