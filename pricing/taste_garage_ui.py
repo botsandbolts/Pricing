@@ -34,6 +34,11 @@ def render(root):
     from pricing.studio_design import page_intro,journey_steps
     from pricing.garage_art import car_art
     root=Path(root)
+    if (root/'data/merchant-discovery/manifest.json').exists():
+        engine=st.radio('Discovery approach',['Merchant + Meaning','Existing profile experiments'],horizontal=True,key='drive_discovery_engine')
+        if engine=='Merchant + Meaning':
+            from pricing.merchant_discovery_ui import render as render_merchant_discovery
+            render_merchant_discovery(root);return
     page_intro('Your personal car discovery studio','Drive Chemistry','Rate a few cars. Find your type. Skip the awkward small talk.','💚')
     st.caption('Free to explore · No registration · Real historical cars, not live inventory')
     journey_steps([('Pick your pace','A quick taste test or a deeper dive.'),('Trust your gut','Four reactions. No car expertise required.'),('Explore your ten','See the cars, the prices and why they made it.')])
