@@ -43,8 +43,8 @@ def render(root):
     ready=all(i in memory for i in seeds) and any(v>=3 for v in memory.values())
     if st.button('Find cars for my taste',type='primary',disabled=not ready,key='merchant_find'):
         with st.spinner('Matching vehicle descriptions…'):
-            st.session_state['merchant_result_'+version]=recommend(semantic,inventory,memory,meta['types'],np.array(meta['prices']),budget=budget)
-    result=st.session_state.get('merchant_result_'+version)
+            st.session_state['merchant_result_25_'+version]=recommend(semantic,inventory,memory,meta['types'],np.array(meta['prices']),budget=budget)
+    result=st.session_state.get('merchant_result_25_'+version)
     if result:
         st.markdown('## Your shortlist · strongest preference first')
         for n,(pos,car) in enumerate(zip(result['positions'],cars(folder,result['positions']))):
