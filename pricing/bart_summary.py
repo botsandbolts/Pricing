@@ -176,8 +176,9 @@ def render_story(fields,description,valuation=None):
         with st.spinner('Preparing your car overview…'):
             with _SUMMARY_WORKER:
                 try:
-                    from pricing.hierarchy_sparse_live import _load
-                    _load.clear()
+                    import sys
+                    pricing_live=sys.modules.get('pricing.hierarchy_sparse_live')
+                    if pricing_live is not None:pricing_live._load.clear()
                     import gc
                     gc.collect()
                     engine=get_engine(MODEL_ID,REVISION)
