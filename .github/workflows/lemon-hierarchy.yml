@@ -1,0 +1,89 @@
+name: Lemon retained-75 fivefold Bayesian refit
+on:
+  workflow_dispatch:
+  push:
+    paths: ['scripts/train_lemon_hierarchy.py','scripts/fit_lemon_hierarchy.py','scripts/package_lemon_hierarchy.py','pricing/lemon_folds.py','.github/workflows/lemon-hierarchy.yml']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: lemon-hierarchy-refit
+  cancel-in-progress: false
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        market: [ask, bid]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'numpy<3' 'pandas>=2.1,<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm requests joblib streamlit==1.66.1 onnxruntime 'tokenizers>=0.23.1,<0.24' pytest
+      - run: python -m pytest tests/test_lemon_folds.py tests/test_robust_hierarchy.py -q
+      - run: python -m compileall -q scripts/train_lemon_hierarchy.py scripts/fit_lemon_hierarchy.py scripts/package_lemon_hierarchy.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: matched-bayesian-redesign-data
+          run-id: 41230037897
+          github-token: ${{ github.token }}
+          path: evidence
+      - uses: actions/cache/restore@v4
+        if: matrix.market == 'ask'
+        id: embeddings
+        with:
+          path: training-cache/minilm-embeddings
+          key: minilm-128-1110a243-746bc9f8-clean-v2
+      - name: Recover frozen embeddings if cache expired
+        if: matrix.market == 'ask' && steps.embeddings.outputs.cache-hit != 'true'
+        run: |
+          python -m scripts.restore_kaggle_pricing
+          python -m scripts.prepare_minilm_embeddings --cohort training-cache/full-cohort.jsonl --output training-cache/minilm-embeddings
+      - name: Five OOF folds on the retained 75 percent only
+        run: python -u -m scripts.train_lemon_hierarchy --market ${{ matrix.market }}
+      - name: Fit Gaussian, t and mixture hierarchies to the new residuals
+        run: python -u -m scripts.fit_lemon_hierarchy --market ${{ matrix.market }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lemon-hierarchy-${{ matrix.market }}
+          path: training-cache/lemon-hierarchy/
+          retention-days: 90
+  deploy:
+    needs: train
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'numpy<3' 'pandas>=2.1,<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm requests joblib streamlit==1.66.1 onnxruntime 'tokenizers>=0.23.1,<0.24'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: lemon-hierarchy-*
+          merge-multiple: true
+          path: training-cache/lemon-hierarchy
+      - run: python -m scripts.package_lemon_hierarchy
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lemon-hierarchy-serving
+          path: models/xgboost-hierarchy/
+      - name: Publish matching models and posterior together
+        run: |
+          tar -cf "$RUNNER_TEMP/lemon.tar" models/xgboost-hierarchy
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          git reset --hard origin/main
+          rm -rf models/xgboost-hierarchy
+          tar -xf "$RUNNER_TEMP/lemon.tar"
+          git add -A models/xgboost-hierarchy
+          git commit -m "Install Lemon retained-75 fivefold XGBoost and matching robust Bayesian hierarchy"
+          git push origin HEAD:main
