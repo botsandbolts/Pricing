@@ -19,14 +19,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _bart_interval_release_same_car_v11():
+def _bart_interval_release_completed_merchants_v12():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
     for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.bart_summary','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_bart_interval_release_same_car_v11()
+_bart_interval_release_completed_merchants_v12()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
