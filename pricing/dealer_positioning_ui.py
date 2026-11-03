@@ -23,14 +23,14 @@ def render(root):
     c3.metric('MAE reduction',f'{100*(a-b)/a:.2f}%')
     st.caption('Same grouped five-fold historical comparison. A modest association, not proof of a reliable improvement. This research uses log squared-error XGBoost, not the installed AFT/Bayesian pricing pipeline. Live estimates are unchanged.')
     final_path=Path(root)/'reports/dealer-overlap/completed-analysis.json'
-    if final_path.exists():
+    if final_path.exists() and json.loads(final_path.read_text()).get('version',1)>=2:
         final=json.loads(final_path.read_text())
         st.subheader('Comparable inventory · completed model-level analysis')
         st.write(final['status'])
         st.warning('Model-level comparison only: trim differences remain uncontrolled. Canonical date provenance is unverified. The estimates are associations, not causal effects.')
         summary=[]
         for run in final['runs']:
-            for key,label in [('primary','Single candidate ≥0.90'),('alternative_top_candidate','Alternative top candidate ≥0.80')]:
+            for key,label in [('primary','Single candidate · no score cutoff'),('alternative_top_candidate','Top candidate · no score cutoff')]:
                 r=run[key]
                 summary.append({'Imputation seed':run['seed'],'Merchant assignment':label,'Input adverts':r['input_adverts'],
                   'Shared-support adverts':r['shared_adverts'],'Retained (%)':round(100*r['retained_fraction'],2),
@@ -54,7 +54,7 @@ def render(root):
                     st.json(run[key].get('time_holdout',{'status':'Insufficient support'}))
         st.download_button('Download completed research report',json.dumps(final,indent=2),'merchant-model-level-research.json','application/json')
     else:
-        st.info('The end-to-end model-level analysis is running offline. No unsupported named percentages are displayed.')
+        st.info('The full analysis is rerunning without downstream NER score cutoffs. Earlier thresholded results are withheld until the replacement report is ready.')
     with st.expander('Original exploratory experiment · provenance'):
         st.json(report)
     st.caption('Research provenance: GitHub Actions run 41680537032. No claim about a named business should be drawn without checking the source adverts, identity and services.')

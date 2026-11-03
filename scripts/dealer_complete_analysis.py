@@ -102,8 +102,8 @@ def main():
         x=hstack((csr_matrix(completed.astype(np.float32)),cats),format='csr')
         frame=base.copy();frame['year_band']=np.floor(completed[frame.index,0]/5)
         frame['mileage_band']=np.floor(np.expm1(np.clip(completed[frame.index,1],0,np.log1p(2000000)))/25000)
-        primary=evaluate(frame[(frame.candidates==1)&(frame.score>=.9)],x,y,groups,seed)
-        alternate=evaluate(frame[frame.score>=.8],x,y,groups,seed)
+        primary=evaluate(frame[frame.candidates==1],x,y,groups,seed)
+        alternate=evaluate(frame,x,y,groups,seed)
         all_runs.append({'seed':seed,'primary':primary,'alternative_top_candidate':alternate})
         print('Completed imputation, supported refit and temporal checks',seed,flush=True)
     # Rubin-style combination of conditional normal dealer posteriors.
@@ -121,8 +121,8 @@ def main():
           'conditional_low_pct':100*np.expm1(mean-1.96*np.sqrt(variance)) if stable else None,
           'conditional_high_pct':100*np.expm1(mean+1.96*np.sqrt(variance)) if stable else None,
           'status':'Sensitivity-stable exploratory model-level association; trim uncontrolled, date provenance unverified' if stable else 'Suppressed: temporal or merchant-match sensitivity insufficient/inconsistent'})
-    report={'version':1,'status':'Completed analysis; unsupported results explicitly suppressed','rows':len(cars),'imputations':5,'runs':all_runs,'table':tables,
-      'limitations':'Historical asking associations, not causal dealer effects or evidence of misconduct. Trim is not controlled. Canonical dates are used, not confirmed original listing timestamps. Multiple imputation is approximate under MAR and Gaussian residual assumptions. Conditional normal random-effect prior SD .10. Vehicle-cluster bootstrap conditions on fitted OOF baselines; intervals omit full baseline-refit and identity uncertainty and are not coverage validated. Rubin-style combination is approximate. Alternative identity sensitivity uses the highest candidate at score >=.80, including multi-candidate adverts; not verified entity resolution. Positive and negative values can reflect inventory, services, condition, warranties and other unmeasured differences. Temporal estimates use later shared-support adverts with vehicle-group purging; overlap itself is transductive and this is not a prospective external benchmark.',
+    report={'version':2,'score_filter':'No downstream NER confidence cutoff; original extraction threshold .50','status':'Completed analysis; unsupported results explicitly suppressed','rows':len(cars),'imputations':5,'runs':all_runs,'table':tables,
+      'limitations':'Historical asking associations, not causal dealer effects or evidence of misconduct. Trim is not controlled. Canonical dates are used, not confirmed original listing timestamps. Multiple imputation is approximate under MAR and Gaussian residual assumptions. Conditional normal random-effect prior SD .10. Vehicle-cluster bootstrap conditions on fitted OOF baselines; intervals omit full baseline-refit and identity uncertainty and are not coverage validated. Rubin-style combination is approximate. No downstream NER score threshold. Primary uses single-candidate adverts; alternative uses the highest candidate from every advert with any retained candidate. The original extraction threshold was .50; no claims about unretained predictions. This is not verified entity resolution. Positive and negative values can reflect inventory, services, condition, warranties and other unmeasured differences. Temporal estimates use later shared-support adverts with vehicle-group purging; overlap itself is transductive and this is not a prospective external benchmark.',
       'support_definition':'Exact make/model/state/month; five-year and 25000-mile bands; >=3 adverts per merchant and >=2 merchants per joint cell; >=50 unique vehicle groups per merchant in each imputation.',
       'method':'Five numeric imputations; five-fold vehicle-group XGBoost baseline refits within shared support; cell-centered log residual contrasts; 300 vehicle bootstrap samples per dealer; partial pooling; chronological held-out sensitivity; alternate top-candidate identity assignment; trim-level comparison remains unsupported.'}
     out=Path('reports/dealer-overlap');out.mkdir(parents=True,exist_ok=True)
