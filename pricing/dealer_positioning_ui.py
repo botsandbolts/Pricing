@@ -4,7 +4,11 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 def render(root):
-    st.header('Merchant lens · historical asking-price positioning')
+    st.header('Merchant lens · cars, markets and historical evidence')
+    from pricing.same_car_markets import render as render_same_car
+    render_same_car(root)
+    st.divider()
+    st.subheader('Historical merchant-name associations · separate research')
     st.write('Different cars. Different services. A cautious look at the remaining associations.')
     folder=Path(root)/'reports/dealer-positioning'
     if not (folder/'method-and-metrics.json').exists():

@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - 'pricing/dealer_positioning_ui.py'
+      - 'pricing/same_car_markets.py'
+      - 'tests/test_same_car_markets.py'
       - 'reports/dealer-positioning/**'
       - '.github/workflows/dealer-panel.yml'
   workflow_dispatch:
@@ -16,5 +18,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install streamlit pandas requests
+      - run: pip install streamlit pandas requests pytest
+      - run: python -m pytest tests/test_same_car_markets.py -q
       - run: python -m scripts.check_dealer_positioning_ui
+      - run: python -m scripts.check_same_car_markets
