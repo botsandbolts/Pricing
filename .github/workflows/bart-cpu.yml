@@ -21,8 +21,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - run: pip install 'transformers==5.21.0' 'optimum-onnx[onnxruntime]' 'numpy<3' 'pandas<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm streamlit==1.66.1 requests joblib tokenizers pytest plotly
+      - run: pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install 'transformers>=4.57,<4.58' 'optimum-onnx[onnxruntime]==0.1.0' 'numpy<3' 'pandas<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm streamlit==1.66.1 requests joblib tokenizers pytest plotly
       - run: python -m pytest tests/test_bart_summary.py tests/test_auto_bart_ui.py tests/test_bart_intervals.py -q
       - run: python -u -m scripts.export_bart_cpu
       - run: python -u -m scripts.check_bart_cpu
