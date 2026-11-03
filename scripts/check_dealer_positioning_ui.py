@@ -5,5 +5,5 @@ assert len(app.metric)==3
 assert app.warning and app.error and app.info
 for frame in app.dataframe:
     assert 'Residual association (%)' not in frame.value.columns
-assert any('withheld' in w.value for w in app.warning)
+assert any('No unsupported named percentages' in x.value or 'end-to-end' in x.value for x in app.info) or any('completed model-level analysis' in x.value for x in app.subheader)
 print('Merchant lens loads; unsupported named residual percentages withheld.')

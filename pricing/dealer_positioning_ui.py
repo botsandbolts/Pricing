@@ -22,47 +22,39 @@ def render(root):
     c2.metric('With dealer signals · MAE',f'$'+format(b,',.0f'))
     c3.metric('MAE reduction',f'{100*(a-b)/a:.2f}%')
     st.caption('Same grouped five-fold historical comparison. A modest association, not proof of a reliable improvement. This research uses log squared-error XGBoost, not the installed AFT/Bayesian pricing pipeline. Live estimates are unchanged.')
-    table=pd.read_csv(folder/'historical-associations.csv').sort_values('inferred_dealer',key=lambda s:s.str.casefold())
-    st.subheader('Inferred name groups · alphabetical, not ranked')
-    st.write('Percentages describe residual asking-price associations after the research model’s vehicle controls. Zero is the overall residual baseline, not a fair-price threshold. A positive value does not establish overpricing; a negative value does not establish a bargain.')
-    st.error('Interval limitation: these conditional 95% Bayesian intervals omit dealer-identification errors, baseline-model uncertainty and prior uncertainty. They are not calibrated total-uncertainty intervals. Branches may be conflated, and one business may appear under several names.')
-    table=table.rename(columns={'inferred_dealer':'Inferred name · unverified','distinct_vehicle_groups':'Distinct vehicle groups','adjusted_association_pct':'Residual association (%)','conditional_95_low_pct':'Conditional 95% lower (%)','conditional_95_high_pct':'Conditional 95% upper (%)'})
-    st.warning('Named residual percentages are withheld pending shared-support checks, within-support refitting, and temporal sensitivity evaluation.')
-    audit_path=Path(root)/'reports/dealer-overlap/audit.json'
-    if audit_path.exists():
-        audit=json.loads(audit_path.read_text())
-        st.subheader('Shared inventory support')
-        st.dataframe(pd.DataFrame(audit['primary']['summary']),hide_index=True,width='stretch')
-        st.write(audit['primary']['time_holdout'])
-        missing=audit['primary']['missing_counts']
-        st.write('Missing comparison fields among confidence-selected adverts:')
-        st.dataframe(pd.DataFrame([{'Field':k,'Missing adverts':v} for k,v in missing.items()]),hide_index=True,width='stretch')
-        if not any(x['shared_support_adverts']>=50 for x in audit['primary']['summary']):
-            st.warning('No merchant has sufficient joint support for this specification. Dealer percentage estimates and within-support refitting are blocked. More complete trim and listing-date evidence is required.')
-
-        with st.expander('Inventory distributions and merchant-match sensitivity'):
-            dealers=sorted({x['dealer'] for x in audit['primary']['summary']})
-            dealer=st.selectbox('Inspect one inferred merchant',dealers,key='overlap_dealer')
-            field=st.selectbox('Inventory dimension',list(audit['primary']['distributions']),key='overlap_field')
-            distribution=[x for x in audit['primary']['distributions'][field] if x['dealer']==dealer]
-            st.dataframe(pd.DataFrame(distribution),hide_index=True,width='stretch')
-            sensitivity=[x for x in audit['match_sensitivity']['summary'] if x['dealer']==dealer]
-            st.write('Sensitivity: allow single merchant candidates with NER score 0.80 rather than 0.90. This does not validate identity or resolve name variants.')
-            st.dataframe(pd.DataFrame(sensitivity),hide_index=True,width='stretch')
-
-    else:st.info('The overlap audit is running. Existing residual percentages are not evidence of comparable inventory.')
-    with st.expander('Business explanation'):
-        st.write('The model first estimates historical asking prices without dealer names. We examine the errors by inferred name group, borrowing evidence from the overall population so small samples are pulled toward zero. Absence of a dealer name means unknown seller type, not a private seller. Historical cohort selection and missing service information limit interpretation.')
-    with st.expander('Technical method, assumptions and limitations'):
+    final_path=Path(root)/'reports/dealer-overlap/completed-analysis.json'
+    if final_path.exists():
+        final=json.loads(final_path.read_text())
+        st.subheader('Comparable inventory · completed model-level analysis')
+        st.write(final['status'])
+        st.warning('Model-level comparison only: trim differences remain uncontrolled. Canonical date provenance is unverified. The estimates are associations, not causal effects.')
+        summary=[]
+        for run in final['runs']:
+            for key,label in [('primary','Single candidate ≥0.90'),('alternative_top_candidate','Alternative top candidate ≥0.80')]:
+                r=run[key]
+                summary.append({'Imputation seed':run['seed'],'Merchant assignment':label,'Input adverts':r['input_adverts'],
+                  'Shared-support adverts':r['shared_adverts'],'Retained (%)':round(100*r['retained_fraction'],2),
+                  'Vehicle-only OOF MAE (USD)':r.get('oof_mae_usd'),'Status':r['status'],
+                  'Time holdout':r.get('time_holdout',{}).get('status','Not estimable')})
+        st.dataframe(pd.DataFrame(summary),hide_index=True,width='stretch')
+        st.subheader('Merchant evidence · alphabetical, not a leaderboard')
+        if final['table']:
+            st.dataframe(pd.DataFrame(final['table']).round(2),hide_index=True,width='stretch')
+            st.caption('Blank associations are deliberately suppressed: support or sensitivity checks did not qualify. Conditional ranges are not total uncertainty or validated coverage.')
+        else:
+            st.info('No merchant qualified across all five imputations. No merchant percentage comparison can be supported under this specification.')
+        with st.expander('Methods, temporal checks and uncertainty limitations'):
+            st.write(final['method'])
+            st.write(final['support_definition'])
+            st.warning(final['limitations'])
+            for run in final['runs']:
+                st.write('Imputation seed '+str(run['seed']))
+                for key in ['primary','alternative_top_candidate']:
+                    st.write(key)
+                    st.json(run[key].get('time_holdout',{'status':'Insufficient support'}))
+        st.download_button('Download completed research report',json.dumps(final,indent=2),'merchant-model-level-research.json','application/json')
+    else:
+        st.info('The end-to-end model-level analysis is running offline. No unsupported named percentages are displayed.')
+    with st.expander('Original exploratory experiment · provenance'):
         st.json(report)
-        st.write('Names require a single candidate, extraction score at least 0.90 and at least 50 distinct vehicle groups. Scores are not calibrated identity probabilities. Vehicle grouping is VIN-based where available, otherwise make/model/year/mileage. The fixed normal prior has SD 0.10 log units; a plug-in residual SD supplies the normal likelihood. This first version is not a robust Student-t hierarchy or a causal dealer effect estimate. State controls are included; listing-date controls and private-seller comparisons are not established.')
-    mi_path=Path(root)/'reports/dealer-overlap/imputation.json'
-    with st.expander('XGBoost multiple-imputation sensitivity · model-level support'):
-        if mi_path.exists():
-            mi=json.loads(mi_path.read_text())
-            st.write(mi['method'])
-            st.warning(mi['limitations'])
-            st.dataframe(pd.DataFrame(mi['summary']),hide_index=True,width='stretch')
-            st.caption(mi['estimate_status'])
-        else:st.info('Five stochastic XGBoost imputations are being evaluated offline. No imputed dealer effects are shown.')
     st.caption('Research provenance: GitHub Actions run 41680537032. No claim about a named business should be drawn without checking the source adverts, identity and services.')
