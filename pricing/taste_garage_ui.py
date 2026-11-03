@@ -65,6 +65,7 @@ def render(root):
     mixed=meta.get('encoding_kind')=='lemon-textprice-onehot-umap-v1'
     onehot=mixed or meta.get('encoding_kind')=='common-onehot-v1'
     st.caption(f"Your discovery catalogue · {meta['rows']:,} historical cars · {profile_count} cars to react to")
+    if meta.get('density_method')=='minibatch-kmeans-soft':st.caption('Quick Match · temporary soft MiniBatchKMeans profiles. Distance affinities, not density memberships.')
     mode=st.radio('Shortlist price date',['Today','Choose a date'],horizontal=True,key='taste_date_mode')
     when=today() if mode=='Today' else st.date_input('Show price scenarios for',value=today(),key='taste_date')
     st.markdown(f'## 1 · Meet your {profile_count} taste-test cars')
@@ -183,7 +184,9 @@ def render(root):
         st.write('The profile catalogue is learned offline. Your reactions train only the session ranking; no account, demographic profile or other users’ ratings are used.')
     with st.expander('Under the hood · features, clustering and ranking'):
         st.markdown('**Vehicle representation.** Common categorical values become one-hot indicators; rare or unseen values share an Other bucket. Numeric features include year, log mileage, missing-value indicators, log November-2026 asking-price scenarios and a stored cross-fitted MiniLM description-price estimate. Raw text embeddings are not used for this catalogue.')
-        if meta.get('density_method')=='direct-weighted-euclidean':
+        if meta.get('density_method')=='minibatch-kmeans-soft':
+            st.write('MiniBatchKMeans fits 10 or 25 groups in balanced Euclidean vehicle features. The real assigned car nearest each center is shown. Soft affinities use the three nearest centers: exp(-distance² / (2 × temperature²)), normalized across those centers. Temperature is fitted offline from the median nearest/second-nearest squared-distance gap. These are similarity weights, not probabilities or HDBSCAN density memberships.')
+        elif meta.get('density_method')=='direct-weighted-euclidean':
             st.write(meta['method_description'])
         elif meta.get('density_method')=='direct-weighted-manhattan':
             st.markdown('**Soft profiles.** HDBSCAN is fitted directly to these features using weighted Manhattan distance: 50% categorical mismatch rate plus 50% mean absolute numeric difference after frozen robust range scaling. One-hot swaps are counted once per field. There is no dimensionality reduction in this release. The 10- and 25-profile tests use cuts of the fitted density hierarchy.')
