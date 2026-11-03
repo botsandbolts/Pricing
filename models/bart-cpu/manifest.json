@@ -1,0 +1,16 @@
+{
+  "model": "ainize/bart-base-cnn",
+  "revision": "b90bc9a7c93de6449a8c531ed5f957d84649b99a",
+  "dtype": "dynamic-int8",
+  "runtime": "ONNX Runtime CPU; no PyTorch import",
+  "graphs": {
+    "encoder_model.onnx": {
+      "sha256": "da9902329e1f12409212ba2eed5c8ad6fb7e967dbab832c4928b7e29aa6523d0",
+      "bytes": 82260956
+    },
+    "decoder_model_merged.onnx": {
+      "sha256": "57f0b417e94ce8a6adc7bfa137e1128eea88a88fb3f52a119000c18e74c42f0a",
+      "bytes": 135870733
+    }
+  }
+}

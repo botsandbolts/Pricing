@@ -1,0 +1,23 @@
+{
+  "peak_rss_mib": 717.42578125,
+  "results": [
+    {
+      "summary": {
+        "summary": "The car is a Toyota Corolla with over a million miles .\nThe price is not known .\nCurrent-date accuracy and range coverage have not been independently validated .",
+        "chunks": 1,
+        "status": "ready"
+      },
+      "seconds": 1.1365263040000002
+    },
+    {
+      "summary": {
+        "summary": "The car is 2015 Toyota Corolla with 95,000 miles .\nThe seller states, without independent verification: New brakes. Air conditioning does not work.\nThe asking price before negotiation is approximately 6,198 US dollars .",
+        "chunks": 1,
+        "status": "ready"
+      },
+      "seconds": 0.5975049339999998
+    }
+  ],
+  "receipt": "Valuation date: 2026-11-03. Seller asking estimate: USD 6,198. Its 90% historical prediction range, transported to the valuation date, is USD 4,363 to USD 8,804. Wholesale auction estimate: USD 3,750. Its 90% historical prediction range, transported to the valuation date, is USD 2,643 to USD 5,320. These ranges were calibrated on historical outcomes; their coverage at the selected valuation date is not validated.",
+  "limits": "Two real-case CPU smoke checks, not semantic quality or concurrent-user coverage."
+}

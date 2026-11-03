@@ -1,0 +1,91 @@
+{
+  "bytes": 135870733,
+  "sha256": "57f0b417e94ce8a6adc7bfa137e1128eea88a88fb3f52a119000c18e74c42f0a",
+  "parts": [
+    {
+      "file": "decoder_model_merged.onnx.000.part",
+      "bytes": 8388608,
+      "sha256": "63d25f769f6ad323e050348f77707d81b38ddc36698a6f0e790383e9ed263d73"
+    },
+    {
+      "file": "decoder_model_merged.onnx.001.part",
+      "bytes": 8388608,
+      "sha256": "8e91a6a61859c134a5ca916493e7bd49df3a1f83cfa61d4ff251f870c69ec29e"
+    },
+    {
+      "file": "decoder_model_merged.onnx.002.part",
+      "bytes": 8388608,
+      "sha256": "6a8091e0d9a55836fe4e5553b2183e8bc8fb60f9b5068b49b9f1592f963f73ab"
+    },
+    {
+      "file": "decoder_model_merged.onnx.003.part",
+      "bytes": 8388608,
+      "sha256": "8d30a22d21ac3f1688ef884a68ae6844bf7aecd521feb485615ad097e0db93e4"
+    },
+    {
+      "file": "decoder_model_merged.onnx.004.part",
+      "bytes": 8388608,
+      "sha256": "3befc2af3dbfa83ebc303cb36bc0c1bd1693b0333fec3f29ab161e3412ba4266"
+    },
+    {
+      "file": "decoder_model_merged.onnx.005.part",
+      "bytes": 8388608,
+      "sha256": "245f990187b8d63db57ee089867f7d0c87b4625b91097ca1ef76f3ade52b0af9"
+    },
+    {
+      "file": "decoder_model_merged.onnx.006.part",
+      "bytes": 8388608,
+      "sha256": "dc31cb319fbd0d79194b027a29a53091952e0782a43665d9cf49c9703af63611"
+    },
+    {
+      "file": "decoder_model_merged.onnx.007.part",
+      "bytes": 8388608,
+      "sha256": "27089a22b542a2a33303a9a324f1f701646ab7ddb03f53629f646ddbfa910172"
+    },
+    {
+      "file": "decoder_model_merged.onnx.008.part",
+      "bytes": 8388608,
+      "sha256": "3c254c09f2e1106b3a5839e2c210fb8ba01ba47e8d17bfd44ce1213e1827e499"
+    },
+    {
+      "file": "decoder_model_merged.onnx.009.part",
+      "bytes": 8388608,
+      "sha256": "788f60673f11a53b7bf69a2594a4c0254f8b6497849c2b78985a541ff229a8d4"
+    },
+    {
+      "file": "decoder_model_merged.onnx.010.part",
+      "bytes": 8388608,
+      "sha256": "cee011af92d676e1571fc2824e63fe2219ef0f831baf4e293beb9780d8dc0bba"
+    },
+    {
+      "file": "decoder_model_merged.onnx.011.part",
+      "bytes": 8388608,
+      "sha256": "89d1d8757143beecb82f931c048f2badbfc556304db901b21c941228e634c851"
+    },
+    {
+      "file": "decoder_model_merged.onnx.012.part",
+      "bytes": 8388608,
+      "sha256": "ac1739c718ebfd816788fbf779ec449e18ec5fd230b73b81d955cb4109c46fa9"
+    },
+    {
+      "file": "decoder_model_merged.onnx.013.part",
+      "bytes": 8388608,
+      "sha256": "a49907029b9f6164f438012cbb1a91e54dfb7bc2652e0f562a29ef5692f5cb50"
+    },
+    {
+      "file": "decoder_model_merged.onnx.014.part",
+      "bytes": 8388608,
+      "sha256": "1491638c77054c6cb0dbc8f2beebe0adbdd2182c88e77e778b04c572838356f4"
+    },
+    {
+      "file": "decoder_model_merged.onnx.015.part",
+      "bytes": 8388608,
+      "sha256": "e86c6e2aea2b309d2e96e8a18eb9b33d2ae1ba82164ef7a94b8344af83b201e2"
+    },
+    {
+      "file": "decoder_model_merged.onnx.016.part",
+      "bytes": 1653005,
+      "sha256": "a5a398122866010a9210e7e186e762236914996c4169482fb7d734c33d889f88"
+    }
+  ]
+}

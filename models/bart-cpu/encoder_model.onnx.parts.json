@@ -1,0 +1,56 @@
+{
+  "bytes": 82260956,
+  "sha256": "da9902329e1f12409212ba2eed5c8ad6fb7e967dbab832c4928b7e29aa6523d0",
+  "parts": [
+    {
+      "file": "encoder_model.onnx.000.part",
+      "bytes": 8388608,
+      "sha256": "751bd373381071ee891ee84e5955a8f5054206a8b8ae071c1732909b584acde6"
+    },
+    {
+      "file": "encoder_model.onnx.001.part",
+      "bytes": 8388608,
+      "sha256": "da85ac97474c88c62a59cec92d3cacc0f3570d3000d4f962c399f1f8de25b11d"
+    },
+    {
+      "file": "encoder_model.onnx.002.part",
+      "bytes": 8388608,
+      "sha256": "b63599d7394db078f41377acfbd4a44eb5487c44685af10d10a1f4a53e4e1cd4"
+    },
+    {
+      "file": "encoder_model.onnx.003.part",
+      "bytes": 8388608,
+      "sha256": "b6cc8d4016b36364d120a2a7311a3e8d49e0a5414b496b2d229d9557583cbd6e"
+    },
+    {
+      "file": "encoder_model.onnx.004.part",
+      "bytes": 8388608,
+      "sha256": "e0529ddd9eebb21d969c63730afbecef6db127812f005400bfa2f29f74004e8e"
+    },
+    {
+      "file": "encoder_model.onnx.005.part",
+      "bytes": 8388608,
+      "sha256": "beed7f74f7ed5a80a8e3083e9c4a47114131d027bb40214bc2fd26c610fd45b4"
+    },
+    {
+      "file": "encoder_model.onnx.006.part",
+      "bytes": 8388608,
+      "sha256": "03c769cd99a8120ef2d3b1d6ef734e47ae339528437e75e755d2cd37466fd877"
+    },
+    {
+      "file": "encoder_model.onnx.007.part",
+      "bytes": 8388608,
+      "sha256": "99972dfafbf7e6c7b430d28c3eab4d6f0df02622534d097033bde1fafcc34ee1"
+    },
+    {
+      "file": "encoder_model.onnx.008.part",
+      "bytes": 8388608,
+      "sha256": "4492daad33e150748cdc37cae07e80555ce06b59054310b251bb087cea00355e"
+    },
+    {
+      "file": "encoder_model.onnx.009.part",
+      "bytes": 6763484,
+      "sha256": "b5849624db2c14c59a15beba78ad113370c64a8733d78575f830f8799e433b9c"
+    }
+  ]
+}

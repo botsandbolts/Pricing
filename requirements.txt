@@ -118,3 +118,5 @@ faiss-cpu>=1.8,<2
 # Illustrated garage facelift: restart imported presentation modules.
 
 # Accessibility release: cold restart for reading preferences and semantic UI updates.
+
+# BART INT8 CPU release: restart the worker to release the previous PyTorch summary runtime.
