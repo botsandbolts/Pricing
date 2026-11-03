@@ -23,12 +23,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - run: pip install 'numpy<3' 'pandas<3' scipy scikit-learn spacy sentence-transformers streamlit pytest faiss-cpu requests
+      - run: pip install 'numpy<3' 'pandas<3' scipy scikit-learn spacy streamlit pytest faiss-cpu requests
       - run: python -m spacy download en_core_web_sm
       - run: python -m pytest tests/test_merchant_reco.py -q
       - run: python -m scripts.prepare_lemon_reco --from-catalogue
       - run: python -m scripts.restore_reco_text
+      - uses: actions/cache@v4
+        with:
+          path: training-cache/merchant-ner-cache.json
+          key: merchant-ner-domain-context-v1
       - run: python -u -m scripts.build_merchant_reco
       - uses: actions/upload-artifact@v4
         with:
