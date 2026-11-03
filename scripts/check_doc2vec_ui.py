@@ -1,13 +1,13 @@
-"""Verify the installed Doc2Vec route and a real five-rating shortlist."""
+"""Verify the installed MiniLM route and a real five-rating shortlist."""
 from pathlib import Path
 from streamlit.testing.v1 import AppTest
 import json,hashlib
 root=Path('.')
-meta=json.loads((root/'data/merchant-discovery-doc2vec/manifest.json').read_text())
-assert 'Doc2Vec' in meta['semantic_model']
+meta=json.loads((root/'data/merchant-discovery-minilm/manifest.json').read_text())
+assert 'MiniLM' in meta['semantic_model']
 source=(root/'pricing/merchant_discovery_ui.py').read_text()
 assert 'merchant_text_method' not in source
-assert "data/merchant-discovery-doc2vec" in source
+assert "data/merchant-discovery-minilm" in source
 app=AppTest.from_string("from pathlib import Path\nfrom pricing.merchant_discovery_ui import render\nrender(Path('.'))",default_timeout=120).run()
 assert not app.exception,app.exception
 assert not any(x.label=='Text matching model' for x in app.radio)
@@ -17,7 +17,7 @@ app.run()
 app.button(key='merchant_find').click().run(timeout=120)
 assert not app.exception,app.exception
 assert any('Your shortlist' in x.value for x in app.markdown)
-version=hashlib.sha256((root/'data/merchant-discovery-doc2vec/manifest.json').read_bytes()).hexdigest()[:12]
+version=hashlib.sha256((root/'data/merchant-discovery-minilm/manifest.json').read_bytes()).hexdigest()[:12]
 result=app.session_state['merchant_result_'+version]
 assert len(set(result['positions']))==10
-print('Doc2Vec default: five ratings submitted; ten distinct results rendered; no TF-IDF selector.')
+print('MiniLM default: five ratings submitted; ten distinct results rendered; no TF-IDF selector.')

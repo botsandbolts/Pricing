@@ -14,11 +14,12 @@ def cars(folder,positions):
 def render(root):
     from pricing.studio_design import page_intro
     from pricing.garage_art import car_art
-    folder=Path(root)/'data/merchant-discovery-doc2vec'
+    folder=Path(root)/'data/merchant-discovery-minilm'
     path=folder/'manifest.json'
-    page_intro('Drive Chemistry · Merchant + Meaning','Find your type, not a cluster','Five honest reactions. Related inventories. Cars that speak your language.','💚')
+    page_intro('Drive Chemistry · Merchant + Meaning','Find your type, not a cluster','Five honest reactions. Cars that speak your language.','💚')
     if not path.exists():st.info('The merchant and semantic catalogue is being built offline. Existing profile models remain available.');return
     meta,semantic,inventory=assets(str(folder),path.stat().st_mtime_ns)
+    st.caption('MiniLM description matching is active. Merchant-name extraction is being processed separately; merchant inventory links are not active in this release.')
     version=hashlib.sha256(path.read_bytes()).hexdigest()[:12]
     st.caption(meta.get('semantic_model','Text similarity'))
     st.caption(f"{meta['rows']:,} historical cars · no account · merchant identities are inferred, not verified")
@@ -39,7 +40,7 @@ def render(root):
         budget=st.number_input('Maximum historical asking price · USD',min_value=1000.,max_value=150000.,value=30000.,step=1000.)
     ready=all(i in memory for i in seeds) and any(v>=3 for v in memory.values())
     if st.button('Find cars for my taste',type='primary',disabled=not ready,key='merchant_find'):
-        with st.spinner('Matching meaning and inventory relationships…'):
+        with st.spinner('Matching vehicle descriptions…'):
             st.session_state['merchant_result_'+version]=recommend(semantic,inventory,memory,meta['types'],np.array(meta['prices']),budget=budget)
     result=st.session_state.get('merchant_result_'+version)
     if result:
@@ -62,5 +63,5 @@ def render(root):
         st.write('Each liked car contributes an individual similarity signal. Dislikes apply a soft penalty, not an all-or-nothing veto. Results are sorted by descending hybrid preference score, with at most two cars of an exact make/model type.')
         st.write(f"Merchant candidate groups: {meta['merchant_candidates']:,}. Linked adverts: {meta['linked_rows']:,}. These identities have not been independently verified.")
     with st.expander('Technical method and evidence limits'):
-        st.write('Full-catalogue vehicle descriptions are encoded offline with Doc2Vec DBOW: 96 dimensions and 15 epochs. Stored document vectors are normalized; no text model is loaded in the app. Inventory counts are normalized per merchant and weighted by inverse merchant frequency, then mapped through a low-rank SVD baseline. Ranking weights are 80% semantic and 20% inventory where available; dislike similarity subtracts up to 35%. No permanent user profile or learned satisfaction probability is asserted.')
+        st.write('Full-catalogue vehicle descriptions are encoded offline with all-MiniLM-L6-v2, projected to 96 dimensions with truncated SVD. Stored document vectors are normalized; no text model is loaded in the app. Inventory counts are normalized per merchant and weighted by inverse merchant frequency, then mapped through a low-rank SVD baseline. Ranking weights are 80% semantic and 20% inventory where available; dislike similarity subtracts up to 35%. No permanent user profile or learned satisfaction probability is asserted.')
         st.write('Five single-like/multiple-dislike mechanical tests must produce distinct results before publication. There is no independent relevance benchmark or audited merchant-identity precision yet. Additional session ratings are used for refinement, not reported as an unbiased test.')
