@@ -83,7 +83,10 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
     model.fit(x,target,qid=np.zeros(len(x),dtype=np.uint32),verbose=False)
     scores=model.predict(x)
     score_range=float(np.ptp(scores))
-    if score_range<1e-7:raise ValueError('Ranking model learned no ordering; a constant shortlist is not released')
+    # Flat tree predictions can occur with sparse user reactions. The existing
+    # continuous preference evidence remains a valid tie-breaker, not an invented score.
+    flat_ranker=score_range<1e-7
+    if flat_ranker and not soft:raise ValueError('Ranking model learned no ordering')
     eligible=evidence['eligible'].copy() if soft else np.ones(len(scores),dtype=bool)
     eligible[np.asarray(prototype_positions,dtype=int)]=False
     candidates=np.flatnonzero(eligible)
@@ -101,7 +104,7 @@ def train_rank(codes,numeric,levels,clusters,ratings,prototype_positions,validat
                 item['liked_profile']=int(good[np.argmin(d[good])]);item['liked_distance']=float(d[item['liked_profile']])
                 if len(bad):item['disliked_profile']=int(bad[np.argmin(d[bad])]);item['disliked_distance']=float(d[item['disliked_profile']])
             explanations.append(item)
-    return {'eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus medoid-distance evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
+    return {'flat_ranker':bool(flat_ranker),'ordering_basis':'continuous preference evidence for tied tree scores' if flat_ranker else 'learned ranking with preference tie-breaks','eligible_cars':int(len(candidates)),'evidence':explanations,'preference_method':'signed memberships plus medoid-distance evidence; nearest-dislike exclusion' if medoid_distances is not None else 'signed memberships','score_range':score_range,'positions':order.tolist(),'scores':scores[order].tolist(),'ndcg10':metric,'random_ndcg10':random_metric,'training_rows':int(train.sum()),'validation_rows':int(valid.sum()),'final_rows':len(x),'rounds':iterations,'direct_judgments':k,'soft_memberships':soft,'gain':'linear soft relevance; 0.1 ordinal training resolution' if soft else 'exponential ordinal','feature_importance':dict(zip(x.columns,model.feature_importances_.astype(float).tolist()))}
 
 def descending_liked_distance(positions,distances,ratings):
     """Present the selected shortlist by descending distance to its nearest liked car."""

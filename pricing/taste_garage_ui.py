@@ -1,5 +1,5 @@
 """Ten honest judgments, a vehicle-only ranker, and a readable shortlist."""
-import hashlib,json
+import hashlib,json,logging
 from datetime import date
 from pathlib import Path
 import numpy as np
@@ -111,8 +111,19 @@ def render(root):
                 result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays.get('memberships'),medoid_distances=arrays.get('medoid_rmse',arrays.get('medoid_cosine',arrays.get('medoid_l2'))))
                 result['adjusted_price_support']=int(np.isfinite(adjusted).sum())
             st.session_state['taste_result']=(signature,result)
-        except (ValueError,OSError,RuntimeError,MemoryError) as exc:
-            st.warning('The ranking could not complete. Your ratings are retained; no shortlist is invented.');return
+        except ValueError as exc:
+            logging.getLogger(__name__).exception('Drive Chemistry invalid ranking state')
+            if str(exc).startswith('No cars pass'):
+                st.info('No cars pass this combination of likes and dislikes. Your ratings are saved. Try liking another taste-test car or use The Long Drive for finer choices.')
+            else:
+                st.error('The shortlist could not be calculated. Your ratings are saved.')
+                with st.expander('Error details for support'):st.text(str(exc))
+            return
+        except (OSError,RuntimeError,MemoryError) as exc:
+            logging.getLogger(__name__).exception('Drive Chemistry ranking execution failed')
+            st.error('The shortlist ran into a processing problem. Your ratings are saved; please retry.')
+            with st.expander('Error details for support'):st.text(type(exc).__name__)
+            return
     saved=st.session_state.get('taste_result')
     if saved and saved[0]!=signature:st.info('Your reactions changed. Press Find my ten cars to refresh the shortlist.');saved=None
     if saved:
