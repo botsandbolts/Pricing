@@ -14,7 +14,7 @@ def audit(threshold):
         def number(key):
             try:return float(car[key])
             except (ValueError,KeyError,TypeError):return float('nan')
-        date=car.get('posting_date') or car.get('listing_date')
+        date=car.get('posting_date') or car.get('listing_date') or car.get('date') or car.get('observed_date')
         # Never mistake a model year or synthetic reference date for a listing date.
         dt=pd.to_datetime(date,errors='coerce',utc=True) if date else pd.NaT
         records.append({'dealer':candidates[0]['name'].casefold(),'model':str(car.get('manufacturer',''))+'|'+str(car.get('model','')),
@@ -37,6 +37,7 @@ def audit(threshold):
     return {'threshold':threshold,'summary':summary,'distributions':distributions,
        'missing_counts':{c:int(d[c].isna().sum()) for c in required},
        'catalogue_fields':sorted(cars[0]),
+       'date_provenance':'posting_date/listing_date, else canonical date/observed_date; source provenance must be checked before interpreting as original listing date',
        'total_selected_adverts':len(d),'total_shared_support_adverts':int(complete.shared.sum()),
        'refit_status':'Blocked: no eligible shared-support merchant groups' if not any(s['shared_support_adverts']>=50 for s in summary) else 'Requires within-support refit before estimates can be displayed',
        'time_holdout':'Not evaluated: requires date-ordered baseline retraining; random-fold residuals cannot substitute',
