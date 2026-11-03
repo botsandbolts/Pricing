@@ -1,4 +1,37 @@
 {
+  "dataset": "retained Lemon Squeeze training; unchanged original validation/test",
+  "fold_audit": [
+    {
+      "fold": 0,
+      "training_rows": 230518,
+      "heldout_rows": 57630,
+      "training_fraction": 0.7999986118244791
+    },
+    {
+      "fold": 1,
+      "training_rows": 230518,
+      "heldout_rows": 57630,
+      "training_fraction": 0.7999986118244791
+    },
+    {
+      "fold": 2,
+      "training_rows": 230518,
+      "heldout_rows": 57630,
+      "training_fraction": 0.7999986118244791
+    },
+    {
+      "fold": 3,
+      "training_rows": 230519,
+      "heldout_rows": 57629,
+      "training_fraction": 0.8000020822632814
+    },
+    {
+      "fold": 4,
+      "training_rows": 230519,
+      "heldout_rows": 57629,
+      "training_fraction": 0.8000020822632814
+    }
+  ],
   "market": "bid",
   "objective": "reg:quantileerror",
   "folds": 5,
@@ -19,11 +52,11 @@
       "n": 82380,
       "mae_usd": 1875.983533155698,
       "rmse_log": 0.3028613798685469,
-      "median_signed_log_residual": -0.011523032787317738
+      "median_signed_log_residual": -0.01152303278731785
     },
     "test": {
       "n": 83603,
-      "mae_usd": 1920.3822321683574,
+      "mae_usd": 1920.3822321683579,
       "rmse_log": 0.26604888717380265,
       "median_signed_log_residual": -0.03664828001060685
     }

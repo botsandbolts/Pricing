@@ -1,4 +1,37 @@
 {
+  "dataset": "retained Lemon Squeeze training; unchanged original validation/test",
+  "fold_audit": [
+    {
+      "fold": 0,
+      "training_rows": 88665,
+      "heldout_rows": 22167,
+      "training_fraction": 0.7999945864010394
+    },
+    {
+      "fold": 1,
+      "training_rows": 88665,
+      "heldout_rows": 22167,
+      "training_fraction": 0.7999945864010394
+    },
+    {
+      "fold": 2,
+      "training_rows": 88666,
+      "heldout_rows": 22166,
+      "training_fraction": 0.8000036090659737
+    },
+    {
+      "fold": 3,
+      "training_rows": 88666,
+      "heldout_rows": 22166,
+      "training_fraction": 0.8000036090659737
+    },
+    {
+      "fold": 4,
+      "training_rows": 88666,
+      "heldout_rows": 22166,
+      "training_fraction": 0.8000036090659737
+    }
+  ],
   "market": "ask",
   "objective": "survival:aft",
   "folds": 5,
@@ -11,9 +44,9 @@
   "scores": {
     "calibration": {
       "n": 110832,
-      "mae_usd": 1984.039921509027,
-      "rmse_log": 0.15900237831431416,
-      "median_signed_log_residual": 0.0025913718490204866
+      "mae_usd": 1984.1248034067926,
+      "rmse_log": 0.1589316501955218,
+      "median_signed_log_residual": 0.002497148331643248
     },
     "validation": {
       "n": 31668,

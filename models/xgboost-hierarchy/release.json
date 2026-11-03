@@ -1,12 +1,9 @@
 {
   "transformer_feature": true,
   "description_features": "minilm-price",
-  "method": "minilm-lemon-squeezer-25",
-  "residual_source": "fresh-minilm-fivefold",
-  "model": "XGBoost with one averaged MiniLM description-price feature, 25% training OOF trimming, matching separate Bayesian corrections",
-  "bayesian_redesign_markets": [
-    "ask",
-    "bid"
-  ],
-  "bayesian_method": "validation-selected cross-classified nonlinear heteroscedastic log residuals"
+  "method": "lemon-retained-fivefold-bayesian",
+  "residual_source": "fivefold-within-retained-75-percent",
+  "model": "Five group-held-out XGBoost models per market on retained Lemon training; matched robust Bayesian log residuals",
+  "training_fraction_per_fold": "approximately 80% of retained 75%; grouped vehicles kept intact",
+  "validation_test_filtered": false
 }

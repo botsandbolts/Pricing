@@ -1,9 +1,1 @@
-{
-  "name": "The Mini Lemon Squeezer",
-  "source": "fresh five-fold MiniLM XGBoost group OOF log residuals",
-  "removed_training_rows": 36945,
-  "original_training_rows": 147777,
-  "fraction": 0.25,
-  "validation_test_filtered": false,
-  "selection_limit": "Fixed OOF selection precedes refitting. Later OOF scores are conditional diagnostics, not nested CV of selection. Full original validation/test remain unchanged."
-}
+{"name": "Lemon Squeeze retained cohort", "fraction": 0.25, "validation_test_filtered": false, "selection_limit": "Retained rows inherited from frozen prior training-only trim. New OOF is conditional on that selection, not nested CV of cleaning."}
