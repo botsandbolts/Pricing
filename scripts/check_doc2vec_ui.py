@@ -13,7 +13,7 @@ assert not app.exception,app.exception
 assert not any(x.label=='Text matching model' for x in app.radio)
 assert len(app.pills)==25
 for i,widget in enumerate(app.pills):
-    widget.set_value(4 if i==0 else 1)
+    widget.set_value(1+i%4)
 app.run()
 app.button(key='merchant_find').click().run(timeout=120)
 assert not app.exception,app.exception
