@@ -7,7 +7,7 @@ class OnnxBartEngine:
     def __init__(self,folder):
         import onnxruntime as ort
         from tokenizers import Tokenizer
-        from pricing.suite_storage import read_model_file
+        import tempfile,hashlib
         folder=Path(folder)
         self.config=json.loads((folder/'config.json').read_text())
         self.tokenizer=Tokenizer.from_file(str(folder/'tokenizer.json'))
@@ -16,8 +16,24 @@ class OnnxBartEngine:
         options.intra_op_num_threads=2;options.inter_op_num_threads=1
         options.enable_cpu_mem_arena=False;options.enable_mem_pattern=False
         options.graph_optimization_level=ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
-        self.encoder=ort.InferenceSession(read_model_file(folder/'encoder_model.onnx'),sess_options=options,providers=['CPUExecutionProvider'])
-        self.decoder=ort.InferenceSession(read_model_file(folder/'decoder_model_merged.onnx'),sess_options=options,providers=['CPUExecutionProvider'])
+        self._files=tempfile.TemporaryDirectory(prefix='bart-cpu-')
+        def graph(name):
+            source=folder/name
+            registry=Path(str(source)+'.parts.json')
+            if not registry.exists():return str(source)
+            spec=json.loads(registry.read_text());target=Path(self._files.name)/name
+            digest=hashlib.sha256();size=0
+            with target.open('wb') as file:
+                for part in spec['parts']:
+                    if Path(part['file']).name!=part['file']:raise ValueError('Invalid BART part name')
+                    data=(folder/part['file']).read_bytes()
+                    if len(data)!=part['bytes'] or hashlib.sha256(data).hexdigest()!=part['sha256']:
+                        raise ValueError('BART part checksum mismatch')
+                    file.write(data);digest.update(data);size+=len(data)
+            if size!=spec['bytes'] or digest.hexdigest()!=spec['sha256']:raise ValueError('BART graph checksum mismatch')
+            return str(target)
+        self.encoder=ort.InferenceSession(graph('encoder_model.onnx'),sess_options=options,providers=['CPUExecutionProvider'])
+        self.decoder=ort.InferenceSession(graph('decoder_model_merged.onnx'),sess_options=options,providers=['CPUExecutionProvider'])
         self.lock=threading.RLock()
         self.numeric=[i for token,i in self.tokenizer.get_vocab().items() if re.search(r'\d',token)]
     def encode(self,text):

@@ -9,6 +9,10 @@ fields=dict(year=2015,manufacturer='Toyota',model='Corolla',odometer=95000,state
 results,_,_=estimate(Path('.'),{**fields,'text':'Well maintained. Needs new tires.'},date.today(),True)
 for side,r in results.items():assert 'error' not in r,(side,r)
 report=build_report(Path('.'),fields,date.today(),results)
+# Match production: finish pricing, then release cached pricing weights before BART.
+from pricing.hierarchy_sparse_live import _load
+import gc
+_load.clear();gc.collect()
 engine=SummaryEngine()
 assert engine.onnx is not None
 assert 'torch' not in sys.modules
