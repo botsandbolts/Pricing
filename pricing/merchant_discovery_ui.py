@@ -14,11 +14,7 @@ def cars(folder,positions):
 def render(root):
     from pricing.studio_design import page_intro
     from pricing.garage_art import car_art
-    folder=Path(root)/'data/merchant-discovery'
-    alternative=Path(root)/'data/merchant-discovery-doc2vec'
-    if (alternative/'manifest.json').exists():
-        method=st.radio('Text matching model',['TF-IDF + SVD','Doc2Vec'],horizontal=True,key='merchant_text_method')
-        if method=='Doc2Vec':folder=alternative
+    folder=Path(root)/'data/merchant-discovery-doc2vec'
     path=folder/'manifest.json'
     page_intro('Drive Chemistry · Merchant + Meaning','Find your type, not a cluster','Five honest reactions. Related inventories. Cars that speak your language.','💚')
     if not path.exists():st.info('The merchant and semantic catalogue is being built offline. Existing profile models remain available.');return
@@ -66,5 +62,5 @@ def render(root):
         st.write('Each liked car contributes an individual similarity signal. Dislikes apply a soft penalty, not an all-or-nothing veto. Results are sorted by descending hybrid preference score, with at most two cars of an exact make/model type.')
         st.write(f"Merchant candidate groups: {meta['merchant_candidates']:,}. Linked adverts: {meta['linked_rows']:,}. These identities have not been independently verified.")
     with st.expander('Technical method and evidence limits'):
-        st.write('Full-catalogue TF-IDF word and phrase vectors are projected to up to 96 dimensions with truncated SVD and normalized offline. Inventory counts are normalized per merchant and weighted by inverse merchant frequency, then mapped through a low-rank SVD baseline. Ranking weights are 80% semantic and 20% inventory where available; dislike similarity subtracts up to 35%. No permanent user profile or learned satisfaction probability is asserted.')
+        st.write('Full-catalogue vehicle descriptions are encoded offline with Doc2Vec DBOW: 96 dimensions and 15 epochs. Stored document vectors are normalized; no text model is loaded in the app. Inventory counts are normalized per merchant and weighted by inverse merchant frequency, then mapped through a low-rank SVD baseline. Ranking weights are 80% semantic and 20% inventory where available; dislike similarity subtracts up to 35%. No permanent user profile or learned satisfaction probability is asserted.')
         st.write('Five single-like/multiple-dislike mechanical tests must produce distinct results before publication. There is no independent relevance benchmark or audited merchant-identity precision yet. Additional session ratings are used for refinement, not reported as an unbiased test.')

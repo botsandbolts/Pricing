@@ -34,7 +34,7 @@ def render(root):
     from pricing.studio_design import page_intro,journey_steps
     from pricing.garage_art import car_art
     root=Path(root)
-    if (root/'data/merchant-discovery/manifest.json').exists() and json.loads((root/'data/merchant-discovery/manifest.json').read_text()).get('ui_check'):
+    if (root/'data/merchant-discovery-doc2vec/manifest.json').exists() and json.loads((root/'data/merchant-discovery-doc2vec/manifest.json').read_text()).get('ui_check'):
         engine=st.radio('Discovery approach',['Merchant + Meaning','Existing profile experiments'],horizontal=True,key='drive_discovery_engine')
         if engine=='Merchant + Meaning':
             from pricing.merchant_discovery_ui import render as render_merchant_discovery
