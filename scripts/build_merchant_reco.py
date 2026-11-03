@@ -19,7 +19,7 @@ def main():
     # Do not merge a domain carrying conflicting business identities.
     names={}
     for domain,name,status in entities:
-        if domain:names.setdefault(domain,set()).add(re.sub(r'[^a-z0-9]','',name.lower()))
+        if domain:names.setdefault(domain,set()).add(re.sub(r'[^a-z0-9]','',re.sub(r'\\b(llc|inc|ltd|corporation)\\b','',name.lower())))
     entities=[e if e[0] and len(names[e[0]])==1 else (None,None,'unresolved') for e in entities]
     clean=[(' '.join(str(row.get(k) or '') for k in ['manufacturer','model','type','fuel','transmission'])+'. '+vehicle_text(t,e[1])) for row,t,e in zip(frame.to_dict('records'),texts,entities)]
     encoder=SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2',device='cpu')
