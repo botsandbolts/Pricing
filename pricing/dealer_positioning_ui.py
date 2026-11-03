@@ -40,8 +40,16 @@ def render(root):
         if not any(x['shared_support_adverts']>=50 for x in audit['primary']['summary']):
             st.warning('No merchant has sufficient joint support for this specification. Dealer percentage estimates and within-support refitting are blocked. More complete trim and listing-date evidence is required.')
 
-        with st.expander('Inventory distributions and alternative merchant-match threshold'):
-            st.json(audit)
+        with st.expander('Inventory distributions and merchant-match sensitivity'):
+            dealers=sorted({x['dealer'] for x in audit['primary']['summary']})
+            dealer=st.selectbox('Inspect one inferred merchant',dealers,key='overlap_dealer')
+            field=st.selectbox('Inventory dimension',list(audit['primary']['distributions']),key='overlap_field')
+            distribution=[x for x in audit['primary']['distributions'][field] if x['dealer']==dealer]
+            st.dataframe(pd.DataFrame(distribution),hide_index=True,width='stretch')
+            sensitivity=[x for x in audit['match_sensitivity']['summary'] if x['dealer']==dealer]
+            st.write('Sensitivity: allow single merchant candidates with NER score 0.80 rather than 0.90. This does not validate identity or resolve name variants.')
+            st.dataframe(pd.DataFrame(sensitivity),hide_index=True,width='stretch')
+
     else:st.info('The overlap audit is running. Existing residual percentages are not evidence of comparable inventory.')
     with st.expander('Business explanation'):
         st.write('The model first estimates historical asking prices without dealer names. We examine the errors by inferred name group, borrowing evidence from the overall population so small samples are pulled toward zero. Absence of a dealer name means unknown seller type, not a private seller. Historical cohort selection and missing service information limit interpretation.')
