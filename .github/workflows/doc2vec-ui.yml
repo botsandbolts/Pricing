@@ -1,8 +1,10 @@
-name: Verify Doc2Vec default discovery
+name: Verify pairwise vehicle discovery
 on:
   push:
     paths:
       - 'pricing/merchant_discovery_ui.py'
+      - 'pricing/session_pairwise.py'
+      - 'tests/test_session_pairwise.py'
       - 'scripts/check_doc2vec_ui.py'
       - '.github/workflows/doc2vec-ui.yml'
   workflow_dispatch:
@@ -18,5 +20,5 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install 'numpy<3' scipy pandas scikit-learn streamlit pytest requests
-      - run: python -m pytest tests/test_merchant_reco.py -q
+      - run: python -m pytest tests/test_merchant_reco.py tests/test_session_pairwise.py -q
       - run: python -m scripts.check_doc2vec_ui
