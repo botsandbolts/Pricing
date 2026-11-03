@@ -14,6 +14,7 @@ def main():
         folder=Path('data/taste-garage-kmeans')
         meta,a=load(Path('.'),k,catalogue_path=folder)
         assert meta['density_method']=='minibatch-kmeans-soft'
+        assert meta['clustering']['scaler'].startswith('sklearn StandardScaler')
         m=a['memberships']
         assert m.shape==(110832,k) and (m>=0).all()
         assert abs(m.sum(axis=1)-1).max()<1e-5

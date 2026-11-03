@@ -1,4 +1,4 @@
-"""Direct weighted-Euclidean HDBSCAN on retained one-hot/numeric cars; no UMAP."""
+"""StandardScaler then MiniBatchKMeans; saved scaler reused for inference."""
 import argparse,gc,gzip,hashlib,json,re,sqlite3,time,zlib
 from pathlib import Path
 import joblib,numpy as np,pandas as pd
@@ -27,8 +27,12 @@ def build(root,prepared,jobs=4):
     ids=json.loads((prepared/'row-ids.json').read_text());assert frame.row_id.tolist()==ids and len(ids)==selection['retained_rows']
     geometry,state,prices_nov=fit_geometry(frame,TimeTransport(root))
     comparison=geometry
-    clustered,cluster_weights=euclidean_hdbscan_geometry(geometry,state)
-    state['metric']='sqrt(0.5 * mean categorical mismatch + 0.5 * mean bounded numeric squared difference)'
+    from sklearn.preprocessing import StandardScaler
+    cluster_scaler=StandardScaler().fit(geometry)
+    clustered=np.ascontiguousarray(cluster_scaler.transform(geometry),dtype=np.float64)
+    cluster_weights=np.ones(geometry.shape[1])
+    np.testing.assert_allclose(clustered.mean(axis=0),0,atol=2e-4)
+    state['metric']='Euclidean distance after sklearn StandardScaler fitted per training feature column'
     print('Direct feature dimensions:',clustered.shape,flush=True)
     print(json.dumps({'stage':'mixed geometry','rows':len(frame),'dimensions':geometry.shape[1],
                       'common_category_threshold':state['categorical']['threshold'],'price_date':AS_OF.isoformat(),
@@ -81,13 +85,13 @@ def build(root,prepared,jobs=4):
                   selection=selection,category_count_threshold=state['categorical']['threshold'],neighbour_metric='cosine-unscaled',density_method='minibatch-kmeans-soft',
                   levels=levels,profiles=[dict(position=int(p),cluster=i,name=f'Profile {i+1}',cars=int((model.labels_==i).sum()),prototype=cars[p]) for i,p in enumerate(positions)],
                   density_clusters=k,noise_fraction=float(np.mean(model.labels_<0)),
-                  clustering={'method':'MiniBatchKMeans','temperature':temperature,'metric':'euclidean','categorical_weight':.5,'numeric_weight':.5,'dimensions':geometry.shape[1],'umap':False,'min_samples':10},
-                  method_description='Temporary MiniBatchKMeans with softmax of negative squared center distances. These are normalized distance affinities, not density memberships or calibrated probabilities. Only Lemon Squeezer retained training cars. MiniBatchKMeans fits balanced Euclidean features; affinities retain the three closest centers and use a temperature fitted from median squared-distance gaps. No UMAP or dimensionality reduction. Features include common one-hot categories, mileage/year, log November-2026 ask prices and stored text-price scalar. FAISS cosine compares original encoded vectors without extra column scaling; direct user ratings shape the shortlist. Display order is descending cosine distance.',
+                  clustering={'scaler':'sklearn StandardScaler; fitted on full reference training matrix','method':'MiniBatchKMeans','temperature':temperature,'metric':'euclidean','categorical_weight':.5,'numeric_weight':.5,'dimensions':geometry.shape[1],'umap':False,'min_samples':10},
+                  method_description='Temporary MiniBatchKMeans with softmax of negative squared center distances. These are normalized distance affinities, not density memberships or calibrated probabilities. Only Lemon Squeezer retained training cars. MiniBatchKMeans fits column-standardized Euclidean features; affinities retain the three closest centers and use a temperature fitted from median squared-distance gaps. No UMAP or dimensionality reduction. Features include common one-hot categories, mileage/year, log November-2026 ask prices and stored text-price scalar. FAISS cosine compares original encoded vectors without extra column scaling; direct user ratings shape the shortlist. Display order is descending cosine distance.',
                   representatives='Real assigned car nearest its MiniBatchKMeans center',
                   sha256={file.name:digest(file)})
         if k==10:meta['sha256'].update({name:digest(folder/name) for name in ['cars.sqlite','row-ids.json.gz','selection.json']})
         (folder/('manifest.json' if k==10 else 'profiles-25.json')).write_text(json.dumps(meta,indent=2))
-        bundle={'encoder':state,'cluster_weights':cluster_weights,'kmeans':model,'temperature':temperature,'macro':np.arange(k),'medoids':comparison[positions],
+        bundle={'encoder':state,'cluster_weights':cluster_weights,'cluster_scaler':cluster_scaler,'kmeans':model,'temperature':temperature,'macro':np.arange(k),'medoids':comparison[positions],
                 'source_rows':len(frame),'source_sha256':selection['source_sha256'],'neighbour_metric':'cosine-unscaled','prediction_method':'flat'}
         joblib.dump(bundle,offline/f'frozen-profiles-{k}.joblib',compress=3)
         print('Exported',k,'profiles',flush=True)
