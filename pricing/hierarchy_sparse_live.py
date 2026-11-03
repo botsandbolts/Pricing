@@ -17,15 +17,10 @@ def _load(root,side,version):
     model.load_model(bytearray(read_model_file(folder/'calibration-refit.ubj')))
     model.set_param({'nthread':2})
     schema=json.loads((folder/'category-schema.json').read_text())
-    posterior,draws=load_bayesian(folder/'bayesian')
-    if posterior['base_model_id']!='xgboost-fivefold-'+side:raise ValueError('Mismatched Bayesian base model')
     from pricing.description_features import projector as load_projector
     projector=load_projector(folder) if side=='ask' else None
-    report=json.loads((folder/'bayesian/bayesian-evaluation.json').read_text())
-    if posterior.get('base_evaluation_sha256'):
-        import hashlib
-        if hashlib.sha256((folder/'evaluation.json').read_bytes()).hexdigest()!=posterior['base_evaluation_sha256']:
-            raise ValueError('Bayesian calibration belongs to another base-model release')
+    report=json.loads((folder/'evaluation.json').read_text())
+    posterior=draws=None
     return model,schema,posterior,draws,projector,report
 
 def load(root,side):
@@ -78,19 +73,10 @@ def estimate(root,fields,date,allow=False):
             if not 0<=age<=30:raise ValueError('Historical age anchor is outside 0–30 years.')
             model,schema,posterior,draws,projector,report=load(str(root),side)
             base,unknown=base_predict(model,schema,projector,fields,age,side)
-            case=pd.DataFrame([{**fields,'age':age,'base_price':base}])
-            bp=posterior_predict(posterior,draws,case).iloc[0]
-            lo,hi=posterior_interval(pd.DataFrame([bp]),posterior['interval']['multiplier'])
-            row={**fields,**bp.to_dict(),'age':age,'source_date':'2021-05-01' if side=='ask' else f"{int(fields['year'])+5}-01-01"}
+            row={**fields,'base_price':base,'corrected_price':base,'age':age,
+                 'source_date':'2021-05-01' if side=='ask' else f"{int(fields['year'])+5}-01-01"}
             receipt=adjust(transport,row,side,date,fields['odometer'],as_of=today())
-            ratio=receipt['vehicle_factor']*receipt['market_factor']
-            receipt.update(interval_low=float(lo[0]*ratio),interval_high=float(hi[0]*ratio),
-                historical_coverage=float(report['test_coverage']),interval_level=posterior['interval']['level'],
-                interval_multiplier=float(bp.get('interval_multiplier',posterior['interval']['multiplier'])),posterior_draws=len(draws['global']),
-                interval_calibration_group=bp.get('interval_calibration_group','all validation cars'),interval_calibration_n=int(bp.get('interval_calibration_n',report['validation_rows'])),
-                interval_calibration_source=bp.get('interval_calibration_source','all validation cars'),
-                predictive_sd_log=float(bp.predictive_sd_log),unknown_categories=unknown,
-                make_support=int(bp.make_n),model_support=int(bp.model_n),
+            receipt.update(unknown_categories=unknown,
                 analogue=bool(side=='bid' and int(fields['year'])>2015))
             results[side]=receipt
         except (ValueError,OSError,KeyError,MemoryError) as exc:results[side]={'error':str(exc)}
@@ -98,13 +84,14 @@ def estimate(root,fields,date,allow=False):
 
 from pricing.release_contract import release_identity
 
-def render(root,*,bayesian=True):
+def render(root,*,bayesian=False):
+    bayesian=False
     from pricing.forest_form import render as form
     from pricing.description_features import kind,label
     feature_kind=kind(root)
     fields,notes,date,allow,submitted=form(description_sensitive=feature_kind)
     version=release_identity(root)
-    signature=json.dumps([fields,notes,str(date),allow,version],sort_keys=True)
+    signature=json.dumps(['regular-only-v1',fields,notes,str(date),allow,version],sort_keys=True)
     if st.session_state.get('_after_estimate_panel'):
         st.info('Estimate this parked car once; its value timeline will then open automatically.')
     if submitted:
@@ -112,7 +99,7 @@ def render(root,*,bayesian=True):
         st.session_state.pop('last_explained_price',None)
         st.session_state.pop('last_displayed_price',None)
         try:
-            with st.spinner('Reading the advert and consulting the Bayesian family tree…'):
+            with st.spinner('Reading the advert and calculating both market estimates…'):
                 results,_,_=estimate(root,{**fields,'text':notes},date,allow)
             st.session_state['hierarchy_sparse_result']={'signature':signature,'results':results,'date':str(date),'fields':fields,'notes':notes,'request_id':__import__('uuid').uuid4().hex,'allow':allow,'model_version':version}
         except (ValueError,OSError,KeyError,MemoryError) as exc:st.error(str(exc))

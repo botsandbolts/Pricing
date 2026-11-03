@@ -1,0 +1,19 @@
+name: Verify single XGBoost pricing
+on:
+  push:
+    paths: ['pricing/hierarchy_sparse_live.py','pricing/hierarchy_sparse_studio.py','pricing/navigation.py','pricing/current_tools.py','scripts/check_regular_pricing.py','.github/workflows/regular-pricing.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'numpy<3' 'pandas<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm requests joblib streamlit==1.66.1 plotly onnxruntime 'tokenizers>=0.23.1,<0.24'
+      - run: python -m compileall -q app.py pricing scripts/check_regular_pricing.py
+      - run: python -m scripts.check_regular_pricing
