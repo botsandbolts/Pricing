@@ -25,7 +25,7 @@ def render(root):
     version=hashlib.sha256(path.read_bytes()).hexdigest()[:12]
     st.caption(meta.get('semantic_model','Text similarity'))
     st.caption(f"{meta['rows']:,} historical cars · no account · merchant identities are inferred, not verified")
-    st.write('Rate these 25 actual cars, then find your ten-car shortlist. Likes pull related cars closer; dislikes reduce their scores. The model keeps several interests separate, so liking a pickup and a convertible is allowed.')
+    st.write('Rate these 25 actual cars, then find your 25-car shortlist. Likes pull related cars closer; dislikes reduce their scores. The model keeps several interests separate, so liking a pickup and a convertible is allowed.')
     memory=st.session_state.setdefault('merchant_ratings_'+version,{})
     seeds=meta['seeds']
     labels={1:'1 · No thanks',2:'2 · Not my type',3:'3 · I like it',4:'4 · Love it'}
@@ -41,12 +41,12 @@ def render(root):
     if st.checkbox('Limit by historical asking price',key='merchant_budget_enabled'):
         budget=st.number_input('Maximum historical asking price · USD',min_value=1000.,max_value=150000.,value=30000.,step=1000.)
     ready=all(i in memory for i in seeds) and any(v>=3 for v in memory.values())
-    if st.button('Find cars for my taste',type='primary',disabled=not ready,key='merchant_find'):
+    if st.button('Find my 25 cars',type='primary',disabled=not ready,key='merchant_find'):
         with st.spinner('Matching vehicle descriptions…'):
-            st.session_state['merchant_result_25_'+version]=recommend(semantic,inventory,memory,meta['types'],np.array(meta['prices']),budget=budget)
-    result=st.session_state.get('merchant_result_25_'+version)
+            st.session_state['merchant_result_25_outputs_'+version]=recommend(semantic,inventory,memory,meta['types'],np.array(meta['prices']),budget=budget,k=25)
+    result=st.session_state.get('merchant_result_25_outputs_'+version)
     if result:
-        st.markdown('## Your shortlist · strongest preference first')
+        st.markdown(f"## Your shortlist · {len(result['positions'])} cars · strongest preference first")
         for n,(pos,car) in enumerate(zip(result['positions'],cars(folder,result['positions']))):
             with st.container(border=True):
                 car_art(car,compact=True)
@@ -59,7 +59,7 @@ def render(root):
                     st.text(car.get('description',''))
                 extra=st.pills('Refine my taste · '+str(pos),list(labels),format_func=labels.get,key=f'merchant_extra_{version}_{pos}')
                 if extra is not None:memory[pos]=extra
-        st.caption('Rate results, then press Find cars for my taste again to refine. Previously rated cars are excluded.')
+        st.caption('Rate results, then press Find my 25 cars again to refine. Previously rated cars are excluded.')
     with st.expander('How it works · business explanation'):
         st.write('MiniLM description meaning supplies the current recommendations. Twenty-five diverse real catalogue cars collect your reactions. Merchant-name extraction is a separate offline job and is not active in this release.')
         st.write('Each liked car contributes an individual similarity signal. Dislikes apply a soft penalty, not an all-or-nothing veto. Results are sorted by descending hybrid preference score, with at most two cars of an exact make/model type.')

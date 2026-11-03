@@ -19,6 +19,8 @@ app.button(key='merchant_find').click().run(timeout=120)
 assert not app.exception,app.exception
 assert any('Your shortlist' in x.value for x in app.markdown)
 version=hashlib.sha256((root/'data/merchant-discovery-minilm/manifest.json').read_bytes()).hexdigest()[:12]
-result=app.session_state['merchant_result_25_'+version]
-assert len(set(result['positions']))==10
-print('MiniLM default: 25 ratings submitted; ten distinct results rendered; no TF-IDF selector.')
+result=app.session_state['merchant_result_25_outputs_'+version]
+assert len(result['positions'])==len(set(result['positions']))==25
+assert all(a>=b for a,b in zip(result['scores'],result['scores'][1:]))
+assert any(x.value.startswith('### 25.') for x in app.markdown)
+print('MiniLM default: 25 ratings submitted; 25 distinct results rendered; no TF-IDF selector.')
