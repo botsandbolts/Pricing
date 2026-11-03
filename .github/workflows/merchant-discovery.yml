@@ -8,7 +8,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: merchant-discovery
+  group: merchant-discovery-verified-v2
   cancel-in-progress: true
 jobs:
   build:
