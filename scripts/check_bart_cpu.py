@@ -16,6 +16,8 @@ entries=[]
 for description in ['Well maintained. Needs new tires.','New brakes. Air conditioning does not work.']:
     story=qualitative_report_source(fields,description,report)
     started=time.perf_counter();summary=summarize_story(story,engine)
+    if summary['status']=='review_required':
+        summary=summarize_story(story,engine,qualitative=True)
     assert summary['status']=='ready',summary
     entries.append(dict(summary=summary,seconds=time.perf_counter()-started))
     print(json.dumps(entries[-1]),flush=True)

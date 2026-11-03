@@ -180,7 +180,13 @@ def render_story(fields,description,valuation=None):
                     _load.clear()
                     import gc
                     gc.collect()
-                    return summarize_story(summary_source,get_engine(MODEL_ID,REVISION))
+                    engine=get_engine(MODEL_ID,REVISION)
+                    result=summarize_story(summary_source,engine)
+                    if result['status']=='review_required':
+                        # Retry prose with numeric tokens blocked. Exact prices/ranges
+                        # are rendered directly from the structured valuation above.
+                        result=summarize_story(summary_source,engine,qualitative=True)
+                    return result
                 except Exception as error:
                     import logging
                     logging.getLogger(__name__).exception('BART summary failed during loading or generation')
