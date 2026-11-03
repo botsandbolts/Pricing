@@ -9,7 +9,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: taste-geometry-release
+  group: taste-kmeans-temporary-release
   cancel-in-progress: false
 jobs:
   rebuild-verify-publish:
