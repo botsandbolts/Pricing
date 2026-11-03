@@ -21,7 +21,7 @@
   ],
   "rarity_threshold": 111,
   "geometry_dimensions": 322,
-  "metric": "sqrt(0.5 * mean categorical mismatch + 0.5 * mean bounded numeric squared difference)",
+  "metric": "Euclidean distance after sklearn StandardScaler fitted per training feature column",
   "weights": {
     "categorical": 0.5,
     "numeric": 0.5
