@@ -11,7 +11,7 @@ class GPUEntities:
         values=ner(text)
         return SimpleNamespace(ents=[SimpleNamespace(text=v['word'],label_=v['entity_group']) for v in values])
 spacy.load=lambda *args,**kwargs:GPUEntities()
-source=Path('scripts/build_merchant_reco.py').read_text().replace('data/merchant-discovery-minilm','data/merchant-discovery-minilm')
+source=Path('scripts/build_merchant_reco.py').read_text()
 start=source.index('    vectorizer=TfidfVectorizer')
 end=source.index('    # Shared feature/type',start)
 gpu_block="""    from sentence_transformers import SentenceTransformer
@@ -26,9 +26,10 @@ gpu_block="""    from sentence_transformers import SentenceTransformer
     pass
 """
 source=source[:start]+gpu_block+source[end:]
-source=source.replace("'semantic_model':'TF-IDF word unigrams/bigrams + up to 96D truncated SVD'","'semantic_model':'GPU all-MiniLM-L6-v2 + 96D projection'")
+source=source.replace("'semantic_model':'TF-IDF word unigrams/bigrams + up to 96D truncated SVD'","'semantic_model':'CPU all-MiniLM-L6-v2 + 96D projection'")
 # No automatic publication: Kaggle writes an independently reviewed artifact.
 exec(compile(source,'merchant-gpu-build','exec'),{'__name__':'__main__','torch':torch})
 import shutil
-shutil.make_archive('merchant-minilm-cpu','zip','data/merchant-discovery')
+shutil.copytree('data/merchant-discovery','data/merchant-discovery-minilm',dirs_exist_ok=True)
+shutil.make_archive('merchant-minilm-cpu','zip','data/merchant-discovery-minilm')
 print('CPU alternative saved: merchant-minilm-cpu.zip. Not deployed automatically.')
