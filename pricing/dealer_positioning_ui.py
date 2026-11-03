@@ -56,4 +56,13 @@ def render(root):
     with st.expander('Technical method, assumptions and limitations'):
         st.json(report)
         st.write('Names require a single candidate, extraction score at least 0.90 and at least 50 distinct vehicle groups. Scores are not calibrated identity probabilities. Vehicle grouping is VIN-based where available, otherwise make/model/year/mileage. The fixed normal prior has SD 0.10 log units; a plug-in residual SD supplies the normal likelihood. This first version is not a robust Student-t hierarchy or a causal dealer effect estimate. State controls are included; listing-date controls and private-seller comparisons are not established.')
+    mi_path=Path(root)/'reports/dealer-overlap/imputation.json'
+    with st.expander('XGBoost multiple-imputation sensitivity · model-level support'):
+        if mi_path.exists():
+            mi=json.loads(mi_path.read_text())
+            st.write(mi['method'])
+            st.warning(mi['limitations'])
+            st.dataframe(pd.DataFrame(mi['summary']),hide_index=True,width='stretch')
+            st.caption(mi['estimate_status'])
+        else:st.info('Five stochastic XGBoost imputations are being evaluated offline. No imputed dealer effects are shown.')
     st.caption('Research provenance: GitHub Actions run 41680537032. No claim about a named business should be drawn without checking the source adverts, identity and services.')
