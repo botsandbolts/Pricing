@@ -1,4 +1,4 @@
-"""Verify the installed MiniLM route and a real five-rating shortlist."""
+"""Verify the installed MiniLM route and a real 25-rating shortlist."""
 from pathlib import Path
 from streamlit.testing.v1 import AppTest
 import json,hashlib
@@ -11,6 +11,7 @@ assert "data/merchant-discovery-minilm" in source
 app=AppTest.from_string("from pathlib import Path\nfrom pricing.merchant_discovery_ui import render\nrender(Path('.'))",default_timeout=120).run()
 assert not app.exception,app.exception
 assert not any(x.label=='Text matching model' for x in app.radio)
+assert len(app.pills)==25
 for i,widget in enumerate(app.pills):
     widget.set_value(4 if i==0 else 1)
 app.run()
@@ -20,4 +21,4 @@ assert any('Your shortlist' in x.value for x in app.markdown)
 version=hashlib.sha256((root/'data/merchant-discovery-minilm/manifest.json').read_bytes()).hexdigest()[:12]
 result=app.session_state['merchant_result_'+version]
 assert len(set(result['positions']))==10
-print('MiniLM default: five ratings submitted; ten distinct results rendered; no TF-IDF selector.')
+print('MiniLM default: 25 ratings submitted; ten distinct results rendered; no TF-IDF selector.')
