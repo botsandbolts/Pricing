@@ -2,6 +2,7 @@
 import hashlib
 import re
 import threading
+from pathlib import Path
 from pricing.vehicle_narrative import narrative
 
 MODEL_ID='ainize/bart-base-cnn'
@@ -16,6 +17,13 @@ _SUMMARY_WORKER=threading.BoundedSemaphore(1)
 
 class SummaryEngine:
     def __init__(self):
+        from pathlib import Path
+        folder=Path(__file__).resolve().parents[1]/'models/bart-cpu'
+        if (folder/'manifest.json').exists():
+            from pricing.bart_onnx import OnnxBartEngine
+            self.onnx=OnnxBartEngine(folder)
+            return
+        self.onnx=None
         import torch
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
         torch.set_num_threads(min(2,torch.get_num_threads()))
@@ -27,21 +35,27 @@ class SummaryEngine:
         self.numeric_tokens=[[i] for token,i in self.tokenizer.get_vocab().items() if re.search(r'\d',token)]
 
     def encode(self,text):
+        if self.onnx is not None:return self.onnx.encode(text)
         return self.tokenizer.encode(text,add_special_tokens=False)
 
     def decode(self,tokens):
+        if self.onnx is not None:return self.onnx.decode(tokens)
         return self.tokenizer.decode(tokens,skip_special_tokens=True)
 
     def generate(self,text,forbid_numbers=False):
+        if self.onnx is not None:return self.onnx.generate(text,forbid_numbers)
         inputs=self.tokenizer(PROMPT+text+PROMPT_SUFFIX,return_tensors='pt',truncation=False)
         if inputs.input_ids.shape[1]>1024:raise ValueError('Summary input exceeds token budget')
         with self.lock,self.torch.inference_mode():
-            output=self.model.generate(**inputs,max_new_tokens=OUTPUT_TOKENS,num_beams=1,min_new_tokens=0,forced_eos_token_id=None,
+            output=self.model.generate(**inputs,max_new_tokens=OUTPUT_TOKENS,num_beams=1,min_length=0,min_new_tokens=0,forced_eos_token_id=None,
                                        do_sample=False,use_cache=True,no_repeat_ngram_size=3,
                                        bad_words_ids=self.numeric_tokens if forbid_numbers else None)
+        text=self.tokenizer.decode(output[0],skip_special_tokens=True).strip()
         if output[0,-1].item()!=self.tokenizer.eos_token_id:
-            raise ValueError('Summary output did not finish within its token budget')
-        return self.tokenizer.decode(output[0],skip_special_tokens=True).strip()
+            ends=list(re.finditer(r'[.!?](?:\s|$)',text))
+            if not ends:raise ValueError('BART produced no complete sentence')
+            text=text[:ends[-1].end()].strip()
+        return text
 
 
 def build_story(fields,description):
@@ -73,11 +87,28 @@ def summarize_story(story,engine,qualitative=False):
             'status':'review_required' if review else 'ready'}
 
 
+def valuation_receipt(valuation):
+    """Exact prose from the same structured values as the price cards."""
+    if not valuation:return ''
+    sentences=['Valuation date: '+str(valuation.get('valuation_date','unspecified'))+'.']
+    for side in ['ask','bid']:
+        r=valuation.get('market_estimates',{}).get(side)
+        if not r:continue
+        label='Seller asking estimate' if side=='ask' else 'Wholesale auction estimate'
+        sentences.append(f"{label}: USD {float(r['estimated_price_usd']):,.0f}.")
+        if r.get('interval_low_usd') is not None and r.get('interval_high_usd') is not None:
+            level=float(r.get('interval_level',.9))*100
+            sentences.append(f"Its {level:g}% historical prediction range, transported to the valuation date, is USD {float(r['interval_low_usd']):,.0f} to USD {float(r['interval_high_usd']):,.0f}.")
+    if any(r.get('interval_low_usd') is not None for r in valuation.get('market_estimates',{}).values()):
+        sentences.append('These ranges were calibrated on historical outcomes; their coverage at the selected valuation date is not validated.')
+    return ' '.join(sentences)
+
+
 def build_valuation_story(fields,description,valuation=None):
     """Give the news-trained summarizer readable prose, not raw JSON keys."""
     facts,seller=narrative(fields,description)
     if not valuation:return build_story(fields,description)
-    sentences=[facts, 'This valuation is for '+str(valuation.get('valuation_date','an unspecified date'))+'.']
+    sentences=[facts, valuation_receipt(valuation)]
     for side,r in valuation.get('market_estimates',{}).items():
         target='seller advertised asking price' if side=='ask' else 'wholesale auction sale price'
         sentences.append(f"The estimated {target} is {float(r['estimated_price_usd']):,.2f} US dollars.")
@@ -99,7 +130,7 @@ def build_valuation_story(fields,description,valuation=None):
 def qualitative_report_source(fields,description,valuation):
     """Readable advert/valuation story, with card-rounded figures for numeric checks."""
     facts,seller=narrative(fields,description)
-    parts=[facts]
+    parts=[facts,valuation_receipt(valuation)]
     if seller:parts.append('The seller states, without independent verification: '+seller)
     parts.append('Car Price Studio estimates this vehicle for '+str(valuation.get('valuation_date'))+'.')
     for side,r in valuation.get('market_estimates',{}).items():
@@ -134,9 +165,13 @@ def render_story(fields,description,valuation=None):
     # Both narratives stay internal; only the model's checked output is rendered.
     story=build_valuation_story(fields,description,valuation)
     summary_source=qualitative_report_source(fields,description,valuation) if valuation else story
-    fingerprint=hashlib.sha256(str(('automatic-private-overview-v4',MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
+    backend_manifest=Path(__file__).resolve().parents[1]/'models/bart-cpu/manifest.json'
+    backend_release=hashlib.sha256(backend_manifest.read_bytes()).hexdigest() if backend_manifest.exists() else 'pytorch-fallback'
+    fingerprint=hashlib.sha256(str(('automatic-private-overview-v5-prices-intervals',backend_release,MODEL_ID,REVISION,PROMPT,PROMPT_SUFFIX,CHUNK_TOKENS,OUTPUT_TOKENS,story,summary_source)).encode()).hexdigest()
     st.markdown('### 📖 Your valuation overview · BART' if valuation else '### 📖 Your car overview · BART')
-    st.caption('An automatic summary of the advert, valuation and method. Exact estimates remain in the price cards.' if valuation else 'Automatically summarized from the supplied vehicle details and seller description.')
+    st.caption('An automatic summary of the advert, valuation and method, with the exact prices and historical ranges below.' if valuation else 'Automatically summarized from the supplied vehicle details and seller description.')
+    if valuation:
+        st.write(valuation_receipt(valuation))
     def produce():
         with st.spinner('Preparing your car overview…'):
             with _SUMMARY_WORKER:
@@ -148,7 +183,7 @@ def render_story(fields,description,valuation=None):
                     return summarize_story(summary_source,get_engine(MODEL_ID,REVISION))
                 except Exception as error:
                     import logging
-                    logging.getLogger(__name__).warning('BART summary unavailable: %s',type(error).__name__)
+                    logging.getLogger(__name__).exception('BART summary failed during loading or generation')
                     return {'status':'unavailable','summary':''}
                 finally:
                     get_engine.clear()
@@ -160,7 +195,7 @@ def render_story(fields,description,valuation=None):
     elif result['status']=='review_required':
         st.caption('The AI draft contained an unsupported figure or market claim and was withheld. Your price cards remain available.')
     else:
-        st.caption('The overview is temporarily unavailable. Your price cards remain available.')
+        st.caption('The BART narrative is temporarily unavailable. Your exact valuation overview is shown above.')
         if st.button('Retry summary',key='bart_retry_'+fingerprint[:16]):
             st.session_state.get('_bart_overview_cache',{}).pop(fingerprint,None)
             st.rerun()

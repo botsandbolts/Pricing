@@ -31,7 +31,10 @@ def build_report(root,fields,date,results):
         if 'error' in r:continue
         estimates[side]={'estimated_price_usd':r['price'],'historical_anchor_usd':r['historical_corrected_price'],
           'age_multiplier':r['vehicle_factor'],'market_multiplier':r['market_factor'],'vehicle_age_years':r['age'],
-          'market_index_status':r['market'],'newer_generation_analogue':r['analogue']}
+          'market_index_status':r['market'],'newer_generation_analogue':r['analogue'],
+          'interval_low_usd':r.get('interval_low'),'interval_high_usd':r.get('interval_high'),
+          'interval_level':r.get('interval_level'),
+          'interval_basis':'historical outcome prediction interval transported to selected date; selected-date coverage unvalidated'}
         report=json.loads((Path(root)/'models/xgboost-hierarchy'/side/'bayesian/bayesian-evaluation.json').read_text())
         method=('Redesigned nonlinear, cross-classified hierarchy with '+report['selected_likelihood'].replace('_',' ')+' errors and price/age-specific variances. Gaussian, Student-t and contamination candidates competed on validation dollar MAE. Different validation cars calibrated risk-stratified intervals. This is not PSIS-LOO.' if report.get('method')=='robust_cross_classified_gibbs_v1' else 'Gaussian make/model/age residual hierarchy.')
         if report.get('method')=='robust_cross_classified_gibbs_v1':

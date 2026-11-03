@@ -1,0 +1,45 @@
+name: Build and verify memory-bounded BART valuation overview
+on:
+  workflow_dispatch:
+  push:
+    paths: ['scripts/export_bart_cpu.py','scripts/check_bart_cpu.py','pricing/bart_onnx.py','.github/workflows/bart-cpu.yml']
+permissions:
+  contents: write
+concurrency:
+  group: bart-cpu-release
+  cancel-in-progress: true
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install 'transformers==5.21.0' 'optimum-onnx[onnxruntime]' 'numpy<3' 'pandas<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm streamlit==1.66.1 requests joblib tokenizers pytest plotly
+      - run: python -m pytest tests/test_bart_summary.py tests/test_auto_bart_ui.py tests/test_bart_intervals.py -q
+      - run: python -u -m scripts.export_bart_cpu
+      - run: python -u -m scripts.check_bart_cpu
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bart-int8-serving
+          path: |
+            models/bart-cpu/
+            reports/bart-int8/
+      - name: Publish verified BART package
+        run: |
+          tar -cf "$RUNNER_TEMP/bart.tar" models/bart-cpu reports/bart-int8
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          git reset --hard origin/main
+          tar -xf "$RUNNER_TEMP/bart.tar"
+          git add models/bart-cpu reports/bart-int8
+          git commit -m "Install verified INT8 BART for automatic price and interval overview"
+          git push origin HEAD:main

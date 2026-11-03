@@ -1,9 +1,9 @@
 name: Vehicle story summary checks
 on:
   push:
-    paths: ['pricing/bart_summary.py', 'pricing/vehicle_narrative.py', 'tests/test_bart_summary.py', 'tests/test_auto_bart_ui.py', 'pricing/current_tools.py', '.github/workflows/story-summary.yml']
+    paths: ['pricing/bart_summary.py', 'pricing/vehicle_narrative.py', 'tests/test_bart_summary.py', 'tests/test_auto_bart_ui.py', 'tests/test_bart_intervals.py', 'pricing/current_tools.py', '.github/workflows/story-summary.yml']
   pull_request:
-    paths: ['pricing/bart_summary.py', 'pricing/vehicle_narrative.py', 'tests/test_bart_summary.py', 'tests/test_auto_bart_ui.py', 'pricing/current_tools.py', '.github/workflows/story-summary.yml']
+    paths: ['pricing/bart_summary.py', 'pricing/vehicle_narrative.py', 'tests/test_bart_summary.py', 'tests/test_auto_bart_ui.py', 'tests/test_bart_intervals.py', 'pricing/current_tools.py', '.github/workflows/story-summary.yml']
 permissions:
   contents: read
 jobs:
@@ -19,4 +19,4 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pytest streamlit==1.66.1
-      - run: STREAMLIT_BROWSER_GATHER_USAGE_STATS=false python -m pytest tests/test_bart_summary.py tests/test_auto_bart_ui.py -q
+      - run: STREAMLIT_BROWSER_GATHER_USAGE_STATS=false python -m pytest tests/test_bart_summary.py tests/test_auto_bart_ui.py tests/test_bart_intervals.py -q
