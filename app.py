@@ -35,12 +35,12 @@ from pricing.navigation import render_navigation
 _workspace=render_navigation()
 if _workspace=='🚦 Pick your garage':
     @st.cache_resource(show_spinner=False)
-    def _taste_garage_pairwise_v30():
+    def _taste_garage_dealers_v31():
         import importlib
-        for name in ('pricing.taste_ranking','pricing.merchant_discovery_ui','pricing.taste_garage_ui'):
+        for name in ('pricing.taste_ranking','pricing.dealer_signals','pricing.session_pairwise','pricing.merchant_discovery_ui','pricing.taste_garage_ui'):
             importlib.reload(importlib.import_module(name))
         return True
-    _taste_garage_pairwise_v30()
+    _taste_garage_dealers_v31()
     from pricing.taste_garage_ui import render as render_taste_garage
     render_taste_garage(Path(__file__).parent)
     from pricing.ga_events import render_events
@@ -404,4 +404,5 @@ render_events()
 footer()
 
 # Inspector release a7cb5bd: forecast-aware query context, price-free SVD.
+
 

@@ -19,7 +19,7 @@ app.button(key='merchant_find').click().run(timeout=120)
 assert not app.exception,app.exception
 assert any('Your shortlist' in x.value for x in app.markdown)
 version=hashlib.sha256((root/'data/merchant-discovery-minilm/manifest.json').read_bytes()).hexdigest()[:12]
-result=app.session_state['merchant_pairwise_v1_'+version]
+result=app.session_state['merchant_pairwise_dealers_v2_'+version]
 assert len(result['positions'])==len(set(result['positions']))==25
 assert all(a>=b for a,b in zip(result['scores'],result['scores'][1:]))
 assert any(x.value.startswith('### 25.') for x in app.markdown)
@@ -27,3 +27,8 @@ print('MiniLM default: 25 ratings submitted; 25 distinct results rendered; no TF
 
 assert 'pairwise' in result['method']
 assert result['validation']['pairs'] > 0
+
+if (root/'data/merchant-discovery-minilm/dealers.json').exists():
+    assert 'dealer candidates' in result['method']
+    assert sum('Dealer candidate' in c.value or 'Dealer: not identified' in c.value for c in app.caption)>=50
+

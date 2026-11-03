@@ -27,7 +27,14 @@ def catalogue_features(folder):
                 blocks.append(hasher.transform(categories).astype(np.float32));categories=[]
     if categories:blocks.append(hasher.transform(categories).astype(np.float32))
     # Stateless hashing avoids fitting a catalogue vocabulary or huge one-hot matrix.
-    return np.asarray(numeric,dtype=np.float32), sparse.vstack(blocks,format='csr')
+    categorical=sparse.vstack(blocks,format='csr')
+    from pricing.dealer_signals import load_dealers,dealer_matrix
+    dealers=load_dealers(folder)
+    if dealers is not None:
+        if len(dealers['rows'])!=len(numeric):raise ValueError('Dealer catalogue alignment mismatch')
+        # design divides categorical by sqrt(9); 1.5 gives dealer weight 0.5.
+        categorical=sparse.hstack((categorical,1.5*dealer_matrix(dealers['rows'])),format='csr')
+    return np.asarray(numeric,dtype=np.float32), categorical
 
 def design(semantic,numeric,categories,train):
     med=np.array([np.median(c[np.isfinite(c)]) if np.isfinite(c).any() else 0 for c in numeric[train].T])
@@ -75,5 +82,6 @@ def recommend_pairwise(semantic,numeric,categories,ratings,type_ids,prices,budge
         chosen.append(int(i));counts[typ]=counts.get(typ,0)+1
         if len(chosen)==k:break
     return {'positions':chosen,'scores':score[chosen].tolist(),'validation':evidence,
-            'method':'L2 pairwise logistic · MiniLM + vehicle features',
+            'method':'L2 pairwise logistic · MiniLM + vehicle features'+(' + confidence-weighted dealer candidates' if categories.shape[1]>512 else ''),
             'ordering':'learned utility descending'}
+
