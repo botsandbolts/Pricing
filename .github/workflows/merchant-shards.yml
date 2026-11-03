@@ -1,0 +1,75 @@
+name: Ten parallel CPU NER and MiniLM shards
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/merchant_shards.py'
+      - '.github/workflows/merchant-shards.yml'
+permissions:
+  contents: read
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install numpy pandas scipy scikit-learn sentence-transformers requests
+      - run: python -m scripts.prepare_lemon_reco --from-catalogue
+      - run: python -m scripts.restore_reco_text
+      - uses: actions/upload-artifact@v4
+        with:
+          name: transformer-full-input
+          path: training-cache/lemon-mixed/cohort.jsonl
+  shards:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        part: [0,1,2,3,4,5,6,7,8,9]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install numpy pandas scipy scikit-learn sentence-transformers requests
+      - uses: actions/download-artifact@v4
+        with:
+          name: transformer-full-input
+          path: training-cache/lemon-mixed
+      - run: python -u -m scripts.merchant_shards --part ${{ matrix.part }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: transformer-part-${{ matrix.part }}
+          path: training-cache/transformer-shards
+  merge:
+    needs: shards
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+      - run: pip install numpy pandas scipy scikit-learn sentence-transformers requests
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: transformer-part-*
+          merge-multiple: true
+          path: training-cache/transformer-shards
+      - run: python -m scripts.merchant_shards --merge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: complete-transformer-ner-minilm
+          path: training-cache/transformer-shards
