@@ -1,0 +1,27 @@
+name: Historical dealer positioning research
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/dealer_positioning_research.py'
+      - '.github/workflows/dealer-positioning.yml'
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy pandas scipy scikit-learn xgboost
+      - run: python -m scripts.dealer_positioning_research
+      - uses: actions/upload-artifact@v4
+        with:
+          name: historical-dealer-positioning-research
+          path: reports/dealer-positioning
