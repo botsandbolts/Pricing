@@ -289,7 +289,10 @@ def predict_new_profiles(frame,bundle):
     """No refit: frozen encoding/scaling, HDBSCAN affinities, medoid distances."""
     import hdbscan
     geometry=transform_new_geometry(frame,bundle['encoder'])
-    cluster_geometry=bundle['umap'].transform(geometry*np.asarray(bundle.get('umap_input_weights',1.))) if 'umap' in bundle else geometry
+    if bundle.get('tfidf') is not None:
+        from pricing.description_distance import combine
+        cluster_geometry=bundle['umap'].transform(combine(frame,geometry,bundle['tfidf']))
+    else:cluster_geometry=bundle['umap'].transform(geometry*np.asarray(bundle.get('umap_input_weights',1.))) if 'umap' in bundle else geometry
     if bundle.get('cluster_weights') is not None:
         cluster_geometry=np.ascontiguousarray(geometry*np.asarray(bundle['cluster_weights']),dtype=np.float64)
     if bundle.get('prediction_method')=='flat':
