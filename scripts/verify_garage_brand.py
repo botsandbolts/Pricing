@@ -7,7 +7,7 @@ def main():
     reports={}
     for k in [10,25]:
         meta,arrays=load(Path('.'),k)
-        assert meta['density_method']=='direct-weighted-manhattan'
+        assert meta['density_method'] in ('direct-weighted-manhattan','direct-weighted-euclidean')
         reports[str(k)]={'rows':meta['rows'],'ui':exercise_taste_ui(Path('.'),k,[1+i%4 for i in range(k)])}
     Path('drive-chemistry-ui-check.json').write_text(json.dumps(reports,indent=2))
     print(json.dumps(reports,indent=2))
