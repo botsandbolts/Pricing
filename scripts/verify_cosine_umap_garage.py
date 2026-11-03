@@ -18,8 +18,8 @@ def verify(root):
     with patch('pricing.taste_ranking.active_catalogue_folder',return_value=folder), patch('pricing.taste_garage_ui.active_catalogue_folder',return_value=folder):
       for k in [10,25]:
         meta,a=load(root,k);assert meta['version']==5 and meta['encoding_kind']==KIND and meta['rows']==110832
-        assert meta['embedding']['metric']=='cosine'
-        assert meta['embedding']['min_dist']==0 and meta['embedding']['n_neighbors']==30 and meta['embedding']['n_components']==5
+        assert meta['embedding']['umap_metric']=='manhattan'
+        assert meta['embedding']['min_dist']==.1 and meta['embedding']['n_neighbors']==15 and meta['embedding']['n_components']==2
         bundle=joblib.load(root/f'training-cache/lemon-mixed/frozen-profiles-{k}.joblib')
         assert bundle['encoder']['kind']==KIND
         assert 'log_mileage' in bundle['encoder']['numeric_names'] and 'log_predicted_text_price' in bundle['encoder']['numeric_names']
@@ -27,7 +27,7 @@ def verify(root):
         # Probe contains the stored scalar price, not MiniLM text or embedding inputs.
         probe=pd.DataFrame(records(root,prototypes[:3])).drop(columns=['description'])
         geometry=transform_new_geometry(probe,bundle['encoder'])
-        np.testing.assert_allclose(geometry,bundle['umap']._raw_data[prototypes[:3]],atol=2e-5)
+        np.testing.assert_allclose(geometry*bundle['umap_input_weights'],bundle['umap']._raw_data[prototypes[:3]],atol=2e-5)
         m,d=predict_new_profiles(probe,bundle)
         assert m.shape==d.shape==(3,k) and np.isfinite(m).all() and np.isfinite(d).all()
         if current is None:current=adjusted_price_features(a['codes'],a['numeric'],meta['levels'],a['prices'],a['source_days'],today(),TimeTransport(root))

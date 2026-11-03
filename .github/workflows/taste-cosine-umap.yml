@@ -1,4 +1,4 @@
-name: Train cosine UMAP then HDBSCAN
+name: Train default UMAP weighted Manhattan then Euclidean HDBSCAN
 on:
   workflow_dispatch:
   push:
