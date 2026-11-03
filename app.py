@@ -19,14 +19,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _single_xgboost_release_v7():
+def _hierarchical_only_release_v8():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
     for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_single_xgboost_release_v7()
+_hierarchical_only_release_v8()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
@@ -87,6 +87,14 @@ if _workspace=='📅 Value over time':
     footer()
     st.stop()
 st.caption('Historical comparison tools retain their own model names and assessment dates. They are not the current XGBoost calculator.')
+st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
+<strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
+An uncommon make or trim has fewer close comparisons. Explore the separate hierarchical asking and wholesale estimates, their historical ranges, and how similar cars lend evidence.
+</div>''',unsafe_allow_html=True)
+if st.button('Explore rare-car estimates and uncertainty ↗',type='primary',key='rare_car_entry'):
+    st.query_params['hierarchy']='1'
+    st.session_state['_navigate_to']='🌳 Hierarchical model'
+    st.rerun()
 
 from pricing.analytics import render_privacy, record_price
 render_privacy()

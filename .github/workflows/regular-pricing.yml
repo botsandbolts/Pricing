@@ -1,4 +1,4 @@
-name: Verify single XGBoost pricing
+name: Verify hierarchical-only pricing
 on:
   push:
     paths: ['pricing/hierarchy_sparse_live.py','pricing/hierarchy_sparse_studio.py','pricing/navigation.py','pricing/current_tools.py','scripts/check_regular_pricing.py','.github/workflows/regular-pricing.yml']
