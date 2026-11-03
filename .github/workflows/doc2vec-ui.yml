@@ -1,9 +1,12 @@
-name: Verify pairwise vehicle discovery
+name: Verify SVD vehicle discovery
 on:
   push:
     paths:
       - 'pricing/merchant_discovery_ui.py'
       - 'pricing/session_pairwise.py'
+      - 'pricing/svd_discovery.py'
+      - 'tests/test_svd_discovery.py'
+      - 'data/merchant-discovery-minilm/shrunk-svd.npy'
       - 'pricing/dealer_signals.py'
       - 'data/merchant-discovery-minilm/dealers.json'
       - 'tests/test_dealer_signals.py'
@@ -24,4 +27,6 @@ jobs:
           python-version: '3.12'
       - run: pip install 'numpy<3' scipy pandas scikit-learn streamlit pytest requests
       - run: python -m pytest tests/test_merchant_reco.py tests/test_session_pairwise.py tests/test_dealer_signals.py -q
+      - run: test -f data/merchant-discovery-minilm/shrunk-svd.npy || python -m scripts.build_shrunk_svd
+      - run: python -m pytest tests/test_svd_discovery.py -q
       - run: python -m scripts.check_doc2vec_ui
