@@ -54,7 +54,7 @@ def render(root):
                     st.json(run[key].get('time_holdout',{'status':'Insufficient support'}))
         st.download_button('Download completed research report',json.dumps(final,indent=2),'merchant-model-level-research.json','application/json')
     else:
-        st.info('The full analysis is rerunning without downstream NER score cutoffs. Earlier thresholded results are withheld until the replacement report is ready.')
+        st.info('The full analysis is rerunning without downstream NER score cutoffs. Earlier thresholded results are withheld until the replacement report is ready. No unsupported named percentages are displayed.')
     with st.expander('Original exploratory experiment · provenance'):
         st.json(report)
     st.caption('Research provenance: GitHub Actions run 41680537032. No claim about a named business should be drawn without checking the source adverts, identity and services.')
