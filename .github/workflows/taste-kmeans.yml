@@ -30,6 +30,7 @@ jobs:
             assets
             marketbridge
             data/taste-garage-kmeans
+            data/taste-garage-mixed
             data/taste-garage
             models/time-transport
       - uses: actions/setup-python@v5
