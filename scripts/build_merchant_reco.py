@@ -65,5 +65,18 @@ def main():
         checks[str(liked)]={'recommendations':10}
     meta={'version':1,'rows':len(frame),'merchant_candidates':len(keys),'linked_rows':len(linked),'identity_status':'inferred, not verified legal identity','semantic_model':'all-MiniLM-L6-v2 + 96D projection','source_sha256':hashlib.file_digest(open(source,'rb'),'sha256').hexdigest(),'seeds':seeds,'types':types,'prices':prices.tolist(),'mechanical_checks':checks,'relevance_evaluation':'No independent user relevance benchmark; merchant identity precision not yet manually audited'}
     (folder/'manifest.json').write_text(json.dumps(meta))
+    from streamlit.testing.v1 import AppTest
+    app=AppTest.from_string("from pathlib import Path\\nfrom pricing.merchant_discovery_ui import render\\nrender(Path('.'))".replace('\\\\n','\\n')).run(timeout=120)
+    assert not app.exception
+    for control in app.get('pills'):
+        if str(control.key).startswith('merchant_rating_'):control.set_value(4 if str(control.key).endswith('_'+str(seeds[0])) else 1)
+    app.run(timeout=120)
+    button=next(b for b in app.button if b.key=='merchant_find')
+    assert not button.disabled
+    button.click().run(timeout=120)
+    assert not app.exception
+    assert any('Your shortlist' in m.value for m in app.markdown)
+    meta['ui_check']='Five real ratings submitted; shortlist rendered without exceptions'
+    (folder/'manifest.json').write_text(json.dumps(meta))
     print(json.dumps({k:v for k,v in meta.items() if k not in ('types','prices')},indent=2))
 if __name__=='__main__':main()
