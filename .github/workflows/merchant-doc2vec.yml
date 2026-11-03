@@ -1,0 +1,58 @@
+name: Build temporary Doc2Vec discovery
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/build_doc2vec_reco.py'
+      - '.github/workflows/merchant-doc2vec.yml'
+permissions:
+  contents: write
+concurrency:
+  group: merchant-doc2vec
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'numpy<3' 'pandas<3' scipy scikit-learn gensim spacy streamlit pytest faiss-cpu requests
+      - run: python -m spacy download en_core_web_sm
+      - run: python -m pytest tests/test_merchant_reco.py -q
+      - run: python -m scripts.prepare_lemon_reco --from-catalogue
+      - run: python -m scripts.restore_reco_text
+      - uses: actions/cache@v4
+        with:
+          path: training-cache/merchant-ner-cache.json
+          key: merchant-ner-domain-context-v1
+      - run: python -u -m scripts.build_doc2vec_reco
+      - uses: actions/upload-artifact@v4
+        with:
+          name: merchant-meaning-catalogue
+          path: data/merchant-discovery
+      - name: Store separate Doc2Vec assets
+        run: |
+          mkdir -p data/merchant-discovery-doc2vec
+          cp -a data/merchant-discovery/. data/merchant-discovery-doc2vec/
+      - name: Publish independent verified discovery assets
+        run: |
+          tar -cf "$RUNNER_TEMP/merchant.tar" data/merchant-discovery-doc2vec
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            tar -xf "$RUNNER_TEMP/merchant.tar"
+            git add data/merchant-discovery-doc2vec
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m "Publish verified Merchant Meaning discovery catalogue"
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1

@@ -14,11 +14,17 @@ def cars(folder,positions):
 def render(root):
     from pricing.studio_design import page_intro
     from pricing.garage_art import car_art
-    folder=Path(root)/'data/merchant-discovery';path=folder/'manifest.json'
+    folder=Path(root)/'data/merchant-discovery'
+    alternative=Path(root)/'data/merchant-discovery-doc2vec'
+    if (alternative/'manifest.json').exists():
+        method=st.radio('Text matching model',['TF-IDF + SVD','Doc2Vec'],horizontal=True,key='merchant_text_method')
+        if method=='Doc2Vec':folder=alternative
+    path=folder/'manifest.json'
     page_intro('Drive Chemistry · Merchant + Meaning','Find your type, not a cluster','Five honest reactions. Related inventories. Cars that speak your language.','💚')
     if not path.exists():st.info('The merchant and semantic catalogue is being built offline. Existing profile models remain available.');return
     meta,semantic,inventory=assets(str(folder),path.stat().st_mtime_ns)
     version=hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+    st.caption(meta.get('semantic_model','Text similarity'))
     st.caption(f"{meta['rows']:,} historical cars · no account · merchant identities are inferred, not verified")
     st.write('Rate these actual cars. Likes pull related cars closer; dislikes reduce their scores. The model keeps several interests separate, so liking a pickup and a convertible is allowed.')
     memory=st.session_state.setdefault('merchant_ratings_'+version,{})
