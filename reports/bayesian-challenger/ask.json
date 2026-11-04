@@ -1,5 +1,8 @@
 {
   "market": "ask",
+  "posterior_sha256": "c3fe937cca11f0f3afb898286b21139042f313f794dfcb932c18815203ca81aa",
+  "base_evaluation_sha256": "9ac7e990efa3219c4c62bac8cb8c5da2dcb8893578ae5d416769b51067e523db",
+  "baseline_reproduced": true,
   "status": "Completed challenger evaluation; existing production posterior unchanged",
   "method": "Risk-stratum validation calibration of saved Bayesian log correction: strength 0 to 2 in .25 increments plus a dollar-MAE weighted-median multiplier bounded to exp(+/-0.1); at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.",
   "weights": {
@@ -48,11 +51,11 @@
   "selection_rows": 20978,
   "interval_calibration_rows": 10690,
   "test_rows": 31682,
-  "current_bayesian_test_mae_usd": 3590.980988416538,
+  "current_bayesian_test_mae_usd": 3590.9809884165384,
   "challenger_test_mae_usd": 3523.157349816949,
-  "mae_saved_usd": 67.82363859958878,
+  "mae_saved_usd": 67.82363859958923,
   "paired_vehicle_bootstrap_95_saved_usd": [
-    58.206523536714776,
+    58.2065235367148,
     78.52966772199524
   ],
   "test_coverage_90": 0.8939145255981314,
