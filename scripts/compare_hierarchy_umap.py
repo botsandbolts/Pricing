@@ -60,7 +60,8 @@ def main():
         predictions[arm]=pt.corrected_price.to_numpy()
         report={'point_scores':scores(test.observed_price,pt.corrected_price),
                 'test_rows':len(test),'test_coverage':float(((test.observed_price>=low)&(test.observed_price<=high)).mean()),
-                'selected_likelihood':best['likelihood']}
+                'selected_likelihood':best['likelihood'],
+                'validation_multiplier':float(multiplier)}
         details[arm].update(report)
         save(out/arm,meta,arrays,report)
         rows.append({'Model':arm,'MAE ($)':report['point_scores']['mae_usd'],
