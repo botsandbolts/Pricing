@@ -1,9 +1,9 @@
-"""Controlled ELECTRA residual experiment and earlier BGE comparisons."""
+"""Raw ELECTRA XGBoost experiment and earlier embedding comparisons."""
 import json
 from pathlib import Path
 import streamlit as st
 
-RUN_URL = "https://github.com/botsandbolts/Pricing/actions/workflows/electra-pricing.yml"
+RUN_URL = "https://github.com/botsandbolts/Pricing/actions/workflows/electra-raw-xgboost.yml"
 
 
 def render(root):
@@ -11,23 +11,22 @@ def render(root):
     st.header("Experimental pricing · The extra brain cell")
     st.write(
         "Can a differently trained small transformer add information to MiniLM? "
-        "We compare the same frozen XGBoost predictions with and without "
-        "ELECTRA description features in the Bayesian residual model."
+        "We retrain XGBoost on matched folds, with and without all 256 raw "
+        "ELECTRA coordinates, then refit the same Bayesian residual correction."
     )
     st.info(
         "XGBoost still uses vehicle facts and the MiniLM predicted text price. "
         "ELECTRA-Small is frozen: its token vectors are averaged with attention "
-        "masking and normalized. Its 32 UMAP coordinates enter only the Bayesian "
-        "correction, with shrinkage."
+        "masking and normalized. All 256 coordinates enter XGBoost directly. "
+        "The Bayesian hierarchy uses its existing predictors and is refitted on each arm residuals."
     )
     st.caption(
-        "25 encoding jobs. Explicit money amounts are removed from descriptions. "
-        "Cosine UMAP and scaling are fitted on calibration data only; validation "
-        "and test descriptions are transformed only. ELECTRA is not sentence-similarity "
-        "fine-tuned: this pooling is an experiment."
+        "Reuses the 25 completed encoding jobs. No UMAP, PCA or dimension reduction. "
+        "Explicit money amounts are removed from descriptions. MiniLM price heads "
+        "are refitted inside each XGBoost training fold. ELECTRA pooling remains experimental."
     )
     st.link_button("View ELECTRA training progress", RUN_URL)
-    path = root / "reports/electra-hierarchy-experiment/comparison.json"
+    path = root / "reports/electra-raw-xgboost-experiment/comparison.json"
     if not path.exists():
         st.info(
             "ELECTRA evaluation is pending. The workflow will publish its measured "
@@ -39,7 +38,7 @@ def render(root):
             rows = report["comparison"]
             arms = {row["Model"]: row for row in rows}
             baseline = float(arms["baseline"]["MAE ($)"])
-            electra = float(arms["electra_hierarchy"]["MAE ($)"])
+            electra = float(arms["electra_raw_xgboost"]["MAE ($)"])
         except (OSError, ValueError, KeyError, TypeError):
             st.warning("The ELECTRA report could not be loaded. Check the workflow for details.")
         else:
@@ -58,6 +57,7 @@ def render(root):
             with st.expander("Business and technical receipt"):
                 st.json(report)
     for name, relative in [
+        ("Earlier ELECTRA/UMAP in the Bayesian hierarchy", "reports/electra-hierarchy-experiment/comparison.json"),
         ("Earlier BGE/UMAP in the Bayesian hierarchy", "reports/hierarchy-umap-experiment/comparison.json"),
         ("Earlier BGE/UMAP in XGBoost", "reports/bge-umap-experiment/comparison.json"),
     ]:
