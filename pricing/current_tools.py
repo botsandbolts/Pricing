@@ -174,13 +174,13 @@ def render_drivers(root,fields,notes,results,bayesian):
 def render_minilm(root,notes,fields=None,date=None,results=None,bayesian=False):
     from pricing.release_contract import release_identity
     from pricing.description_features import kind
-    current=kind(root) in {'minilm-price','minilm-embeddings'} and fields is not None and results is not None and 'error' not in results.get('ask',{'error':'unavailable'})
+    current=kind(root) in {'minilm-price','minilm-embeddings','minilm-price-adapted-bge-umap'} and fields is not None and results is not None and 'error' not in results.get('ask',{'error':'unavailable'})
     st.markdown('### 🖍 Which phrases move my asking estimate?' if current else '### 🖍 MiniLM · description-only comparison')
-    st.caption('Direct grouped Shapley attribution of your current asking-price function, including MiniLM, XGBoost, date adjustment and the selected Bayesian correction. No surrogate is trained.' if current else 'Separate historical MiniLM/Ridge experiment. It is NOT an input to the current TF-IDF estimate. These dollar effects do not explain today’s valuation.')
+    st.caption('Direct grouped Shapley attribution of your current asking-price function, including the installed description encoders, XGBoost, date adjustment and the selected Bayesian correction. No surrogate is trained.' if current else 'Separate historical MiniLM/Ridge experiment. It is NOT an input to the current TF-IDF estimate. These dollar effects do not explain today’s valuation.')
     if not notes.strip():st.info('Add a seller description and estimate the car to investigate its wording.');return
-    st.caption('On request · CPU · up to 128 tokens after the existing text cleanup. Removing phrases can alter negation and truncation; these are model reactions, not causal price premiums.')
+    st.caption('On request · CPU · MiniLM reads up to 128 tokens; an installed adapted BGE encoder reads up to 256. Removing phrases can alter negation and truncation; these are model reactions, not causal price premiums.')
     identity=json.dumps([notes,fields,str(date),bayesian,current,results.get('ask',{}).get('price') if results else None,release_identity(root)],sort_keys=True,default=str)
-    requested=st.button('Analyse description with MiniLM',key='current_minilm_phrases')
+    requested=st.button('Analyse description effects',key='current_minilm_phrases')
     cached=st.session_state.get('_current_minilm_analysis',{})
     if not requested and cached.get('identity')!=identity:return
     try:
@@ -202,7 +202,7 @@ def render_minilm(root,notes,fields=None,date=None,results=None,bayesian=False):
                 def encoder(path):return Encoder(path)
                 model=encoder(str(folder/'minilm'));head=json.loads((folder/'minilm-head.json').read_text())
                 def predict(text):return float(price(head,model.encode([text]))[0])
-            with st.spinner('Comparing phrase combinations with MiniLM…'):
+            with st.spinner('Comparing phrase combinations with the installed description model…'):
                 payload=explain_text(predict,notes,limit=6,pairs=2)
             if current and abs(payload['prediction']-results['ask']['price'])>max(.05,results['ask']['price']*1e-5):raise ValueError('Phrase explanation differs from displayed estimate')
             st.session_state['_current_minilm_analysis']={'identity':identity,'payload':payload}
