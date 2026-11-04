@@ -1,0 +1,23 @@
+{
+  "comparison": [
+    {
+      "Model": "baseline",
+      "MAE ($)": 3604.9292585084104,
+      "90% coverage": 0.894072343917682,
+      "Test cars": 31682
+    },
+    {
+      "Model": "bge",
+      "MAE ($)": 3564.1965787127733,
+      "90% coverage": 0.8936304526229405,
+      "Test cars": 31682
+    },
+    {
+      "Model": "Currently deployed (historical reference)",
+      "MAE ($)": 3523.157349816949,
+      "90% coverage": 0.8939145255981314,
+      "Test cars": 31682
+    }
+  ],
+  "limits": "Research only. Paired controls retrain MiniLM heads on money-redacted descriptions; current deployment is a historical reference and includes an additional validation calibration. Each arm uses identical retained Lemon rows, five group OOF folds, training-only 32-dimensional cosine UMAP for BGE (30 neighbours, min_dist 0.1, seed 42), AFT and robust Bayesian likelihood selection. Retained-cohort CV is conditional on earlier cleaning; historical test has been examined before. No claim of current-market validation or serving readiness."
+}
