@@ -32,6 +32,7 @@ def scorecard(root,*,details=False):
                     st.caption('Selected errors: '+r['selected_likelihood'].replace('_',' ')+' · nonlinear effects · segment-specific noise.')
         rows.append({'Market':label,'Regular MAE ($)':c['base'],'Bayesian MAE ($)':c['bayesian'],'MAE reduction ($)':c['saved_usd'],'MAE reduction (%)':c['improvement_pct'],'Test cars':r['test_rows']})
     if details:
+        calibration_experiment(root)
         st.dataframe(rows,hide_index=True)
         st.caption('Positive reduction means improvement; negative means worsening. This comparison isolates the Bayesian layer after cleaning. It does not establish that the 25% cleaning itself improved accuracy.')
         for side,r in data.items():
@@ -45,6 +46,32 @@ def scorecard(root,*,details=False):
                 p=Path(root)/'models/xgboost-hierarchy'/side
                 st.json({'cleaning':json.loads((p/'cleaning.json').read_text()),'xgboost':json.loads((p/'evaluation.json').read_text()),'bayesian':r})
         st.warning('These are historical test results. Date-adjusted scenarios and transported ranges have not been validated on current-market car outcomes.')
+
+
+def calibration_experiment(root):
+    paths={side:Path(root)/'reports/bayesian-challenger'/f'{side}.json' for side in ['ask','bid']}
+    if not all(p.exists() for p in paths.values()):
+        return
+    with st.expander('The second opinion gets a second opinion · calibration experiment'):
+        st.write('Can the Bayesian correction know when to speak more softly? This experiment chooses how much correction to apply using validation cars. Separate cars calibrate the 90% ranges. These are challenger results, not the deployed pricing model.')
+        rows=[]
+        for side,path in paths.items():
+            r=json.loads(path.read_text())
+            rows.append({'Market':side.title(),'Current Bayesian MAE ($)':r['current_bayesian_test_mae_usd'],
+                'Challenger MAE ($)':r['challenger_test_mae_usd'],'MAE saved ($)':r['mae_saved_usd'],
+                '90% range coverage':r['test_coverage_90'],'Test cars':r['test_rows'],
+                'Cleared experiment gate':r['eligible_for_promotion']})
+        st.dataframe(rows,hide_index=True)
+        st.caption('Positive savings means lower average dollar error. Clearing the experiment gate is not deployment. Historical test cars have been examined in earlier development; this is not a new external benchmark.')
+        for side,path in paths.items():
+            r=json.loads(path.read_text())
+            st.markdown('**'+side.title()+' · technical receipt**')
+            st.write(r['method'])
+            st.write('95% paired vehicle-group bootstrap savings interval (USD/car): '+str(r['paired_vehicle_bootstrap_95_saved_usd']))
+            st.json({'correction_weights':r['weights'],'interval_scales':r['interval_scales'],
+                'selection_rows':r['selection_rows'],'interval_calibration_rows':r['interval_calibration_rows']})
+            st.caption(r['limits'])
+
 
 def render(root):
     from pricing.analytics import render_privacy
