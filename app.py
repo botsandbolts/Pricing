@@ -33,6 +33,11 @@ install_style()
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
+if _workspace=='🧬 Experimental pricing':
+    from pricing.experimental_pricing import render as render_experiment
+    render_experiment(Path(__file__).parent)
+    footer()
+    st.stop()
 if _workspace=='🏪 Merchant lens':
     from pricing.dealer_positioning_ui import render as render_dealer_positioning
     render_dealer_positioning(Path(__file__).parent)

@@ -1,0 +1,165 @@
+name: BGE pricing twenty-shard experiment
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/encode_bge_shard.py'
+      - 'scripts/train_bge_pricing.py'
+      - 'scripts/merge_bge_shards.py'
+      - 'scripts/report_bge_pricing.py'
+      - 'pricing/advert_text.py'
+      - '.github/workflows/bge-pricing.yml'
+permissions:
+  contents: write
+  actions: read
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            marketbridge
+            carbids
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy pandas scipy scikit-learn requests lightgbm joblib
+      - run: |
+          mkdir -p training-cache
+          python - <<'PY'
+          import urllib.request,hashlib
+          from pathlib import Path
+          p=Path('training-cache/ask.zip')
+          urllib.request.urlretrieve('https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1',p)
+          assert hashlib.file_digest(open(p,'rb'),'sha256').hexdigest()=='eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f'
+          PY
+          python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bge-original-cohort
+          path: training-cache/full-cohort.jsonl
+          retention-days: 14
+  encode:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            tests
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --index-url https://download.pytorch.org/whl/cpu torch
+      - run: pip install sentence-transformers pandas numpy pytest
+      - run: python -m pytest tests/test_advert_text.py -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: bge-original-cohort
+          path: training-cache
+      - run: python -u -m scripts.encode_bge_shard --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bge-shard-${{ matrix.shard }}
+          path: bge-shards
+          retention-days: 30
+  train:
+    needs: encode
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [baseline,bge]
+    env:
+      BGE_ARM: ${{ matrix.arm }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            marketbridge
+            models/structural-transfer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy pandas scipy scikit-learn 'xgboost>=3,<4' lightgbm requests joblib
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bge-shard-*
+          merge-multiple: true
+          path: bge-shards
+      - uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: frozen-lemon
+      - run: |
+          python -m scripts.merge_bge_shards
+          mkdir -p evidence
+          cp frozen-lemon/ask/hierarchy-input.csv.gz evidence/ask-minilm-cleaned.csv.gz
+          python -u -m scripts.train_bge_pricing --market ask
+          python -u -m scripts.fit_lemon_hierarchy --market ask
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bge-result-${{ matrix.arm }}
+          path: training-cache/lemon-hierarchy
+          retention-days: 90
+  report:
+    needs: train
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+            reports/bge-experiment
+            models/xgboost-hierarchy/ask/bayesian
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: bge-result-baseline
+          path: experiment-results/baseline
+      - uses: actions/download-artifact@v4
+        with:
+          name: bge-result-bge
+          path: experiment-results/bge
+      - run: python -m scripts.report_bge_pricing
+      - run: |
+          cp reports/bge-experiment/comparison.json "$RUNNER_TEMP/bge-report.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/bge-experiment
+            cp "$RUNNER_TEMP/bge-report.json" reports/bge-experiment/comparison.json
+            git add reports/bge-experiment
+            git diff --cached --quiet && exit 0
+            git commit -m "Publish BGE PCA controlled Bayesian pricing comparison"
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
