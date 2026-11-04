@@ -32,7 +32,7 @@ def quantile(values):
     n=len(values);rank=min(n,int(np.ceil((n+1)*.9)))
     return float(np.partition(values,rank-1)[rank-1])
 
-def run(side):
+def run(side,promote=False):
     folder=Path('training-cache/lemon-hierarchy')/side
     prepared=folder.parent/'inputs'/(side+'-minilm-cleaned.csv.gz')
     d=pd.read_csv(prepared,dtype={'row_id':str,'vehicle_group':str})
@@ -85,13 +85,47 @@ def run(side):
     coverage=float(np.mean((truth>=low)&(truth<=high)))
     report={'market':side,'posterior_sha256':meta['posterior_sha256'],'base_evaluation_sha256':meta['base_evaluation_sha256'],'baseline_reproduced':True,'status':'Completed challenger evaluation; existing production posterior unchanged',
       'method':'Risk-stratum validation calibration of saved Bayesian log correction: strength 0 to 2 in .25 increments plus a dollar-MAE weighted-median multiplier bounded to exp(+/-0.1); at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.',
-      'weights':weights,'interval_scales':scale,'selection_rows':len(select),'interval_calibration_rows':len(cal),'test_rows':len(test),
+      'weights':weights,'interval_scales':scale,'interval_counts':{k:int((sc==k).sum()) for k in scale['strata']},'selection_rows':len(select),'interval_calibration_rows':len(cal),'test_rows':len(test),
       'current_bayesian_test_mae_usd':old_mae,'challenger_test_mae_usd':new_mae,'mae_saved_usd':old_mae-new_mae,
       'paired_vehicle_bootstrap_95_saved_usd':ci,'test_coverage_90':coverage,'median_interval_width_usd':float(np.median(high-low)),
       'eligible_for_promotion':bool(ci[0]>0 and .88<=coverage<=.95),
       'limits':'Strength and price-level multiplier selected only on selection validation; intervals calibrated on different validation vehicles; test used after selection. Historical test reused in prior development, not a new external benchmark. Conditional intervals ignore uncertainty in selected shrinkage weights. No current-date coverage guarantee. No merchant identity correction added.'}
     dest=Path('reports/bayesian-challenger');dest.mkdir(parents=True,exist_ok=True)
     (dest/(side+'.json')).write_text(json.dumps(report,indent=2))
+    if promote and report['eligible_for_promotion']:
+        from pricing.bayesian_calibration import validate,apply
+        validate(meta,report)
+        calibrated=apply(test,pt,report)
+        if not np.allclose(calibrated.corrected_price,center,rtol=1e-12):
+            raise ValueError('Serving calibration differs from evaluated predictions')
+        deployed_low,deployed_high=bayes.interval(calibrated,scale['global'])
+        served_coverage=float(np.mean((truth>=deployed_low)&(truth<=deployed_high)))
+        if not .88<=served_coverage<=.95:
+            raise ValueError('Serving interval bounds failed coverage gate')
+        new_report=dict(original)
+        new_report['uncalibrated_bayesian_evaluation']=original
+        new_report['point_scores']={'mae_usd':new_mae,'rmse_usd':float(np.sqrt(np.mean((truth-center)**2))),
+            'mae_log':float(np.mean(abs(np.log(truth/center)))),'bias_usd':float(np.mean(center-truth)),'rows':len(test)}
+        new_report.update(test_coverage=served_coverage,test_median_interval_width_usd=float(np.median(deployed_high-deployed_low)),
+            test_median_interval_ratio=float(np.median(deployed_high/deployed_low)),validation_multiplier=scale['global'],
+            previous_bayesian_scores=original['point_scores'],
+            improvement_over_previous={'mean_mae_saved_usd':old_mae-new_mae,'group_bootstrap_95_usd':ci},
+            model=original.get('model','Bayesian hierarchy')+' + validation strength/level calibration')
+        new_report['test_segments']={name:{'rows':int((st==name).sum()),
+            'regular_mae_usd':float(np.mean(abs(truth[st==name]-pt.base_price.to_numpy()[st==name]))),
+            'new_mae_usd':float(np.mean(abs(truth[st==name]-center[st==name]))),
+            'coverage':float(np.mean(((truth>=deployed_low)&(truth<=deployed_high))[st==name]))} for name in np.unique(st)}
+        new_report['conditional_interval_calibration']={'method':report['method'],'level':.9,'strata':scale,
+            'limits':report['limits']}
+        report['status']='Promoted validation calibration; original posterior and XGBoost weights unchanged'
+        new_report['validation_calibration']=dict(report)
+        new_report['limits']=report['limits']
+        target=Path('models/xgboost-hierarchy')/side/'bayesian';target.mkdir(parents=True,exist_ok=True)
+        (target/'validation-calibration.json').write_text(json.dumps(report,indent=2))
+        (target/'bayesian-evaluation.json').write_text(json.dumps(new_report,indent=2))
+        (dest/(side+'.json')).write_text(json.dumps(report,indent=2))
     print(json.dumps(report),flush=True)
 if __name__=='__main__':
-    for side in ['ask','bid']:run(side)
+    import argparse
+    parser=argparse.ArgumentParser();parser.add_argument('--promote',action='store_true');args=parser.parse_args()
+    for side in ['ask','bid']:run(side,args.promote)

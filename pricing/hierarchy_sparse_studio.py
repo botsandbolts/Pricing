@@ -30,6 +30,8 @@ def scorecard(root,*,details=False):
                         low,high=saving['group_bootstrap_95_usd']
                         st.caption(f"Paired improvement over previous Bayes: USD {saving['mean_mae_saved_usd']:,.2f}/car; 95% vehicle-group bootstrap range USD {low:,.2f}–{high:,.2f}. This concerns average improvement, not an individual car’s range.")
                     st.caption('Selected errors: '+r['selected_likelihood'].replace('_',' ')+' · nonlinear effects · segment-specific noise.')
+                if r.get('validation_calibration'):
+                    st.caption('Includes validation-selected correction strength and price-level calibration. Separate validation vehicles recalibrate the historical ranges.')
         rows.append({'Market':label,'Regular MAE ($)':c['base'],'Bayesian MAE ($)':c['bayesian'],'MAE reduction ($)':c['saved_usd'],'MAE reduction (%)':c['improvement_pct'],'Test cars':r['test_rows']})
     if details:
         calibration_experiment(root)
@@ -53,16 +55,16 @@ def calibration_experiment(root):
     if not all(p.exists() for p in paths.values()):
         return
     with st.expander('The second opinion gets a second opinion · calibration experiment'):
-        st.write('Can the Bayesian correction know when to speak more softly? This experiment chooses how much correction to apply using validation cars. Separate cars calibrate the 90% ranges. These are challenger results, not the deployed pricing model.')
+        st.write('Can the Bayesian correction know when to speak more softly? This experiment chooses how much correction to apply using validation cars. Separate cars calibrate the 90% ranges. The status below identifies whether the tested calibration is installed.')
         rows=[]
         for side,path in paths.items():
             r=json.loads(path.read_text())
             rows.append({'Market':side.title(),'Current Bayesian MAE ($)':r['current_bayesian_test_mae_usd'],
                 'Challenger MAE ($)':r['challenger_test_mae_usd'],'MAE saved ($)':r['mae_saved_usd'],
                 '90% range coverage':r['test_coverage_90'],'Test cars':r['test_rows'],
-                'Cleared experiment gate':r['eligible_for_promotion']})
+                'Status':r['status']})
         st.dataframe(rows,hide_index=True)
-        st.caption('Positive savings means lower average dollar error. Clearing the experiment gate is not deployment. Historical test cars have been examined in earlier development; this is not a new external benchmark.')
+        st.caption('Positive savings means lower average dollar error. The published status distinguishes an experiment from an installed calibration. Historical test cars have been examined in earlier development; this is not a new external benchmark.')
         for side,path in paths.items():
             r=json.loads(path.read_text())
             st.markdown('**'+side.title()+' · technical receipt**')
@@ -108,6 +110,8 @@ def explain(root=Path('.')):
         st.markdown('#### The second opinion · a reality check')
         st.write('An inexpensive high-mileage car and a premium low-mileage car need different error bars. The redesign learns curved age, mileage and baseline-price effects, make-specific age slopes, and pooled corrections for state, body, transmission, fuel, drive, title, condition, cylinders and paint where available. Model names with fewer than 12 calibration cars share a rare-model pool within their make. No additional adverts are removed.')
         st.write('Gaussian, heavy-tailed Student-t and narrow/wide Gaussian contamination candidates face the same validation exam. Dollar MAE selects among candidates passing monitored convergence checks. Different validation cars calibrate ranges; the unchanged historical test cohort assesses the locked selection. Complete comparisons and difficult-car results are in Accuracy comparison.')
+        if any(r.get('validation_calibration') for r in reports(root).values()):
+            st.write('The family council also checks its volume: validation cars choose the strength of the correction and a small price-level adjustment. Separate validation cars recalibrate the 90% ranges. The calibration passed positive paired-bootstrap savings and historical coverage checks before installation; the posterior itself was not retrained.')
         st.write('Technical: log(observed/base) has a fixed 16-column piecewise-linear basis, cross-classified Gaussian random intercepts, make age slopes and 12 price/age-specific observation variances. Two conditional Gibbs chains sample coefficients, variance hyperparameters and Student-t latent precisions or mixture allocations. Proper Normal/inverse-gamma priors regularize effects. Student-t df=4; contamination scale=5 with Beta(1,9) weight. The posterior location median is inverse-transformed to dollars; unseen groups add variance.')
         st.write('Vehicle-group hashing separates validation into two-thirds selection and one-third Mondrian split-conformal calibration. Risk groups distinguish rare models, baseline prices below $5,000, and age above 12 years or mileage above 150,000. Groups need 100 calibration cars, otherwise they fall back to rarity and then global pools; actual support is shown. Candidate ELPD uses held-out log-price predictive density, not PSIS-LOO. Promotion requires validation improvement, positive lower 95% paired vehicle-group bootstrap savings versus both previous Bayes and regular models, monitored split R-hat <1.1, and test coverage 88–95%. These checks do not prove every latent effect has converged or validate current-date transport.')
     else:

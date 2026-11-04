@@ -109,7 +109,11 @@ def predict(metadata, arrays, frame, *, batch=512):
     """Integrate joint parameter draws; return log predictive SD incl. car noise."""
     if metadata.get('method')=='robust_cross_classified_gibbs_v1':
         from pricing.robust_hierarchy import predict as robust_predict
-        return robust_predict(metadata,arrays,frame,batch=batch)
+        result=robust_predict(metadata,arrays,frame,batch=batch)
+        if metadata.get('validation_calibration'):
+            from pricing.bayesian_calibration import apply
+            result=apply(frame,result,metadata['validation_calibration'])
+        return result
     make_index = pd.Index(metadata['makes']).get_indexer(frame.manufacturer.astype(str).str.lower())
     model_keys = frame.manufacturer.astype(str).str.lower() + '::' + frame.model.astype(str).str.lower()
     model_index = pd.Index(metadata['models']).get_indexer(model_keys)
@@ -189,4 +193,10 @@ def load(folder):
         raise ValueError('Bayesian posterior checksum mismatch')
     with np.load(io.BytesIO(packed),allow_pickle=False) as archive:
         arrays={k:archive[k] for k in archive.files}
+    calibration_path=folder/'validation-calibration.json'
+    if calibration_path.exists():
+        calibration=json.loads(calibration_path.read_text())
+        from pricing.bayesian_calibration import validate
+        validate(metadata,calibration)
+        metadata['validation_calibration']=calibration
     return metadata,arrays

@@ -41,14 +41,15 @@ jobs:
           run-id: 41605651393
           github-token: ${{ github.token }}
           path: training-cache/lemon-hierarchy
-      - run: python -m pytest tests/test_bayesian_shrinkage_challenger.py -q
-      - run: python -u -m scripts.bayesian_shrinkage_challenger
+      - run: python -m pytest tests/test_bayesian_shrinkage_challenger.py tests/test_bayesian_calibration.py -q
+      - run: python -u -m scripts.bayesian_shrinkage_challenger --promote
       - uses: actions/upload-artifact@v4
         with:
           name: bayesian-calibration-challenger
           path: reports/bayesian-challenger
       - run: |
           cp -r reports/bayesian-challenger "$RUNNER_TEMP/bayesian-challenger"
+          cp -r models/xgboost-hierarchy "$RUNNER_TEMP/calibration-models"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           for attempt in 1 2 3; do
@@ -56,6 +57,13 @@ jobs:
             git reset --hard origin/main
             mkdir -p reports/bayesian-challenger
             cp "$RUNNER_TEMP/bayesian-challenger/"*.json reports/bayesian-challenger/
+            for side in ask bid; do
+              if [ -f "$RUNNER_TEMP/calibration-models/$side/bayesian/validation-calibration.json" ]; then
+                mkdir -p "models/xgboost-hierarchy/$side/bayesian"
+                cp "$RUNNER_TEMP/calibration-models/$side/bayesian/"*.json "models/xgboost-hierarchy/$side/bayesian/"
+                git add --sparse "models/xgboost-hierarchy/$side/bayesian/validation-calibration.json" "models/xgboost-hierarchy/$side/bayesian/bayesian-evaluation.json"
+              fi
+            done
             git add reports/bayesian-challenger
             git diff --cached --quiet && exit 0
             git commit -m "Publish Bayesian calibration challenger results"

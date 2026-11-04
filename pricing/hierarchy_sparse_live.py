@@ -30,7 +30,7 @@ def _load(root,side,version):
 
 def load(root,side):
     folder=Path(root)/'models/xgboost-hierarchy'/side
-    paths=[folder/'evaluation.json',folder/'category-schema.json',folder/'features.json',folder.parent/'release.json',folder/'bayesian/bayesian.json.gz',folder/'bayesian/bayesian-evaluation.json']
+    paths=[folder/'evaluation.json',folder/'category-schema.json',folder/'features.json',folder.parent/'release.json',folder/'bayesian/bayesian.json.gz',folder/'bayesian/bayesian-evaluation.json',folder/'bayesian/validation-calibration.json']
     version=tuple((p.name,p.stat().st_mtime_ns,p.stat().st_size) for p in paths if p.exists())
     return _load(root,side,version)
 
