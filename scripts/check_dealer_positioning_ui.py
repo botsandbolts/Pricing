@@ -1,3 +1,4 @@
+from pathlib import Path
 from streamlit.testing.v1 import AppTest
 app=AppTest.from_string("from pathlib import Path\nfrom pricing.dealer_positioning_ui import render\nrender(Path('.'))").run()
 assert not app.exception,app.exception
