@@ -1,0 +1,69 @@
+name: UMAP in Bayesian residual hierarchy
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/hierarchy-umap.yml'
+permissions:
+  contents: write
+  actions: read
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMBA_NUM_THREADS: '2'
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            reports/bge-umap-experiment
+            reports/hierarchy-umap-experiment
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy 'pandas>=2.2,<3' scipy scikit-learn joblib 'umap-learn>=0.5,<0.6'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bge-shard-*
+          run-id: 41876358303
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: bge-shards
+      - uses: actions/download-artifact@v4
+        with:
+          name: bge-result-baseline
+          run-id: 41885150087
+          github-token: ${{ github.token }}
+          path: frozen-baseline
+      - run: |
+          python -m scripts.merge_bge_shards
+          python -u -m scripts.compare_hierarchy_umap
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hierarchy-umap-results
+          path: |
+            hierarchy-umap-results
+            reports/hierarchy-umap-experiment
+          retention-days: 90
+      - name: Publish comparison
+        run: |
+          cp reports/hierarchy-umap-experiment/comparison.json "$RUNNER_TEMP/hierarchy-umap-report.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/hierarchy-umap-experiment
+            cp "$RUNNER_TEMP/hierarchy-umap-report.json" reports/hierarchy-umap-experiment/comparison.json
+            git add reports/hierarchy-umap-experiment
+            git diff --cached --quiet && exit 0
+            git commit -m "Publish Bayesian-only UMAP residual comparison"
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
