@@ -1,4 +1,5 @@
 name: UMAP in Bayesian residual hierarchy
+# Retry with the complete posterior save receipt.
 on:
   workflow_dispatch:
   push:
