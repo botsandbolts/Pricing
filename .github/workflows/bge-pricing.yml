@@ -34,11 +34,11 @@ jobs:
       - run: pip install numpy pandas scipy scikit-learn requests lightgbm joblib
       - run: |
           mkdir -p training-cache
+          curl --fail --location --retry 8 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 1800 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'
           python - <<'PY'
-          import urllib.request,hashlib
+          import hashlib
           from pathlib import Path
           p=Path('training-cache/ask.zip')
-          urllib.request.urlretrieve('https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1',p)
           assert hashlib.file_digest(open(p,'rb'),'sha256').hexdigest()=='eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f'
           PY
           python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2
