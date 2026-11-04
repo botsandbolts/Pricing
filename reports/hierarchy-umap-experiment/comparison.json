@@ -1,0 +1,120 @@
+{
+  "comparison": [
+    {
+      "Model": "baseline",
+      "MAE ($)": 3604.9292584655836,
+      "90% coverage": 0.894072343917682,
+      "Test cars": 31682
+    },
+    {
+      "Model": "hierarchy_umap",
+      "MAE ($)": 3598.1449015602834,
+      "90% coverage": 0.8936935799507607,
+      "Test cars": 31682
+    }
+  ],
+  "paired_improvement": {
+    "mean_mae_saved_usd": 6.784356905300017,
+    "group_bootstrap_95_usd": [
+      4.559997322078778,
+      8.970667437262474
+    ],
+    "vehicle_groups": 31682
+  },
+  "details": {
+    "baseline": {
+      "candidates": [
+        {
+          "likelihood": "gaussian",
+          "validation_mae_usd": 3434.8892957451703,
+          "max_split_rhat": 1.0175975339126477
+        },
+        {
+          "likelihood": "student_t",
+          "validation_mae_usd": 3432.327331747576,
+          "max_split_rhat": 1.029358285570824
+        },
+        {
+          "likelihood": "mixture",
+          "validation_mae_usd": 3435.9805067961693,
+          "max_split_rhat": 1.0218065651770405
+        }
+      ],
+      "point_scores": {
+        "mae_usd": 3604.9292584655836,
+        "rmse_usd": 7527.572151950243,
+        "mae_log": 0.26662385915938214,
+        "bias_usd": -1348.7367669127523,
+        "rows": 31682
+      },
+      "test_rows": 31682,
+      "test_coverage": 0.894072343917682,
+      "selected_likelihood": "student_t",
+      "validation_multiplier": 2.91792752078166
+    },
+    "hierarchy_umap": {
+      "candidates": [
+        {
+          "likelihood": "gaussian",
+          "validation_mae_usd": 3429.764279988509,
+          "max_split_rhat": 1.189513166333585
+        },
+        {
+          "likelihood": "student_t",
+          "validation_mae_usd": 3426.626059270461,
+          "max_split_rhat": 1.041546438113898
+        },
+        {
+          "likelihood": "mixture",
+          "validation_mae_usd": 3431.776768670387,
+          "max_split_rhat": 1.0176240522831066
+        }
+      ],
+      "point_scores": {
+        "mae_usd": 3598.1449015602834,
+        "rmse_usd": 7517.910235212055,
+        "mae_log": 0.26631218065879186,
+        "bias_usd": -1338.0370833746654,
+        "rows": 31682
+      },
+      "test_rows": 31682,
+      "test_coverage": 0.8936935799507607,
+      "selected_likelihood": "student_t",
+      "validation_multiplier": 2.9193815864995085
+    }
+  },
+  "architecture": "Identical frozen vehicle facts + MiniLM-price XGBoost AFT predictions in both arms. UMAP coordinates enter only the Bayesian residual mean in hierarchy_umap.",
+  "umap": {
+    "metric": "cosine",
+    "n_components": 32,
+    "n_neighbors": 30,
+    "min_dist": 0.1,
+    "n_epochs": 200,
+    "fit_scope": "calibration descriptions only; validation and test transformed only",
+    "scaling": "calibration-only StandardScaler; Bayesian coefficients N(0,0.2^2)"
+  },
+  "previous_xgboost_umap": {
+    "comparison": [
+      {
+        "Model": "baseline",
+        "MAE ($)": 3604.9292585084104,
+        "90% coverage": 0.894072343917682,
+        "Test cars": 31682
+      },
+      {
+        "Model": "bge",
+        "MAE ($)": 3564.1965787127733,
+        "90% coverage": 0.8936304526229405,
+        "Test cars": 31682
+      },
+      {
+        "Model": "Currently deployed (historical reference)",
+        "MAE ($)": 3523.157349816949,
+        "90% coverage": 0.8939145255981314,
+        "Test cars": 31682
+      }
+    ],
+    "limits": "Research only. Paired controls retrain MiniLM heads on money-redacted descriptions; current deployment is a historical reference and includes an additional validation calibration. Each arm uses identical retained Lemon rows, five group OOF folds, training-only 32-dimensional cosine UMAP for BGE (30 neighbours, min_dist 0.1, seed 42), AFT and robust Bayesian likelihood selection. Retained-cohort CV is conditional on earlier cleaning; historical test has been examined before. No claim of current-market validation or serving readiness."
+  },
+  "limits": "Historical, previously examined test cohort; fixed earlier Lemon cleaning. Likelihood chosen on selection-validation cars, intervals calibrated on separate validation cars. No current-market or serving-readiness claim."
+}
