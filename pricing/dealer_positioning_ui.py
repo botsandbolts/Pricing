@@ -16,17 +16,15 @@ def render(root):
     report=json.loads((folder/'method-and-metrics.json').read_text())
     st.warning('Exploratory historical research—not a dealer quality, fairness or overcharging ranking. Names are automatically inferred and unverified; extraction can mistake platforms such as Craigslist for merchants. These are not current dealer price policies or completed transaction prices.')
     st.info('Merchant services may vary considerably: warranties, vehicle preparation, inspection, delivery, financing and other services can explain differences. Unmeasured vehicle characteristics can also explain them. No inference about dealer profit, misconduct or value for money is supported.')
-    a=report['base_oof_mae_usd'];b=report['dealer_features_oof_mae_usd']
-    c1,c2,c3=st.columns(3)
-    c1.metric('Vehicle-only research MAE',f'$'+format(a,',.0f'))
-    c2.metric('With dealer signals · MAE',f'$'+format(b,',.0f'))
-    c3.metric('MAE reduction',f'{100*(a-b)/a:.2f}%')
-    st.caption('Same grouped five-fold historical comparison. A modest association, not proof of a reliable improvement. This research uses log squared-error XGBoost, not the installed AFT/Bayesian pricing pipeline. Live estimates are unchanged.')
     final_path=Path(root)/'reports/dealer-overlap/completed-analysis.json'
-    if final_path.exists() and json.loads(final_path.read_text()).get('version',1)>=2:
+    if final_path.exists() and json.loads(final_path.read_text()).get('version',1)>=3:
         final=json.loads(final_path.read_text())
         st.subheader('Comparable inventory · completed model-level analysis')
         st.write(final['status'])
+        provenance=final['residual_provenance']
+        st.caption('Existing Lemon Squeezer asking AFT · five-fold held-out residuals · MiniLM price feature. No separate merchant price-model training.')
+        st.metric('Original retained-cohort AFT OOF MAE · USD',f"${provenance['evaluation']['scores']['calibration']['mae_usd']:,.0f}")
+        with st.expander('Exact residual source and identity checks'):st.json(provenance)
         st.warning('Model-level comparison only: trim differences remain uncontrolled. Canonical date provenance is unverified. The estimates are associations, not causal effects.')
         summary=[]
         for run in final['runs']:
@@ -34,7 +32,7 @@ def render(root):
                 r=run[key]
                 summary.append({'Imputation seed':run['seed'],'Merchant assignment':label,'Input adverts':r['input_adverts'],
                   'Shared-support adverts':r['shared_adverts'],'Retained (%)':round(100*r['retained_fraction'],2),
-                  'Vehicle-only OOF MAE (USD)':r.get('oof_mae_usd'),'Status':r['status'],
+                  'Saved AFT OOF MAE within support (USD)':r.get('oof_mae_usd'),'Status':r['status'],
                   'Time holdout':r.get('time_holdout',{}).get('status','Not estimable')})
         st.dataframe(pd.DataFrame(summary),hide_index=True,width='stretch')
         st.subheader('Merchant evidence · alphabetical, not a leaderboard')

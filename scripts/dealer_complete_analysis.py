@@ -6,7 +6,7 @@ from scipy.sparse import hstack,csr_matrix
 from sklearn.feature_extraction import FeatureHasher
 from sklearn.model_selection import GroupKFold
 from sklearn.decomposition import TruncatedSVD
-from xgboost import XGBRegressor
+from pricing.lemon_oof import load_oof
 from pricing.xgb_imputation import completed_numeric
 
 def shared_support(frame):
@@ -18,21 +18,14 @@ def shared_support(frame):
     keys=set(support[support>=2].index)
     return clean.loc[clean[fields].apply(tuple,axis=1).isin(keys)]
 
-def estimator():
-    return XGBRegressor(n_estimators=150,max_depth=4,learning_rate=.06,reg_lambda=30,
-                        tree_method='hist',n_jobs=2,random_state=73)
-
-def evaluate(frame,x,y,groups,seed):
+def evaluate(frame,predictions,y,groups,seed):
     shared=shared_support(frame)
     evidence={'input_adverts':len(frame),'shared_adverts':len(shared),'retained_fraction':len(shared)/max(len(frame),1),'effects':[]}
     ids=shared.index.to_numpy(int)
     if len(ids)<100 or len(np.unique(groups[ids]))<20:
         evidence['status']='Unsupported: fewer than 100 shared adverts or 20 vehicle groups'
         return evidence
-    pred=np.zeros(len(ids))
-    for tr,te in GroupKFold(5).split(ids,groups=groups[ids]):
-        model=estimator().fit(x[ids[tr]],y[ids[tr]])
-        pred[te]=model.predict(x[ids[te]])
+    pred=predictions[ids]
     residual=y[ids]-pred
     evidence['oof_mae_usd']=float(np.mean(abs(np.exp(y[ids])-np.exp(pred))))
     shared=shared.copy();shared['residual']=residual;shared['vehicle_group']=groups[ids]
@@ -59,12 +52,11 @@ def evaluate(frame,x,y,groups,seed):
         test=dates>cutoff;testgroups=set(shared.loc[test,'vehicle_group'])
         train=(dates<=cutoff)&~shared.vehicle_group.isin(testgroups)
         if train.sum()>=100 and test.sum()>=50:
-            model=estimator().fit(x[shared.index[train]],y[shared.index[train]])
-            temporal=y[shared.index[test]]-model.predict(x[shared.index[test]])
+            temporal=y[shared.index[test]]-predictions[shared.index[test]]
             temp=shared.loc[test].copy();temp['temporal_residual']=temporal
             effects=temp.groupby('dealer').temporal_residual.agg(['mean','count'])
             effects['mean']-=float(np.mean(temporal))
-            evidence['time_holdout']={'status':'Completed; canonical date provenance still requires confirmation',
+            evidence['time_holdout']={'status':'Completed chronological OOF sensitivity only; folds may include future training observations, not a strict temporal holdout',
               'cutoff':str(cutoff),'train_adverts':int(train.sum()),'test_adverts':int(test.sum()),
               'mae_usd':float(np.mean(abs(np.exp(y[shared.index[test]])-np.exp(y[shared.index[test]]-temporal)))),
               'dealer_residuals':effects.reset_index().to_dict('records')}
@@ -86,7 +78,8 @@ def main():
         vin=str(c.get('vin') or c.get('VIN') or '')
         key=vin if len(vin)==17 else '|'.join(str(c.get(k,'')) for k in ['manufacturer','model','year','odometer'])
         groups.append(hashlib.sha256(key.encode()).hexdigest())
-    groups=np.array(groups);y=np.log(pd.to_numeric(d.price).to_numpy(float))
+    predictions,stored_residual,groups,provenance=load_oof(cars)
+    y=np.log(pd.to_numeric(d.price).to_numpy(float))
     rows=[]
     for i,(car,candidates) in enumerate(zip(cars,names)):
         if not candidates:continue
@@ -99,13 +92,12 @@ def main():
     all_runs=[]
     for seed in [71,83,97,109,127]:
         completed=completed_numeric(numeric,context,seed)
-        x=hstack((csr_matrix(completed.astype(np.float32)),cats),format='csr')
         frame=base.copy();frame['year_band']=np.floor(completed[frame.index,0]/5)
         frame['mileage_band']=np.floor(np.expm1(np.clip(completed[frame.index,1],0,np.log1p(2000000)))/25000)
-        primary=evaluate(frame[frame.candidates==1],x,y,groups,seed)
-        alternate=evaluate(frame,x,y,groups,seed)
+        primary=evaluate(frame[frame.candidates==1],predictions,y,groups,seed)
+        alternate=evaluate(frame,predictions,y,groups,seed)
         all_runs.append({'seed':seed,'primary':primary,'alternative_top_candidate':alternate})
-        print('Completed imputation, supported refit and temporal checks',seed,flush=True)
+        print('Completed imputation, saved AFT residual analysis and temporal sensitivity',seed,flush=True)
     # Rubin-style combination of conditional normal dealer posteriors.
     tables=[]
     keys=set.intersection(*[{r['dealer'] for r in run['primary']['effects']} for run in all_runs])
@@ -121,10 +113,10 @@ def main():
           'conditional_low_pct':100*np.expm1(mean-1.96*np.sqrt(variance)) if stable else None,
           'conditional_high_pct':100*np.expm1(mean+1.96*np.sqrt(variance)) if stable else None,
           'status':'Sensitivity-stable exploratory model-level association; trim uncontrolled, date provenance unverified' if stable else 'Suppressed: temporal or merchant-match sensitivity insufficient/inconsistent'})
-    report={'version':2,'score_filter':'No downstream NER confidence cutoff; original extraction threshold .50','status':'Completed analysis; unsupported results explicitly suppressed','rows':len(cars),'imputations':5,'runs':all_runs,'table':tables,
-      'limitations':'Historical asking associations, not causal dealer effects or evidence of misconduct. Trim is not controlled. Canonical dates are used, not confirmed original listing timestamps. Multiple imputation is approximate under MAR and Gaussian residual assumptions. Conditional normal random-effect prior SD .10. Vehicle-cluster bootstrap conditions on fitted OOF baselines; intervals omit full baseline-refit and identity uncertainty and are not coverage validated. Rubin-style combination is approximate. No downstream NER score threshold. Primary uses single-candidate adverts; alternative uses the highest candidate from every advert with any retained candidate. The original extraction threshold was .50; no claims about unretained predictions. This is not verified entity resolution. Positive and negative values can reflect inventory, services, condition, warranties and other unmeasured differences. Temporal estimates use later shared-support adverts with vehicle-group purging; overlap itself is transductive and this is not a prospective external benchmark.',
+    report={'version':3,'residual_provenance':provenance,'score_filter':'No downstream NER confidence cutoff; original extraction threshold .50','status':'Completed analysis; unsupported results explicitly suppressed','rows':len(cars),'imputations':5,'runs':all_runs,'table':tables,
+      'limitations':'Historical asking associations, not causal dealer effects or evidence of misconduct. Trim is not controlled. Canonical dates are used, not confirmed original listing timestamps. Multiple imputation is approximate under MAR and Gaussian residual assumptions. Conditional normal random-effect prior SD .10. Vehicle-cluster bootstrap conditions on saved Lemon AFT OOF baselines; intervals omit full baseline-refit and identity uncertainty and are not coverage validated. Rubin-style combination is approximate. No downstream NER score threshold. Primary uses single-candidate adverts; alternative uses the highest candidate from every advert with any retained candidate. The original extraction threshold was .50; no claims about unretained predictions. This is not verified entity resolution. Positive and negative values can reflect inventory, services, condition, warranties and other unmeasured differences. Temporal sensitivity uses later shared-support adverts with vehicle-group purging, but saved OOF models may have seen other later observations; overlap itself is transductive and this is not a prospective external benchmark.',
       'support_definition':'Exact make/model/state/month; five-year and 25000-mile bands; >=3 adverts per merchant and >=2 merchants per joint cell; >=50 unique vehicle groups per merchant in each imputation.',
-      'method':'Five numeric imputations; five-fold vehicle-group XGBoost baseline refits within shared support; cell-centered log residual contrasts; 300 vehicle bootstrap samples per dealer; partial pooling; chronological held-out sensitivity; alternate top-candidate identity assignment; trim-level comparison remains unsupported.'}
+      'method':'Five numeric imputations; exact-ID reuse of existing five-fold Lemon AFT OOF predictions within shared support; cell-centered log residual contrasts; 300 vehicle bootstrap samples per dealer; partial pooling; chronological saved-OOF sensitivity (not a strict temporal holdout); alternate top-candidate identity assignment; trim-level comparison remains unsupported.'}
     out=Path('reports/dealer-overlap');out.mkdir(parents=True,exist_ok=True)
     (out/'completed-analysis.json').write_text(json.dumps(report,default=str,allow_nan=False))
     print(json.dumps({'status':report['status'],'table_rows':len(tables),'displayable':sum(r['association_pct'] is not None for r in tables)},indent=2))

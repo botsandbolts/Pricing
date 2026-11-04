@@ -6,9 +6,11 @@ on:
       - 'scripts/dealer_imputation.py'
       - 'pricing/xgb_imputation.py'
       - 'scripts/dealer_complete_analysis.py'
+      - 'pricing/lemon_oof.py'
       - '.github/workflows/dealer-imputation.yml'
 permissions:
   contents: write
+  actions: read
 jobs:
   research:
     runs-on: ubuntu-24.04
@@ -27,12 +29,19 @@ jobs:
             data/merchant-discovery-minilm
             reports/dealer-positioning
             reports/dealer-overlap
+            models/xgboost-hierarchy/ask
           sparse-checkout-cone-mode: true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install numpy pandas scipy scikit-learn xgboost pytest streamlit requests
-      - run: python -m pytest tests/test_xgb_imputation.py tests/test_dealer_complete_analysis.py -q
+      - uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: training-cache/lemon-hierarchy
+      - run: python -m pytest tests/test_lemon_oof.py tests/test_xgb_imputation.py tests/test_dealer_complete_analysis.py -q
       - run: python -u -m scripts.dealer_complete_analysis
       - run: python -m scripts.check_completed_merchant_panel
       - uses: actions/upload-artifact@v4
