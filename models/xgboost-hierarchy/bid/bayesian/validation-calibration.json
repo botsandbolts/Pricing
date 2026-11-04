@@ -1,0 +1,61 @@
+{
+  "market": "bid",
+  "posterior_sha256": "802a1d44c2e4003191ef71db106272f2b9c2b882dc923b398b76f5482bd7159e",
+  "base_evaluation_sha256": "4a919304d03c009c3cbe694a580d2e621e9c0591c09676b513dbe29999e5b2aa",
+  "baseline_reproduced": true,
+  "status": "Promoted validation calibration; original posterior and XGBoost weights unchanged",
+  "method": "Risk-stratum validation calibration of saved Bayesian log correction: strength 0 to 2 in .25 increments plus a dollar-MAE weighted-median multiplier bounded to exp(+/-0.1); at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.",
+  "weights": {
+    "global": {
+      "weight": 1.25,
+      "multiplier": 0.9938174278152858
+    },
+    "strata": {
+      "common|5000plus|older_highmiles": {
+        "weight": 1.5,
+        "multiplier": 1.0206370775938525
+      },
+      "common|5000plus|other": {
+        "weight": 1.5,
+        "multiplier": 0.9922438555811426
+      },
+      "common|under5000|older_highmiles": {
+        "weight": 1.75,
+        "multiplier": 0.9416307905347177
+      },
+      "common|under5000|other": {
+        "weight": 1.25,
+        "multiplier": 0.9605066317687554
+      }
+    }
+  },
+  "interval_scales": {
+    "global": 3.3127204292547385,
+    "strata": {
+      "common|5000plus|older_highmiles": 4.224218087078623,
+      "common|5000plus|other": 2.868302754145342,
+      "common|under5000|older_highmiles": 5.0353990875735075,
+      "common|under5000|other": 4.882217972083793
+    }
+  },
+  "interval_counts": {
+    "common|5000plus|older_highmiles": 562,
+    "common|5000plus|other": 22461,
+    "common|under5000|older_highmiles": 2423,
+    "common|under5000|other": 1916
+  },
+  "selection_rows": 54870,
+  "interval_calibration_rows": 27510,
+  "test_rows": 83603,
+  "current_bayesian_test_mae_usd": 1834.539775953664,
+  "challenger_test_mae_usd": 1814.1673739942,
+  "mae_saved_usd": 20.372401959464014,
+  "paired_vehicle_bootstrap_95_saved_usd": [
+    15.642225833293434,
+    24.067290252196877
+  ],
+  "test_coverage_90": 0.90829276461371,
+  "median_interval_width_usd": 6825.244390218546,
+  "eligible_for_promotion": true,
+  "limits": "Strength and price-level multiplier selected only on selection validation; intervals calibrated on different validation vehicles; test used after selection. Historical test reused in prior development, not a new external benchmark. Conditional intervals ignore uncertainty in selected shrinkage weights. No current-date coverage guarantee. No merchant identity correction added."
+}

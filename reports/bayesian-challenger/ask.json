@@ -3,7 +3,7 @@
   "posterior_sha256": "c3fe937cca11f0f3afb898286b21139042f313f794dfcb932c18815203ca81aa",
   "base_evaluation_sha256": "9ac7e990efa3219c4c62bac8cb8c5da2dcb8893578ae5d416769b51067e523db",
   "baseline_reproduced": true,
-  "status": "Completed challenger evaluation; existing production posterior unchanged",
+  "status": "Promoted validation calibration; original posterior and XGBoost weights unchanged",
   "method": "Risk-stratum validation calibration of saved Bayesian log correction: strength 0 to 2 in .25 increments plus a dollar-MAE weighted-median multiplier bounded to exp(+/-0.1); at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.",
   "weights": {
     "global": {
@@ -47,6 +47,14 @@
       "rare|5000plus|other": 2.738450858161224,
       "rare|under5000|older_highmiles": 3.5988003172094736
     }
+  },
+  "interval_counts": {
+    "common|5000plus|older_highmiles": 2357,
+    "common|5000plus|other": 3824,
+    "common|under5000|older_highmiles": 1258,
+    "rare|5000plus|older_highmiles": 1264,
+    "rare|5000plus|other": 1439,
+    "rare|under5000|older_highmiles": 508
   },
   "selection_rows": 20978,
   "interval_calibration_rows": 10690,

@@ -34,34 +34,33 @@
   "base_model_identity": "4a919304d03c009c3cbe694a580d2e621e9c0591c09676b513dbe29999e5b2aa",
   "selected_likelihood": "gaussian",
   "point_scores": {
+    "mae_usd": 1814.1673739942,
+    "rmse_usd": 3577.5245236773044,
+    "mae_log": 0.15314502029658658,
+    "bias_usd": -6.2840451222275515,
+    "rows": 83603
+  },
+  "previous_bayesian_scores": {
     "mae_usd": 1834.539775953664,
     "rmse_usd": 3563.188751660207,
     "mae_log": 0.15621201122694456,
     "bias_usd": 43.160135898665835,
     "rows": 83603
   },
-  "previous_bayesian_scores": {
-    "mae_usd": 1897.0417369000943,
-    "rmse_usd": 3722.581471938503,
-    "mae_log": 0.16046095105167776,
-    "bias_usd": 69.00217472158543,
-    "rows": 83603
-  },
   "base_test_mae_usd": 1920.3822321683579,
   "test_rows": 83603,
   "nominal_coverage": 0.9,
-  "test_coverage": 0.910110881188474,
+  "test_coverage": 0.90829276461371,
   "validation_rows": 27510,
-  "validation_multiplier": 3.3467705143727486,
-  "test_median_interval_width_usd": 7007.201060370739,
-  "test_median_interval_ratio": 1.6519064184819174,
+  "validation_multiplier": 3.3127204292547385,
+  "test_median_interval_width_usd": 6825.244390218546,
+  "test_median_interval_ratio": 1.644332968470818,
   "improvement_over_previous": {
-    "mean_mae_saved_usd": 62.50196094642976,
+    "mean_mae_saved_usd": 20.372401959464014,
     "group_bootstrap_95_usd": [
-      57.679816727532994,
-      67.31294606593582
-    ],
-    "vehicle_groups": 83603
+      15.642225833293434,
+      24.067290252196877
+    ]
   },
   "improvement_over_regular": {
     "mean_mae_saved_usd": 85.84245621469363,
@@ -73,103 +72,70 @@
   },
   "promoted": true,
   "conditional_interval_calibration": {
+    "method": "Risk-stratum validation calibration of saved Bayesian log correction: strength 0 to 2 in .25 increments plus a dollar-MAE weighted-median multiplier bounded to exp(+/-0.1); at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.",
     "level": 0.9,
-    "minimum_stratum_rows": 100,
     "strata": {
-      "common|5000plus|older_highmiles": {
-        "multiplier": 4.398187207519441,
-        "rows": 562,
-        "source": "matching risk stratum"
-      },
-      "common|5000plus|other": {
-        "multiplier": 2.894804953048723,
-        "rows": 22461,
-        "source": "matching risk stratum"
-      },
-      "common|under5000|older_highmiles": {
-        "multiplier": 5.339544500204338,
-        "rows": 2423,
-        "source": "matching risk stratum"
-      },
-      "common|under5000|other": {
-        "multiplier": 5.07605053705184,
-        "rows": 1916,
-        "source": "matching risk stratum"
-      },
-      "rare|5000plus|older_highmiles": {
-        "multiplier": 9.336225971629403,
-        "rows": 148,
-        "source": "pooled rarity class"
-      },
-      "rare|5000plus|other": {
-        "multiplier": 9.336225971629403,
-        "rows": 148,
-        "source": "pooled rarity class"
-      },
-      "rare|under5000|older_highmiles": {
-        "multiplier": 9.336225971629403,
-        "rows": 148,
-        "source": "pooled rarity class"
-      },
-      "rare|under5000|other": {
-        "multiplier": 9.336225971629403,
-        "rows": 148,
-        "source": "pooled rarity class"
+      "global": 3.3127204292547385,
+      "strata": {
+        "common|5000plus|older_highmiles": 4.224218087078623,
+        "common|5000plus|other": 2.868302754145342,
+        "common|under5000|older_highmiles": 5.0353990875735075,
+        "common|under5000|other": 4.882217972083793
       }
     },
-    "method": "Mondrian split conformal: rarity x predicted-price<5000 x (age>12 or miles>150000); rarity/global fallback",
-    "limits": "Requires within-stratum exchangeability; fallback does not prove sparse-group or current-date coverage.",
-    "global": {
-      "multiplier": 3.3467705143727486,
-      "rows": 27510,
-      "source": "all interval-calibration cars"
-    }
+    "limits": "Strength and price-level multiplier selected only on selection validation; intervals calibrated on different validation vehicles; test used after selection. Historical test reused in prior development, not a new external benchmark. Conditional intervals ignore uncertainty in selected shrinkage weights. No current-date coverage guarantee. No merchant identity correction added."
   },
-  "limits": "Historical outcomes only. Current-date transport coverage unvalidated. Separate markets, not an observed dealer spread. This unchanged test cohort was examined in earlier releases; not a new external benchmark.",
+  "limits": "Strength and price-level multiplier selected only on selection validation; intervals calibrated on different validation vehicles; test used after selection. Historical test reused in prior development, not a new external benchmark. Conditional intervals ignore uncertainty in selected shrinkage weights. No current-date coverage guarantee. No merchant identity correction added.",
   "promotion_rule": "validation improvement; paired group-bootstrap lower 95% MAE savings >0 vs previous and regular; monitored R-hat <1.1; historical coverage 88-95%",
-  "model": "Cross-classified nonlinear heteroscedastic Bayesian gaussian log-residual correction",
+  "model": "Cross-classified nonlinear heteroscedastic Bayesian gaussian log-residual correction + validation strength/level calibration",
   "test_segments": {
-    "rare_or_unseen_models": {
-      "rows": 468,
-      "regular_mae_usd": 16442.441258654304,
-      "previous_mae_usd": 13186.394216787721,
-      "new_mae_usd": 12478.664384269783,
-      "coverage": 0.8931623931623932
+    "common|5000plus|older_highmiles": {
+      "rows": 1465,
+      "regular_mae_usd": 2005.7376268083249,
+      "new_mae_usd": 1885.7371920772482,
+      "coverage": 0.8873720136518771
     },
-    "well_represented_models": {
-      "rows": 79868,
-      "regular_mae_usd": 1803.9628772863514,
-      "previous_mae_usd": 1803.820524286414,
-      "new_mae_usd": 1751.0632893501233,
-      "coverage": 0.9104898081835028
+    "common|5000plus|other": {
+      "rows": 72029,
+      "regular_mae_usd": 1967.953034197227,
+      "new_mae_usd": 1877.3614511654657,
+      "coverage": 0.9115495147787697
     },
-    "base_under_5000": {
-      "rows": 9763,
-      "regular_mae_usd": 851.4781735265914,
-      "previous_mae_usd": 827.0959527946852,
-      "new_mae_usd": 809.820582707708,
-      "coverage": 0.9080200757963741
+    "common|under5000|older_highmiles": {
+      "rows": 5218,
+      "regular_mae_usd": 772.0362326951852,
+      "new_mae_usd": 701.3937743403728,
+      "coverage": 0.8999616711383672
     },
-    "base_over_25000": {
-      "rows": 8554,
-      "regular_mae_usd": 4036.9710361641464,
-      "previous_mae_usd": 4072.1128488450727,
-      "new_mae_usd": 3832.2700725291174,
-      "coverage": 0.9279869067103109
+    "common|under5000|other": {
+      "rows": 4423,
+      "regular_mae_usd": 935.5807056864717,
+      "new_mae_usd": 899.6637824280496,
+      "coverage": 0.9134071896902555
     },
-    "over_150000_miles": {
-      "rows": 4574,
-      "regular_mae_usd": 1019.0366459574681,
-      "previous_mae_usd": 1000.9326251945025,
-      "new_mae_usd": 967.0051654012719,
-      "coverage": 0.9005247048535199
+    "rare|5000plus|older_highmiles": {
+      "rows": 18,
+      "regular_mae_usd": 5471.4520543025965,
+      "new_mae_usd": 6968.810740906174,
+      "coverage": 0.4444444444444444
     },
-    "older_than_12_years": {
-      "rows": 4014,
-      "regular_mae_usd": 891.8553205547739,
-      "previous_mae_usd": 859.0858192661284,
-      "new_mae_usd": 830.3498954091873,
-      "coverage": 0.9083208769307424
+    "rare|5000plus|other": {
+      "rows": 328,
+      "regular_mae_usd": 22713.882583498154,
+      "new_mae_usd": 17729.10266102622,
+      "coverage": 0.5152439024390244
+    },
+    "rare|under5000|older_highmiles": {
+      "rows": 112,
+      "regular_mae_usd": 1149.4367367384784,
+      "new_mae_usd": 831.7051739607481,
+      "coverage": 0.5357142857142857
+    },
+    "rare|under5000|other": {
+      "rows": 10,
+      "regular_mae_usd": 1768.597017066156,
+      "new_mae_usd": 994.1145822757674,
+      "coverage": 0.5
     }
   },
   "test_interval_strata": {
@@ -205,5 +171,275 @@
       "rows": 18,
       "coverage": 0.8888888888888888
     }
+  },
+  "uncalibrated_bayesian_evaluation": {
+    "market": "bid",
+    "method": "robust_cross_classified_gibbs_v1",
+    "selection_rows": 54870,
+    "interval_calibration_rows": 27510,
+    "validation_base_mae_usd": 1881.1133877230245,
+    "validation_previous_bayes_mae_usd": 1843.1181318645363,
+    "candidates": [
+      {
+        "likelihood": "gaussian",
+        "validation_mae_usd": 1791.9499336724532,
+        "validation_elpd_log_price": -82287.46901498965,
+        "validation_mean_log_density": -1.4996804996353135,
+        "max_split_rhat": 1.0519877759292888
+      },
+      {
+        "likelihood": "student_t",
+        "validation_mae_usd": 1798.1946773911063,
+        "validation_elpd_log_price": -3638.832750384745,
+        "validation_mean_log_density": -0.06631734555102506,
+        "max_split_rhat": 1.106173281378631
+      },
+      {
+        "likelihood": "mixture",
+        "validation_mae_usd": 1794.1961056255159,
+        "validation_elpd_log_price": -21416.279112300508,
+        "validation_mean_log_density": -0.39030944254238215,
+        "max_split_rhat": 1.0803233577631635
+      }
+    ],
+    "selection_rule": "lowest validation dollar MAE among candidates with monitored split R-hat <1.1; test evaluated only after selection",
+    "density_comparison": "held-out selection log-price predictive ELPD, not PSIS-LOO",
+    "training_limits": "Retained 75% OOF calibration after fixed training-only selection; no further deletion. Selection-conditional OOF, not nested evaluation of trimming. Original validation/test unchanged.",
+    "base_model_identity": "4a919304d03c009c3cbe694a580d2e621e9c0591c09676b513dbe29999e5b2aa",
+    "selected_likelihood": "gaussian",
+    "point_scores": {
+      "mae_usd": 1834.539775953664,
+      "rmse_usd": 3563.188751660207,
+      "mae_log": 0.15621201122694456,
+      "bias_usd": 43.160135898665835,
+      "rows": 83603
+    },
+    "previous_bayesian_scores": {
+      "mae_usd": 1897.0417369000943,
+      "rmse_usd": 3722.581471938503,
+      "mae_log": 0.16046095105167776,
+      "bias_usd": 69.00217472158543,
+      "rows": 83603
+    },
+    "base_test_mae_usd": 1920.3822321683579,
+    "test_rows": 83603,
+    "nominal_coverage": 0.9,
+    "test_coverage": 0.910110881188474,
+    "validation_rows": 27510,
+    "validation_multiplier": 3.3467705143727486,
+    "test_median_interval_width_usd": 7007.201060370739,
+    "test_median_interval_ratio": 1.6519064184819174,
+    "improvement_over_previous": {
+      "mean_mae_saved_usd": 62.50196094642976,
+      "group_bootstrap_95_usd": [
+        57.679816727532994,
+        67.31294606593582
+      ],
+      "vehicle_groups": 83603
+    },
+    "improvement_over_regular": {
+      "mean_mae_saved_usd": 85.84245621469363,
+      "group_bootstrap_95_usd": [
+        78.14501538795578,
+        94.8403906473714
+      ],
+      "vehicle_groups": 83603
+    },
+    "promoted": true,
+    "conditional_interval_calibration": {
+      "level": 0.9,
+      "minimum_stratum_rows": 100,
+      "strata": {
+        "common|5000plus|older_highmiles": {
+          "multiplier": 4.398187207519441,
+          "rows": 562,
+          "source": "matching risk stratum"
+        },
+        "common|5000plus|other": {
+          "multiplier": 2.894804953048723,
+          "rows": 22461,
+          "source": "matching risk stratum"
+        },
+        "common|under5000|older_highmiles": {
+          "multiplier": 5.339544500204338,
+          "rows": 2423,
+          "source": "matching risk stratum"
+        },
+        "common|under5000|other": {
+          "multiplier": 5.07605053705184,
+          "rows": 1916,
+          "source": "matching risk stratum"
+        },
+        "rare|5000plus|older_highmiles": {
+          "multiplier": 9.336225971629403,
+          "rows": 148,
+          "source": "pooled rarity class"
+        },
+        "rare|5000plus|other": {
+          "multiplier": 9.336225971629403,
+          "rows": 148,
+          "source": "pooled rarity class"
+        },
+        "rare|under5000|older_highmiles": {
+          "multiplier": 9.336225971629403,
+          "rows": 148,
+          "source": "pooled rarity class"
+        },
+        "rare|under5000|other": {
+          "multiplier": 9.336225971629403,
+          "rows": 148,
+          "source": "pooled rarity class"
+        }
+      },
+      "method": "Mondrian split conformal: rarity x predicted-price<5000 x (age>12 or miles>150000); rarity/global fallback",
+      "limits": "Requires within-stratum exchangeability; fallback does not prove sparse-group or current-date coverage.",
+      "global": {
+        "multiplier": 3.3467705143727486,
+        "rows": 27510,
+        "source": "all interval-calibration cars"
+      }
+    },
+    "limits": "Historical outcomes only. Current-date transport coverage unvalidated. Separate markets, not an observed dealer spread. This unchanged test cohort was examined in earlier releases; not a new external benchmark.",
+    "promotion_rule": "validation improvement; paired group-bootstrap lower 95% MAE savings >0 vs previous and regular; monitored R-hat <1.1; historical coverage 88-95%",
+    "model": "Cross-classified nonlinear heteroscedastic Bayesian gaussian log-residual correction",
+    "test_segments": {
+      "rare_or_unseen_models": {
+        "rows": 468,
+        "regular_mae_usd": 16442.441258654304,
+        "previous_mae_usd": 13186.394216787721,
+        "new_mae_usd": 12478.664384269783,
+        "coverage": 0.8931623931623932
+      },
+      "well_represented_models": {
+        "rows": 79868,
+        "regular_mae_usd": 1803.9628772863514,
+        "previous_mae_usd": 1803.820524286414,
+        "new_mae_usd": 1751.0632893501233,
+        "coverage": 0.9104898081835028
+      },
+      "base_under_5000": {
+        "rows": 9763,
+        "regular_mae_usd": 851.4781735265914,
+        "previous_mae_usd": 827.0959527946852,
+        "new_mae_usd": 809.820582707708,
+        "coverage": 0.9080200757963741
+      },
+      "base_over_25000": {
+        "rows": 8554,
+        "regular_mae_usd": 4036.9710361641464,
+        "previous_mae_usd": 4072.1128488450727,
+        "new_mae_usd": 3832.2700725291174,
+        "coverage": 0.9279869067103109
+      },
+      "over_150000_miles": {
+        "rows": 4574,
+        "regular_mae_usd": 1019.0366459574681,
+        "previous_mae_usd": 1000.9326251945025,
+        "new_mae_usd": 967.0051654012719,
+        "coverage": 0.9005247048535199
+      },
+      "older_than_12_years": {
+        "rows": 4014,
+        "regular_mae_usd": 891.8553205547739,
+        "previous_mae_usd": 859.0858192661284,
+        "new_mae_usd": 830.3498954091873,
+        "coverage": 0.9083208769307424
+      }
+    },
+    "test_interval_strata": {
+      "common|5000plus|other": {
+        "rows": 72029,
+        "coverage": 0.9107998167404795
+      },
+      "common|under5000|other": {
+        "rows": 4423,
+        "coverage": 0.9143115532444043
+      },
+      "common|5000plus|older_highmiles": {
+        "rows": 1465,
+        "coverage": 0.8969283276450511
+      },
+      "common|under5000|older_highmiles": {
+        "rows": 5218,
+        "coverage": 0.9022614028363357
+      },
+      "rare|5000plus|other": {
+        "rows": 328,
+        "coverage": 0.8810975609756098
+      },
+      "rare|under5000|older_highmiles": {
+        "rows": 112,
+        "coverage": 0.9375
+      },
+      "rare|under5000|other": {
+        "rows": 10,
+        "coverage": 0.8
+      },
+      "rare|5000plus|older_highmiles": {
+        "rows": 18,
+        "coverage": 0.8888888888888888
+      }
+    }
+  },
+  "validation_calibration": {
+    "market": "bid",
+    "posterior_sha256": "802a1d44c2e4003191ef71db106272f2b9c2b882dc923b398b76f5482bd7159e",
+    "base_evaluation_sha256": "4a919304d03c009c3cbe694a580d2e621e9c0591c09676b513dbe29999e5b2aa",
+    "baseline_reproduced": true,
+    "status": "Promoted validation calibration; original posterior and XGBoost weights unchanged",
+    "method": "Risk-stratum validation calibration of saved Bayesian log correction: strength 0 to 2 in .25 increments plus a dollar-MAE weighted-median multiplier bounded to exp(+/-0.1); at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.",
+    "weights": {
+      "global": {
+        "weight": 1.25,
+        "multiplier": 0.9938174278152858
+      },
+      "strata": {
+        "common|5000plus|older_highmiles": {
+          "weight": 1.5,
+          "multiplier": 1.0206370775938525
+        },
+        "common|5000plus|other": {
+          "weight": 1.5,
+          "multiplier": 0.9922438555811426
+        },
+        "common|under5000|older_highmiles": {
+          "weight": 1.75,
+          "multiplier": 0.9416307905347177
+        },
+        "common|under5000|other": {
+          "weight": 1.25,
+          "multiplier": 0.9605066317687554
+        }
+      }
+    },
+    "interval_scales": {
+      "global": 3.3127204292547385,
+      "strata": {
+        "common|5000plus|older_highmiles": 4.224218087078623,
+        "common|5000plus|other": 2.868302754145342,
+        "common|under5000|older_highmiles": 5.0353990875735075,
+        "common|under5000|other": 4.882217972083793
+      }
+    },
+    "interval_counts": {
+      "common|5000plus|older_highmiles": 562,
+      "common|5000plus|other": 22461,
+      "common|under5000|older_highmiles": 2423,
+      "common|under5000|other": 1916
+    },
+    "selection_rows": 54870,
+    "interval_calibration_rows": 27510,
+    "test_rows": 83603,
+    "current_bayesian_test_mae_usd": 1834.539775953664,
+    "challenger_test_mae_usd": 1814.1673739942,
+    "mae_saved_usd": 20.372401959464014,
+    "paired_vehicle_bootstrap_95_saved_usd": [
+      15.642225833293434,
+      24.067290252196877
+    ],
+    "test_coverage_90": 0.90829276461371,
+    "median_interval_width_usd": 6825.244390218546,
+    "eligible_for_promotion": true,
+    "limits": "Strength and price-level multiplier selected only on selection validation; intervals calibrated on different validation vehicles; test used after selection. Historical test reused in prior development, not a new external benchmark. Conditional intervals ignore uncertainty in selected shrinkage weights. No current-date coverage guarantee. No merchant identity correction added."
   }
 }
