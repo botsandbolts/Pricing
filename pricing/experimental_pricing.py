@@ -1,75 +1,77 @@
-"""Controlled BGE comparison, separate from the deployed pricing calculator."""
+"""Controlled ELECTRA residual experiment and earlier BGE comparisons."""
 import json
 from pathlib import Path
-
 import streamlit as st
 
-RUN_URL = "https://github.com/botsandbolts/Pricing/actions/runs/41899042018"
+RUN_URL = "https://github.com/botsandbolts/Pricing/actions/workflows/electra-pricing.yml"
 
 
 def render(root):
+    root = Path(root)
     st.header("Experimental pricing · The extra brain cell")
     st.write(
-        "Can description embeddings improve our asking-price estimates? "
-        "This experiment compares the same Lemon Squeeze cohort and XGBoost AFT "
-        "predictions, with and without 32 BGE/UMAP features in the Bayesian residual model."
+        "Can a differently trained small transformer add information to MiniLM? "
+        "We compare the same frozen XGBoost predictions with and without "
+        "ELECTRA description features in the Bayesian residual model."
     )
     st.info(
-        "XGBoost uses vehicle facts and the MiniLM predicted text price in both arms. "
-        "BGE/UMAP enters only the Bayesian residual model, as 32 scaled coordinates "
-        "with shrinkage. Both arms use identical saved XGBoost predictions and residuals."
+        "XGBoost still uses vehicle facts and the MiniLM predicted text price. "
+        "ELECTRA-Small is frozen: its token vectors are averaged with attention "
+        "masking and normalized. Its 32 UMAP coordinates enter only the Bayesian "
+        "correction, with shrinkage."
     )
     st.caption(
-        "Reuses the 20 completed encoding batches. Cosine UMAP and scaling are fitted "
-        "on calibration descriptions only; validation and test are transformed only. "
-        "Explicit money amounts are removed from the text."
+        "25 encoding jobs. Explicit money amounts are removed from descriptions. "
+        "Cosine UMAP and scaling are fitted on calibration data only; validation "
+        "and test descriptions are transformed only. ELECTRA is not sentence-similarity "
+        "fine-tuned: this pooling is an experiment."
     )
-    st.link_button("View training progress on GitHub", RUN_URL)
-    path = Path(root) / "reports/hierarchy-umap-experiment/comparison.json"
+    st.link_button("View ELECTRA training progress", RUN_URL)
+    path = root / "reports/electra-hierarchy-experiment/comparison.json"
     if not path.exists():
         st.info(
-            "Evaluation is pending. The completed workflow will publish its "
-            "comparison here automatically. No accuracy gain has been established."
+            "ELECTRA evaluation is pending. The workflow will publish its measured "
+            "comparison here automatically. No ELECTRA accuracy gain has been established."
         )
     else:
         try:
             report = json.loads(path.read_text())
             rows = report["comparison"]
-            if not isinstance(rows, list) or not rows:
-                raise ValueError("Missing comparison rows")
+            arms = {row["Model"]: row for row in rows}
+            baseline = float(arms["baseline"]["MAE ($)"])
+            electra = float(arms["electra_hierarchy"]["MAE ($)"])
         except (OSError, ValueError, KeyError, TypeError):
-            st.warning("The comparison report could not be loaded. Check the workflow for details.")
+            st.warning("The ELECTRA report could not be loaded. Check the workflow for details.")
         else:
             st.subheader("Measured historical results")
             st.dataframe(rows, hide_index=True, use_container_width=True)
-            arms = {row.get("Model"): row for row in rows}
-            baseline, bge = arms.get("baseline"), arms.get("hierarchy_umap")
-            if baseline is not None and bge is not None:
-                base_mae = float(baseline["MAE ($)"])
-                bge_mae = float(bge["MAE ($)"])
-                saved = base_mae - bge_mae
-                st.metric("BGE change in mean absolute error", f"{bge_mae - base_mae:+,.2f} USD")
-                st.caption(
-                    "Negative means lower error with BGE; positive means higher error. "
-                    "This difference alone does not establish statistical significance."
-                )
-                if base_mae > 0:
-                    st.write(f"BGE reduces historical MAE by {100 * saved / base_mae:+.2f}% relative to the paired baseline.")
+            st.metric("ELECTRA change in mean absolute error", f"{electra - baseline:+,.2f} USD")
+            st.caption("Negative means lower error with ELECTRA; positive means higher error.")
+            if baseline > 0:
+                st.write(f"Relative MAE change: {100 * (electra - baseline) / baseline:+.2f}%.")
             paired = report.get("paired_improvement")
             if paired:
                 low, high = paired["group_bootstrap_95_usd"]
                 st.write(f"Paired 95% confidence interval for MAE savings: {low:,.2f} to {high:,.2f} USD.")
-                st.caption("Positive savings favour UMAP in the hierarchy. An interval spanning zero leaves the improvement uncertain.")
-            previous = report.get("previous_xgboost_umap")
-            if previous:
-                with st.expander("Earlier UMAP-in-XGBoost comparison"):
-                    st.dataframe(previous["comparison"], hide_index=True)
-                    st.caption(previous["limits"])
-            st.caption(report.get("limits", "Historical research comparison."))
+                st.caption("Positive savings favour ELECTRA. An interval spanning zero leaves the improvement uncertain.")
+            st.caption(report["limits"])
             with st.expander("Business and technical receipt"):
                 st.json(report)
+    for name, relative in [
+        ("Earlier BGE/UMAP in the Bayesian hierarchy", "reports/hierarchy-umap-experiment/comparison.json"),
+        ("Earlier BGE/UMAP in XGBoost", "reports/bge-umap-experiment/comparison.json"),
+    ]:
+        previous = root / relative
+        if previous.exists():
+            try:
+                report = json.loads(previous.read_text())
+                with st.expander(name):
+                    st.dataframe(report["comparison"], hide_index=True)
+                    st.caption(report["limits"])
+            except (OSError, ValueError, KeyError, TypeError):
+                st.caption(f"{name}: report unavailable.")
     st.markdown("### Price your car")
     st.write(
         "Use Price my car for the deployed calculator. Experimental weights "
-        "remain separate until training, evaluation and inference checks finish."
+        "remain separate until evaluation and inference checks finish."
     )
