@@ -1,0 +1,112 @@
+name: Raw ELECTRA in XGBoost comparison
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/electra-raw-xgboost.yml'
+permissions:
+  contents: write
+  actions: read
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [baseline,electra_raw_xgboost]
+    env:
+      ELECTRA_ARM: ${{ matrix.arm }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            marketbridge
+            carbids
+            models/structural-transfer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy 'pandas>=2.2,<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm requests joblib
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bge-shard-*
+          run-id: 41876358303
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: bge-shards
+      - uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: frozen-lemon
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: electra-shard-*
+          run-id: 41908354860
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: electra-shards
+      - uses: actions/download-artifact@v4
+        with:
+          name: electra-source
+          run-id: 41908354860
+          github-token: ${{ github.token }}
+          path: training-cache
+      - run: |
+          python -m scripts.merge_bge_shards
+          mkdir -p evidence
+          cp frozen-lemon/ask/hierarchy-input.csv.gz evidence/ask-minilm-cleaned.csv.gz
+          python -u -m scripts.train_electra_raw --market ask
+          python -u -m scripts.fit_lemon_hierarchy --market ask
+      - uses: actions/upload-artifact@v4
+        with:
+          name: electra-raw-result-${{ matrix.arm }}
+          path: training-cache/lemon-hierarchy
+          retention-days: 90
+  report:
+    needs: train
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+            reports/electra-raw-xgboost-experiment
+            models/xgboost-hierarchy/ask/bayesian
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: electra-raw-result-baseline
+          path: experiment-results/baseline
+      - uses: actions/download-artifact@v4
+        with:
+          name: electra-raw-result-electra_raw_xgboost
+          path: experiment-results/electra_raw_xgboost
+      - run: pip install numpy 'pandas>=2.2,<3'
+      - run: python -m scripts.report_electra_raw
+      - run: |
+          cp reports/electra-raw-xgboost-experiment/comparison.json "$RUNNER_TEMP/bge-report.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/electra-raw-xgboost-experiment
+            cp "$RUNNER_TEMP/bge-report.json" reports/electra-raw-xgboost-experiment/comparison.json
+            git add reports/electra-raw-xgboost-experiment
+            git diff --cached --quiet && exit 0
+            git commit -m "Publish raw ELECTRA XGBoost controlled comparison"
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
