@@ -1,0 +1,99 @@
+name: BGE cosine UMAP pricing experiment
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/bge-pricing-umap.yml'
+permissions:
+  contents: write
+  actions: read
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMBA_NUM_THREADS: '2'
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [baseline,bge]
+    env:
+      BGE_ARM: ${{ matrix.arm }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            marketbridge
+            carbids
+            models/structural-transfer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy 'pandas>=2.2,<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm requests joblib 'umap-learn>=0.5,<0.6'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bge-shard-*
+          run-id: 41876358303
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: bge-shards
+      - uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: frozen-lemon
+      - run: |
+          python -m scripts.merge_bge_shards
+          mkdir -p evidence
+          cp frozen-lemon/ask/hierarchy-input.csv.gz evidence/ask-minilm-cleaned.csv.gz
+          python -u -m scripts.train_bge_umap --market ask
+          python -u -m scripts.fit_lemon_hierarchy --market ask
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bge-result-${{ matrix.arm }}
+          path: training-cache/lemon-hierarchy
+          retention-days: 90
+  report:
+    needs: train
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+            reports/bge-umap-experiment
+            models/xgboost-hierarchy/ask/bayesian
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: bge-result-baseline
+          path: experiment-results/baseline
+      - uses: actions/download-artifact@v4
+        with:
+          name: bge-result-bge
+          path: experiment-results/bge
+      - run: python -m scripts.report_bge_umap
+      - run: |
+          cp reports/bge-umap-experiment/comparison.json "$RUNNER_TEMP/bge-report.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/bge-umap-experiment
+            cp "$RUNNER_TEMP/bge-report.json" reports/bge-umap-experiment/comparison.json
+            git add reports/bge-umap-experiment
+            git diff --cached --quiet && exit 0
+            git commit -m "Publish BGE cosine UMAP controlled Bayesian pricing comparison"
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
