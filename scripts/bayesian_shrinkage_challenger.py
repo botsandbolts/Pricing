@@ -34,7 +34,8 @@ def quantile(values):
 
 def run(side):
     folder=Path('training-cache/lemon-hierarchy')/side
-    d=pd.read_csv(folder/'hierarchy-input.csv.gz',dtype={'row_id':str,'vehicle_group':str})
+    prepared=folder.parent/'inputs'/(side+'-minilm-cleaned.csv.gz')
+    d=pd.read_csv(prepared,dtype={'row_id':str,'vehicle_group':str})
     assert d.row_id.is_unique and d.groupby('vehicle_group').split.nunique().max()==1
     assert np.allclose(d.residual_log,np.log(d.observed_price/d.predicted_price))
     date=pd.to_datetime(d.date,format='mixed',utc=True)
@@ -71,6 +72,9 @@ def run(side):
     low=center*np.exp(-width);high=center*np.exp(width)
     current=pt.corrected_price.to_numpy()
     old_mae=float(np.mean(abs(truth-current)));new_mae=float(np.mean(abs(truth-center)))
+    original=json.loads((folder/'bayesian/bayesian-evaluation.json').read_text())
+    if not np.isclose(old_mae,original['point_scores']['mae_usd'],rtol=1e-8,atol=1e-6):
+        raise ValueError('Challenger baseline does not reproduce the installed Bayesian evaluation')
     savings=abs(truth-current)-abs(truth-center)
     groups=pd.DataFrame({'g':test.vehicle_group,'savings':savings}).groupby('g').savings.agg(['sum','count'])
     rng=np.random.default_rng(927);boot=[]
@@ -79,7 +83,7 @@ def run(side):
         boot.append(groups['sum'].to_numpy()[ix].sum()/groups['count'].to_numpy()[ix].sum())
     ci=np.quantile(boot,[.025,.975]).tolist()
     coverage=float(np.mean((truth>=low)&(truth<=high)))
-    report={'market':side,'status':'Completed challenger evaluation; existing production posterior unchanged',
+    report={'market':side,'posterior_sha256':meta['posterior_sha256'],'base_evaluation_sha256':meta['base_evaluation_sha256'],'baseline_reproduced':True,'status':'Completed challenger evaluation; existing production posterior unchanged',
       'method':'Risk-stratum validation calibration of saved Bayesian log correction: strength 0 to 2 in .25 increments plus a dollar-MAE weighted-median multiplier bounded to exp(+/-0.1); at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.',
       'weights':weights,'interval_scales':scale,'selection_rows':len(select),'interval_calibration_rows':len(cal),'test_rows':len(test),
       'current_bayesian_test_mae_usd':old_mae,'challenger_test_mae_usd':new_mae,'mae_saved_usd':old_mae-new_mae,
