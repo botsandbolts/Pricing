@@ -1,0 +1,37 @@
+{
+  "market": "bid",
+  "status": "Completed challenger evaluation; existing production posterior unchanged",
+  "method": "Risk-stratum validation shrinkage of saved Bayesian log correction, weights 0/.25/.5/.75/1; at least 500 selection cars per stratum, global fallback. This is a calibration layer, not a new posterior.",
+  "weights": {
+    "global": 1.0,
+    "strata": {
+      "common|5000plus|older_highmiles": 1.0,
+      "common|5000plus|other": 1.0,
+      "common|under5000|older_highmiles": 1.0,
+      "common|under5000|other": 1.0
+    }
+  },
+  "interval_scales": {
+    "global": 3.3467705143727486,
+    "strata": {
+      "common|5000plus|older_highmiles": 4.398187207519441,
+      "common|5000plus|other": 2.894804953048723,
+      "common|under5000|older_highmiles": 5.339544500204338,
+      "common|under5000|other": 5.07605053705184
+    }
+  },
+  "selection_rows": 54870,
+  "interval_calibration_rows": 27510,
+  "test_rows": 83603,
+  "current_bayesian_test_mae_usd": 1834.539775953664,
+  "challenger_test_mae_usd": 1834.539775953664,
+  "mae_saved_usd": 0.0,
+  "paired_vehicle_bootstrap_95_saved_usd": [
+    0.0,
+    0.0
+  ],
+  "test_coverage_90": 0.9079817709890793,
+  "median_interval_width_usd": 6996.581526678241,
+  "eligible_for_promotion": false,
+  "limits": "Weights selected only on selection validation; intervals calibrated on different validation vehicles; test used after selection. Historical test reused in prior development, not a new external benchmark. Conditional intervals ignore uncertainty in selected shrinkage weights. No current-date coverage guarantee. No merchant identity correction added."
+}
