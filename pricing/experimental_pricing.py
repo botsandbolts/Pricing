@@ -4,7 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 
-RUN_URL = "https://github.com/botsandbolts/Pricing/actions/runs/41876358303"
+RUN_URL = "https://github.com/botsandbolts/Pricing/actions/runs/41885150087"
 
 
 def render(root):
@@ -12,19 +12,19 @@ def render(root):
     st.write(
         "Can description embeddings improve our asking-price estimates? "
         "This experiment compares the same Lemon Squeeze cohort and XGBoost AFT "
-        "pipeline, with and without 32 BGE/PCA features in XGBoost."
+        "pipeline, with and without 32 BGE/UMAP features in XGBoost."
     )
     st.info(
-        "BGE/PCA enters XGBoost only. The Bayesian hierarchy keeps its existing "
+        "BGE/UMAP enters XGBoost only. The Bayesian hierarchy keeps its existing "
         "structure and predictors; each arm refits that same hierarchy to its "
         "own out-of-fold residuals. Wholesale pricing uses the existing model."
     )
     st.caption(
-        "Descriptions are encoded in 20 jobs. PCA is fitted separately inside "
+        "Descriptions are encoded in 20 jobs. Cosine UMAP is fitted separately inside "
         "each training fold. Explicit money amounts are removed from the text."
     )
     st.link_button("View training progress on GitHub", RUN_URL)
-    path = Path(root) / "reports/bge-experiment/comparison.json"
+    path = Path(root) / "reports/bge-umap-experiment/comparison.json"
     if not path.exists():
         st.info(
             "Evaluation is pending. The completed workflow will publish its "
