@@ -28,20 +28,30 @@ jobs:
             scripts
             marketbridge
             carbids
+            models/xgboost-sparse-minilm/ask/minilm
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install numpy pandas scipy scikit-learn requests lightgbm joblib
-      - run: |
-          mkdir -p training-cache
-          curl --fail --location --retry 8 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 1800 --output training-cache/ask.zip 'https://zenodo.org/records/10457828/files/Used%20Cars%20Dataset.zip?download=1'
+      - name: Restore our saved canonical cohort
+        run: |
           python - <<'PY'
-          import hashlib
+          import hashlib,json,time
           from pathlib import Path
-          p=Path('training-cache/ask.zip')
-          assert hashlib.file_digest(open(p,'rb'),'sha256').hexdigest()=='eb2ad6c7dedd3c73ffed4bf47929ab66e55d7da186ed240230caa1fad85d2e8f'
+          from scripts.restore_kaggle_pricing import download
+          cohort=Path('training-cache/full-cohort.jsonl')
+          expected=json.loads(Path('models/xgboost-sparse-minilm/ask/minilm/provenance.json').read_text())['cohort_sha256']
+          for attempt in range(5):
+              try:
+                  download('pricing/training-cache/full-cohort.jsonl',cohort)
+                  actual=hashlib.file_digest(cohort.open('rb'),'sha256').hexdigest()
+                  if actual!=expected:raise ValueError('Saved cohort checksum mismatch')
+                  break
+              except Exception:
+                  if attempt==4:raise
+                  time.sleep(5)
+          print('Verified our saved canonical cohort:',actual,flush=True)
           PY
-          python -m scripts.prepare_full training-cache/ask.zip --output training-cache/full-cohort.jsonl --workers 2
       - uses: actions/upload-artifact@v4
         with:
           name: bge-original-cohort
@@ -98,6 +108,7 @@ jobs:
             pricing
             scripts
             marketbridge
+            carbids
             models/structural-transfer
       - uses: actions/setup-python@v5
         with:
