@@ -91,10 +91,10 @@ def test_consent_gate_idempotency_and_server_outcomes():
     store=LocalStore(); c=consent()
     event={'event_id':str(uuid.uuid4()),'feature_name':'taste_garage',
            'subpanel_name':'none','event_type':'panel_view'}
-    with patch.dict(st.session_state, {}, clear=True), \\
-         patch('pricing.analytics.configured', return_value=True), \\
-         patch('pricing.analytics._store', return_value=store), \\
-         patch('pricing.analytics._location', return_value=location()):
+    with (patch.dict(st.session_state, {}, clear=True),
+          patch('pricing.analytics.configured', return_value=True),
+          patch('pricing.analytics._store', return_value=store),
+          patch('pricing.analytics._location', return_value=location())):
         assert not record_browser_events([event])
         st.session_state['_analytics_consent']=c
         assert record_browser_events([event,event])
