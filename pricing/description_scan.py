@@ -1,5 +1,6 @@
 """Read-only GLiNER view of the seller's description."""
 from html import escape
+import re
 from threading import Lock
 
 import streamlit as st
@@ -49,14 +50,21 @@ def _source_values(record, key, source):
             value = value.get("text")
         if isinstance(value, str):
             value = value.strip()
-            if value and value.casefold() in source and value not in grounded:
+            if not value or value.casefold() not in source.casefold():
+                continue
+            if key in {"accident_history", "title_status", "equipment"}:
+                # Show the clause around a mention so "no accidents" retains its meaning.
+                for clause in re.split(r"(?<=[.!?;])\s+|\n+", source):
+                    if value.casefold() in clause.casefold():
+                        grounded.append(clause.strip())
+            else:
                 grounded.append(value)
-    return grounded
+    return list(dict.fromkeys(grounded))
 
 
 def sections(data, description):
     """Order source-backed claims for reading. Empty groups remain unknown."""
-    source = description.casefold()
+    source = description
     vehicle = _records(data, "vehicle")
 
     def vehicle_fields(fields):
