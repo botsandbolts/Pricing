@@ -1,0 +1,66 @@
+name: Broader GLiNER AFT comparison
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/gliner-broad-aft.yml'
+permissions:
+  contents: write
+  actions: read
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: [baseline,maintenance,history,equipment,faults,all]
+    env:
+      GLINER_ARM: ${{ matrix.arm }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            pricing
+            scripts
+            marketbridge
+            carbids
+            models/structural-transfer
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy 'pandas>=2.2,<3' scipy scikit-learn 'xgboost>=3,<4' lightgbm requests joblib
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bge-shard-*
+          run-id: 41876358303
+          github-token: ${{ github.token }}
+          merge-multiple: true
+          path: bge-shards
+      - uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: frozen-lemon
+      - uses: actions/download-artifact@v4
+        with:
+          name: gliner-normalized-pricing-features
+          run-id: 42060979112
+          github-token: ${{ github.token }}
+          path: .
+      - run: |
+          python -m scripts.merge_bge_shards
+          mkdir -p evidence
+          cp frozen-lemon/ask/hierarchy-input.csv.gz evidence/ask-minilm-cleaned.csv.gz
+          python -u -m scripts.train_gliner_broad_aft --market ask
+          python -u -m scripts.fit_lemon_hierarchy --market ask
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gliner-broad-result-${{ matrix.arm }}
+          path: training-cache/lemon-hierarchy
+          retention-days: 90
