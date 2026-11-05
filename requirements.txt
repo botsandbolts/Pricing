@@ -123,3 +123,5 @@ faiss-cpu>=1.8,<2
 
 # On-demand seller-description extraction.
 gliner2[local]==2.1.0
+
+# Turso functionality telemetry release (2026-11-05): force Streamlit Cloud full redeploy.
