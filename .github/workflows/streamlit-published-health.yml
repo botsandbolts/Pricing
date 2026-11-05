@@ -1,0 +1,38 @@
+name: Published Streamlit health check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "requirements.txt"
+      - ".github/workflows/streamlit-published-health.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify public Streamlit process health
+        shell: bash
+        run: |
+          set -uo pipefail
+          health_url="https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/~/+/_stcore/health"
+          home_url="https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/"
+          printf "Checking public health endpoint: %s\n" "$health_url"
+          for attempt in $(seq 1 12); do
+            response=$(curl --location --silent --show-error --fail --max-time 18 "$health_url" 2>/dev/null || true)
+            printf "Health check %s: %s\n" "$attempt" "$(printf '%s' "$response" | head -c 70)"
+            if [[ "$response" == "ok" ]]; then
+              printf "Streamlit health endpoint reports ok.\n"
+              curl --location --silent --show-error --fail --max-time 18 --output /dev/null "$home_url"
+              printf "Public root URL responds successfully.\n"
+              exit 0
+            fi
+            sleep 8
+          done
+          printf "Could not verify healthy published Streamlit process. Check Streamlit Cloud logs.\n" >&2
+          exit 1
