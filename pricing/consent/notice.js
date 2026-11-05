@@ -107,9 +107,18 @@ function installPricingInteractions() {
   ]) settings.set(name,id);
   const state = {panel:'calculator',subpanel:'none',since:performance.now(),active:!document.hidden,
     allowed:false,lastSetting:null,seen:new Set(),lastChange:new Map()};
-  const allowed = () => window.__pricingGoogleAnalytics?.allowed === true && window.__pricingGoogleAnalytics?.featureConsent === true;
+  const allowed = () => window.__pricingTursoBridge?.allowed === true ||
+    (window.__pricingGoogleAnalytics?.allowed === true && window.__pricingGoogleAnalytics?.featureConsent === true);
   function send(name, params={}) {
-    if (state.suppress || !allowed() || document.hidden || !window.gtag) return false;
+    if (state.suppress || !allowed() || document.hidden) return false;
+    const bridge=window.__pricingTursoBridge;
+    if (bridge?.allowed) bridge.enqueue({
+      event_id:crypto.randomUUID(),event_type:name,feature_name:state.panel,
+      subpanel_name:state.subpanel,action_name:params.action_name || null,
+      duration_seconds:params.duration_seconds ?? null
+    });
+    if (!window.__pricingGoogleAnalytics?.allowed ||
+        !window.__pricingGoogleAnalytics?.featureConsent || !window.gtag) return true;
     window.gtag('event',name,{send_to:window.__pricingGoogleAnalytics.id,
       panel_name:state.panel,subpanel_name:state.subpanel,tracking_version:'2026_10_30_v4',...params});
     if(document.documentElement)document.documentElement.setAttribute('data-pricing-ga-last-event',JSON.stringify({event:name,panel:state.panel,subpanel:state.subpanel,action:params.action_name||null,version:'v4'}));
@@ -293,7 +302,7 @@ function pricingGoogleAnalytics(data, allowed, root) {
       page_referrer:'',page_title:'Car Price Studio | US used cars'});
   }
   state.trackingVersion = '2026_10_30_v4';
-  state.featureConsent = data.version === '2026-10-29-v3';
+  state.featureConsent = data.version === '2026-11-05-v4';
   interactions.consentChanged();
   status.textContent = state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
     : state.loaded ? 'Google Analytics: tag loaded after acceptance · panel/action tracking v4.'
@@ -315,7 +324,8 @@ export default function(component) {
   const validId = v => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v || '');
   const clearIdentity = () => {
     write(visitorName, '', 0);
-    try {sessionStorage.removeItem('pricing_session');sessionStorage.removeItem('pricing_geo');} catch {}
+    try {sessionStorage.removeItem('pricing_session');sessionStorage.removeItem('pricing_geo');
+      sessionStorage.removeItem('pricing_city_override');} catch {}
   };
   let pref = null;
   try {pref = JSON.parse(read(prefName));} catch {}
@@ -323,6 +333,34 @@ export default function(component) {
   if (!pref || pref.version !== data.version || !(age >= 0 && age < 90*86400000) ||
       !['accepted','rejected'].includes(pref.choice)) pref = null;
   if (!pref || pref.choice !== 'accepted' || !data.enabled) clearIdentity();
+  // First-party event bridge: independent of Google delivery, but never of user consent.
+  let bridge=window.__pricingTursoBridge;
+  if(!bridge) {
+    bridge={
+      allowed:false,pending:[],timer:null,publish:null,
+      enqueue(event) {
+        if(!this.allowed)return;
+        this.pending.push(event);
+        if(this.pending.length>30)this.pending.splice(0,this.pending.length-30);
+        if(this.timer===null)this.timer=setTimeout(()=>{
+          this.timer=null;
+          if(!this.allowed){this.pending=[];return;}
+          const events=this.pending.splice(0,30);
+          if(events.length)this.publish?.(events);
+          if(this.pending.length)this.enqueuePending();
+        },900);
+      },
+      enqueuePending(){
+        if(this.timer===null && this.pending.length){
+          const event=this.pending.shift();this.enqueue(event);
+        }
+      }
+    };
+    window.__pricingTursoBridge=bridge;
+  }
+  bridge.allowed=Boolean(pref?.choice==='accepted' && data.enabled);
+  bridge.publish=events=>setStateValue('telemetry_events',events);
+  if(!bridge.allowed)bridge.pending=[];
   pricingGoogleAnalytics(data, pref?.choice === 'accepted' && data.enabled, root);
   root.querySelector('#operator').textContent = 'Operator: '+data.controller+'. Contact: '+data.contact+'.';
   root.querySelector('#status').textContent = data.enabled ? '' : 'Optional analytics are off. No analytics visitor ID is active. You can use every pricing tool normally.';
@@ -331,8 +369,8 @@ export default function(component) {
   root.querySelector('#consent-info').hidden = !data.enabled;
   root.querySelector('.actions').hidden = !data.enabled;
   root.querySelector('#geo-short').textContent = data.geo_mode === 'geojs'
-    ? 'After acceptance, GeoJS receives your IP to estimate city/country; we save only the approximate location.'
-    : 'Location is estimated locally from an IP supplied by our host.';
+    ? 'After acceptance, GeoJS estimates your city and country; you can correct the city below.'
+    : 'Location is estimated locally from an IP supplied by our host; you can correct the city below.';
   root.querySelector('#accept').disabled = !data.enabled;
   root.querySelector('#geo-notice').textContent = data.geo_mode === 'geojs'
     ? 'After acceptance, your browser contacts GeoJS (using MaxMind GeoLite data) to estimate your country/city. GeoJS and its network provider receive your IP through that connection. We keep only country, city and region; the returned IP, coordinates and other fields are discarded. No lookup is made before consent.'
@@ -347,7 +385,10 @@ export default function(component) {
       if (!response.ok) return null;
       const result = await response.json();
       const clean = value => typeof value==='string' ? value.slice(0,100) : null;
-      const location = {country:/^[A-Z]{2}$/.test(result.country_code)?result.country_code:null,
+      const code=/^[A-Z]{2}$/.test(result.country_code)?result.country_code:null;
+      let fullName=null;
+      try {if(code)fullName=new Intl.DisplayNames(['en'],{type:'region'}).of(code);} catch {}
+      const location = {country:code,country_name:fullName || clean(result.country),
         city:clean(result.city),region:clean(result.region),geo_provider:'GeoJS / MaxMind GeoLite'};
       if (pref?.choice !== 'accepted' || !data.enabled || !sessionStorage.getItem('pricing_session')) return null;
       // Raw IP/lat/lon never leave this function or enter storage/component state.
@@ -365,12 +406,27 @@ export default function(component) {
         if (!validId(session)) {session=crypto.randomUUID();sessionStorage.setItem('pricing_session',session);}
         const ua=navigator.userAgent;
         const browser=/Edg\//.test(ua)?'Edge':/Firefox\//.test(ua)?'Firefox':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':'Other';
+        const os_family=/Android/i.test(ua)?'Android':/iPad|iPhone|iPod/i.test(ua)?'iOS':
+          /Windows/i.test(ua)?'Windows':/Macintosh|Mac OS X/i.test(ua)?'macOS':
+          /Linux/i.test(ua)?'Linux':'Other';
+        const width=window.innerWidth||0;
+        const viewport_bucket=width<600?'small':width<1000?'medium':width<1600?'large':'extra_large';
+        let timezone_name=null;
+        try {timezone_name=Intl.DateTimeFormat().resolvedOptions().timeZone || null;} catch {}
         payload={...payload, visitor_id:visitor, session_id:session, consent_at:pref.at, browser,
-          device:/Mobi|Android/i.test(ua)?'mobile':'desktop'};
+          device:/Mobi|Android/i.test(ua)?'mobile':'desktop',
+          browser_language:navigator.language||null,
+          browser_languages:Array.from(navigator.languages||[]).slice(0,5),
+          timezone_name,os_family,viewport_bucket};
         const location = await lookup();
         // Ignore a result arriving after the person withdrew or disabled collection.
         if (pref?.choice !== 'accepted' || !data.enabled) return;
         if (location) payload.location = location;
+        const city=root.querySelector('#city-correction').value.trim();
+        if(city && city.length<=80 && !/[@<>\\/\d]/.test(city)) {
+          payload.city_override=city;
+          try {sessionStorage.setItem('pricing_city_override',city);} catch {}
+        }
       } catch {payload={choice:'rejected',version:data.version};clearIdentity();}
     }
     root.querySelector('#visitor').textContent=payload.visitor_id ? 'Your analytics visitor ID: '+payload.visitor_id : 'No analytics visitor ID is active.';
@@ -382,6 +438,11 @@ export default function(component) {
       setStateValue('consent',payload);
     }
   };
+  const cityInput=root.querySelector('#city-correction');
+  if (cityInput) {
+    try {cityInput.value=sessionStorage.getItem('pricing_city_override') || '';} catch {}
+    cityInput.onchange=()=>{if(pref?.choice==='accepted')publish();};
+  }
   root.querySelector('#privacy').onclick=()=>dialog.showModal();
   root.querySelector('#close').onclick=()=>dialog.close();
   root.querySelector('#check-connection').onclick=()=>{
@@ -395,6 +456,8 @@ export default function(component) {
       pref={choice,version:data.version,at:new Date().toISOString()};
       write(prefName,JSON.stringify(pref),90);
       if(choice==='rejected')clearIdentity();
+      bridge.allowed=Boolean(choice==='accepted' && data.enabled);
+      if(!bridge.allowed)bridge.pending=[];
       pricingGoogleAnalytics(data, choice==='accepted' && data.enabled, root);
       publish();dialog.close();
     };
