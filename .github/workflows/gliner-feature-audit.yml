@@ -1,0 +1,71 @@
+name: Experimental GLiNER feature audit
+on:
+  push:
+    paths: ['.github/workflows/gliner-feature-audit.yml']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'gliner-[0-9]*'
+          run-id: 41994641643
+          github-token: ${{ github.token }}
+          path: chunks
+      - uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: lemon
+      - run: |
+          python - <<'PY'
+          import collections
+          import csv
+          import gzip
+          import json
+          from pathlib import Path
+
+          with gzip.open('lemon/ask/hierarchy-input.csv.gz', 'rt') as source:
+              calibration = {row['row_id']: row['vehicle_group'] for row in csv.DictReader(source)
+                             if row['split'] == 'calibration'}
+          files = sorted(Path('chunks').glob('gliner-*/*.jsonl'))
+          if len(files) != 50 or not calibration:
+              raise ValueError('Expected 50 JSONL chunks and a populated calibration split')
+          support = collections.Counter()
+          groups = collections.defaultdict(set)
+          seen = set()
+          for path in files:
+              with path.open() as source:
+                  for line in source:
+                      row = json.loads(line)
+                      key = str(row['row_id'])
+                      if key not in calibration:
+                          continue
+                      if key in seen:
+                          raise ValueError(f'Duplicate calibration ID: {key}')
+                      seen.add(key)
+                      for section, records in row['extraction'].items():
+                          fields = {field for record in records if isinstance(record, dict)
+                                    for field, value in record.items() if value}
+                          for field in fields:
+                              name = f'{section}.{field}'
+                              support[name] += 1
+                              groups[name].add(calibration[key])
+          if seen != calibration.keys():
+              raise ValueError('Extraction did not cover the retained calibration split')
+          report = {'calibration_rows': len(seen), 'fields': [
+              {'field': field, 'mentions': count, 'vehicle_groups': len(groups[field]),
+               'coverage': count / len(seen),
+               'passes_initial_support': count / len(seen) >= .005 and len(groups[field]) >= 200}
+              for field, count in support.most_common()]}
+          Path('gliner-feature-audit.json').write_text(json.dumps(report, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gliner-feature-audit
+          path: gliner-feature-audit.json
