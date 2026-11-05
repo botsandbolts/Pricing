@@ -1,6 +1,6 @@
 numpy>=1.26,<3
 pandas>=2.1,<3
-scikit-learn>=1.4,<2
+scikit-learn==1.9.1
 lightgbm>=4.5,<5
 # Pin the runtime used by the connection-page and consent tests.
 streamlit==1.66.1
@@ -77,8 +77,8 @@ qrcode>=8,<9
 
 # Joint Bayesian residual posterior and historical outcome ranges: refresh app imports.
 
-umap-learn>=0.5.7,<0.6
-joblib>=1.3,<2
+umap-learn==0.5.12
+joblib==1.6.0
 # XGBoost five-fold Bayesian serving release.
 
 # Compact MiniLM signal: ONNX inference avoids loading PyTorch in the new calculator.
@@ -120,3 +120,5 @@ faiss-cpu>=1.8,<2
 # Accessibility release: cold restart for reading preferences and semantic UI updates.
 
 # BART INT8 CPU release: restart the worker to release the previous PyTorch summary runtime.
+
+numba==0.68.1

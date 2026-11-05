@@ -1,0 +1,36 @@
+{
+  "bytes": 47935718,
+  "sha256": "637ab786141fc6a824693efb92fffacbdec9e7e73cffe30d2d8888fe1e61731c",
+  "parts": [
+    {
+      "file": "fold-1.ubj.000.part",
+      "bytes": 8388608,
+      "sha256": "3bc1094bdc3962b07103d286655a0bcff08b0bed05f35d2cfb07813b84f041b9"
+    },
+    {
+      "file": "fold-1.ubj.001.part",
+      "bytes": 8388608,
+      "sha256": "9a76df96c5c99272505b497327955e6619da0d48e3b99efd552230ca09a67b7c"
+    },
+    {
+      "file": "fold-1.ubj.002.part",
+      "bytes": 8388608,
+      "sha256": "fb83022220a5a73c6899a3b16676500f13a5b46c53708672294da5a79bd45da7"
+    },
+    {
+      "file": "fold-1.ubj.003.part",
+      "bytes": 8388608,
+      "sha256": "af190e2ef9dbd35a75d4332da472f104f905b0537d6b2e7b04da86a85c3a5679"
+    },
+    {
+      "file": "fold-1.ubj.004.part",
+      "bytes": 8388608,
+      "sha256": "5d0a5690281f86f270cf6acea47b577d7fcdb2b7e060e81eb05cf38d22bd5ed8"
+    },
+    {
+      "file": "fold-1.ubj.005.part",
+      "bytes": 5992678,
+      "sha256": "da8b0a35c6e692c59d9fdcae66665789f0e7f17428d80afd84628b53331afc9b"
+    }
+  ]
+}

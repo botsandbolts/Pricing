@@ -1,0 +1,40 @@
+{
+  "identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71",
+  "files": {
+    "training_args.bin": "cd22ac24b842d77c4551e20f927480c30dd892dac1bac51c50a5592f35e08c43",
+    "tokenizer_config.json": "7b082b48a08a0b5c5939d99472e33addce3d96202155e33f7928cecd171186a0",
+    "adaptation.json": "00d4a9299bbf735ab9abc3e4bc2b89b8cc714b37e377c2833e4904ccd0e66e38",
+    "model.safetensors": "4640e01a72933d14cb73c52d3be2a2d1b7be4cb82445f5d9a249447b20c0646c",
+    "config.json": "3eebb460a877c3b7d543521695c150f9a47690ba1307a9d3370ff1c90e9d87ee",
+    "tokenizer.json": "8b79639ec74b46604e730f505186eaafb1006d2fd00f2c4930d168bb7f894680",
+    "special_tokens_map.json": "5d5b662e421ea9fac075174bb0688ee0d9431699900b90662acd44b2a350503a",
+    "vocab.txt": "07eced375cec144d27c900241f3e339478dec958f92fddbc551f295c992038a3"
+  },
+  "adaptation": {
+    "model": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "shard": 0,
+    "shards": 25,
+    "calibration_descriptions": 4434,
+    "row_ids_sha256": "f57509802a4bdee722067696d7d7ec169fcc145dc70c6484f68c8d439cb21d3b",
+    "mlm_before": {
+      "eval_loss": 11.276829719543457,
+      "eval_model_preparation_time": 0.0032,
+      "eval_runtime": 72.2177,
+      "eval_samples_per_second": 6.148,
+      "eval_steps_per_second": 0.775
+    },
+    "mlm_after": {
+      "eval_loss": 7.192619323730469,
+      "eval_model_preparation_time": 0.0032,
+      "eval_runtime": 68.8483,
+      "eval_samples_per_second": 6.449,
+      "eval_steps_per_second": 0.813,
+      "epoch": 0.6012024048096193
+    },
+    "mask_probability": 0.15,
+    "steps": 300,
+    "max_tokens": 256,
+    "limits": "Independent shard checkpoint, not distributed joint training. MLM improvement does not establish embedding or pricing improvement. Base BGE remains deployed; no weight averaging."
+  }
+}

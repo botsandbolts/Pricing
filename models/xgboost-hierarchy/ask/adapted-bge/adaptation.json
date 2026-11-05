@@ -1,0 +1,27 @@
+{
+  "model": "BAAI/bge-small-en-v1.5",
+  "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "shard": 0,
+  "shards": 25,
+  "calibration_descriptions": 4434,
+  "row_ids_sha256": "f57509802a4bdee722067696d7d7ec169fcc145dc70c6484f68c8d439cb21d3b",
+  "mlm_before": {
+    "eval_loss": 11.276829719543457,
+    "eval_model_preparation_time": 0.0032,
+    "eval_runtime": 72.2177,
+    "eval_samples_per_second": 6.148,
+    "eval_steps_per_second": 0.775
+  },
+  "mlm_after": {
+    "eval_loss": 7.192619323730469,
+    "eval_model_preparation_time": 0.0032,
+    "eval_runtime": 68.8483,
+    "eval_samples_per_second": 6.449,
+    "eval_steps_per_second": 0.813,
+    "epoch": 0.6012024048096193
+  },
+  "mask_probability": 0.15,
+  "steps": 300,
+  "max_tokens": 256,
+  "limits": "Independent shard checkpoint, not distributed joint training. MLM improvement does not establish embedding or pricing improvement. Base BGE remains deployed; no weight averaging."
+}

@@ -1,9 +1,23 @@
 {
   "transformer_feature": true,
-  "description_features": "minilm-price",
+  "description_features": "minilm-price-adapted-bge-umap",
   "method": "lemon-retained-fivefold-bayesian",
   "residual_source": "fivefold-within-retained-75-percent",
   "model": "Five group-held-out XGBoost models per market on retained Lemon training; matched robust Bayesian log residuals",
   "training_fraction_per_fold": "approximately 80% of retained 75%; grouped vehicles kept intact",
-  "validation_test_filtered": false
+  "validation_test_filtered": false,
+  "ask_description_features": {
+    "configuration": "adapted-config-64-30-0.3",
+    "dimensions": 64,
+    "n_neighbors": 30,
+    "min_dist": 0.3,
+    "n_epochs": 500,
+    "selected_likelihood": "student_t",
+    "validation_mae_usd": 3408.060856715116,
+    "test_mae_usd": 3574.2773225881906,
+    "test_coverage": 0.8931254340003788,
+    "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+  },
+  "source_run": "41926971809",
+  "adapted_bge_checkpoint": 0
 }

@@ -1,0 +1,131 @@
+{
+  "status": "ready for regular pricing",
+  "selected": {
+    "configuration": "adapted-config-64-30-0.3",
+    "dimensions": 64,
+    "n_neighbors": 30,
+    "min_dist": 0.3,
+    "n_epochs": 500,
+    "selected_likelihood": "student_t",
+    "validation_mae_usd": 3408.060856715116,
+    "test_mae_usd": 3574.2773225881906,
+    "test_coverage": 0.8931254340003788,
+    "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+  },
+  "configurations": [
+    {
+      "configuration": "adapted-config-32-100-0.1",
+      "dimensions": 32,
+      "n_neighbors": 100,
+      "min_dist": 0.1,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3425.8946086789792,
+      "test_mae_usd": 3578.221647346429,
+      "test_coverage": 0.8920522694274351,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    },
+    {
+      "configuration": "adapted-config-32-100-0.3",
+      "dimensions": 32,
+      "n_neighbors": 100,
+      "min_dist": 0.3,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3408.656424921431,
+      "test_mae_usd": 3584.482864847894,
+      "test_coverage": 0.8929676156808283,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    },
+    {
+      "configuration": "adapted-config-32-30-0.1",
+      "dimensions": 32,
+      "n_neighbors": 30,
+      "min_dist": 0.1,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3423.135718677613,
+      "test_mae_usd": 3586.771216166503,
+      "test_coverage": 0.8917050691244239,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    },
+    {
+      "configuration": "adapted-config-32-30-0.3",
+      "dimensions": 32,
+      "n_neighbors": 30,
+      "min_dist": 0.3,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3421.611063576849,
+      "test_mae_usd": 3579.7468750375315,
+      "test_coverage": 0.8935041979673001,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    },
+    {
+      "configuration": "adapted-config-64-100-0.1",
+      "dimensions": 64,
+      "n_neighbors": 100,
+      "min_dist": 0.1,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3419.3341957795296,
+      "test_mae_usd": 3573.124234712447,
+      "test_coverage": 0.8955242724575468,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    },
+    {
+      "configuration": "adapted-config-64-100-0.3",
+      "dimensions": 64,
+      "n_neighbors": 100,
+      "min_dist": 0.3,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3415.637840900925,
+      "test_mae_usd": 3573.3919321210137,
+      "test_coverage": 0.894072343917682,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    },
+    {
+      "configuration": "adapted-config-64-30-0.1",
+      "dimensions": 64,
+      "n_neighbors": 30,
+      "min_dist": 0.1,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3412.4659400164373,
+      "test_mae_usd": 3575.9677028401697,
+      "test_coverage": 0.8943564168928729,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    },
+    {
+      "configuration": "adapted-config-64-30-0.3",
+      "dimensions": 64,
+      "n_neighbors": 30,
+      "min_dist": 0.3,
+      "n_epochs": 500,
+      "selected_likelihood": "student_t",
+      "validation_mae_usd": 3408.060856715116,
+      "test_mae_usd": 3574.2773225881906,
+      "test_coverage": 0.8931254340003788,
+      "encoder_identity": "5b102ad17e334cc674a216cd27fe526d74e611fdf53090f6d9d6568937c67b71"
+    }
+  ],
+  "selection_rule": "Lowest validation dollar MAE after matching Bayesian refit; test never ranks UMAP settings.",
+  "checkpoint": "Independent calibration-only BGE MLM checkpoint 0, preselected before pricing comparison.",
+  "pooling": "Normalized final-layer CLS; 256 tokens; explicit advertised money redacted.",
+  "umap_fit": "Within each outer training fold; final serving reducer fitted on calibration only.",
+  "gui": "The same local adapted checkpoint and saved reducer.transform; no inference-time fit.",
+  "smoke": {
+    "description_columns": 65,
+    "xgboost_price": 16287.892578125,
+    "bayesian_price": 17488.6995876754,
+    "offline": true
+  },
+  "runtime_versions": {
+    "umap-learn": "0.5.12",
+    "scikit-learn": "1.9.1",
+    "joblib": "1.6.0",
+    "numba": "0.68.1"
+  },
+  "limits": "Eight settings share a validation cohort. Test cars were examined in earlier releases; this is not a new external benchmark. Independent MLM shards are not one jointly trained encoder."
+}
