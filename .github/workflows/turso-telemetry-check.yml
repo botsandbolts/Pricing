@@ -1,0 +1,29 @@
+name: Turso telemetry checks
+
+on:
+  pull_request:
+    paths:
+      - "pricing/analytics.py"
+      - "pricing/feature_telemetry.py"
+      - "tests/test_analytics.py"
+      - "tests/test_feature_telemetry.py"
+      - ".github/workflows/turso-telemetry-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sqlite-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lightweight runtime for schema tests
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest requests streamlit==1.66.1 maxminddb
+      - name: Test consent, Turso SQL and feature telemetry
+        run: python -m pytest -q tests/test_analytics.py tests/test_feature_telemetry.py
