@@ -1,0 +1,93 @@
+name: GLiNER descriptions JSON and database 20 chunks
+on:
+  push:
+    paths: ['.github/workflows/gliner-descriptions.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: bge-original-cohort
+          run-id: 41876358303
+          github-token: ${{ github.token }}
+          path: training-cache
+      - run: pip install huggingface-hub
+      - run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from huggingface_hub import HfApi
+          name='fastino/gliner2.5-base-v1'
+          Path('training-cache/gliner-model.json').write_text(json.dumps({'model':name,'revision':HfApi().model_info(name).sha}))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gliner-source
+          path: training-cache
+          retention-days: 90
+  extract:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install 'gliner2[local]'
+      - uses: actions/download-artifact@v4
+        with:
+          name: gliner-source
+          path: training-cache
+      - run: python -u -m scripts.extract_gliner_descriptions --shard ${{ matrix.shard }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gliner-${{ matrix.shard }}
+          path: gliner-output
+          retention-days: 90
+  database:
+    needs: extract
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: gliner-source
+          path: training-cache
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gliner-*
+          path: gliner-parts
+      - run: python -m scripts.extract_gliner_descriptions --merge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: structured-description-database
+          path: gliner-output
+          retention-days: 90
