@@ -1,0 +1,38 @@
+name: Restore pricing before adapted embeddings
+on:
+  push:
+    paths: ['.github/workflows/revert-adapted-embeddings.yml']
+permissions:
+  contents: write
+jobs:
+  restore:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            models/xgboost-hierarchy
+            pricing
+            scripts
+            tests
+            reports/adapted-bge-regular
+      - name: Restore previous models and remove adapted embedding integration
+        run: |
+          git fetch --filter=blob:none origin 07cf13ffa296af122ab59f15e84680f97bfc691b
+          git restore --source=07cf13ffa296af122ab59f15e84680f97bfc691b --staged --worktree -- models/xgboost-hierarchy/ask models/xgboost-hierarchy/release.json requirements.txt pricing/description_features.py pricing/hierarchy_sparse_studio.py pricing/current_tools.py pricing/forest_form.py
+          git rm --ignore-unmatch pricing/adapted_bge.py scripts/encode_adapted_bge.py scripts/train_adapted_bge.py scripts/publish_adapted_bge.py tests/test_adapted_bge.py .github/workflows/adapted-bge-regular.yml
+          git rm -r --ignore-unmatch reports/adapted-bge-regular
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('models/xgboost-hierarchy')
+          assert json.loads((root/'release.json').read_text())['description_features']=='minilm-price'
+          assert json.loads((root/'ask/features.json').read_text())['kind']=='minilm-price'
+          assert not (root/'ask/adapted-bge').exists()
+          print('Previous MiniLM-price release restored')
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Revert adapted BGE UMAP project and restore prior regular pricing"
+          git push origin HEAD:main
