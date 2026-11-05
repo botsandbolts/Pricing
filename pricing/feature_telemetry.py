@@ -236,3 +236,43 @@ def record_server_error(feature, code, severity='error'):
         if 'store' in locals():
             store.retry_after = time.monotonic() + 60
         return False
+
+
+def record_server_run(feature, model_family, status, input_count=None,
+                      result_count=None, duration_ms=None, event_key=None):
+    """Record coarse inference/recommendation performance, never car details."""
+    import streamlit as st
+    from pricing.analytics import configured, valid_consent, _store, _location, utcnow, _failure
+    consent = st.session_state.get('_analytics_consent')
+    if (not configured() or not valid_consent(consent) or
+            feature not in FEATURES or status not in {'success', 'unavailable', 'error'}):
+        return False
+    family = model_family if isinstance(model_family, str) and WORD.fullmatch(model_family) else None
+    def count(value, maximum):
+        try:
+            value = int(value)
+            return value if 0 <= value <= maximum else None
+        except (TypeError, ValueError, OverflowError):
+            return None
+    try:
+        store = _store()
+        if time.monotonic() < store.retry_after:
+            return False
+        store.initialize()
+        store.visit(consent, _location())
+        run_id = (str(uuid.uuid5(uuid.UUID(consent['session_id']), feature + ':' + str(event_key)))
+                  if event_key else str(uuid.uuid4()))
+        store.execute(
+            """INSERT OR IGNORE INTO feature_runs
+               (run_id,visitor_id,session_id,recorded_at,feature_name,
+                model_family,status,input_count,result_count,duration_ms)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (run_id, consent['visitor_id'], consent['session_id'], utcnow(),
+             feature, family, status, count(input_count, 1000000),
+             count(result_count, 1000000), count(duration_ms, 600000)))
+        return True
+    except Exception as error:
+        _failure('feature_run_write', error)
+        if 'store' in locals():
+            store.retry_after = time.monotonic() + 60
+        return False
