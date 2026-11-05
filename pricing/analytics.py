@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 import requests
 
-CONSENT_VERSION = '2026-10-29-v3'
+CONSENT_VERSION = '2026-11-05-v4'
 RETENTION_DAYS = 90
 SCHEMA = [
     '''CREATE TABLE IF NOT EXISTS visitors (
@@ -30,6 +30,8 @@ SCHEMA = [
 ]
 from pricing.hierarchical_store import SCHEMA as HIERARCHICAL_SCHEMA
 SCHEMA += HIERARCHICAL_SCHEMA
+from pricing.feature_telemetry import SCHEMA as FEATURE_SCHEMA
+SCHEMA += FEATURE_SCHEMA
 
 VEHICLE_FIELDS = {'year', 'manufacturer', 'model', 'odometer', 'type', 'fuel',
                   'transmission', 'drive', 'condition', 'title_status', 'cylinders',
@@ -232,11 +234,19 @@ class TursoStore:
 
     def purge(self):
         cutoff = (datetime.now(timezone.utc) - timedelta(days=RETENTION_DAYS)).isoformat(timespec='seconds')
+        self.execute('DELETE FROM feature_events WHERE recorded_at < ?', [cutoff])
+        self.execute('DELETE FROM feature_runs WHERE recorded_at < ?', [cutoff])
+        self.execute('DELETE FROM feature_errors WHERE recorded_at < ?', [cutoff])
         self.execute('DELETE FROM hierarchical_estimations WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM pricing_queries WHERE timestamp < ?', [cutoff])
+        self.execute('DELETE FROM analytics_sessions WHERE last_seen < ? AND NOT EXISTS '
+                     '(SELECT 1 FROM feature_events e WHERE e.session_id=analytics_sessions.session_id) AND NOT EXISTS '
+                     '(SELECT 1 FROM feature_runs r WHERE r.session_id=analytics_sessions.session_id) AND NOT EXISTS '
+                     '(SELECT 1 FROM feature_errors x WHERE x.session_id=analytics_sessions.session_id)', [cutoff])
         self.execute('DELETE FROM visitors WHERE last_seen < ? AND NOT EXISTS '
                      '(SELECT 1 FROM pricing_queries q WHERE q.visitor_id=visitors.visitor_id) AND NOT EXISTS '
-                     '(SELECT 1 FROM hierarchical_estimations h WHERE h.visitor_id=visitors.visitor_id)', [cutoff])
+                     '(SELECT 1 FROM hierarchical_estimations h WHERE h.visitor_id=visitors.visitor_id) AND NOT EXISTS '
+                     '(SELECT 1 FROM analytics_sessions s WHERE s.visitor_id=visitors.visitor_id)', [cutoff])
         from pricing.sale_feedback import purge
         purge(self)
 
@@ -251,6 +261,8 @@ class TursoStore:
             consent_version=excluded.consent_version, consent_at=excluded.consent_at''',
             [consent['visitor_id'], now, now, location['country'], location['city'], location['region'],
              location['geo_provider'], browser, device, CONSENT_VERSION, consent['consent_at']])
+        from pricing.feature_telemetry import sync_session
+        sync_session(self, consent, location)
 
     def query(self, consent, location, query_id, side, price, model, source, valuation_date, fields):
         self.execute('''INSERT OR IGNORE INTO pricing_queries VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
@@ -289,16 +301,25 @@ def _store():
 def _location():
     import streamlit as st
     from pricing.geo import approximate_location
-    if _setting('ANALYTICS_GEO_MODE', 'geojs') == 'geojs':
-        consent = st.session_state.get('_analytics_consent') or {}
-        value = consent.get('location') or {}
-        if isinstance(value, dict) and value.get('geo_provider') == 'GeoJS / MaxMind GeoLite':
-            return {k: (str(value[k])[:100] if value.get(k) else None)
+    from pricing.feature_telemetry import text_field
+    consent = st.session_state.get('_analytics_consent') or {}
+    value = consent.get('location') or {}
+    if _setting('ANALYTICS_GEO_MODE', 'geojs') == 'geojs' and (
+            isinstance(value, dict) and value.get('geo_provider') == 'GeoJS / MaxMind GeoLite'):
+        location = {k: (str(value[k])[:100] if value.get(k) else None)
                     for k in ('country', 'city', 'region', 'geo_provider')}
-    location = approximate_location(st.context.headers, _setting('ANALYTICS_TRUSTED_IP_HEADER'),
-        _setting('ANALYTICS_GEO_MMDB'), _setting('ANALYTICS_GEO_PROVIDER'))
-    if not location['country']:
-        location['country'] = country_from_headers(st.context.headers, _setting('ANALYTICS_COUNTRY_HEADER'))
+        location['country_name'] = text_field(value.get('country_name'), 80)
+    else:
+        location = approximate_location(st.context.headers, _setting('ANALYTICS_TRUSTED_IP_HEADER'),
+            _setting('ANALYTICS_GEO_MMDB'), _setting('ANALYTICS_GEO_PROVIDER'))
+        if not location['country']:
+            location['country'] = country_from_headers(st.context.headers, _setting('ANALYTICS_COUNTRY_HEADER'))
+        # A trusted local GeoLite DB may not supply a full country name.
+        location['country_name'] = None
+    override = text_field(consent.get('city_override'), 80)
+    if override:
+        location['city'] = override
+        location['geo_provider'] = 'Visitor correction'
     return location
 
 
@@ -421,6 +442,11 @@ def _render_privacy_impl():
     if not enabled or not valid_consent(consent):
         return
     _persist_visit(consent)
+    # Browser UI events stay independent of Google Analytics delivery.
+    from pricing.feature_telemetry import record_browser_events
+    incoming = getattr(result, 'telemetry_events', None)
+    if isinstance(incoming, list):
+        record_browser_events(incoming)
 
 
 def render_connection_check():
