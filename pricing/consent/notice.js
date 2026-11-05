@@ -3,7 +3,7 @@ function installPricingInteractions() {
   if (window.__pricingInteractions) return window.__pricingInteractions;
   const panels = new Map([
     ['🚗 Price my car','calculator'],['🔎 Listing Inspector','listing_inspector'],['🚦 Pick your garage','taste_garage'],['↔ Two-market garage','two_market'],
-    ['📅 Value over time','value_over_time'],['🧠 The science','science'],
+    ['📅 Value over time','value_over_time'],['🧠 The science','science'],['🏪 Merchant lens','merchant_lens'],
     ['🌳 Hierarchical model','calculator'],['🧹 Outlier lab','outlier_lab'],['📊 Evaluation','evaluation'],['🧪 Model lab','model_lab'],['🕵️ Deal Detective','deal_detective']
   ]);
   for(const [name,id] of [...panels])panels.set(name.replace(/^[^\p{L}\p{N}]+/u,''),id);
