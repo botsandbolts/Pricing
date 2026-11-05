@@ -16,11 +16,11 @@ function fixture(enabled=true) {
       else cookies.set(pair.slice(0,at),pair.slice(at+1));}
   });
   const root={querySelector:key=>{
-    if(!nodes.has(key))nodes.set(key,{textContent:'',open:false,showModal(){this.open=true},close(){this.open=false}});
+    if(!nodes.has(key))nodes.set(key,{textContent:'',value:'',open:false,showModal(){this.open=true},close(){this.open=false}});
     return nodes.get(key);
   }};
   let fetches=0, outputs=[], triggers=[];
-  const context=vm.createContext({installPricingInteractions:()=>({consentChanged(){}}),document,sessionStorage:{getItem:k=>storage.get(k)||null,
+  const context=vm.createContext({installPricingInteractions:()=>({consentChanged(){}}),window:{innerWidth:1024},document,sessionStorage:{getItem:k=>storage.get(k)||null,
     setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     crypto:globalThis.crypto,navigator:{userAgent:'Chrome/123 Mobi'},AbortSignal,
     fetch:async()=>{fetches++;return {ok:true,json:async()=>({country_code:'DE',city:'Berlin',region:'Berlin',ip:'SECRET_IP',latitude:'SECRET_COORDINATE'})}},

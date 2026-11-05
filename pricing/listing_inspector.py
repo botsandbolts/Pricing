@@ -41,6 +41,9 @@ def render(root):
         allow=st.checkbox('Allow an auction-generation analogue for 2016–2021 cars',value=True,key='inspector_own_analogue',persist_state='session')
         submitted=st.form_submit_button('Price my car & find neighbours',type='primary')
     if submitted:
+        import time as _telemetry_time
+        from pricing.feature_telemetry import record_server_run, record_server_error
+        started=_telemetry_time.monotonic()
         st.session_state['inspector_result']=({'manufacturer':make,'model':model,'year':year,'odometer':miles,'transmission':transmission,'title_status':title,'state':state,'type':body,'condition':condition,'fuel':fuel,'drive':drive,'cylinders':cylinders,'paint_color':color,'auction_grade':grade},description)
         st.session_state.pop('inspector_own_price',None)
         try:
@@ -48,7 +51,12 @@ def render(root):
             fields,notes=st.session_state['inspector_result']
             with st.spinner('Pricing your car with the installed models, then finding nearest neighbours…'):
                 st.session_state['inspector_own_price']=quote(root,fields,notes,price_date,allow)
+            record_server_run('listing_inspector','bayesian' if pricing_view.startswith('Bayesian') else 'xgboost',
+                              'success',1,1,round(1000*(_telemetry_time.monotonic()-started)))
         except (ValueError,OSError,KeyError,MemoryError,RuntimeError,TypeError):
+            record_server_run('listing_inspector','bayesian' if pricing_view.startswith('Bayesian') else 'xgboost',
+                              'unavailable',1,0,round(1000*(_telemetry_time.monotonic()-started)))
+            record_server_error('listing_inspector','pricing_unavailable')
             st.info('Own-car pricing is unavailable for these inputs. The neighbour search can still run; no substitute estimate is invented.')
     from pricing.inspector_estimate import render as render_own_price
     own=st.session_state.get('inspector_own_price')

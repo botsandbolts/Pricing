@@ -33,6 +33,10 @@ install_style()
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
+# Mount consent and first-party telemetry on early-return workspaces as well.
+if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
+    from pricing.analytics import render_privacy
+    render_privacy()
 if _workspace=='🏪 Merchant lens':
     from pricing.dealer_positioning_ui import render as render_dealer_positioning
     render_dealer_positioning(Path(__file__).parent)
