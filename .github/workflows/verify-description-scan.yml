@@ -1,0 +1,38 @@
+name: Verify description scan
+on:
+  push:
+    paths: ['.github/workflows/verify-description-scan.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: pricing
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install serving versions
+        run: pip install --extra-index-url https://download.pytorch.org/whl/cpu 'torch==2.14.1+cpu' 'transformers==5.21.0' 'tokenizers>=0.23.1,<0.24' 'gliner2[local]==2.1.0' 'streamlit==1.66.1'
+      - name: Scan a synthetic seller description
+        run: |
+          python - <<'PY'
+          from pricing.description_scan import extract, sections, _cards
+
+          advert = '2015 Toyota Corolla. No accidents. Clean title. New brake pads installed last month. The air conditioning does not work. Has a backup camera.'
+          result = sections(extract(advert), advert)
+          assert any(events for _, events in result), 'The model returned no source-backed claims'
+          assert all(value.lower() in advert.lower()
+                     for _, events in result for event in events for _, value in event
+                     if ' · ' not in value)
+          assert 'No details extracted' in _cards(sections({}, advert))
+          print('Source-backed groups:', [group for group, events in result if events])
+          PY
