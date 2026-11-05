@@ -1,41 +1,46 @@
 {
-  "bytes": 55778743,
-  "sha256": "ab1963871c2e5b1941a32e4bbd8864142580ca7cae060afc5faab0d7e0a7b22d",
+  "bytes": 60572291,
+  "sha256": "f4cd86be33de5e3632e7e2778303b194ca983430ff4907536da2a455c9f9aad9",
   "parts": [
     {
       "file": "calibration-refit.ubj.000.part",
       "bytes": 8388608,
-      "sha256": "d51851c5189eee3d9ecf1f9387a22f0376af3cb27b10d60763c114f119c3f1e2"
+      "sha256": "760fa7dd7827d95d16496ca33dccfbdd4bb921dee7611d39f1dce8e05e7cf6c6"
     },
     {
       "file": "calibration-refit.ubj.001.part",
       "bytes": 8388608,
-      "sha256": "ceaadfb887decede9a17fa9c8abc104e6eecf34cc0f349a48237aafbf2c171df"
+      "sha256": "37011f86b6a781cd9b0a48f3be9f9f0c2ce8677eefc2b49aaab0882b90f19719"
     },
     {
       "file": "calibration-refit.ubj.002.part",
       "bytes": 8388608,
-      "sha256": "768993ff115b64c7b0e41327f75053fa65abca86a163bc9f81fb39aca7c8baad"
+      "sha256": "7d83bdee0feee09e2455e6024ea7cfe0e0e1474bb436c267b521a47eec3dc3d4"
     },
     {
       "file": "calibration-refit.ubj.003.part",
       "bytes": 8388608,
-      "sha256": "11117ef7192d04b117f3290efc2c3b1f5257b5a3ab36d54ec1b2d5175ca938d2"
+      "sha256": "a247a1f1b98e63e6d1250d30a24f3139213699fe8aaa8a73b69872129a4fb306"
     },
     {
       "file": "calibration-refit.ubj.004.part",
       "bytes": 8388608,
-      "sha256": "329d8e0380ba03cdc3a2be75f9d984f6d4393ac68110c2905b46bc7b44dddb76"
+      "sha256": "ea71204d1ff706421ac8ef7468570e14fdf6af0834f78b0a3812c22d46a6acb7"
     },
     {
       "file": "calibration-refit.ubj.005.part",
       "bytes": 8388608,
-      "sha256": "cfa29636c2ed900cf3f92987e3971324b99275f0673fdabe330b537fb7f15884"
+      "sha256": "10d0831b60cb3cbb48d55b5ccf716bb35554ab65cdb7f6a8a5c7c6c03ec5a514"
     },
     {
       "file": "calibration-refit.ubj.006.part",
-      "bytes": 5447095,
-      "sha256": "034b494ec23c221881b6a7a033bae831c02d3b7a71d620cd8d4a68fdb9ed9625"
+      "bytes": 8388608,
+      "sha256": "0e742d76c619910a0b49307ca91b6207db292b538e9adc89cb9015329b120e6b"
+    },
+    {
+      "file": "calibration-refit.ubj.007.part",
+      "bytes": 1852035,
+      "sha256": "80e0f8a8e94cfb6a90e607df26d64b4417b9d557db35d0026e5fe93a864da414"
     }
   ]
 }

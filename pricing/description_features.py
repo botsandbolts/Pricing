@@ -38,15 +38,12 @@ def kind(root):
     return json.loads(path.read_text())['kind'] if path.exists() else 'tfidf'
 
 def label(root):
-    return {'minilm-price':'MiniLM averaged description price','minilm-embeddings':'MiniLM embeddings','tfidf':'TF-IDF','minilm-price-adapted-bge-umap':'MiniLM price + adapted BGE/UMAP'}[kind(root)]
+    return {'minilm-price':'MiniLM averaged description price','minilm-embeddings':'MiniLM embeddings','tfidf':'TF-IDF'}[kind(root)]
 
 def projector(folder):
     folder=Path(folder)
     if (folder/'features.json').exists():
         feature=json.loads((folder/'features.json').read_text())['kind']
-        if feature=='minilm-price-adapted-bge-umap':
-            from pricing.adapted_bge import AdaptedProjector
-            return AdaptedProjector(folder)
         if feature=='minilm-price':return MiniLMPriceFeatures(folder)
         if feature=='minilm-embeddings':return MiniLMFeatures(folder/'minilm')
         raise ValueError('Unknown description-feature contract')
