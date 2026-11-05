@@ -1,4 +1,4 @@
-"""Twenty source-order partitions; grounded extraction stored as JSON and SQLite."""
+"""Fifty source-order partitions; grounded extraction stored as JSON and SQLite."""
 import argparse,json,hashlib,sqlite3,datetime
 from pathlib import Path
 p=argparse.ArgumentParser();p.add_argument('--shard',type=int);p.add_argument('--merge',action='store_true');a=p.parse_args()
@@ -10,7 +10,7 @@ if a.merge:
     dest=sqlite3.connect(out/'descriptions.sqlite')
     dest.execute('CREATE TABLE descriptions(row_id TEXT PRIMARY KEY, description TEXT NOT NULL, extraction_json TEXT NOT NULL CHECK(json_valid(extraction_json)))')
     counts=[];sources=set()
-    for i in range(20):
+    for i in range(50):
         root=Path('gliner-parts')/f'gliner-{i}'
         receipt=json.loads((root/f'{i:02d}.receipt.json').read_text());sources.add(receipt['source_sha256'])
         src=sqlite3.connect(root/f'{i:02d}.sqlite')
@@ -20,9 +20,9 @@ if a.merge:
     expected=sum(1 for _ in open('training-cache/full-cohort.jsonl'))
     if sum(counts)!=expected or dest.execute('SELECT count(*) FROM descriptions').fetchone()[0]!=expected:raise ValueError('Missing descriptions')
     dest.commit();dest.close()
-    (out/'manifest.json').write_text(json.dumps({'rows':expected,'chunks':20,'source_sha256':next(iter(sources)),'schema':schema},indent=2))
+    (out/'manifest.json').write_text(json.dumps({'rows':expected,'chunks':50,'source_sha256':next(iter(sources)),'schema':schema},indent=2))
 else:
-    if a.shard is None or not 0<=a.shard<20:raise ValueError('Shard 0..19 required')
+    if a.shard is None or not 0<=a.shard<50:raise ValueError('Shard 0..49 required')
     import torch
     from gliner2 import AutoExtractor
     from huggingface_hub import snapshot_download
@@ -34,7 +34,7 @@ else:
     count=0
     with open('training-cache/full-cohort.jsonl') as source,open(out/f'{a.shard:02d}.jsonl','w') as output:
         for pos,line in enumerate(source):
-            if pos%20!=a.shard:continue
+            if pos%50!=a.shard:continue
             row=json.loads(line);text=row.get('text') or ''
             if not isinstance(text,str):text=''
             result=model.extract_json(text,schema) if text.strip() else {}
