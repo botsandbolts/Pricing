@@ -61,6 +61,7 @@ def test_retention_and_child_first_deletion():
     s.visit(c,geo);s.query(c,geo,'old','ask',50,'test','test',None,{})
     old=(datetime.now(timezone.utc)-timedelta(days=91)).isoformat(timespec='seconds')
     s.execute('UPDATE pricing_queries SET timestamp=?',[old]);s.execute('UPDATE visitors SET last_seen=?',[old])
+    s.execute('UPDATE analytics_sessions SET last_seen=?',[old])
     s.purge()
     assert s.db.execute('SELECT COUNT(*) FROM visitors').fetchone()[0] == 0
     assert s.db.execute('SELECT COUNT(*) FROM pricing_queries').fetchone()[0] == 0
