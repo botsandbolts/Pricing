@@ -120,3 +120,6 @@ faiss-cpu>=1.8,<2
 # Accessibility release: cold restart for reading preferences and semantic UI updates.
 
 # BART INT8 CPU release: restart the worker to release the previous PyTorch summary runtime.
+
+# On-demand seller-description extraction.
+gliner2[local]==2.1.0
