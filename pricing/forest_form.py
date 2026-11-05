@@ -22,6 +22,8 @@ def render(*, description_sensitive=False):
     mode=st.radio('Valuation date',['Today · follows the calendar','Choose a date'],horizontal=True,key='forest_live_date_mode',persist_state="session")
     date=today() if mode.startswith('Today') else st.date_input('Value my car on',today(),key='forest_live_date',persist_state="session")
     st.caption(f'Prices for {date:%d %b %Y}. Mileage and condition mean their values on this date.')
+    scan_enabled = description_sensitive == 'minilm-price'
+    scan_requested = False
     with st.form('forest_vehicle_form'):
         a,b,c=st.columns(3)
         year=a.number_input('Year',1900,2021,key=prefix+'_year',persist_state="session")
@@ -45,7 +47,19 @@ def render(*, description_sensitive=False):
         notes=st.text_area('Seller description — free text',key='forest_description',height=150,max_chars=8000,placeholder='Service history, recent repairs, mysterious rattles…',persist_state="session")
         st.caption('MiniLM reads the description; the arithmetic mean of two description-only dollar prices enters XGBoost as one feature. No TF-IDF or raw embeddings enter the trees.' if description_sensitive=='minilm-price' else 'The asking model reads this description through 384 frozen MiniLM embedding dimensions. No TF-IDF or UMAP is used; auction pricing uses structured facts.' if description_sensitive=='minilm-embeddings' else 'This hierarchical asking model reads the description through sparse TF-IDF only; no transformer is used.' if description_sensitive=='tfidf' else 'The asking model reads this description through sparse TF-IDF and a compact MiniLM price signal (first 128 tokens). Auction pricing uses the structured vehicle details.' if description_sensitive else 'Descriptions help you load and edit the car details. This forest uses structured fields only; wording does not change its estimate. Use Price my car for the MiniLM text-sensitive calculator.')
         allow=st.checkbox('Allow an auction-generation analogue for 2016–2021 cars',value=True,key='forest_live_analogue_today_v2',help='Auction training covers model years through 2015. This explicit assumption cannot recover an unseen generation.',persist_state="session")
-        submitted=st.form_submit_button('Estimate asking + auction prices',type='primary',width='stretch')
+        if scan_enabled:
+            estimate_col, scan_col = st.columns(2)
+            submitted = estimate_col.form_submit_button(
+                'Estimate asking + auction prices', type='primary', width='stretch'
+            )
+            scan_requested = scan_col.form_submit_button('Scan description', width='stretch')
+        else:
+            submitted = st.form_submit_button(
+                'Estimate asking + auction prices', type='primary', width='stretch'
+            )
+    if scan_enabled:
+        from pricing.description_scan import render as render_scan
+        render_scan(notes, scan_requested)
     fields=dict(year=year,manufacturer=make,model=model,odometer=miles,state=state,type=body,condition=condition,fuel=fuel,transmission=transmission,drive=drive,title_status=title,cylinders=cylinders,paint_color=color,auction_grade=grade)
     st.session_state['_forest_editor']={'fields':fields,'notes':notes,'allow':allow}
     st.session_state['_forest_date_controls']={'mode':mode,'date':date}
