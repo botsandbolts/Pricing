@@ -1,10 +1,10 @@
 """Single landing-page navigation, including callback and shared-link routing."""
 import streamlit as st
-PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens','🧬 Experimental pricing']
+PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
 def render_navigation():
     pending=st.session_state.pop('_navigate_to',None)
     if pending=='🌳 Hierarchical model':pending=PAGES[0]
-    if st.session_state.get('landing_studio_workspace')=='🌳 Hierarchical model':st.session_state['landing_studio_workspace']=PAGES[0]
+    if st.session_state.get('landing_studio_workspace') in ('🌳 Hierarchical model', '🧬 Experimental pricing'):st.session_state['landing_studio_workspace']=PAGES[0]
     if pending in PAGES:
         st.session_state['landing_studio_workspace']=pending
     elif 'landing_studio_workspace' not in st.session_state:
