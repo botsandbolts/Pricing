@@ -12,6 +12,7 @@ jobs:
         with:
           filter: blob:none
           sparse-checkout: |
+            .github/workflows
             models/xgboost-hierarchy
             pricing
             scripts
