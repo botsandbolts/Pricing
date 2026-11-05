@@ -19,25 +19,20 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _bart_interval_release_completed_merchants_v12():
+def _description_scan_release_v13():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
-    for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.bart_summary','pricing.same_car_markets','pricing.dealer_positioning_ui'):
+    for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.bart_summary','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_bart_interval_release_completed_merchants_v12()
+_description_scan_release_v13()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
-if _workspace=='🧬 Experimental pricing':
-    from pricing.experimental_pricing import render as render_experiment
-    render_experiment(Path(__file__).parent)
-    footer()
-    st.stop()
 if _workspace=='🏪 Merchant lens':
     from pricing.dealer_positioning_ui import render as render_dealer_positioning
     render_dealer_positioning(Path(__file__).parent)
