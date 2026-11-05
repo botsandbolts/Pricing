@@ -123,6 +123,9 @@ def render(root):
     st.markdown('## 2 · Find your car chemistry')
     if not complete:st.caption(f'{profile_count-count} more reaction'+('s' if profile_count-count!=1 else '')+' to go. Your shortlist unlocks once every car has a rating.')
     if st.button('Find my ten cars →',type='primary',disabled=not complete or not different or not has_like,key='taste_train'):
+        import time as _telemetry_time
+        from pricing.feature_telemetry import record_server_run, record_server_error
+        started=_telemetry_time.monotonic()
         try:
             with st.spinner('Mixing your likes, dislikes and a little car chemistry…'):
                 try:adjusted=adjusted_price_features(arrays['codes'],arrays['numeric'],meta['levels'],arrays['prices'],arrays['source_days'],when,transport(str(root)))
@@ -130,7 +133,15 @@ def render(root):
                 result=train_rank(arrays['codes'],arrays['numeric'],meta['levels'],arrays['clusters'],ratings,[p['position'] for p in meta['profiles']],arrays['validation'],prices=arrays['prices'],adjusted_prices=adjusted,memberships=arrays.get('memberships'),medoid_distances=arrays.get('medoid_rmse',arrays.get('medoid_cosine',arrays.get('medoid_l2'))))
                 result['adjusted_price_support']=int(np.isfinite(adjusted).sum())
             st.session_state['taste_result']=(signature,result)
+            record_server_run('taste_garage',st.session_state['taste_model_choice'].lower(),
+                              'success',profile_count,len(result['positions']),
+                              round(1000*(_telemetry_time.monotonic()-started)),
+                              event_key=hashlib.sha256(signature.encode()).hexdigest())
         except ValueError as exc:
+            record_server_run('taste_garage',st.session_state['taste_model_choice'].lower(),
+                              'unavailable',profile_count,0,
+                              round(1000*(_telemetry_time.monotonic()-started)))
+            record_server_error('taste_garage','ranking_unavailable')
             logging.getLogger(__name__).exception('Drive Chemistry invalid ranking state')
             if str(exc).startswith('No cars pass'):
                 st.info('No cars pass this combination of likes and dislikes. Your ratings are saved. Try liking another taste-test car or use The Long Drive for finer choices.')
@@ -139,6 +150,10 @@ def render(root):
                 with st.expander('Error details for support'):st.text(str(exc))
             return
         except (OSError,RuntimeError,MemoryError) as exc:
+            record_server_run('taste_garage',st.session_state['taste_model_choice'].lower(),
+                              'error',profile_count,0,
+                              round(1000*(_telemetry_time.monotonic()-started)))
+            record_server_error('taste_garage','ranking_execution_failed')
             logging.getLogger(__name__).exception('Drive Chemistry ranking execution failed')
             st.error('The shortlist ran into a processing problem. Your ratings are saved; please retry.')
             with st.expander('Error details for support'):st.text(type(exc).__name__)
