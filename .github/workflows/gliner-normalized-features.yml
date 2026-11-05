@@ -1,0 +1,76 @@
+name: Normalize GLiNER pricing features
+on:
+  push:
+    paths: ['.github/workflows/gliner-normalized-features.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  normalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: pricing
+          filter: blob:none
+      - uses: actions/download-artifact@v4
+        with:
+          name: structured-description-database
+          run-id: 41994641643
+          github-token: ${{ github.token }}
+          path: descriptions
+      - uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: lemon
+      - run: |
+          python - <<'PY'
+          import csv
+          import gzip
+          import json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+          from pricing.gliner_features import FEATURE_GROUPS, iter_database, normalize
+
+          assert normalize({}, '')['accident_history']['value'] is None
+          claim = {'vehicle': [{'accident_history': 'No accidents'}]}
+          assert normalize(claim, 'No accidents.')['accident_history']['value'] == 0
+          with gzip.open('lemon/ask/hierarchy-input.csv.gz', 'rt') as source:
+              cohort = {r['row_id']: (r['split'], r['vehicle_group']) for r in csv.DictReader(source)}
+          calibration = sum(split == 'calibration' for split, _ in cohort.values())
+          if not calibration:
+              raise ValueError('Empty calibration split')
+          columns = [name for names in FEATURE_GROUPS.values() for name in names]
+          observed, groups, seen = Counter(), defaultdict(set), set()
+          with gzip.open('gliner-pricing-features.csv.gz', 'wt', newline='') as output:
+              writer = csv.DictWriter(output, fieldnames=['row_id', *columns])
+              writer.writeheader()
+              for row_id, features in iter_database('descriptions/descriptions.sqlite'):
+                  if row_id not in cohort:
+                      continue
+                  seen.add(row_id)
+                  values = {name: record['value'] for name, record in features.items()}
+                  writer.writerow({'row_id': row_id, **values})
+                  split, vehicle = cohort[row_id]
+                  if split == 'calibration':
+                      for name, value in values.items():
+                          if value is not None:
+                              observed[name] += 1
+                              groups[name].add(vehicle)
+          if seen != cohort.keys():
+              raise ValueError('Missing retained Lemon listing IDs')
+          report = [dict(group=group, feature=name, coverage=observed[name] / calibration,
+                         observed=observed[name], vehicle_groups=len(groups[name]),
+                         passes_initial_support=observed[name] / calibration >= .005 and len(groups[name]) >= 200)
+                    for group, names in FEATURE_GROUPS.items() for name in names]
+          Path('gliner-normalized-support.json').write_text(json.dumps(report, indent=2))
+          print(json.dumps(report, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gliner-normalized-pricing-features
+          path: |
+            gliner-pricing-features.csv.gz
+            gliner-normalized-support.json
