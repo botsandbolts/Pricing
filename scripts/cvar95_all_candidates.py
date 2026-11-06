@@ -160,7 +160,6 @@ def ask(args):
             break
     if not isinstance(SPECS,dict) or len(SPECS)!=8:
         raise ValueError("Cannot audit original exact eight encoder-context variants")
-    from scripts.raw_embedding_ask_report import audited_validation
     val=_ref(args.baseline,"validation",31668)
     test=_ref(args.baseline,"test",31682)
     old_candidates=_list(Path(args.artifacts)/"deepcross36","DeepCross",36)
