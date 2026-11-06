@@ -57,7 +57,7 @@ def lemon_mask(frame, lemon_csv):
     if not holdout.issubset(allowed) or len(allowed & holdout) != len(holdout):
         raise ValueError("The Lemon experiment must retain ALL original holdouts")
     keep = target.row_id.isin(allowed).to_numpy()
-    if keep[target.phase.ne("train").to_numpy()].all() is not True:
+    if not keep[target.phase.ne("train").to_numpy()].all():
         raise ValueError("Attempted heldout filtering")
     return keep
 
