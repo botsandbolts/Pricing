@@ -31,6 +31,10 @@ def load_suite(path,version):
 
 def render(root,key_prefix="suite"):
     root=Path(root);suite=root/'models/price-model-suite'
+    from pricing.neural_ask_ui import render as render_neural_benchmark
+    render_neural_benchmark(root)
+    st.divider()
+    st.markdown('### Historical tree-model comparison · separate from the neural experiment')
     if not (suite/'comparison.json').exists():suite=root/'models/price-model-suite-tabular'
     from pricing.residual_ui import ready as residual_ready,render_assessment,render_calculator
     if residual_ready(root) and not (Path(root)/'models/xgboost-hierarchy/release.json').exists():
