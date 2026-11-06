@@ -77,6 +77,12 @@ class DeepCrossAsk:
         if self.median.shape!=(7,) or self.scale.shape!=(7,) or self.tmean.shape!=(24,) or self.tstd.shape!=(24,):
             raise ValueError("Training numeric/text geometry mismatch.")
         self.encoder=Encoder(root/"models/xgboost-sparse-minilm/ask/minilm")
+        # Training embeddings were computed in 32-text ONNX batches. Those
+        # batches almost always reached the pinned 128-token truncation limit.
+        # A single-text serving batch otherwise has shorter dynamic padding;
+        # ONNX numerical pooling may then differ. Use an explicit 128-token
+        # tensor to reproduce the train-time padded input geometry.
+        self.encoder.tokenizer.enable_padding(length=128,pad_id=0,pad_token='[PAD]')
         ckpt=torch.load(folder/"weights.pt",map_location="cpu",weights_only=True)
         if (ckpt.get("variant"),ckpt.get("feature_variant"),ckpt.get("settings"))!=(
             "dropout12","minilm",config("dropout12")):
