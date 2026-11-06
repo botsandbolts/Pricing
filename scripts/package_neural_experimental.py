@@ -72,8 +72,29 @@ def main(args):
     n,c,t,cards,state,tfidf,svd=rebuild(frame,train)
     if cards!=base["cardinalities"]:
         raise ValueError("Saved categorical geometry differs")
-    if not np.array_equal(c,old["cat"]) or not np.array_equal(c,hybrid["cat"]):
-        raise ValueError("Rebuilt training categorical codes differ")
+    # Recover exact embedding vocabulary IDs from the ORIGINAL archived model
+    # input tensor, not pandas.value_counts tie ordering which can drift across
+    # pandas versions. Each nonunknown raw label must map consistently to one
+    # archived embedding code on the entire frozen 211127-row source.
+    if not np.array_equal(old["cat"],hybrid["cat"]):
+        raise ValueError("Original and hybrid frozen categorical tensors disagree")
+    original_codes=old["cat"].astype(np.int64)
+    for col,name in enumerate(state["categorical_names"]):
+        values=(frame[name] if name in frame else pd.Series("",index=frame.index))
+        values=values.fillna("unknown").astype(str).str.lower().str.strip().to_numpy()
+        observed=pd.DataFrame({"raw":values,"code":original_codes[:,col]})
+        memberships=observed.groupby("raw",sort=False)["code"].nunique()
+        if (memberships>1).any():
+            raise ValueError("Same category label has inconsistent original code: "+name)
+        trained=observed.loc[observed.code>=2,["raw","code"]].drop_duplicates()
+        if trained.code.duplicated().any():
+            raise ValueError("Multiple labels share a nonunknown learned embedding: "+name)
+        mapping={str(row.raw):int(row.code) for row in trained.itertuples(index=False)}
+        encoded=np.array([mapping.get(value,1) for value in values],dtype=np.int32)
+        if not np.array_equal(encoded,original_codes[:,col]):
+            raise ValueError("Unable to reconstruct training categorical codes: "+name)
+        state["category_maps"][name]=mapping
+    c=original_codes.astype(np.int32)
     numeric_max=float(np.max(np.abs(n-old["num"])))
     svd_max=float(np.max(np.abs(t-old["txt"])))
     if numeric_max>1e-5 or svd_max>.003:
