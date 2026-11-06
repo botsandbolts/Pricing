@@ -1,0 +1,30 @@
+{
+  "status": "candidate_pending_serving_verification",
+  "candidate": "bge-256",
+  "price_model": "EmbeddingOnlyDeepCross AFT",
+  "encoder_model": "BAAI/bge-small-en-v1.5",
+  "encoder_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "encoder_max_tokens": 256,
+  "embedding_dim": 384,
+  "model_architecture": "Native unmodified BGE-small-en-v1.5 -> frozen 384-dimensional embeddings -> complete trained PyTorch DeepCross/AFT",
+  "native_checkpoints_only": true,
+  "no_quantization": true,
+  "no_onnx": true,
+  "no_pickle": true,
+  "no_Ridge": true,
+  "text_price_heads": 0,
+  "original_model_sha256": "2abdebdb912f18710681e2a7f6bb5478d3708674d16d26267b9c98ea580210fc",
+  "source_cohort_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "original_holdout_sha256": {
+    "validation": "36268fb7de21cd84bf00dac443907afceb8e7e1f1bf8729d9babff9d09e1976a",
+    "test": "9f33965db700d9f5fee24bb000d64f98300658f2b09b758153a11692fca76835"
+  },
+  "original_train": 147777,
+  "original_validation": 31668,
+  "original_test": 31682,
+  "historical_test_mae_usd": 3036.7538600323796,
+  "historical_test_rmse_usd": 6299.0084843863215,
+  "historical_test_absolute_error_CVaR95": "See independently verified CVaR95 report",
+  "model_promotion": "Experimental panel only; main calculator unchanged",
+  "not_2026_validated": true
+}

@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "verified": true,
+  "original_holdout_samples_checked": 44,
+  "original_validation_and_test_scored": true,
+  "native_encoder_parity": true,
+  "full_network_parity_passed": true,
+  "original_numeric_preprocessing_max_abs_diff": 0.0,
+  "native_original_embedding_max_abs_diff": 6.103515625e-05,
+  "native_original_full_network_max_relative_error": 2.19347498405228e-05,
+  "native_original_full_network_median_relative_error": 1.9073468137651577e-06,
+  "original_trained_checkpoint_sha256": "2abdebdb912f18710681e2a7f6bb5478d3708674d16d26267b9c98ea580210fc",
+  "native_pretrained_encoder_sha": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "no_pickle": true,
+  "no_onnx": true,
+  "no_quantization": true,
+  "no_Ridge": true,
+  "no_retraining": true,
+  "no_original_listing_data_in_release": true,
+  "historical_test_metrics_inherited_from_original_heldout_predictions": true
+}
