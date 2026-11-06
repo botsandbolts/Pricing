@@ -67,3 +67,27 @@ no descriptions, no embeddings.
 
 Workflow: .github/workflows/raw-embedding-ask-challenge.yml
 Final report: reports/raw-embedding-ask/comparison.json
+
+
+## Ten-way parallel embeddings and practical compute budget
+
+Each of the 8 encoder/context candidates is partitioned into exactly 10
+disjoint, original-index-contiguous row chunks: 80 independent embedding
+jobs total, approximately 21,112–21,113 listings each. At most 30 GitHub
+Actions chunk jobs run in parallel. No individual chunk encodes all listings.
+
+Every chunk validates 24 randomly chosen batch-1 versus batch-16 embeddings,
+pins the Hugging Face model source commit SHA, redacts prices, and publishes
+only a float16 embedding matrix and an audit manifest. The assembler
+for each encoder refuses missing/duplicated/misaligned chunks, verifies
+unchanged original row fingerprints, per-chunk file SHA256, encoder revision
+consistency across all ten pieces, and reinserts chunks at their exact
+original array offsets. Once assembled, the existing original DeepCross
+AFT model trains on the full 133,000 fit rows. No change to train/holdouts.
+
+Operational job timeouts are 70 minutes per chunk, 15 minutes for assembly,
+70 minutes for each neural training arm, 65 minutes for final report and
+robustness checks, and 10 minutes for code tests. These limits bound
+individual jobs; GitHub runner queueing and repeated matrix waves can
+still make the entire workflow longer than four wall-clock hours.
+Failed/expired chunks fail closed rather than synthesizing predictions.

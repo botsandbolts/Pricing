@@ -28,7 +28,7 @@ env:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -57,10 +57,55 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: check
     runs-on: ubuntu-24.04
-    timeout-minutes: 355
+    timeout-minutes: 70
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 30
+      matrix:
+        candidate: [minilm6-128, minilm12-128, bge-128, bge-256, gte-128, gte-256, distilroberta-128, distilroberta-256]
+        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install frozen CPU Sentence Transformers
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25'
+          python -m pip install 'sentence-transformers==3.4.1' 'transformers==4.49.0' 'huggingface-hub==0.30.2'
+      - name: Download original row-identical asking cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Embed one of ten disjoint original-row chunks
+        run: |
+          python -u -m scripts.raw_embedding_ask_encode \
+            --candidate '${{ matrix.candidate }}' \
+            --chunk-index '${{ matrix.chunk }}' --chunks 10 \
+            --output 'training-cache/raw-chunk/${{ matrix.candidate }}/${{ matrix.chunk }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raw-ask-embed-chunk-${{ matrix.candidate }}-${{ matrix.chunk }}
+          path: training-cache/raw-chunk/${{ matrix.candidate }}/${{ matrix.chunk }}/
+          retention-days: 90
+          if-no-files-found: error
+
+  assemble:
+    if: github.event_name != 'pull_request'
+    needs: encode
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 8
       matrix:
         candidate: [minilm6-128, minilm12-128, bge-128, bge-256, gte-128, gte-256, distilroberta-128, distilroberta-256]
     steps:
@@ -72,25 +117,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install CPU-only frozen Sentence Transformers encoder stack
-        run: |
-          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25'
-          python -m pip install 'sentence-transformers==3.4.1' 'transformers==4.49.0' 'huggingface-hub==0.30.2'
-      - name: Recover immutable original asking cohort, canonical Parquet and vehicle row identities
+      - name: Install assembly dependencies
+        run: python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3'
+      - name: Recover exactly ten original-order chunks
         uses: actions/download-artifact@v4
+        with:
+          pattern: raw-ask-embed-chunk-${{ matrix.candidate }}-*
+          path: training-cache/raw-ask-chunks
+          merge-multiple: false
+      - uses: actions/download-artifact@v4
         with:
           name: neural-ask-frozen-features
           run-id: 42224932982
           github-token: ${{ github.token }}
           path: training-cache/neural-ask
-      - name: Compute label-free embeddings and check batch-one serving parity
+      - name: Audit row-identity SHAs, model version, and reassemble 211127 embeddings
         run: |
           python -u -m scripts.raw_embedding_ask_encode \
-            --candidate '${{ matrix.candidate }}' \
+            --assemble --candidate '${{ matrix.candidate }}' \
+            --parts training-cache/raw-ask-chunks \
             --output 'training-cache/raw-ask-embeddings/${{ matrix.candidate }}'
-      - name: Upload exact revision SHA, embedding matrix and consistency evidence
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: raw-ask-embeddings-${{ matrix.candidate }}
           path: training-cache/raw-ask-embeddings/${{ matrix.candidate }}/
@@ -99,12 +146,12 @@ jobs:
 
   train:
     if: github.event_name != 'pull_request'
-    needs: encode
+    needs: assemble
     runs-on: ubuntu-24.04
-    timeout-minutes: 320
+    timeout-minutes: 70
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 8
       matrix:
         candidate: [minilm6-128, minilm12-128, bge-128, bge-256, gte-128, gte-256, distilroberta-128, distilroberta-256]
     steps:
@@ -148,7 +195,7 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: train
     runs-on: ubuntu-24.04
-    timeout-minutes: 310
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v4
         with:

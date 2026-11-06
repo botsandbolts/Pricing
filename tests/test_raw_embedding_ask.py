@@ -71,3 +71,20 @@ def test_batch_parity_is_measured_not_assumed():
 def test_holdout_id_fingerprint_is_order_invariant():
     assert id_hash(["b","a"])==id_hash(["a","b"])
     assert id_hash(["a","b"])!=id_hash(["a","c"])
+
+
+def test_ten_chunk_partition_has_exact_original_coverage():
+    from scripts.raw_embedding_ask_encode import CHUNKS, boundaries
+    assert CHUNKS == 10
+    intervals = [boundaries(211127,i) for i in range(CHUNKS)]
+    assert intervals[0][0] == 0 and intervals[-1][1] == 211127
+    assert all(right > left for left,right in intervals)
+    assert all(intervals[i][1] == intervals[i+1][0] for i in range(CHUNKS-1))
+    assert sum(right-left for left,right in intervals) == 211127
+    assert max(right-left for left,right in intervals) == 21113
+    with pytest.raises(ValueError):
+        boundaries(211127,-1)
+    with pytest.raises(ValueError):
+        boundaries(211127,10)
+    with pytest.raises(ValueError):
+        boundaries(211127,1,chunks=9)
