@@ -121,6 +121,17 @@ def encode_features(frame, train, svd_components=24, atlas=30000, seed=42):
 
 def prepare(cohort, lemon_csv, output):
     frame = pd.concat(pd.read_json(cohort, lines=True, chunksize=10000), ignore_index=True)
+    # IMPORTANT: the raw full-cohort.jsonl includes 717 listings rejected by
+    # the original published XGBoost benchmarks AFTER initial deduplication.
+    # Reapply their exact structural eligibility mask before freezing the
+    # phase and row IDs: 211844 raw canonical -> 211127 benchmark-eligible.
+    # Without this, the archived Lemon validation/test sets are not equal.
+    from pricing.model_suite import predictors
+    _, eligible, _ = predictors(frame, "ask")
+    raw_count = len(frame)
+    frame = frame.loc[eligible].reset_index(drop=True)
+    print(f"Matched published XGBoost eligibility: {raw_count:,} -> {len(frame):,} "
+          f"(excluded {raw_count-len(frame):,}; no holdout trimming)", flush=True)
     phase = phase_from_source(frame)
     price = pd.to_numeric(frame.price, errors="coerce").to_numpy(float)
     if not np.isfinite(price).all() or (price <= 0).any():
@@ -128,7 +139,7 @@ def prepare(cohort, lemon_csv, output):
     train = phase == "train"
     keep = lemon_mask(frame, lemon_csv)
     if int(train.sum()) != 147777 or sum(phase == "validation") != 31668 or sum(phase == "test") != 31682:
-        raise ValueError("Canonical cohort changed; do not compare unmatched tests")
+        raise ValueError("XGBoost-eligible canonical cohort changed; do not compare unmatched tests")
     if int(np.sum(keep & train)) != 110832:
         raise ValueError("Frozen Lemon training membership changed")
     numeric, categories, text, card, dictionaries = encode_features(frame, train)
@@ -145,7 +156,7 @@ def prepare(cohort, lemon_csv, output):
     manifest = {"dataset": "Craigslist 2021 original chronological asking cohort",
                 "cohort_sha256": hashlib.sha256(Path(cohort).read_bytes()).hexdigest(),
                 "lemon_source": "matched-bayesian-redesign-data/ask-minilm-cleaned.csv.gz",
-                "cohort_rows": len(frame), "full_train": int(train.sum()),
+                "cohort_rows": len(frame), "upstream_raw_canonical_rows": raw_count, "xgboost_eligibility_excluded": raw_count-len(frame), "full_train": int(train.sum()),
                 "lemon_train": int(np.sum(train & keep)),
                 "validation": int(sum(phase == "validation")),
                 "test": int(sum(phase == "test")), "holdout_row_sha256": hashes,
