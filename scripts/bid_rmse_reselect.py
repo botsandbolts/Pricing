@@ -151,7 +151,7 @@ def checkpoint_predictions(study,trial,folder,z,manifest):
             pack.get("n_num"),pack.get("n_text"))!=(
             trial,settings(trial),manifest["cardinalities"],5,1):
             raise ValueError("FT checkpoint/configuration differs from validation")
-        seed_everything()
+        torch.manual_seed(SEED)
         net=model_for(trial,manifest["cardinalities"],5,1)
         net.load_state_dict(pack["state"],strict=True)
         pred=neural_predict(net,tensors(full),test,settings(trial)["batch"])
