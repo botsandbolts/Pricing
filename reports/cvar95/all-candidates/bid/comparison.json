@@ -31,11 +31,11 @@
     "original_test": {
       "rows": 83603,
       "worst_five_pct_rows": 4181,
-      "CVaR95_absolute_USD": 9018.78576926522,
+      "CVaR95_absolute_USD": 9018.785555413318,
       "VaR95_absolute_USD": 5298.148563378145,
-      "MAE_USD": 1877.6059698559347,
-      "RMSE_USD": 3178.153382760867,
-      "worst_one_pct_USD": 17669.78509028569
+      "MAE_USD": 1877.6059442571832,
+      "RMSE_USD": 3178.1533595702344,
+      "worst_one_pct_USD": 17669.785188705642
     }
   },
   "chosen_blend": {
@@ -59,11 +59,11 @@
     "original_test": {
       "rows": 83603,
       "worst_five_pct_rows": 4181,
-      "CVaR95_absolute_USD": 8860.316883419375,
+      "CVaR95_absolute_USD": 8860.31686230149,
       "VaR95_absolute_USD": 5230.216689128881,
-      "MAE_USD": 1915.1969244827696,
-      "RMSE_USD": 3188.491683911446,
-      "worst_one_pct_USD": 17431.03888194924
+      "MAE_USD": 1915.1969252790855,
+      "RMSE_USD": 3188.4916918657736,
+      "worst_one_pct_USD": 17431.038893151643
     }
   },
   "original_xgboost_lemon_reference": {
