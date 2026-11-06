@@ -154,9 +154,15 @@ def _combine(market,records):
 
 def create_plan(previous,output,parent_run):
     doc,hashes=_prior(previous)
-    candidates={};diagnostics={}
+    candidates={};diagnostics={};previous_best={}
     for market in MARKETS:
         candidates[market],diagnostics[market]=_combine(market,doc["experiments"])
+        prior_rows=[r for r in doc["experiments"] if r["group"].startswith(market)]
+        winner=min(prior_rows,key=lambda r:(r["validation"]["CVaR95_absolute_USD"],
+                                           r["validation"]["RMSE_USD"]))
+        previous_best[market]={
+            "group":winner["group"],"trial":winner["trial"],
+            "validation":winner["validation"]}
     plan={
         "status":"ready",
         "upstream_run_id":str(parent_run),
@@ -168,6 +174,7 @@ def create_plan(previous,output,parent_run):
         "unseen_joint_combinations":True,
         "test_labels_accessed":False,
         "candidate_counts":{"ask":25,"bid":25},
+        "previous_stage_best":previous_best,
         "candidates":candidates,
         "regression_diagnostics":diagnostics,
         "no_automatic_production_promotion":True}
@@ -254,6 +261,21 @@ def report(plan_path,folder,output):
             {"trial":r["trial"],"validation":r["validation"],
              "configuration":r["trial_configuration"]}
             for r in items]
+    previous=plan["previous_stage_best"]
+    improvements={}
+    for market in MARKETS:
+        if not ranking[market]:
+            improvements[market]=None
+            continue
+        old=previous[market]["validation"]["CVaR95_absolute_USD"]
+        new=ranking[market][0]["validation"]["CVaR95_absolute_USD"]
+        improvements[market]={
+            "previous_best_group":previous[market]["group"],
+            "previous_best_trial":previous[market]["trial"],
+            "previous_best_CVaR95_USD":old,
+            "new_best_CVaR95_USD":new,
+            "CVaR95_saved_USD":old-new,
+            "improvement_percent":100*(old-new)/old}
     results={
         "status":"complete" if not missing and not issues and len(records)==50 else "partial_or_invalid",
         "completed_valid_trials":len(records),"planned_trials":50,
@@ -265,6 +287,8 @@ def report(plan_path,folder,output):
         "next_steps":"Independently verify selected winner(s) on original untouched test, "
                      "native checkpoint serving parity, and deployment budgets.",
         "regression_diagnostics":plan["regression_diagnostics"],
+        "previous_stage_best":previous,
+        "improvement_vs_previous_stage":improvements,
         "ranked":ranking}
     dest=Path(output);dest.mkdir(parents=True,exist_ok=True)
     (dest/"results.json").write_text(json.dumps(results,indent=2,allow_nan=False))
@@ -286,6 +310,15 @@ def report(plan_path,folder,output):
                          f"{v['CVaR95_absolute_USD']:,.0f} | {v['RMSE_USD']:,.0f} | "
                          f"{v['MAE_USD']:,.0f} |")
         else:lines.append(f"| {market} | 0 | — | — | — | — |")
+    lines.extend(["","## Comparison against the strongest original 200-trial model",
+                  "Positive dollars saved means lower original-validation CVaR95; "
+                  "negative means the refinement worsened CVaR95."])
+    for market in MARKETS:
+        v=improvements[market]
+        if v is not None:
+            lines.append(f"- {market.upper()}: ${v['CVaR95_saved_USD']:,.0f} "
+                         f"({v['improvement_percent']:+.2f}%) versus "
+                         f"{v['previous_best_group']} trial {v['previous_best_trial']}.")
     if missing:lines.extend(["","Missing: "+str(missing)])
     if issues:lines.extend(["","Invalid: "+str(issues)])
     (dest/"README.md").write_text("\n".join(lines)+"\n")
