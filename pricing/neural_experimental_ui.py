@@ -1,336 +1,283 @@
-"""NEURAL LAB: visually branded, traceable, asking-only experimental calculator.
+"""Experimental model workshop: two independent parity-gated neural engines.
 
-The progress bar follows genuine inference steps rather than a fake timer.
-No database dependency for model files. Turso analytics is consented only.
+Ask: description -> pinned BGE embedding -> entire DeepCross/AFT price model.
+Bid: full-data DeepFM32 (75%) + matched Lemon XGBoost (25%).
+Research models are never substituted by the primary calculator's predictions.
 """
 import json
 import time
-import uuid
-from html import escape
 from pathlib import Path
+from html import escape
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.neural_experimental_live import available,load
+from pricing.neural_ask_embedding_live import available as ask_available
+from pricing.neural_bid_blend_live import available as bid_available
 
-STYLE="""
+CSS="""
 <style>
-.nl-hero{background:radial-gradient(circle at 83% 18%,#6952b4,transparent 40%),
-linear-gradient(125deg,#0d1936,#18375a 57%,#39245c);border-radius:26px;
-padding:clamp(24px,4vw,52px);color:white;margin:10px 0 23px;
-border:1px solid #8f85b1;box-shadow:0 14px 38px #13233b33}
-.nl-hero h1{color:#fff;font-size:clamp(2.1rem,5vw,4rem);
-letter-spacing:-.065em;line-height:1.06;margin:.5rem 0 1rem}
-.nl-hero p{color:#e4eafa;font-size:clamp(.97rem,1.6vw,1.15rem);
-line-height:1.55;max-width:740px}
-.nl-label{color:#b2eed8;font-size:.76rem;font-weight:850;letter-spacing:.17em}
-.nl-chip{display:inline-block;border-radius:99px;padding:.34rem .75rem;
-border:1px solid #c4dded99;background:#ffffff13;color:#fff;
-margin:8px 7px 0 0;font-size:.78rem;font-weight:750}
-.nl-receipt{background:linear-gradient(127deg,#15234a,#343576);border:1px solid #a09cce;
-border-radius:23px;padding:23px;margin:10px 0 16px;color:white}
-.nl-receipt strong{display:block;color:white;letter-spacing:-.045em;
-font-size:clamp(2.1rem,5vw,3.9rem)}
-.nl-receipt small{color:#b5efd5;letter-spacing:.13em;font-weight:850}
-.nl-receipt p{color:#e7eafa;margin:0}
-@media(prefers-reduced-motion:reduce){.nl-hero *{animation:none!important;transition:none!important}}
+.exp-hero{background:radial-gradient(circle at 80% 10%,#6172b4,transparent 39%),
+linear-gradient(120deg,#102039,#294067 55%,#17443e);color:white;
+border:1px solid #a5aaca;border-radius:24px;
+padding:clamp(24px,4vw,46px);margin:10px 0 24px}
+.exp-hero h1{color:white!important;font-size:clamp(2.1rem,4.3vw,3.5rem);
+letter-spacing:-.055em;line-height:1.07;margin:8px 0 15px}
+.exp-hero p{color:#e2ebf5;max-width:720px;line-height:1.6}
+.exp-hero small{color:#b9efd9;letter-spacing:.13em;font-weight:800}
+.exp-chip{display:inline-block;color:white;background:#ffffff1d;
+border-radius:99px;border:1px solid #e0f0ff77;padding:.3rem .65rem;
+margin:4px;font-size:.8rem}
+.exp-result{background:linear-gradient(125deg,#142944,#38466f);color:white;
+border-radius:20px;padding:22px;border:1px solid #9aadd1;margin:12px 0}
+.exp-result strong{display:block;color:white;font-size:clamp(2rem,4vw,3.4rem);
+letter-spacing:-.05em}
+.exp-result small{color:#b5efd5;letter-spacing:.1em}
+.exp-result p{color:#e9edf7;margin:0}
 </style>
 """
-DEFAULTS={"year":2015,"manufacturer":"Toyota","model":"Corolla SE","odometer":95000,
-          "state":"ca","type":"sedan","condition":"good","fuel":"gas",
-          "transmission":"automatic","drive":"fwd","title_status":"clean",
-          "cylinders":"4 cylinders","paint_color":"silver"}
 
 
-def _header():
-    st.markdown(STYLE+"""<section class="nl-hero" aria-label="Neural Lab experimental car valuation">
-<div class="nl-label">CAR PRICE STUDIO · EXPERIMENTAL MODELS · EDITION 01</div>
-<h1>NEURAL LAB<br>Cars have stories.<br>We read between the lines.</h1>
-<p>Deep &amp; Cross meets MiniLM. A futuristic test kitchen for the price
-a seller might <strong>ask</strong> for a used car. Made in Germany,
-seasoned with actual research—and just enough science-fiction nonsense.</p>
-<span class="nl-chip">🧠 DeepCross / AFT</span>
-<span class="nl-chip">✍ MiniLM + 24 text factors</span>
-<span class="nl-chip">🇩🇪 Made in Germany</span>
-<span class="nl-chip">🧪 Alpha · asking only</span>
-</section>""",unsafe_allow_html=True)
+def _report(root,name):
+    try:return json.loads((Path(root)/name).read_text())
+    except (OSError,ValueError,TypeError):return {}
 
 
-def _benchmark(root):
-    try:
-        d=json.loads((Path(root)/"reports/deepcross-aft-tuning/report.json").read_text())
-        w=d["winner_by_validation"]
-        if d["status"]!="complete" or w["variant"]!="dropout12" or w["features"]!="minilm":
-            raise ValueError("Published winner mismatches release")
-        columns=st.columns(3)
-        columns[0].metric("Historical validation MAE","$"+f"{w['validation_mae_usd']:,.0f}")
-        columns[1].metric("Historical test MAE","$"+f"{w['test_mae_usd']:,.0f}")
-        reference=d["full_xgboost_published_unpaired"]["test"]["mae_usd"]
-        columns[2].metric("Less test error vs full XGBoost","$"+f"{reference-w['test_mae_usd']:,.0f}")
-        st.caption("Measured on 2021 asking listings, not today's sale prices. "
-                   "Full-XGBoost reference is aggregate rather than row-paired.")
-        return d
-    except (OSError,ValueError,KeyError,TypeError):
-        st.info("The original held-out benchmark report is not installed.")
-        return {}
-
-
-def _editor():
-    for key,val in DEFAULTS.items():
-        st.session_state.setdefault("neural_"+key,val)
-    st.session_state.setdefault("neural_description","Well maintained. Clean title. New tires.")
-    st.markdown("### 01 / Meet your car")
-    st.caption("Every field is editable. Pick a real example, or write a listing from scratch.")
-    from pricing.description_examples import render_examples
-    render_examples(True,prefix="neural",description_key="neural_description",
-                    example_key="neural_examples")
-    from marketbridge.time_engine import today
-    with st.expander("🕰️ The time-machine controls",expanded=False):
-        choice=st.radio("Valuation date",["Today","Choose date","End of this month"],
-                        horizontal=True,key="neural_date_mode")
-        if choice=="Choose date":
-            chosen=st.date_input("Price date",today(),key="neural_selected_date")
-        elif choice=="End of this month":
-            from pricing.current_value import month_end
-            chosen=month_end(today())
-        else:chosen=today()
-    with st.form("neural_vehicle_form"):
+def _vehicle(prefix,bid=False,ready=False):
+    with st.form(prefix+"_vehicle",clear_on_submit=False):
+        st.markdown("#### 01 / Describe the vehicle")
         a,b,c=st.columns(3)
-        year=a.number_input("Model year",min_value=1900,max_value=2021,key="neural_year")
-        make=b.text_input("Make",key="neural_manufacturer")
-        model=c.text_input("Model / trim",key="neural_model")
+        year=a.number_input("Model year",1900,2021,2015,key=prefix+"_year")
+        make=b.text_input("Make","Toyota",key=prefix+"_make")
+        model=c.text_input("Model / trim","Corolla",key=prefix+"_model")
         a,b,c=st.columns(3)
-        miles=a.number_input("Mileage (miles)",min_value=0,max_value=2000000,
-                             step=1000,key="neural_odometer")
-        state=b.text_input("US state code",max_chars=2,key="neural_state")
-        body=c.selectbox("Body style",
-           ["sedan","SUV","truck","pickup","hatchback","coupe","wagon",
-            "van","convertible","other","unknown"],key="neural_type")
-        with st.expander("⚙️ Fine details · mechanicals, title, paint"):
+        miles=a.number_input("Mileage (miles)",0,2000000,95000,step=1000,key=prefix+"_mileage")
+        state=b.text_input("US state code","ca",max_chars=2,key=prefix+"_state")
+        body=c.selectbox("Body style",["sedan","suv","truck","pickup",
+              "hatchback","coupe","wagon","van","convertible","other","unknown"],
+              key=prefix+"_body")
+        with st.expander("⚙️ Mechanical, condition and title details"):
             a,b,c=st.columns(3)
-            condition=a.selectbox("Condition",["unknown","excellent","good",
-                                   "fair","like new","new","salvage"],key="neural_condition")
+            condition=a.selectbox("Condition",["good","excellent","fair",
+                 "like new","new","salvage","unknown"],key=prefix+"_condition")
             fuel=b.selectbox("Fuel",["gas","diesel","hybrid","electric","other","unknown"],
-                             key="neural_fuel")
+                    key=prefix+"_fuel")
             transmission=c.selectbox("Transmission",["automatic","manual","other","unknown"],
-                                     key="neural_transmission")
+                    key=prefix+"_transmission")
             a,b,c=st.columns(3)
-            drive=a.selectbox("Drive",["unknown","fwd","rwd","4wd"],key="neural_drive")
+            drive=a.selectbox("Drivetrain",["fwd","rwd","4wd","unknown"],key=prefix+"_drive")
             title=b.selectbox("Title",["clean","rebuilt","salvage","lien",
-                          "missing","parts only","unknown"],key="neural_title_status")
-            cylinders=c.selectbox("Cylinders",["unknown","3 cylinders","4 cylinders",
-                            "5 cylinders","6 cylinders","8 cylinders","10 cylinders",
-                            "12 cylinders","other"],key="neural_cylinders")
-            paint=a.selectbox("Paint colour",["unknown","white","black","silver",
-                             "grey","blue","red","green","brown","yellow",
-                             "orange","purple","custom"],key="neural_paint_color")
-        st.markdown("**02 / Your car's autobiography**")
-        notes=st.text_area("Seller description",max_chars=8000,height=155,
-                           key="neural_description",
-                           help="Only used for this prediction; text is not recorded in analytics.")
-        submitted=st.form_submit_button("🚀 Launch the price experiment",
-                           type="primary",use_container_width=True)
-    fields=dict(year=year,manufacturer=make,model=model,odometer=miles,state=state,
-                type=body,condition=condition,fuel=fuel,transmission=transmission,
-                drive=drive,title_status=title,cylinders=cylinders,paint_color=paint)
-    st.caption(f"Selected date: {chosen:%d %b %Y}. This panel has no wholesale bid estimate.")
-    return fields,notes,chosen,submitted
+                      "missing","parts only","unknown"],key=prefix+"_title")
+            cylinders=c.selectbox("Cylinders",["4 cylinders","6 cylinders","8 cylinders",
+                      "3 cylinders","5 cylinders","unknown"],key=prefix+"_cylinders")
+            paint=a.selectbox("Paint",["silver","white","black","grey",
+                     "blue","red","green","brown","other","unknown"],key=prefix+"_paint")
+        fields={"year":int(year),"manufacturer":make,"model":model,
+                "odometer":float(miles),"state":state,"type":body,
+                "condition":condition,"fuel":fuel,
+                "transmission":transmission,"drive":drive,
+                "title_status":title,"cylinders":cylinders,"paint_color":paint}
+        if bid:
+            st.markdown("#### 02 / Historical wholesale auction")
+            a,b=st.columns(2)
+            auction=a.date_input("2014–2015 auction date",
+                  pd.Timestamp("2015-01-15").date(),
+                  min_value=pd.Timestamp("2014-01-01").date(),
+                  max_value=pd.Timestamp("2015-12-31").date(),
+                  key=prefix+"_auction_date")
+            grade=b.selectbox("Pre-sale auction grade",["unknown","1","2","3","4","5"],
+                              index=3,key=prefix+"_grade")
+            fields["auction_date"]=str(auction);fields["auction_grade"]=grade
+            notes=""
+        else:
+            st.markdown("#### 02 / The car's entire story")
+            notes=st.text_area("Seller's description",
+                 "Well maintained. Clean title. New tires.",max_chars=8000,height=140,
+                 key=prefix+"_description",
+                 help="BGE turns wording into an embedding; complete DeepCross/AFT predicts the price. No Ridge head.")
+        sent=st.form_submit_button(
+                "🚀 Run complete "+("wholesale" if bid else "asking-price neural")+" model",
+                type="primary",disabled=not ready,use_container_width=True)
+    return fields,notes,sent
 
 
-def _track(result):
-    try:
-        from pricing.analytics import record_price
-        from pricing.feature_telemetry import record_server_run
-        record_price("ask",result["scenario"]["price"],result["fields"],
-            "deepcross_aft_minilm_dropout12_v1","experimental_neural_lab",
-            str(result["date"]),result["request"])
-        record_server_run("neural_lab","deepcross_aft_minilm_dropout12","success",
-            input_count=1,result_count=1,duration_ms=int(result["elapsed"]*1000),
-            event_key=result["request"])
-    except Exception:pass
+def _price(label,price,subtitle):
+    if not np.isfinite(float(price)) or float(price)<=0:
+        raise ValueError("Invalid price; cannot display")
+    st.markdown('<section class="exp-result" aria-label="'+escape(label)+'">'
+                '<small>'+escape(label.upper())+'</small><strong>$'+f"{price:,.0f}"+
+                '</strong><p>'+escape(subtitle)+'</p></section>',
+                unsafe_allow_html=True)
 
 
-def _track_error(request,elapsed):
-    try:
-        from pricing.feature_telemetry import record_server_run,record_server_error
-        record_server_run("neural_lab","deepcross_aft_minilm_dropout12","error",
-                          input_count=1,result_count=0,
-                          duration_ms=int(elapsed*1000),event_key=request)
-        record_server_error("neural_lab","inference_failure")
-    except Exception:pass
-
-
-def _run(root,fields,notes,date):
-    """Progress ONLY advances when real processing stages are completed."""
-    from pricing.current_value import current_transport
-    from marketbridge.time_engine import today
-    started=time.monotonic();request=str(uuid.uuid4())
-    progress=st.progress(0,text="🛸 Preflight checks: has anyone seen the flux capacitor?")
-    try:
-        model=load(root)
-        progress.progress(18,text="👩‍🍳 The neural oven is preheated. Fetching the secret spice blend…")
-        prepared=model.prepare_text(notes)
-        progress.progress(45,text="🪐 MiniLM has decoded your car's autobiography. Galactic paperwork complete.")
-        historical=model.predict_prepared(fields,prepared)
-        progress.progress(67,text="🧁 Folding the data into DeepCross. Do not open the oven door.")
-        transport,market_warning=current_transport(root)
-        scenario=transport.estimate(model,notes,fields,date,side="ask",
-                                     as_of=today(),anchor_price=historical["price"])
-        progress.progress(86,text="⏳ The used-car time machine is negotiating with the calendar…")
-        elapsed=time.monotonic()-started
-        result=dict(request=request,fields=fields,notes=notes,date=str(date),
-                    historical=historical,scenario=scenario,
-                    predicted_text_price=prepared["price_text_usd"],
-                    elapsed=elapsed,clock_warning=market_warning)
-        st.session_state["neural_lab_receipt"]=result
-        _track(result)
-        progress.progress(100,text="🎂 The price soufflé has risen. Science served warm.")
-        return result
-    except (OSError,RuntimeError,ValueError,KeyError,TypeError) as exc:
-        st.session_state.pop("neural_lab_receipt",None)
-        _track_error(request,time.monotonic()-started)
-        st.error("The Neural Lab could not produce a verified valuation: "+str(exc))
-        st.info("No substitute estimate was invented. The main calculator is unaffected.")
-        return None
-    finally:
-        progress.empty()
-
-
-def _receipt(result,root):
-    fields=result["fields"];r=result["scenario"]
-    label=f"{fields['year']} {fields['manufacturer']} {fields['model']}"
-    price="$"+f"{r['price']:,.0f}"
-    st.markdown("""<section class="nl-receipt" aria-label="Experimental asking-price receipt">
-<small>SELLER ASKING · DATE-ADJUSTED SCENARIO</small><strong>"""+
-        escape(price)+"""</strong><p>"""+escape(label)+""" · """+
-        escape(str(result["date"]))+"""</p></section>""",unsafe_allow_html=True)
-    st.caption("Advertised asking-price scenario—not a completed sale, dealer offer or wholesale bid.")
-    a,b,c=st.columns(3)
-    a.metric("May 2021 neural anchor","$"+f"{result['historical']['price']:,.0f}")
-    b.metric("Ageing","×"+f"{r['age_factor']:.3f}")
-    c.metric("Market movement","×"+f"{r['market_factor']:.3f}")
-    st.caption("MiniLM description-only price input: $"+f"{result['predicted_text_price']:,.0f}"+
-               ". It is a model feature, not a second transaction estimate.")
-    with st.expander("🛠️ Price-clock receipts & evidence",expanded=True):
-        from pricing.current_value import render_adjustment,current_transport,render_market_clock,render_time_evidence
-        render_adjustment(r)
+def _ask(root):
+    st.markdown("### ✍️ Asking prices · BGE → DeepCross → AFT")
+    st.caption("No MiniLM Ridge, no text-only price head and no TF-IDF/SVD price scalar. "
+               "All 384 BGE embedding dimensions feed the learned neural projection.")
+    from pricing.cvar95_experiment_science import model_kpis
+    kpi=model_kpis(root,"ask")
+    if kpi:
+        a,c,e=st.columns(3)
+        a.metric("🛡️ CVaR95 · PRIMARY", "$"+f"{kpi['CVaR95_absolute_USD']:,.0f}")
+        c.metric("RMSE · secondary","$"+f"{kpi['RMSE_USD']:,.0f}")
+        e.metric("MAE · secondary","$"+f"{kpi['MAE_USD']:,.0f}")
+        st.caption("Worst 5% average absolute error across 31,682 original 2021 Craigslist test listings. The CVaR result describes a previously validated model; a CVaR-first re-ranking is published separately.")
+    else:
+        st.info("No verified CVaR95 test archive is currently installed.")
+    ready=ask_available(root)
+    if not ready:
+        st.warning("Full BGE/DeepCross serving has not passed its original "
+                   "holdout-parity gate. No individual price will be fabricated.")
+        st.markdown("[Inspect verification workflow](https://github.com/botsandbolts/Pricing/actions/workflows/experimental-two-model-release.yml)")
+    fields,notes,go=_vehicle("bge_ask",ready=ready)
+    if go:
+        start=time.monotonic()
         try:
-            transport,error=current_transport(root)
-            render_market_clock(transport,result["date"],error)
-            render_time_evidence(transport,{"ask":r})
-        except (OSError,ValueError,KeyError):
-            st.caption("Detailed time evidence unavailable; numerical factors above are unchanged.")
-    st.caption(f"Actual inference time: {result['elapsed']:.1f}s. The alpha deliberately prioritizes correctness over speed.")
-
-
-def _scenarios(root,result):
-    st.markdown("### 03 / Question the oracle")
-    st.caption("What-if experiments rerun the fitted network. These are not causal effects, "
-               "SHAP explanations or confidence intervals.")
-    fields=result["fields"];notes=result["notes"]
-    original_miles=float(fields["odometer"])
-    from pricing.current_value import current_transport
-    from marketbridge.time_engine import today
-    model=load(root);prepared=model.prepare_text(notes)
-    transport,_=current_transport(root)
-    def estimate(f,detail):
-        historical=model.predict_prepared(f,prepared)
-        return transport.estimate(model,detail,f,result["date"],side="ask",
-                                  as_of=today(),anchor_price=historical["price"])["price"]
-    with st.expander("📉 Mileage sensitivity",expanded=True):
-        values=[]
-        for change in [-20000,-10000,0,10000,20000]:
-            scenario={**fields,"odometer":max(0,min(2000000,original_miles+change))}
-            try:
-                v=estimate(scenario,notes)
-                values.append({"Mileage":int(scenario["odometer"]),"Ask USD":round(v)})
-            except ValueError:continue
-        if values:
-            df=pd.DataFrame(values)
-            st.line_chart(df.set_index("Mileage")["Ask USD"])
-            st.dataframe(df,hide_index=True,use_container_width=True)
-    with st.expander("🔧 Condition sensitivity"):
-        if st.button("Compare conditions",key="neural_conditions"):
-            rows=[]
-            for c in ["excellent","good","fair","salvage"]:
-                try:rows.append({"Condition":c,"Ask USD":round(estimate({**fields,"condition":c},notes))})
-                except ValueError:continue
-            if rows:st.bar_chart(pd.DataFrame(rows).set_index("Condition"))
-    with st.expander("✍ Rewrite the listing, keep the vehicle"):
-        alt=st.text_area("Alternative description",value=notes,max_chars=8000,
-                         key="neural_whatif_text")
-        if st.button("Compare the new wording",key="neural_compare_text"):
-            try:
-                altered=model.prepare_text(alt)
-                historical=model.predict_prepared(fields,altered)
-                new=transport.estimate(model,alt,fields,result["date"],side="ask",
-                          as_of=today(),anchor_price=historical["price"])["price"]
-                st.metric("Alternative asking scenario","$"+f"{new:,.0f}",
-                          delta="$"+f"{new-result['scenario']['price']:+,.0f}")
-                st.caption("A model response to wording, not a causal attribution.")
-            except ValueError as exc:st.warning(str(exc))
-    with st.expander("📆 Value over time · the future garage"):
-        annual=st.slider("Expected miles per year",0,40000,12000,1000,key="neural_annual")
-        if st.button("Draw asking-price history & scenarios",key="neural_timeline"):
-            rows=[];origin=pd.Timestamp(result["date"])
-            for months in [-12,-9,-6,-3,0,3,6]:
-                month=origin+pd.DateOffset(months=months)
-                f={**fields,"odometer":max(0,min(2000000,original_miles+months*annual/12))}
+            from pricing.neural_ask_embedding_live import load
+            with st.spinner("Encoding the full description and running DeepCross/AFT…"):
+                model=load(root)
+                result=model.predict(notes,fields)
+            st.session_state["bge_complete_receipt"]={
+                "fields":fields,"notes":notes,"result":result,
+                "elapsed":time.monotonic()-start}
+        except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+            st.session_state.pop("bge_complete_receipt",None)
+            st.error("Unable to verify the full asking prediction: "+str(exc))
+    saved=st.session_state.get("bge_complete_receipt") if ready else None
+    if saved:
+        st.markdown("#### 03 / Price from the entire neural network")
+        _price("Historical seller asking · May 2021 USD",
+               saved["result"]["price"],
+               "Not a completed sale, wholesale bid or current market appraisal")
+        st.caption("Entire BGE + DeepCross/AFT completed in "+
+                   f"{saved['elapsed']:.2f} seconds. Prices are historical anchors.")
+        with st.expander("✍ Rewrite the listing · compare two FULL network prices",expanded=True):
+            st.write("Vehicle details stay fixed. BGE re-embeds the new wording; "
+                     "the complete DeepCross/AFT network predicts the new price. "
+                     "This does **not** display any separate Ridge text-price estimate.")
+            alt=st.text_area("Alternative wording",value=saved["notes"],
+                             height=125,max_chars=8000,key="bge_whatif")
+            if st.button("Compare complete neural estimates",type="primary",key="bge_whatif_run"):
                 try:
-                    hist=model.predict_prepared(f,prepared)
-                    val=transport.estimate(model,notes,f,month.date(),side="ask",
-                                as_of=today(),anchor_price=hist["price"])["price"]
-                    rows.append({"Date":month.date(),"Ask USD":val,"Mileage":int(f["odometer"])})
-                except ValueError:continue
-            if rows:
-                st.line_chart(pd.DataFrame(rows).set_index("Date")["Ask USD"])
-                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
-        st.caption("Future values depend on unverified depreciation and market-index assumptions.")
+                    from pricing.neural_ask_embedding_live import load
+                    new=load(root).predict(alt,saved["fields"])["price"]
+                    original=saved["result"]["price"]
+                    a,b,c=st.columns(3)
+                    a.metric("Original full-network","$"+f"{original:,.0f}")
+                    b.metric("Rewritten full-network","$"+f"{new:,.0f}")
+                    c.metric("Difference","$"+f"{new-original:+,.0f}")
+                    st.caption("Model response to language, not causal proof that "
+                               "editing an advertisement changes a transaction.")
+                except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+                    st.warning("Whole-model wording comparison unavailable: "+str(exc))
+        with st.expander("📉 Mileage sensitivity · full-network reruns"):
+            try:
+                from pricing.neural_ask_embedding_live import load
+                model=load(root);prepared=model.prepare_text(saved["notes"]);table=[]
+                for change in (-20000,-10000,0,10000,20000):
+                    variant={**saved["fields"],
+                             "odometer":max(0,saved["fields"]["odometer"]+change)}
+                    price=model.predict_prepared(variant,prepared)["price"]
+                    table.append({"Mileage":int(variant["odometer"]),"Asking USD":round(price)})
+                st.line_chart(pd.DataFrame(table).set_index("Mileage")["Asking USD"])
+            except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+                st.info("Mileage comparison temporarily unavailable: "+str(exc))
+        public={"model":"BGE256 + entire DeepCross AFT",
+                "historical_price_usd":saved["result"]["price"],
+                "vehicle":saved["fields"],"description":"omitted for privacy"}
+        st.download_button("Download asking research receipt",
+               json.dumps(public,indent=2),file_name="bge-experimental-ask.json",
+               mime="application/json",key="bge_download")
 
 
-def _export(result):
-    st.markdown("### 04 / Keep the receipts")
-    public={k:v for k,v in result.items() if k!="notes"}
-    public["description"]="omitted from exported receipt for privacy"
-    a,b=st.columns(2)
-    a.download_button("⬇ Download valuation report (JSON)",
-        json.dumps(public,default=str,indent=2),
-        file_name="neural-lab-valuation.json",mime="application/json",
-        use_container_width=True)
-    b.download_button("⬇ Download model-method reference",
-        "NEURAL LAB / deepcross-aft-minilm-dropout12 / historical asking / May 2021\n"+
-        "Validation MAE 3046.61 USD / test MAE 3261.54 USD\n"+
-        "Today is an experimental time extrapolation, not a verified price interval.\n",
-        file_name="neural-lab-readme.txt",use_container_width=True)
+def _bid(root):
+    st.markdown("### 🚘 Wholesale · DeepFM + Lemon XGBoost")
+    st.caption("Historical completed 2014–15 wholesale auction sales, expressed "
+               "in January 2015-indexed dollars. No current-year price guarantee.")
+    from pricing.cvar95_experiment_science import model_kpis,evidence
+    kpi=model_kpis(root,"bid")
+    d=evidence(root)
+    baseline=next((x for x in d.get("bid",[]) if x.get("model")=="Lemon XGBoost historical baseline"),None)
+    if kpi:
+        a,b,c=st.columns(3)
+        a.metric("🛡️ CVaR95 · PRIMARY","$"+f"{kpi['CVaR95_absolute_USD']:,.0f}")
+        b.metric("RMSE · secondary","$"+f"{kpi['RMSE_USD']:,.0f}")
+        c.metric("MAE · secondary","$"+f"{kpi['MAE_USD']:,.0f}")
+        if baseline:
+            st.caption("Worst 5% average absolute miss reduced by "+
+                       f"{(1-kpi['CVaR95_absolute_USD']/baseline['CVaR95_absolute_USD'])*100:.1f}%"+
+                       " versus matched Lemon XGBoost on 83,603 2015-indexed-dollar auctions.")
+        st.caption("The 75/25 blend was originally selected by validation RMSE; overnight CVaR-first selection is independent.")
+    else:
+        st.info("No verified CVaR95 original wholesale holdout archive is installed.")
+    ready=bid_available(root)
+    if not ready:
+        st.warning("The wholesale DeepFM/XGBoost release has not passed "
+                   "original test prediction parity. It cannot issue an experimental price.")
+        st.markdown("[Inspect bid serving verification](https://github.com/botsandbolts/Pricing/actions/workflows/experimental-two-model-release.yml)")
+    fields,notes,go=_vehicle("deepfm_bid",bid=True,ready=ready)
+    if go:
+        try:
+            from pricing.neural_bid_blend_live import load
+            with st.spinner("Evaluating DeepFM32 and matched Lemon XGBoost…"):
+                result=load(root).predict(fields)
+            st.session_state["deepfm_complete_receipt"]={"fields":fields,"result":result}
+        except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+            st.session_state.pop("deepfm_complete_receipt",None)
+            st.error("Unable to reproduce historical wholesale valuation: "+str(exc))
+    saved=st.session_state.get("deepfm_complete_receipt") if ready else None
+    if saved:
+        r=saved["result"]
+        _price("Historical wholesale sale · 2015-indexed USD",
+               r["price"],"Not a dealer bid, guaranteed sale, or November 2026 appraisal")
+        a,b=st.columns(2)
+        a.metric("DeepFM32 · 75%","$"+f"{r['deepfm_price']:,.0f}")
+        b.metric("Lemon XGBoost · 25%","$"+f"{r['xgboost_lemon_price']:,.0f}")
+        if r["unrecognized_categories"]:
+            st.info("These features use original unknown-category fallbacks: "+
+                    ", ".join(r["unrecognized_categories"]))
+        st.download_button("Download wholesale research receipt",
+                json.dumps({**r,"vehicle":saved["fields"]},indent=2),
+                file_name="deepfm-experimental-bid.json",
+                mime="application/json",key="deepfm_download")
 
+
+def _explanation(root):
+    st.markdown("### 🥇 The models with fewer nightmare valuation surprises")
+    st.write("**Asking:** BGE-256 word embeddings feed the WHOLE DeepCross/AFT "
+             "neural network. It is not the old MiniLM-to-Ridge standalone text price. "
+             "On the historical 2021 original test, its worst-five-percent "
+             "average absolute dollar error was about **$19,985**, against "
+             "**$21,453** for MiniLM-scalar DeepCross.")
+    st.write("**Wholesale:** DeepFM learns vehicle feature interactions and a small "
+             "neural network branch. A 75% DeepFM32 full-data / 25% Lemon XGBoost "
+             "blend recorded **$8,694 CVaR95**, versus **$11,140** for the matched "
+             "Lemon XGBoost, on historical 2015-normalized auction sales.")
+    st.info("These are historical matched research comparisons, NOT proof that either "
+            "experimental model is superior to the primary calculator for a "
+            "November 2026 car. The primary price pipeline uses a different "
+            "market-date transport and possibly Bayesian residual adjustments.")
+    from pricing.cvar95_experiment_science import render as show_cvar_science
+    show_cvar_science(root)
+    st.markdown("[Original CVaR95 audit](https://github.com/botsandbolts/Pricing/blob/main/reports/cvar95/previously-selected/comparison.json)"
+                " · [Full 109-model overnight validation audit](https://github.com/botsandbolts/Pricing/actions/workflows/overnight-cvar95-all-models.yml)")
 
 def render(root):
     root=Path(root)
-    _header()
-    report=_benchmark(root)
-    st.caption("Experimental asking only. The wholesale-auction engine will be a separate later experiment.")
-    if not available(root):
-        st.warning("The tuned neural serving bundle has not passed installation checks "
-                   "on this deployment. The tab is ready, but it will not fabricate a price.")
-        st.markdown("[Inspect verified deployment workflow](https://github.com/botsandbolts/Pricing/actions/workflows/neural-lab-deploy.yml)")
-        from pricing.neural_experimental_docs import render as documentation
-        documentation(root,report)
-        return
-    left,right=st.columns([1.6,1],gap="large")
-    with left:
-        fields,notes,date,submitted=_editor()
-        if submitted:
-            _run(root,fields,notes,date)
-    result=st.session_state.get("neural_lab_receipt")
-    with right:
-        if result:_receipt(result,root)
-        else:
-            st.info("🍰 Your price receipt will appear here when the neural oven has finished.")
-            st.caption("No wholesale estimate is included.")
-    if result:
-        try:_scenarios(root,result)
-        except (OSError,RuntimeError,ValueError,KeyError) as exc:
-            st.info("Additional what-if graphs temporarily unavailable: "+str(exc))
-        _export(result)
-    from pricing.neural_experimental_docs import render as documentation
-    documentation(root,report)
+    st.markdown(CSS+"""
+<section class="exp-hero" aria-label="Experimental vehicle pricing models">
+<small>CAR PRICE STUDIO · RESEARCH GARAGE · EXPERIMENTAL ONLY</small>
+<h1>Different engines.<br>The whole story.</h1>
+<p>Explore the full neural response to a seller's description, and an
+ensemble for historical wholesale auctions. Real model weights, guarded
+by strict original-holdout serving tests. Ordinary predictions meet the
+unusual cases. Not another pricing oracle in a lab coat.</p>
+<span class="exp-chip">✍ BGE + DeepCross/AFT</span>
+<span class="exp-chip">🚘 DeepFM + XGBoost</span>
+<span class="exp-chip">🛡️ CVaR95 · WORST 5%</span>
+<span class="exp-chip">🇩🇪 Made in Germany</span>
+</section>""",unsafe_allow_html=True)
+    ask,bid,science=st.tabs([
+        "✍ Full neural asking","🚘 Wholesale ensemble","🛡️ CVaR95 · Business & science"])
+    with ask:_ask(root)
+    with bid:_bid(root)
+    with science:_explanation(root)
