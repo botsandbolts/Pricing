@@ -1,0 +1,187 @@
+name: Wholesale bid FM vs FFM vs approximate kernel SVR (10 trials)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/bid_fm_kernel_*.py
+      - tests/test_bid_fm_kernel.py
+      - .github/workflows/bid-fm-kernel-benchmark.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: wholesale-fm-kernel-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: '1'
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMEXPR_NUM_THREADS: '2'
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      deadline: ${{ steps.clock.outputs.deadline }}
+    steps:
+      - name: Set four-hour wall-clock training budget
+        id: clock
+        run: echo "deadline=$(($(date +%s)+14400))" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install narrow CPU scientific stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib pytest
+      - name: Compile and test FM, field-aware FM and RFF source and holdout safety
+        run: |
+          python -m compileall -q scripts/bid_fm_kernel_train.py scripts/bid_fm_kernel_report.py
+          python -m pytest -q tests/test_bid_fm_kernel.py
+          python - <<'PY'
+          from scripts.bid_fm_kernel_train import TRIALS
+          assert len(TRIALS)==10 and set(x[2] for x in TRIALS.values())=={'full','lemon'}
+          print("All ten predeclared models use original full or Lemon train only.")
+          PY
+
+  train:
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        trial: [fm16_full, fm32_full, fm16_lemon, fm32_lemon, ffm8_full, ffm8_lemon, rff512_huber_full, rff512_epsilon_full, rff512_huber_lemon, rff1024_epsilon_lemon]
+    env:
+      DEADLINE: ${{ needs.check.outputs.deadline }}
+    steps:
+      - name: Enforce whole-study compute budget
+        run: |
+          remaining=$((DEADLINE-$(date +%s)))
+          if [ "$remaining" -lt 900 ]; then
+            echo "::error::Four-hour experiment budget exhausted. No more compute."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU-only FM/kernel training stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - name: Recover immutable VIN-disjoint original and Lemon 2015 wholesale auctions
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Fit ONE model using training-only stopper; predict VALIDATION ONLY
+        run: |
+          remaining=$((DEADLINE-$(date +%s)-180))
+          if [ "$remaining" -le 120 ]; then
+            echo "::error::Whole-study deadline reached before training."
+            exit 1
+          fi
+          if [ "$remaining" -gt 4600 ]; then remaining=4600; fi
+          python -u -m scripts.bid_fm_kernel_train \
+            --trial '${{ matrix.trial }}' \
+            --features training-cache/neural-bid/features.npz \
+            --max-seconds "$remaining" \
+            --output 'training-cache/bid-fm-kernel/${{ matrix.trial }}'
+      - name: Archive validation predictions and selected checkpoint (never test)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bid-fm-kernel-${{ matrix.trial }}
+          path: training-cache/bid-fm-kernel/${{ matrix.trial }}/
+          retention-days: 90
+          if-no-files-found: error
+
+  report:
+    needs: [check,train]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      DEADLINE: ${{ needs.check.outputs.deadline }}
+    steps:
+      - name: Check deadline before publishing heldout report
+        run: |
+          remaining=$((DEADLINE-$(date +%s)))
+          if [ "$remaining" -lt 180 ]; then
+            echo "::error::Four-hour limit; results remain archived but unselected."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU verification and row-paired comparison stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - name: Recover all ten validation-only FM and approximate SVR artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bid-fm-kernel-*
+          path: training-cache/bid-fm-kernel
+          merge-multiple: false
+      - name: Recover original 2015 auction features for selected winner TEST
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Recover frozen XGBoost Lemon original per-row validation/test benchmark
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Select from validation; test ONE FM/kernel winner and validation-fitted blend
+        run: |
+          remaining=$((DEADLINE-$(date +%s)))
+          if [ "$remaining" -lt 90 ]; then
+            echo "::error::Four-hour compute budget expired."
+            exit 1
+          fi
+          python -u -m scripts.bid_fm_kernel_report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-wholesale-fm-kernel-svm-comparison
+          path: reports/bid-fm-kernel/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Publish independent scores; do NOT change deployed models
+        run: |
+          cp -a reports/bid-fm-kernel "$RUNNER_TEMP/bid-fm-kernel"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/bid-fm-kernel
+            cp -a "$RUNNER_TEMP/bid-fm-kernel/." reports/bid-fm-kernel/
+            git add reports/bid-fm-kernel/
+            git diff --cached --quiet && exit 0
+            git commit -m 'Publish VIN-disjoint bid FM, FFM and fast-kernel comparison'
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
