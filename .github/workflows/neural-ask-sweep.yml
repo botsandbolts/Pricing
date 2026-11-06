@@ -24,7 +24,7 @@ permissions:
 
 concurrency:
   group: neural-asking-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   OMP_NUM_THREADS: "2"
