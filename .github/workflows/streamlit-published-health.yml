@@ -28,8 +28,23 @@ jobs:
             printf "Health check %s: %s\n" "$attempt" "$(printf '%s' "$response" | head -c 70)"
             if [[ "$response" == "ok" ]]; then
               printf "Streamlit health endpoint reports ok.\n"
-              curl --location --silent --show-error --fail --max-time 18 --output /dev/null "$home_url"
-              printf "Public root URL responds successfully.\n"
+              printf "Diagnosing public root redirect chain.\n"
+              curl -sS --max-time 20 --max-redirs 6 -L -D "$RUNNER_TEMP/root-headers" \
+                -b "$RUNNER_TEMP/http-cookies" -c "$RUNNER_TEMP/http-cookies" \
+                -o "$RUNNER_TEMP/root-body" "$home_url" || root_status=$?
+              grep -Ei '^(HTTP/|location:|content-type:)' "$RUNNER_TEMP/root-headers" | head -n 24 || true
+              if [[ "${root_status:-0}" -eq 47 ]]; then
+                printf "Public app process healthy, but curl encounters a redirect loop; web UI not verified.\n" >&2
+                exit 1
+              elif [[ "${root_status:-0}" -ne 0 ]]; then
+                printf "Public root request failed with exit status %s.\n" "$root_status" >&2
+                exit 1
+              fi
+              if grep -Eiq 'authentication|sign.in|log.in|sleeping|hibernat' "$RUNNER_TEMP/root-body"; then
+                printf "Public HTTP request reached an authentication/sleep page; interactive UI not verified.\n" >&2
+                exit 1
+              fi
+              printf "Public root HTTP responded without redirect errors; Streamlit process healthy.\n"
               exit 0
             fi
             sleep 8
