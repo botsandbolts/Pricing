@@ -1,0 +1,24 @@
+{
+  "status": "awaiting_parity_on_original_auction_holdouts",
+  "model": "deepfm16_full_xgb_lemon_75_25",
+  "display_name": "DeepFM16 full (75%) + Lemon XGBoost (25%)",
+  "weights_frozen": true,
+  "full_data_deepfm": 384198,
+  "lemon_xgboost": 288148,
+  "original_validation": 82380,
+  "original_test": 83603,
+  "price_basis": "2015-index-normalized historical auction sales",
+  "test_rmse_usd": 3188.491899108656,
+  "test_mae_usd": 1915.1971705612666,
+  "test_cvar95_absolute_usd": 8860.3173632581,
+  "selected_on_original_validation_CVaR95": true,
+  "no_live_2026_accuracy_claim": true,
+  "only_experimental_panel": true,
+  "not_asking_prices": true,
+  "original_holdout_row_sha256": {
+    "validation": "319f0b1bfeeec3b1692092cbb88841282e6a116e8483a4466fed0a3d02896fa8",
+    "test": "0556fef8c28bd2043951036b378614ba79eeaadd3bb70cf3c5f09ea3a714eebb"
+  },
+  "neural_weights_sha256": "09231166a806d951e464bc9f6c2eaa40d585c5dc1a4303b18caa837936168db6",
+  "xgb_weights_sha256": "00d27cfe860980e097043a3243cbb5f712bd25881086dda2ed5f78e3a84cf4b7"
+}

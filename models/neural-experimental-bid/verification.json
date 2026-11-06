@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "verified": true,
+  "original_holdout_rows_checked": 44,
+  "original_train_features_max_absolute_error": 0.0,
+  "original_test_and_validation_checked": true,
+  "deepfm_archived_predictions_match": true,
+  "xgboost_archived_predictions_match": true,
+  "max_neural_relative_error": 9.536747712000424e-07,
+  "max_xgboost_relative_error": 1.8263862821516068e-16,
+  "no_new_training": true,
+  "no_user_vehicle_data_in_bundle": true,
+  "no_current_market_accuracy_claim": true
+}
