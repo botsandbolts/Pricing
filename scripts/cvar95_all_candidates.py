@@ -138,7 +138,19 @@ def bid(args):
 
 
 def ask(args):
-    from scripts.deepcross_aft_tune import CONFIGS,FEATURES
+    # Read immutable predeclared names without importing the Torch trainer:
+    # this is a metrics-only job, not a new model-fitting environment.
+    import ast
+    tree=ast.parse((Path(args.root)/"scripts/deepcross_aft_tune.py").read_text())
+    constants={}
+    for node in tree.body:
+        if isinstance(node,ast.Assign):
+            for target in node.targets:
+                if isinstance(target,ast.Name) and target.id in ("CONFIGS","FEATURES"):
+                    constants[target.id]=ast.literal_eval(node.value)
+    if set(constants)!={"CONFIGS","FEATURES"}:
+        raise ValueError("Cannot audit original 36-arm DeepCross registry")
+    CONFIGS,FEATURES=constants["CONFIGS"],constants["FEATURES"]
     from scripts.raw_embedding_ask_encode import SPECS
     from scripts.raw_embedding_ask_report import audited_validation
     val=_ref(args.baseline,"validation",31668)
