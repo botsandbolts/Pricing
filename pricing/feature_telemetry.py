@@ -53,7 +53,7 @@ SCHEMA = [
 FEATURES = {
     'calculator', 'listing_inspector', 'taste_garage', 'two_market',
     'value_over_time', 'science', 'evaluation', 'model_lab',
-    'deal_detective', 'outlier_lab', 'merchant_lens', 'studio',
+    'deal_detective', 'outlier_lab', 'merchant_lens', 'studio', 'neural_lab',
 }
 EVENTS = {
     'panel_view', 'page_view', 'panel_engagement', 'navigation_action',

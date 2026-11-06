@@ -37,6 +37,15 @@ _workspace=render_navigation()
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
     from pricing.analytics import render_privacy
     render_privacy()
+if _workspace=='🧬 Experimental models':
+    from pricing.analytics import render_privacy
+    render_privacy()
+    from pricing.neural_experimental_ui import render as render_neural_lab
+    render_neural_lab(Path(__file__).parent)
+    from pricing.ga_events import render_events
+    render_events()
+    footer()
+    st.stop()
 if _workspace=='🏪 Merchant lens':
     from pricing.dealer_positioning_ui import render as render_dealer_positioning
     render_dealer_positioning(Path(__file__).parent)

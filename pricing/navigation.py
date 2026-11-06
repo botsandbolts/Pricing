@@ -1,6 +1,6 @@
 """Single landing-page navigation, including callback and shared-link routing."""
 import streamlit as st
-PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
+PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🧬 Experimental models','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
 def render_navigation():
     pending=st.session_state.pop('_navigate_to',None)
     if pending=='🌳 Hierarchical model':pending=PAGES[0]
@@ -20,7 +20,8 @@ def render_navigation():
            '🔎 Listing Inspector':'Look a little closer · Compare vehicles and explore the evidence.',
            '🚦 Pick your garage':'A little car chemistry · Rate real representatives, then discover your shortlist.',
            '📅 Value over time':'Take the long view · Explore how the same car’s price scenario changes.',
-           '🧠 The science':'Under the bonnet · Methods, assumptions and what the models can tell you.'}
+           '🧠 The science':'Under the bonnet · Methods, assumptions and what the models can tell you.',
+           '🧬 Experimental models':'Neural Lab · Deep & Cross, MiniLM, business and scientific experiments.'}
     st.markdown('<div class="garage-route-note">'+escape(notes.get(page,'The curious corner · Explore the models, evidence and historical comparisons.'))+'</div>',unsafe_allow_html=True)
     return page
 
