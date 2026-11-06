@@ -81,7 +81,7 @@ def package(a):
     published=json.loads((bxgb/"evaluation.json").read_text())
     if (published["scores"]["test"]["n"]!=83603 or
         abs(published["scores"]["test"]["mae_usd"]-
-            audit["xgboost_lemon_matched"]["test"]["mae_usd"])>.05):
+            audit["matched_lemon_xgboost"]["test"]["mae_usd"])>.05):
         raise ValueError("Deployed historical Lemon XGBoost differs from benchmark; fail closed")
     (out/"preprocessing.json").write_text(json.dumps(state,indent=2))
     manifest={
