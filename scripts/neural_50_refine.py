@@ -271,7 +271,7 @@ def report(plan_path,folder,output):
     lines=["# Joint Ask/Bid follow-up: 50 additional models","",
            "Status: **"+results["status"]+"**",
            f"Successfully audited: **{len(records)}/50**",
-           "24? No — exactly 25 Ask and exactly 25 Bid candidates.",
+           "Exactly 25 Ask and 25 Bid candidate configurations are required.",
            "Regression: two independently cross-validated RidgeCV surrogates per "
            "market, trained on the original 200 validation CVaR95 results.",
            "All results are ORIGINAL VALIDATION only; no 2026 accuracy or automatic promotion.",
