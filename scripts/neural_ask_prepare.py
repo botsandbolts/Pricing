@@ -142,6 +142,15 @@ def prepare(cohort, lemon_csv, output):
         raise ValueError("XGBoost-eligible canonical cohort changed; do not compare unmatched tests")
     if int(np.sum(keep & train)) != 110832:
         raise ValueError("Frozen Lemon training membership changed")
+    # Reusable, fast columnar export for Kaggle. It preserves the SAME
+    # benchmark-eligible row IDs and phase assignments; it is not a new split.
+    # Parquet supports direct Arrow column projection and avoids reparsing
+    # the old multi-gigabyte raw Craigslist CSV on every GPU experiment.
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    parquet = output.with_name("canonical-ask.parquet")
+    frame.to_parquet(parquet, engine="pyarrow", compression="zstd", index=False)
+    print(f"Reusable canonical Parquet: {parquet} ({parquet.stat().st_size:,} bytes)", flush=True)
     numeric, categories, text, card, dictionaries = encode_features(frame, train)
     ids = frame.row_id.astype(str).to_numpy(dtype="U80")
     output = Path(output)
@@ -154,6 +163,7 @@ def prepare(cohort, lemon_csv, output):
         rows = np.flatnonzero(phase == name)
         hashes[name] = hashlib.sha256("\n".join(sorted(ids[rows])).encode()).hexdigest()
     manifest = {"dataset": "Craigslist 2021 original chronological asking cohort",
+                "parquet_reuse": "canonical-ask.parquet (ZSTD; identical row_id and phase; trained features in features.npz)",
                 "cohort_sha256": hashlib.sha256(Path(cohort).read_bytes()).hexdigest(),
                 "lemon_source": "matched-bayesian-redesign-data/ask-minilm-cleaned.csv.gz",
                 "cohort_rows": len(frame), "upstream_raw_canonical_rows": raw_count, "xgboost_eligibility_excluded": raw_count-len(frame), "full_train": int(train.sum()),
