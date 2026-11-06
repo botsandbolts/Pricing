@@ -151,7 +151,15 @@ def ask(args):
     if set(constants)!={"CONFIGS","FEATURES"}:
         raise ValueError("Cannot audit original 36-arm DeepCross registry")
     CONFIGS,FEATURES=constants["CONFIGS"],constants["FEATURES"]
-    from scripts.raw_embedding_ask_encode import SPECS
+    encoder_tree=ast.parse((Path(args.root)/"scripts/raw_embedding_ask_encode.py").read_text())
+    SPECS=None
+    for node in encoder_tree.body:
+        if isinstance(node,ast.Assign) and any(
+            isinstance(t,ast.Name) and t.id=="SPECS" for t in node.targets):
+            SPECS=ast.literal_eval(node.value)
+            break
+    if not isinstance(SPECS,dict) or len(SPECS)!=8:
+        raise ValueError("Cannot audit original exact eight encoder-context variants")
     from scripts.raw_embedding_ask_report import audited_validation
     val=_ref(args.baseline,"validation",31668)
     test=_ref(args.baseline,"test",31682)
