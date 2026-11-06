@@ -79,7 +79,7 @@ jobs:
         run: |
           python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
           python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' joblib streamlit
-          python -m pip install 'sentence-transformers==3.4.1' 'transformers==4.49.0' 'huggingface-hub==0.30.2' 'onnx>=1.16,<2' 'onnxruntime>=1.20,<2' 'tokenizers>=0.21,<0.22'
+          python -m pip install 'sentence-transformers==3.4.1' 'transformers==4.49.0' 'huggingface-hub==0.30.2' 'onnx>=1.16,<2' 'onnxruntime>=1.20,<2' 'tokenizers>=0.21,<0.22' 'onnxscript>=0.4,<1'
       - name: Recover original 2021 asking feature tensors and canonical descriptions
         uses: actions/download-artifact@v4
         with:
