@@ -1,0 +1,170 @@
+name: DeepCross AFT architectural and hyperparameter sweep (36 arms)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/deepcross_aft_*.py
+      - tests/test_deepcross_aft_tune.py
+      - .github/workflows/deepcross-aft-tuning.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: deepcross-aft-tuning-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original neural model stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' pytest
+      - name: Verify code, all 18 architectures and holdout-selection guardrails
+        run: |
+          python -m compileall -q scripts/deepcross_aft_tune.py scripts/deepcross_aft_report.py
+          python -m pytest tests/test_deepcross_aft_tune.py -q
+
+  train:
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        variant: [baseline, depth1, depth5, rank16, rank64, moe2, moe4, wide384, compact128, blocks3, dropout12, dropout35, lr06, lr15, wd08, batch1024, crosshalf, silu]
+        features: [svd, minilm]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU PyTorch training stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2'
+      - name: Download original immutable neural features (no raw Craigslist CSV)
+        if: matrix.features == 'svd'
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Download frozen 2-out-of-bag MiniLM price features
+        if: matrix.features == 'minilm'
+        uses: actions/download-artifact@v4
+        with:
+          name: ask-minilm-2oob-features
+          run-id: 42244440154
+          github-token: ${{ github.token }}
+          path: training-cache/ask-minilm
+      - name: Train one DeepCross AFT variation
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ '${{ matrix.features }}' == 'svd' ]]; then
+            DATA='training-cache/neural-ask/features.npz'
+          else
+            DATA='training-cache/ask-minilm/full/features.npz'
+          fi
+          python -u -m scripts.deepcross_aft_tune \
+            --variant '${{ matrix.variant }}' \
+            --features '${{ matrix.features }}' \
+            --data "$DATA" \
+            --output 'training-cache/deepcross-aft-tuning/${{ matrix.features }}-${{ matrix.variant }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deepcross-aft-tune-${{ matrix.features }}-${{ matrix.variant }}
+          path: training-cache/deepcross-aft-tuning/${{ matrix.features }}-${{ matrix.variant }}/
+          retention-days: 90
+          if-no-files-found: error
+
+  publish:
+    needs: train
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install report dependencies
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2'
+      - name: Fetch all 36 completed checkpoints and their heldout predictions
+        uses: actions/download-artifact@v4
+        with:
+          pattern: deepcross-aft-tune-*
+          path: training-cache/deepcross-aft-tuning
+      - name: Recover frozen paired XGBoost Lemon baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-ask
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-xgb
+      - name: Recover previous original DeepCross+AFT reference
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-result-deepcross-aft-full
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: benchmark-original
+      - name: Recover previous MiniLM DeepCross+AFT reference
+        uses: actions/download-artifact@v4
+        with:
+          name: ask-minilm-result-deepcross-aft-full
+          run-id: 42244440154
+          github-token: ${{ github.token }}
+          path: benchmark-minilm
+      - name: Rank ONLY by original validation MAE and audit matched test outcomes
+        run: python -u -m scripts.deepcross_aft_report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deepcross-aft-tuning-verified-report
+          path: reports/deepcross-aft-tuning/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Publish verified results, never install tuned weights automatically
+        run: |
+          cp -a reports/deepcross-aft-tuning "$RUNNER_TEMP/deepcross-aft-tuning"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/deepcross-aft-tuning
+            cp -a "$RUNNER_TEMP/deepcross-aft-tuning/." reports/deepcross-aft-tuning/
+            git add reports/deepcross-aft-tuning/
+            git diff --cached --quiet && exit 0
+            git commit -m 'Publish validation-selected DeepCross/AFT 36-arm tuning results'
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
