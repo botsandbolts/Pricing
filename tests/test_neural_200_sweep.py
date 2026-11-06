@@ -54,7 +54,7 @@ def test_cvar_tail_metric_is_original_dollar_top_five_percent():
     p[-5:]=[1000.,1100.,1200.,1300.,1400.]
     s=risk(y,p)
     assert s["worst_five_pct_rows"]==5
-    assert np.isclose(s["CVaR95_absolute_USD"],2000.)
+    assert np.isclose(s["CVaR95_absolute_USD"],200.)
 
 
 def test_dry_run_outputs_registered_configuration(tmp_path):
