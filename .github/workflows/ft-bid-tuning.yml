@@ -1,0 +1,146 @@
+name: FT-Transformer Huber Lemon wholesale bid tuning (29 variants)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/ft_bid_*.py
+      - tests/test_ft_bid_tune.py
+      - .github/workflows/ft-bid-tuning.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: ft-bid-huber-tuning-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install numerical and torch test dependencies
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' pytest
+      - name: Validate model architecture and test-isolation checks
+        run: |
+          python -m compileall -q scripts/ft_bid_tune.py scripts/ft_bid_report.py
+          python -m pytest tests/test_ft_bid_tune.py -q
+
+  train:
+    if: github.event_name != 'pull_request'
+    needs: check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        trial: [control, width32, width64, width96, depth1, depth3, depth4, heads2, heads8, ff2, ff6, drop08, drop30, wd005, wd075, lr035, lr100, batch384, batch1536, token05, token12, numericnoise, postnorm, headwide, huber015, huber040, wide64depth3, depth3token, wide64wd075]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU PyTorch stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2'
+      - name: Recover frozen original VIN-cohort and Lemon feature artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Train ONE Huber FT-Transformer and predict original VALIDATION only
+        run: |
+          python -u -m scripts.ft_bid_tune \
+            --trial '${{ matrix.trial }}' \
+            --data training-cache/neural-bid/features.npz \
+            --output 'training-cache/ft-bid-tuning/${{ matrix.trial }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ft-bid-tune-${{ matrix.trial }}
+          path: training-cache/ft-bid-tuning/${{ matrix.trial }}/
+          retention-days: 90
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: train
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PyTorch for the validation-selected winner
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2'
+      - name: Collect exactly 29 independent validation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ft-bid-tune-*
+          path: training-cache/ft-bid-tuning
+          merge-multiple: false
+      - name: Recover canonical auction features for selected-model TEST
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Recover frozen Lemon XGBoost row-level comparison
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Audit validation, select winner, and test ONLY winner
+        run: python -u -m scripts.ft_bid_report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ft-bid-tuning-verified-comparison
+          path: reports/ft-bid-tuning/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Publish final scores but do not deploy experimental weights
+        run: |
+          cp -a reports/ft-bid-tuning "$RUNNER_TEMP/ft-bid-tuning"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/ft-bid-tuning
+            cp -a "$RUNNER_TEMP/ft-bid-tuning/." reports/ft-bid-tuning/
+            git add reports/ft-bid-tuning/
+            git diff --cached --quiet && exit 0
+            git commit -m 'Publish FT-Transformer Huber Lemon bid tuning audit'
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
