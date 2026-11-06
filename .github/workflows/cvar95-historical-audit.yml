@@ -1,0 +1,81 @@
+name: CVaR95 original historical ASK and BID tail risk · no retraining
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/cvar95_historical.py
+      - tests/test_cvar95_historical.py
+      - .github/workflows/cvar95-historical-audit.yml
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: cvar95-historical-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            reports
+            scripts
+            tests
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install evaluation only, no training frameworks
+        run: |
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' pytest
+      - name: Validate empirical CVaR95 and original holdout identity
+        run: |
+          python -m compileall -q scripts/cvar95_historical.py
+          python -m pytest -q tests/test_cvar95_historical.py
+      - name: Recover already trained 2021 asking 12pct dropout checkpoint predictions
+        uses: actions/download-artifact@v4
+        with:
+          name: deepcross-aft-tune-minilm-dropout12
+          run-id: 42252201025
+          github-token: ${{ github.token }}
+          path: training-cache/old-ask/deepcross-aft-tune-minilm-dropout12
+      - name: Recover already trained 2021 asking 4-expert checkpoint predictions
+        uses: actions/download-artifact@v4
+        with:
+          name: deepcross-aft-tune-minilm-moe4
+          run-id: 42252201025
+          github-token: ${{ github.token }}
+          path: training-cache/old-ask/deepcross-aft-tune-minilm-moe4
+      - name: Score original TEST CVaR95 for previously validation-selected models ONLY
+        run: |
+          python -u -m scripts.cvar95_historical
+      - name: Store fully auditable tail risk report
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-absolute-error-cvar95-ask-bid
+          path: reports/cvar95/previously-selected/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Commit CVaR evaluation only · never deploy or retrain
+        run: |
+          cp -a reports/cvar95/previously-selected "$RUNNER_TEMP/cvar95"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/cvar95/previously-selected
+            cp -a "$RUNNER_TEMP/cvar95/." reports/cvar95/previously-selected/
+            git add reports/cvar95/previously-selected/
+            git diff --cached --quiet && exit 0
+            git commit -m 'Audit original wholesale and asking worst-five-percent dollar errors'
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
