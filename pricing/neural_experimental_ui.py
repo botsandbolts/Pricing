@@ -310,6 +310,34 @@ def _adjust_price(transport,price,fields,side,when,allow_analogue):
                               as_of=today())
 
 
+def _historical_bid_features(fields,auction,grade,allow_analogue):
+    """Explicit five-year analogue, NOT the same model-year auction observation."""
+    historical={**fields,"auction_date":str(auction),"auction_grade":grade}
+    selected_year=int(fields["year"])
+    if selected_year<=auction.year+1:
+        return historical,None
+    if not allow_analogue:
+        raise ValueError(
+            "This vehicle is newer than the 2014–2015 auction study. "
+            "Enable 'Allow auction generation analogues for 2016–2021 cars' "
+            "under Valuation date & auction coverage.")
+    # TimeTransport's original wholesale reference is a five-year-old car in
+    # 2015-indexed dollars, so use a five-year-old 2010 reference vehicle.
+    # This historical identity is NEVER labeled as an actual auction of the
+    # newer model year. Original trained weights are unchanged.
+    if selected_year>2021:
+        raise ValueError("Newer-than-2021 vehicles are not covered by this release.")
+    reference_year=auction.year-5
+    historical["year"]=reference_year
+    return historical, {
+        "kind":"age_matched_hypothetical_auction",
+        "requested_model_year":selected_year,
+        "proxy_model_year":reference_year,
+        "reference_auction_date":str(auction),
+        "warning":"Counterfactual five-year-old historical reference, not an observed "
+                  "auction or verified valuation of this vehicle generation. "
+                  "Make/trim and features may be out of the historical training distribution."}
+
 def _usd(value):return "$"+f"{float(value):,.0f}"
 
 
@@ -372,7 +400,7 @@ def render(root):
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
             max_value=pd.Timestamp("2015-12-31").date(),key="experiment_joint_auction")
         grade=st.selectbox("Historical pre-sale grade",["unknown","1","2","3","4","5"],index=3,key="experiment_joint_grade")
-        st.caption("For newer model years the historical auction engine cannot accept a future car. We refuse to pretend the training data saw it.")
+        st.caption("2016–2021 cars can use an optional *hypothetical five-year-old auction analogue*. It is not evidence of what that vehicle generation sold for in 2015.")
     fields,notes,go=_vehicle("bge_ask",ready=ask_ready or bid_ready)
     if go:
         results={"fields":fields,"notes":notes,"date":str(valuation_date)}
@@ -386,11 +414,15 @@ def render(root):
         if bid_ready:
             try:
                 from pricing.neural_bid_blend_live import load as bid_load
-                bid_fields={**fields,"auction_date":str(auction),"auction_grade":grade}
+                bid_fields,analogue=_historical_bid_features(fields,auction,grade,allow_analogue)
                 with st.spinner("Running verified wholesale DeepFM + Lemon XGBoost…"):
                     results["bid"]=bid_load(root).predict(bid_fields)
+                if analogue:results["bid_analogue"]=analogue
             except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+                results["bid_error"]=str(exc)
                 st.warning("Wholesale unavailable for this vehicle: "+str(exc))
+        elif not bid_ready:
+            results["bid_error"]="Verified wholesale weights are not installed or have failed the parity gate."
         st.session_state["experimental_combined_receipt"]=results
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
@@ -401,9 +433,12 @@ def render(root):
             with col:
                 result=saved.get(side)
                 if result is None:
-                    st.info(label+" · no verified model output for this vehicle.")
+                    st.error(label+" could not be calculated: "+saved.get("bid_error" if side=="bid" else "ask_error","No verified prediction was returned."))
                     continue
                 historical=float(result["price"])
+                if side=="bid" and saved.get("bid_analogue"):
+                    st.warning("⚠️ Historical age-matched analogue, not a real auction of this model year. Its 2015 baseline assumes an age-five proxy; accuracy for the newer generation is unknown.")
+                    st.caption("Proxy model year: "+str(saved["bid_analogue"]["proxy_model_year"])+"; requested model year: "+str(saved["bid_analogue"]["requested_model_year"]))
                 st.metric(label+" · historical anchor",_usd(historical))
                 if transport is None:
                     st.warning("Current-month conversion unavailable; historical price only.")
@@ -453,7 +488,7 @@ def render(root):
         report={"model_family":"Original experimental neural models, unchanged",
                 "valuation_date":str(valuation_date),"vehicle":saved["fields"],
                 "historical_predictions":{k:saved[k] for k in ("ask","bid") if k in saved},
-                "date_adjusted":adjusted,"description":"omitted for privacy",
+                "date_adjusted":adjusted,"bid_analogue":saved.get("bid_analogue"),"bid_error":saved.get("bid_error"),"description":"omitted for privacy",
                 "warning":"Date transport is an unvalidated individual 2026 scenario."}
         st.download_button("📥 Download both-model research receipt (JSON)",
             json.dumps(report,indent=2,default=str),file_name="experimental-bid-ask.json",
