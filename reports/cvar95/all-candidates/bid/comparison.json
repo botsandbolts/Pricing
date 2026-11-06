@@ -31,11 +31,11 @@
     "original_test": {
       "rows": 83603,
       "worst_five_pct_rows": 4181,
-      "CVaR95_absolute_USD": 9018.785555413318,
+      "CVaR95_absolute_USD": 9018.78584092086,
       "VaR95_absolute_USD": 5298.148563378145,
-      "MAE_USD": 1877.6059442571832,
-      "RMSE_USD": 3178.1533595702344,
-      "worst_one_pct_USD": 17669.785188705642
+      "MAE_USD": 1877.6061040603136,
+      "RMSE_USD": 3178.153506638827,
+      "worst_one_pct_USD": 17669.785297667077
     }
   },
   "chosen_blend": {
@@ -50,27 +50,27 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 8900.52708724917,
+      "CVaR95_absolute_USD": 8900.527087249171,
       "VaR95_absolute_USD": 5070.228602747425,
       "MAE_USD": 1729.7092140537688,
       "RMSE_USD": 3025.644838087759,
-      "worst_one_pct_USD": 17497.77973371746
+      "worst_one_pct_USD": 17497.779733717463
     },
     "original_test": {
       "rows": 83603,
       "worst_five_pct_rows": 4181,
-      "CVaR95_absolute_USD": 8860.31686230149,
+      "CVaR95_absolute_USD": 8860.3173632581,
       "VaR95_absolute_USD": 5230.216689128881,
-      "MAE_USD": 1915.1969252790855,
-      "RMSE_USD": 3188.4916918657736,
-      "worst_one_pct_USD": 17431.038893151643
+      "MAE_USD": 1915.1971705612666,
+      "RMSE_USD": 3188.491899108656,
+      "worst_one_pct_USD": 17431.03913039693
     }
   },
   "original_xgboost_lemon_reference": {
     "validation": {
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -118,7 +118,7 @@
       "VaR95_absolute_USD": 5265.619637670214,
       "MAE_USD": 1831.0018126376904,
       "RMSE_USD": 3112.2442400672235,
-      "worst_one_pct_USD": 17795.571617403097
+      "worst_one_pct_USD": 17795.5716174031
     },
     {
       "study": "fm26",
@@ -146,11 +146,11 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9545.562490022454,
+      "CVaR95_absolute_USD": 9545.562490022456,
       "VaR95_absolute_USD": 5168.601633343765,
       "MAE_USD": 1800.5974810087578,
       "RMSE_USD": 3312.950240779484,
-      "worst_one_pct_USD": 19730.65464731467
+      "worst_one_pct_USD": 19730.654647314666
     },
     {
       "study": "fm26",
@@ -178,7 +178,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9757.745821698747,
+      "CVaR95_absolute_USD": 9757.745821698749,
       "VaR95_absolute_USD": 5657.582201655205,
       "MAE_USD": 1947.230891501922,
       "RMSE_USD": 3355.2952472051657,
@@ -198,7 +198,7 @@
       "VaR95_absolute_USD": 5565.371476422574,
       "MAE_USD": 1907.9938950812677,
       "RMSE_USD": 3322.1878255909296,
-      "worst_one_pct_USD": 19034.51856513005
+      "worst_one_pct_USD": 19034.518565130045
     },
     {
       "study": "fm10",
@@ -210,11 +210,11 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9833.37155402396,
+      "CVaR95_absolute_USD": 9833.371554023957,
       "VaR95_absolute_USD": 5631.5144629932065,
       "MAE_USD": 1946.374619569215,
       "RMSE_USD": 3360.373754138291,
-      "worst_one_pct_USD": 19149.907294616005
+      "worst_one_pct_USD": 19149.907294616
     },
     {
       "study": "fm26",
@@ -230,7 +230,7 @@
       "VaR95_absolute_USD": 5665.634789116327,
       "MAE_USD": 1941.2138694929329,
       "RMSE_USD": 3299.8782005322682,
-      "worst_one_pct_USD": 18802.310674733453
+      "worst_one_pct_USD": 18802.310674733457
     },
     {
       "study": "fm10",
@@ -258,7 +258,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9861.238243087031,
+      "CVaR95_absolute_USD": 9861.23824308703,
       "VaR95_absolute_USD": 5729.052507277241,
       "MAE_USD": 1988.469880013019,
       "RMSE_USD": 3368.1839987069466,
@@ -290,11 +290,11 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9885.105099149308,
+      "CVaR95_absolute_USD": 9885.105099149307,
       "VaR95_absolute_USD": 5471.001426756738,
       "MAE_USD": 1897.6060686126873,
       "RMSE_USD": 3442.9870994486446,
-      "worst_one_pct_USD": 20163.223069433836
+      "worst_one_pct_USD": 20163.223069433832
     },
     {
       "study": "fm10",
@@ -374,7 +374,7 @@
       "VaR95_absolute_USD": 5709.272965378836,
       "MAE_USD": 1967.214114911019,
       "RMSE_USD": 3389.1699453669144,
-      "worst_one_pct_USD": 19189.57463049197
+      "worst_one_pct_USD": 19189.574630491967
     },
     {
       "study": "fm26",
@@ -422,7 +422,7 @@
       "VaR95_absolute_USD": 5750.9665117428385,
       "MAE_USD": 1995.028030825601,
       "RMSE_USD": 3384.053094450572,
-      "worst_one_pct_USD": 19074.675553674344
+      "worst_one_pct_USD": 19074.675553674348
     },
     {
       "study": "fm26",
@@ -454,7 +454,7 @@
       "VaR95_absolute_USD": 5542.555596248643,
       "MAE_USD": 1925.1302602399949,
       "RMSE_USD": 3472.7066876462154,
-      "worst_one_pct_USD": 20244.170748786593
+      "worst_one_pct_USD": 20244.170748786586
     },
     {
       "study": "fm26",
@@ -466,7 +466,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9994.374467153018,
+      "CVaR95_absolute_USD": 9994.374467153017,
       "VaR95_absolute_USD": 5788.055973312505,
       "MAE_USD": 2022.9867516413567,
       "RMSE_USD": 3411.437986428307,
@@ -530,7 +530,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10096.429857499816,
+      "CVaR95_absolute_USD": 10096.429857499817,
       "VaR95_absolute_USD": 5617.411331180512,
       "MAE_USD": 1944.4146336387344,
       "RMSE_USD": 3491.004635864528,
@@ -662,7 +662,7 @@
       "VaR95_absolute_USD": 5626.126371399576,
       "MAE_USD": 1880.484760176001,
       "RMSE_USD": 3523.694028841453,
-      "worst_one_pct_USD": 21130.793026988184
+      "worst_one_pct_USD": 21130.793026988187
     },
     {
       "study": "ft29",
@@ -690,7 +690,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10368.829239037932,
+      "CVaR95_absolute_USD": 10368.82923903793,
       "VaR95_absolute_USD": 5692.4028661986395,
       "MAE_USD": 1853.8164807335718,
       "RMSE_USD": 3492.6397659649338,
@@ -706,11 +706,11 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10394.677550222836,
+      "CVaR95_absolute_USD": 10394.677550222834,
       "VaR95_absolute_USD": 5647.419805167275,
       "MAE_USD": 1901.103345958449,
       "RMSE_USD": 3575.7835874829725,
-      "worst_one_pct_USD": 21639.744231577064
+      "worst_one_pct_USD": 21639.744231577068
     },
     {
       "study": "ft29",
@@ -722,7 +722,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10407.700876263792,
+      "CVaR95_absolute_USD": 10407.700876263794,
       "VaR95_absolute_USD": 5502.949149339665,
       "MAE_USD": 1910.1622132306518,
       "RMSE_USD": 3571.2321738954706,
@@ -738,11 +738,11 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10408.600697310494,
+      "CVaR95_absolute_USD": 10408.600697310496,
       "VaR95_absolute_USD": 5534.992773825243,
       "MAE_USD": 1850.5533196818856,
       "RMSE_USD": 3518.582198818975,
-      "worst_one_pct_USD": 21437.707698971088
+      "worst_one_pct_USD": 21437.70769897109
     },
     {
       "study": "ft29",
@@ -770,7 +770,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10432.328424676134,
+      "CVaR95_absolute_USD": 10432.328424676132,
       "VaR95_absolute_USD": 5574.470831638576,
       "MAE_USD": 1851.882900397979,
       "RMSE_USD": 3524.4491198582127,
@@ -786,11 +786,11 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10540.119556798196,
+      "CVaR95_absolute_USD": 10540.119556798194,
       "VaR95_absolute_USD": 5640.4330291346805,
       "MAE_USD": 1925.2907865428992,
       "RMSE_USD": 3598.6569413787397,
-      "worst_one_pct_USD": 21907.774914222242
+      "worst_one_pct_USD": 21907.774914222235
     },
     {
       "study": "ft29",
@@ -818,7 +818,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10597.50265039043,
+      "CVaR95_absolute_USD": 10597.502650390428,
       "VaR95_absolute_USD": 5752.772658420539,
       "MAE_USD": 1920.6671157486846,
       "RMSE_USD": 3664.5183544932083,
@@ -850,7 +850,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10636.613571473148,
+      "CVaR95_absolute_USD": 10636.613571473146,
       "VaR95_absolute_USD": 5745.320794956363,
       "MAE_USD": 1943.1609926241995,
       "RMSE_USD": 3625.0254045778574,
@@ -946,7 +946,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10754.12069161879,
+      "CVaR95_absolute_USD": 10754.120691618791,
       "VaR95_absolute_USD": 5815.151405107153,
       "MAE_USD": 1908.5892572417374,
       "RMSE_USD": 3638.6178944515723,
@@ -966,7 +966,7 @@
       "VaR95_absolute_USD": 5856.271416277888,
       "MAE_USD": 1920.9039094525378,
       "RMSE_USD": 3640.8425255725056,
-      "worst_one_pct_USD": 21946.096740828914
+      "worst_one_pct_USD": 21946.096740828918
     },
     {
       "study": "ft29",
@@ -994,11 +994,11 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10827.019455415855,
+      "CVaR95_absolute_USD": 10827.019455415857,
       "VaR95_absolute_USD": 5873.742982149473,
       "MAE_USD": 1952.5621801688778,
       "RMSE_USD": 3686.956360327655,
-      "worst_one_pct_USD": 22300.700172774606
+      "worst_one_pct_USD": 22300.70017277461
     },
     {
       "study": "ft29",
@@ -1058,7 +1058,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11614.498995347285,
+      "CVaR95_absolute_USD": 11614.498995347283,
       "VaR95_absolute_USD": 6380.885107039792,
       "MAE_USD": 2143.0878217187515,
       "RMSE_USD": 3945.203570529074,
@@ -1078,7 +1078,7 @@
       "VaR95_absolute_USD": 10010.556923283435,
       "MAE_USD": 3138.3859901415794,
       "RMSE_USD": 5892.897349028181,
-      "worst_one_pct_USD": 37462.06227063647
+      "worst_one_pct_USD": 37462.06227063646
     },
     {
       "study": "fm10",
@@ -1110,7 +1110,7 @@
       "VaR95_absolute_USD": 11275.834478564586,
       "MAE_USD": 3515.8501751542426,
       "RMSE_USD": 6423.388389461206,
-      "worst_one_pct_USD": 40112.621975443355
+      "worst_one_pct_USD": 40112.62197544336
     },
     {
       "study": "fm10",
@@ -1122,7 +1122,7 @@
       "selection_n": 82380,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 21326.726946124498,
+      "CVaR95_absolute_USD": 21326.726946124494,
       "VaR95_absolute_USD": 11619.202621489618,
       "MAE_USD": 3670.4105572181784,
       "RMSE_USD": 6588.888017622611,
@@ -1137,11 +1137,11 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 8900.52708724917,
+      "CVaR95_absolute_USD": 8900.527087249171,
       "VaR95_absolute_USD": 5070.228602747425,
       "MAE_USD": 1729.7092140537688,
       "RMSE_USD": 3025.644838087759,
-      "worst_one_pct_USD": 17497.77973371746
+      "worst_one_pct_USD": 17497.779733717463
     },
     {
       "study": "fm26",
@@ -1180,7 +1180,7 @@
       "VaR95_absolute_USD": 5265.619637670214,
       "MAE_USD": 1831.0018126376904,
       "RMSE_USD": 3112.2442400672235,
-      "worst_one_pct_USD": 17795.571617403097
+      "worst_one_pct_USD": 17795.5716174031
     },
     {
       "study": "fm26",
@@ -1228,11 +1228,11 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9365.993824650057,
+      "CVaR95_absolute_USD": 9365.993824650055,
       "VaR95_absolute_USD": 5339.901213624347,
       "MAE_USD": 1820.9090032712338,
       "RMSE_USD": 3232.007626728663,
-      "worst_one_pct_USD": 18514.4555609273
+      "worst_one_pct_USD": 18514.455560927297
     },
     {
       "study": "fm10",
@@ -1241,11 +1241,11 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9382.266324596469,
+      "CVaR95_absolute_USD": 9382.26632459647,
       "VaR95_absolute_USD": 5332.146931872432,
       "MAE_USD": 1840.277938371097,
       "RMSE_USD": 3216.243625513158,
-      "worst_one_pct_USD": 18525.50445699474
+      "worst_one_pct_USD": 18525.504456994742
     },
     {
       "study": "fm26",
@@ -1271,7 +1271,7 @@
       "VaR95_absolute_USD": 5342.796294148225,
       "MAE_USD": 1816.6844378091455,
       "RMSE_USD": 3177.568469756115,
-      "worst_one_pct_USD": 18349.721050389537
+      "worst_one_pct_USD": 18349.721050389533
     },
     {
       "study": "fm10",
@@ -1284,7 +1284,7 @@
       "VaR95_absolute_USD": 5301.215812085509,
       "MAE_USD": 1798.6137037672138,
       "RMSE_USD": 3209.9361304520844,
-      "worst_one_pct_USD": 18581.89917777344
+      "worst_one_pct_USD": 18581.899177773445
     },
     {
       "study": "fm26",
@@ -1306,7 +1306,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9418.356392478434,
+      "CVaR95_absolute_USD": 9418.356392478432,
       "VaR95_absolute_USD": 5349.295920023175,
       "MAE_USD": 1844.8698947492467,
       "RMSE_USD": 3225.352020900053,
@@ -1332,7 +1332,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9448.522135766038,
+      "CVaR95_absolute_USD": 9448.522135766036,
       "VaR95_absolute_USD": 5360.905689441826,
       "MAE_USD": 1824.1136729010236,
       "RMSE_USD": 3237.649128039262,
@@ -1345,7 +1345,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9453.421265412357,
+      "CVaR95_absolute_USD": 9453.421265412358,
       "VaR95_absolute_USD": 5369.329592577502,
       "MAE_USD": 1833.4025705776871,
       "RMSE_USD": 3244.304379722074,
@@ -1358,7 +1358,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9453.522140902762,
+      "CVaR95_absolute_USD": 9453.52214090276,
       "VaR95_absolute_USD": 5376.906959179393,
       "MAE_USD": 1841.1032522336675,
       "RMSE_USD": 3246.0942302626527,
@@ -1371,7 +1371,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9473.847397488013,
+      "CVaR95_absolute_USD": 9473.84739748801,
       "VaR95_absolute_USD": 5371.56414149154,
       "MAE_USD": 1843.512955861168,
       "RMSE_USD": 3257.586805192516,
@@ -1397,7 +1397,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9483.549581924732,
+      "CVaR95_absolute_USD": 9483.549581924734,
       "VaR95_absolute_USD": 5230.4000954948215,
       "MAE_USD": 1769.1048527612045,
       "RMSE_USD": 3243.011021962061,
@@ -1423,7 +1423,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9489.19274682789,
+      "CVaR95_absolute_USD": 9489.192746827892,
       "VaR95_absolute_USD": 5227.520916696493,
       "MAE_USD": 1770.9861278475594,
       "RMSE_USD": 3245.934296833614,
@@ -1466,7 +1466,7 @@
       "VaR95_absolute_USD": 5241.751704896176,
       "MAE_USD": 1763.436670477019,
       "RMSE_USD": 3269.602048431854,
-      "worst_one_pct_USD": 19453.89091338268
+      "worst_one_pct_USD": 19453.890913382675
     },
     {
       "study": "fm26",
@@ -1479,7 +1479,7 @@
       "VaR95_absolute_USD": 5290.394959593699,
       "MAE_USD": 1761.6245169537044,
       "RMSE_USD": 3226.3694805310947,
-      "worst_one_pct_USD": 19203.293155265503
+      "worst_one_pct_USD": 19203.293155265506
     },
     {
       "study": "fm26",
@@ -1501,7 +1501,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9530.542976443228,
+      "CVaR95_absolute_USD": 9530.54297644323,
       "VaR95_absolute_USD": 5272.70875585924,
       "MAE_USD": 1772.9724715348252,
       "RMSE_USD": 3267.05103027233,
@@ -1527,11 +1527,11 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9545.562490022454,
+      "CVaR95_absolute_USD": 9545.562490022456,
       "VaR95_absolute_USD": 5168.601633343765,
       "MAE_USD": 1800.5974810087578,
       "RMSE_USD": 3312.950240779484,
-      "worst_one_pct_USD": 19730.65464731467
+      "worst_one_pct_USD": 19730.654647314666
     },
     {
       "study": "fm10",
@@ -1540,11 +1540,11 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9548.102910147434,
+      "CVaR95_absolute_USD": 9548.102910147432,
       "VaR95_absolute_USD": 5271.526577934511,
       "MAE_USD": 1754.2126828408811,
       "RMSE_USD": 3257.4924244397266,
-      "worst_one_pct_USD": 19419.06662769939
+      "worst_one_pct_USD": 19419.066627699387
     },
     {
       "study": "fm26",
@@ -1570,7 +1570,7 @@
       "VaR95_absolute_USD": 5297.034889692623,
       "MAE_USD": 1777.680926264609,
       "RMSE_USD": 3280.9630465339183,
-      "worst_one_pct_USD": 19490.229735783527
+      "worst_one_pct_USD": 19490.22973578353
     },
     {
       "study": "fm10",
@@ -1579,7 +1579,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9575.179758792552,
+      "CVaR95_absolute_USD": 9575.17975879255,
       "VaR95_absolute_USD": 5304.780728721979,
       "MAE_USD": 1768.18730188727,
       "RMSE_USD": 3274.4327048715927,
@@ -1596,7 +1596,7 @@
       "VaR95_absolute_USD": 5293.762649739045,
       "MAE_USD": 1778.0383712334428,
       "RMSE_USD": 3283.957734691267,
-      "worst_one_pct_USD": 19532.924169494032
+      "worst_one_pct_USD": 19532.92416949403
     },
     {
       "study": "fm26",
@@ -1605,7 +1605,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9580.110221182444,
+      "CVaR95_absolute_USD": 9580.110221182445,
       "VaR95_absolute_USD": 5111.037495334425,
       "MAE_USD": 1752.042183176055,
       "RMSE_USD": 3315.795828287579,
@@ -1622,7 +1622,7 @@
       "VaR95_absolute_USD": 5127.724976772666,
       "MAE_USD": 1754.2524558077957,
       "RMSE_USD": 3319.595225957019,
-      "worst_one_pct_USD": 20144.38828131436
+      "worst_one_pct_USD": 20144.388281314357
     },
     {
       "study": "fm26",
@@ -1635,7 +1635,7 @@
       "VaR95_absolute_USD": 5244.331385589139,
       "MAE_USD": 1728.3764939251232,
       "RMSE_USD": 3264.590811059272,
-      "worst_one_pct_USD": 19842.318231192323
+      "worst_one_pct_USD": 19842.318231192326
     },
     {
       "study": "fm26",
@@ -1657,11 +1657,11 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9745.187851148772,
+      "CVaR95_absolute_USD": 9745.187851148774,
       "VaR95_absolute_USD": 5317.680086279577,
       "MAE_USD": 1724.9863986350424,
       "RMSE_USD": 3298.917884041696,
-      "worst_one_pct_USD": 20049.22319303837
+      "worst_one_pct_USD": 20049.223193038368
     },
     {
       "study": "fm26",
@@ -1670,7 +1670,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9757.745821698747,
+      "CVaR95_absolute_USD": 9757.745821698749,
       "VaR95_absolute_USD": 5657.582201655205,
       "MAE_USD": 1947.230891501922,
       "RMSE_USD": 3355.2952472051657,
@@ -1687,7 +1687,7 @@
       "VaR95_absolute_USD": 5565.371476422574,
       "MAE_USD": 1907.9938950812677,
       "RMSE_USD": 3322.1878255909296,
-      "worst_one_pct_USD": 19034.51856513005
+      "worst_one_pct_USD": 19034.518565130045
     },
     {
       "study": "fm26",
@@ -1722,7 +1722,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9812.97127484261,
+      "CVaR95_absolute_USD": 9812.971274842612,
       "VaR95_absolute_USD": 5324.906943562914,
       "MAE_USD": 1767.3584321717747,
       "RMSE_USD": 3343.662696333493,
@@ -1735,11 +1735,11 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9813.024121383161,
+      "CVaR95_absolute_USD": 9813.02412138316,
       "VaR95_absolute_USD": 5325.732153127374,
       "MAE_USD": 1766.9876215680706,
       "RMSE_USD": 3343.441833605143,
-      "worst_one_pct_USD": 20342.043359244028
+      "worst_one_pct_USD": 20342.043359244024
     },
     {
       "study": "fm26",
@@ -1748,7 +1748,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9817.123079139334,
+      "CVaR95_absolute_USD": 9817.123079139332,
       "VaR95_absolute_USD": 5365.262157973474,
       "MAE_USD": 1761.2431513851789,
       "RMSE_USD": 3332.6554008862013,
@@ -1774,11 +1774,11 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9827.336289936437,
+      "CVaR95_absolute_USD": 9827.336289936438,
       "VaR95_absolute_USD": 5377.336691583276,
       "MAE_USD": 1838.7576825301112,
       "RMSE_USD": 3414.9533744043174,
-      "worst_one_pct_USD": 20238.15921333825
+      "worst_one_pct_USD": 20238.159213338255
     },
     {
       "study": "fm10",
@@ -1787,11 +1787,11 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9833.37155402396,
+      "CVaR95_absolute_USD": 9833.371554023957,
       "VaR95_absolute_USD": 5631.5144629932065,
       "MAE_USD": 1946.374619569215,
       "RMSE_USD": 3360.373754138291,
-      "worst_one_pct_USD": 19149.907294616005
+      "worst_one_pct_USD": 19149.907294616
     },
     {
       "study": "fm26",
@@ -1804,7 +1804,7 @@
       "VaR95_absolute_USD": 5665.634789116327,
       "MAE_USD": 1941.2138694929329,
       "RMSE_USD": 3299.8782005322682,
-      "worst_one_pct_USD": 18802.310674733453
+      "worst_one_pct_USD": 18802.310674733457
     },
     {
       "study": "fm10",
@@ -1813,7 +1813,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9842.08263666514,
+      "CVaR95_absolute_USD": 9842.082636665142,
       "VaR95_absolute_USD": 5343.695316591671,
       "MAE_USD": 1836.0329720224386,
       "RMSE_USD": 3415.8664954951946,
@@ -1826,11 +1826,11 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9843.49128017366,
+      "CVaR95_absolute_USD": 9843.491280173657,
       "VaR95_absolute_USD": 5368.633462456081,
       "MAE_USD": 1763.924527351898,
       "RMSE_USD": 3335.7551536979795,
-      "worst_one_pct_USD": 20284.97721497046
+      "worst_one_pct_USD": 20284.977214970455
     },
     {
       "study": "fm26",
@@ -1852,7 +1852,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9853.894824470439,
+      "CVaR95_absolute_USD": 9853.89482447044,
       "VaR95_absolute_USD": 5343.261040931481,
       "MAE_USD": 1766.094774992902,
       "RMSE_USD": 3368.1002867887514,
@@ -1878,7 +1878,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9858.504229883216,
+      "CVaR95_absolute_USD": 9858.504229883218,
       "VaR95_absolute_USD": 5352.470100917794,
       "MAE_USD": 1768.683395938851,
       "RMSE_USD": 3363.448400499951,
@@ -1891,7 +1891,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9861.238243087031,
+      "CVaR95_absolute_USD": 9861.23824308703,
       "VaR95_absolute_USD": 5729.052507277241,
       "MAE_USD": 1988.469880013019,
       "RMSE_USD": 3368.1839987069466,
@@ -1943,11 +1943,11 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9885.105099149308,
+      "CVaR95_absolute_USD": 9885.105099149307,
       "VaR95_absolute_USD": 5471.001426756738,
       "MAE_USD": 1897.6060686126873,
       "RMSE_USD": 3442.9870994486446,
-      "worst_one_pct_USD": 20163.223069433836
+      "worst_one_pct_USD": 20163.223069433832
     },
     {
       "study": "fm26",
@@ -2008,11 +2008,11 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9897.395928757294,
+      "CVaR95_absolute_USD": 9897.395928757296,
       "VaR95_absolute_USD": 5363.934843519567,
       "MAE_USD": 1760.7387417346101,
       "RMSE_USD": 3370.9103524285165,
-      "worst_one_pct_USD": 20596.000413616584
+      "worst_one_pct_USD": 20596.00041361658
     },
     {
       "study": "fm26",
@@ -2038,7 +2038,7 @@
       "VaR95_absolute_USD": 5369.830018887415,
       "MAE_USD": 1775.2393435518945,
       "RMSE_USD": 3376.831431003589,
-      "worst_one_pct_USD": 20512.281722289983
+      "worst_one_pct_USD": 20512.28172228999
     },
     {
       "study": "fm10",
@@ -2051,7 +2051,7 @@
       "VaR95_absolute_USD": 5371.392053530935,
       "MAE_USD": 1770.0270136037639,
       "RMSE_USD": 3371.837090066336,
-      "worst_one_pct_USD": 20502.7513292058
+      "worst_one_pct_USD": 20502.751329205796
     },
     {
       "study": "fm26",
@@ -2064,7 +2064,7 @@
       "VaR95_absolute_USD": 5709.272965378836,
       "MAE_USD": 1967.214114911019,
       "RMSE_USD": 3389.1699453669144,
-      "worst_one_pct_USD": 19189.57463049197
+      "worst_one_pct_USD": 19189.574630491967
     },
     {
       "study": "fm26",
@@ -2103,7 +2103,7 @@
       "VaR95_absolute_USD": 5273.293014852913,
       "MAE_USD": 1813.0422913643233,
       "RMSE_USD": 3471.238399407015,
-      "worst_one_pct_USD": 20942.185699702524
+      "worst_one_pct_USD": 20942.18569970253
     },
     {
       "study": "fm26",
@@ -2155,7 +2155,7 @@
       "VaR95_absolute_USD": 5750.9665117428385,
       "MAE_USD": 1995.028030825601,
       "RMSE_USD": 3384.053094450572,
-      "worst_one_pct_USD": 19074.675553674344
+      "worst_one_pct_USD": 19074.675553674348
     },
     {
       "study": "fm10",
@@ -2220,7 +2220,7 @@
       "VaR95_absolute_USD": 5334.410328656925,
       "MAE_USD": 1809.8002458255705,
       "RMSE_USD": 3520.48488470385,
-      "worst_one_pct_USD": 20990.94659182988
+      "worst_one_pct_USD": 20990.946591829885
     },
     {
       "study": "fm10",
@@ -2233,7 +2233,7 @@
       "VaR95_absolute_USD": 5542.555596248643,
       "MAE_USD": 1925.1302602399949,
       "RMSE_USD": 3472.7066876462154,
-      "worst_one_pct_USD": 20244.170748786593
+      "worst_one_pct_USD": 20244.170748786586
     },
     {
       "study": "fm26",
@@ -2242,7 +2242,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 9994.374467153018,
+      "CVaR95_absolute_USD": 9994.374467153017,
       "VaR95_absolute_USD": 5788.055973312505,
       "MAE_USD": 2022.9867516413567,
       "RMSE_USD": 3411.437986428307,
@@ -2281,7 +2281,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10005.275985769073,
+      "CVaR95_absolute_USD": 10005.27598576907,
       "VaR95_absolute_USD": 5416.125986917945,
       "MAE_USD": 1851.1919226559469,
       "RMSE_USD": 3454.711737560276,
@@ -2363,7 +2363,7 @@
       "VaR95_absolute_USD": 5369.20200252165,
       "MAE_USD": 1793.0705657383635,
       "RMSE_USD": 3458.8649513531277,
-      "worst_one_pct_USD": 21162.35663114958
+      "worst_one_pct_USD": 21162.356631149578
     },
     {
       "study": "fm26",
@@ -2385,7 +2385,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10079.560310359586,
+      "CVaR95_absolute_USD": 10079.560310359588,
       "VaR95_absolute_USD": 5374.018141865595,
       "MAE_USD": 1809.136835147295,
       "RMSE_USD": 3450.8125359936375,
@@ -2415,7 +2415,7 @@
       "VaR95_absolute_USD": 5385.757090872717,
       "MAE_USD": 1802.0341758742345,
       "RMSE_USD": 3470.4487227043023,
-      "worst_one_pct_USD": 21219.81355142286
+      "worst_one_pct_USD": 21219.813551422856
     },
     {
       "study": "fm10",
@@ -2424,7 +2424,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10096.429857499816,
+      "CVaR95_absolute_USD": 10096.429857499817,
       "VaR95_absolute_USD": 5617.411331180512,
       "MAE_USD": 1944.4146336387344,
       "RMSE_USD": 3491.004635864528,
@@ -2437,11 +2437,11 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10108.064591337099,
+      "CVaR95_absolute_USD": 10108.064591337097,
       "VaR95_absolute_USD": 5380.797001312516,
       "MAE_USD": 1798.0152148327131,
       "RMSE_USD": 3465.390982330099,
-      "worst_one_pct_USD": 21251.859630669205
+      "worst_one_pct_USD": 21251.8596306692
     },
     {
       "study": "fm26",
@@ -2480,7 +2480,7 @@
       "VaR95_absolute_USD": 5424.939056848633,
       "MAE_USD": 1803.95201781843,
       "RMSE_USD": 3481.436248612594,
-      "worst_one_pct_USD": 21252.165610395514
+      "worst_one_pct_USD": 21252.165610395517
     },
     {
       "study": "ft29",
@@ -2502,7 +2502,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10142.205604507675,
+      "CVaR95_absolute_USD": 10142.205604507673,
       "VaR95_absolute_USD": 5433.469698037609,
       "MAE_USD": 1832.1563750351308,
       "RMSE_USD": 3568.4025960378053,
@@ -2515,11 +2515,11 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10145.40839280792,
+      "CVaR95_absolute_USD": 10145.408392807918,
       "VaR95_absolute_USD": 5398.5928964668665,
       "MAE_USD": 1803.8761816738925,
       "RMSE_USD": 3477.141514621968,
-      "worst_one_pct_USD": 21330.236583697588
+      "worst_one_pct_USD": 21330.236583697584
     },
     {
       "study": "ft29",
@@ -2545,7 +2545,7 @@
       "VaR95_absolute_USD": 5351.3050203871735,
       "MAE_USD": 1793.8630126733265,
       "RMSE_USD": 3498.5407030829483,
-      "worst_one_pct_USD": 21565.83368315025
+      "worst_one_pct_USD": 21565.833683150246
     },
     {
       "study": "fm10",
@@ -2567,7 +2567,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10160.817378459331,
+      "CVaR95_absolute_USD": 10160.817378459335,
       "VaR95_absolute_USD": 5378.260867821972,
       "MAE_USD": 1796.705628631833,
       "RMSE_USD": 3488.3271429800034,
@@ -2697,7 +2697,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10251.600654160167,
+      "CVaR95_absolute_USD": 10251.600654160166,
       "VaR95_absolute_USD": 5398.255671995657,
       "MAE_USD": 1776.528421068939,
       "RMSE_USD": 3493.368486945165,
@@ -2749,7 +2749,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10280.396519449185,
+      "CVaR95_absolute_USD": 10280.396519449187,
       "VaR95_absolute_USD": 5406.849902923686,
       "MAE_USD": 1795.1510443856325,
       "RMSE_USD": 3507.157493471041,
@@ -2762,7 +2762,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10283.59496504152,
+      "CVaR95_absolute_USD": 10283.594965041519,
       "VaR95_absolute_USD": 5454.460851870979,
       "MAE_USD": 1800.2895047509792,
       "RMSE_USD": 3518.263395282538,
@@ -2775,7 +2775,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10298.991700100845,
+      "CVaR95_absolute_USD": 10298.991700100843,
       "VaR95_absolute_USD": 5513.288398676902,
       "MAE_USD": 1807.287368903415,
       "RMSE_USD": 3500.066887304762,
@@ -2788,11 +2788,11 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10305.75634129386,
+      "CVaR95_absolute_USD": 10305.756341293858,
       "VaR95_absolute_USD": 5494.073651555388,
       "MAE_USD": 1778.082173046473,
       "RMSE_USD": 3485.511722868481,
-      "worst_one_pct_USD": 21550.82335505866
+      "worst_one_pct_USD": 21550.823355058656
     },
     {
       "study": "fm26",
@@ -2801,7 +2801,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10305.797043212151,
+      "CVaR95_absolute_USD": 10305.79704321215,
       "VaR95_absolute_USD": 5473.39996534043,
       "MAE_USD": 1796.3758885095292,
       "RMSE_USD": 3499.8928065197097,
@@ -2831,7 +2831,7 @@
       "VaR95_absolute_USD": 5475.2821162303335,
       "MAE_USD": 1795.4113574235246,
       "RMSE_USD": 3500.9015730593237,
-      "worst_one_pct_USD": 21684.04647543322
+      "worst_one_pct_USD": 21684.046475433217
     },
     {
       "study": "ft29",
@@ -2844,7 +2844,7 @@
       "VaR95_absolute_USD": 5626.126371399576,
       "MAE_USD": 1880.484760176001,
       "RMSE_USD": 3523.694028841453,
-      "worst_one_pct_USD": 21130.793026988184
+      "worst_one_pct_USD": 21130.793026988187
     },
     {
       "study": "ft29",
@@ -2866,7 +2866,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10314.606904351649,
+      "CVaR95_absolute_USD": 10314.60690435165,
       "VaR95_absolute_USD": 5463.237536423072,
       "MAE_USD": 1799.2529700144146,
       "RMSE_USD": 3527.086920363921,
@@ -2879,7 +2879,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10314.773956543553,
+      "CVaR95_absolute_USD": 10314.773956543551,
       "VaR95_absolute_USD": 5492.5155300029255,
       "MAE_USD": 1795.6800035363265,
       "RMSE_USD": 3501.272382218448,
@@ -2892,7 +2892,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10314.92673063283,
+      "CVaR95_absolute_USD": 10314.926730632827,
       "VaR95_absolute_USD": 5491.444490585551,
       "MAE_USD": 1795.5276114921107,
       "RMSE_USD": 3501.1989891997764,
@@ -2922,7 +2922,7 @@
       "VaR95_absolute_USD": 5526.078045484086,
       "MAE_USD": 1792.5152601122568,
       "RMSE_USD": 3495.4971207550866,
-      "worst_one_pct_USD": 21596.880426903233
+      "worst_one_pct_USD": 21596.880426903237
     },
     {
       "study": "ft29",
@@ -2974,7 +2974,7 @@
       "VaR95_absolute_USD": 5453.449593299872,
       "MAE_USD": 1785.3412865150435,
       "RMSE_USD": 3487.238287081394,
-      "worst_one_pct_USD": 21657.540136525553
+      "worst_one_pct_USD": 21657.540136525557
     },
     {
       "study": "fm26",
@@ -2987,7 +2987,7 @@
       "VaR95_absolute_USD": 5461.888753861225,
       "MAE_USD": 1799.1935816641028,
       "RMSE_USD": 3528.08399616614,
-      "worst_one_pct_USD": 21862.8777392648
+      "worst_one_pct_USD": 21862.877739264797
     },
     {
       "study": "fm26",
@@ -3009,11 +3009,11 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10333.295207735517,
+      "CVaR95_absolute_USD": 10333.295207735515,
       "VaR95_absolute_USD": 5493.516125879701,
       "MAE_USD": 1803.2821859395976,
       "RMSE_USD": 3535.280428141959,
-      "worst_one_pct_USD": 21866.86201056242
+      "worst_one_pct_USD": 21866.862010562425
     },
     {
       "study": "fm26",
@@ -3048,7 +3048,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10338.919320599955,
+      "CVaR95_absolute_USD": 10338.919320599956,
       "VaR95_absolute_USD": 5546.267596621306,
       "MAE_USD": 1825.2771354753115,
       "RMSE_USD": 3512.608302334814,
@@ -3104,7 +3104,7 @@
       "VaR95_absolute_USD": 5493.825311567167,
       "MAE_USD": 1819.9849395736671,
       "RMSE_USD": 3576.0783700796983,
-      "worst_one_pct_USD": 21957.634279567625
+      "worst_one_pct_USD": 21957.634279567632
     },
     {
       "study": "fm26",
@@ -3113,7 +3113,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10358.86355830914,
+      "CVaR95_absolute_USD": 10358.863558309142,
       "VaR95_absolute_USD": 5475.5359654806025,
       "MAE_USD": 1803.0785407967433,
       "RMSE_USD": 3534.879940968677,
@@ -3126,7 +3126,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10360.114220847936,
+      "CVaR95_absolute_USD": 10360.114220847934,
       "VaR95_absolute_USD": 5532.376549090223,
       "MAE_USD": 1822.05924900432,
       "RMSE_USD": 3531.314483110716,
@@ -3165,7 +3165,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10364.482454172876,
+      "CVaR95_absolute_USD": 10364.482454172878,
       "VaR95_absolute_USD": 5534.948882363684,
       "MAE_USD": 1794.6269187548166,
       "RMSE_USD": 3514.8549032564206,
@@ -3178,7 +3178,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10368.829239037932,
+      "CVaR95_absolute_USD": 10368.82923903793,
       "VaR95_absolute_USD": 5692.4028661986395,
       "MAE_USD": 1853.8164807335718,
       "RMSE_USD": 3492.6397659649338,
@@ -3191,7 +3191,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10369.284451703286,
+      "CVaR95_absolute_USD": 10369.284451703285,
       "VaR95_absolute_USD": 5547.183921482676,
       "MAE_USD": 1800.5762855400362,
       "RMSE_USD": 3522.489706411768,
@@ -3230,7 +3230,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10378.385959145762,
+      "CVaR95_absolute_USD": 10378.38595914576,
       "VaR95_absolute_USD": 5521.716992881448,
       "MAE_USD": 1795.4019041606985,
       "RMSE_USD": 3522.5553861861135,
@@ -3256,7 +3256,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10381.110774598987,
+      "CVaR95_absolute_USD": 10381.110774598988,
       "VaR95_absolute_USD": 5631.623279806933,
       "MAE_USD": 1838.7136195776359,
       "RMSE_USD": 3522.800044438743,
@@ -3269,11 +3269,11 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10394.677550222836,
+      "CVaR95_absolute_USD": 10394.677550222834,
       "VaR95_absolute_USD": 5647.419805167275,
       "MAE_USD": 1901.103345958449,
       "RMSE_USD": 3575.7835874829725,
-      "worst_one_pct_USD": 21639.744231577064
+      "worst_one_pct_USD": 21639.744231577068
     },
     {
       "study": "fm26",
@@ -3282,7 +3282,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10395.067725362136,
+      "CVaR95_absolute_USD": 10395.067725362138,
       "VaR95_absolute_USD": 5464.257650122702,
       "MAE_USD": 1801.1623542396844,
       "RMSE_USD": 3553.714935845541,
@@ -3308,7 +3308,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10399.347673225631,
+      "CVaR95_absolute_USD": 10399.34767322563,
       "VaR95_absolute_USD": 5490.2544535840125,
       "MAE_USD": 1803.049751862435,
       "RMSE_USD": 3550.808224282737,
@@ -3321,7 +3321,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10407.700876263792,
+      "CVaR95_absolute_USD": 10407.700876263794,
       "VaR95_absolute_USD": 5502.949149339665,
       "MAE_USD": 1910.1622132306518,
       "RMSE_USD": 3571.2321738954706,
@@ -3338,7 +3338,7 @@
       "VaR95_absolute_USD": 5547.950411836571,
       "MAE_USD": 1811.9388604022738,
       "RMSE_USD": 3545.5254093919502,
-      "worst_one_pct_USD": 21854.239517279682
+      "worst_one_pct_USD": 21854.23951727968
     },
     {
       "study": "ft29",
@@ -3347,11 +3347,11 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10408.600697310494,
+      "CVaR95_absolute_USD": 10408.600697310496,
       "VaR95_absolute_USD": 5534.992773825243,
       "MAE_USD": 1850.5533196818856,
       "RMSE_USD": 3518.582198818975,
-      "worst_one_pct_USD": 21437.707698971088
+      "worst_one_pct_USD": 21437.70769897109
     },
     {
       "study": "ft29",
@@ -3386,7 +3386,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10432.328424676134,
+      "CVaR95_absolute_USD": 10432.328424676132,
       "VaR95_absolute_USD": 5574.470831638576,
       "MAE_USD": 1851.882900397979,
       "RMSE_USD": 3524.4491198582127,
@@ -3399,11 +3399,11 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10437.622880783272,
+      "CVaR95_absolute_USD": 10437.622880783274,
       "VaR95_absolute_USD": 5492.43739198353,
       "MAE_USD": 1800.6529774759545,
       "RMSE_USD": 3569.9622602288127,
-      "worst_one_pct_USD": 22156.0935579266
+      "worst_one_pct_USD": 22156.093557926604
     },
     {
       "study": "ft29",
@@ -3481,7 +3481,7 @@
       "VaR95_absolute_USD": 5490.551851464084,
       "MAE_USD": 1804.4766297963363,
       "RMSE_USD": 3568.993265000649,
-      "worst_one_pct_USD": 22321.000759626546
+      "worst_one_pct_USD": 22321.00075962654
     },
     {
       "study": "ft29",
@@ -3490,11 +3490,11 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10489.247435094303,
+      "CVaR95_absolute_USD": 10489.247435094305,
       "VaR95_absolute_USD": 5547.543079507434,
       "MAE_USD": 1827.4951208582365,
       "RMSE_USD": 3587.4325234382213,
-      "worst_one_pct_USD": 22246.904055735915
+      "worst_one_pct_USD": 22246.90405573592
     },
     {
       "study": "ft29",
@@ -3503,7 +3503,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10497.93559726724,
+      "CVaR95_absolute_USD": 10497.935597267242,
       "VaR95_absolute_USD": 5520.652349361918,
       "MAE_USD": 1826.5956829240326,
       "RMSE_USD": 3586.4929366388938,
@@ -3529,7 +3529,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10509.977899625783,
+      "CVaR95_absolute_USD": 10509.977899625785,
       "VaR95_absolute_USD": 5562.150049902615,
       "MAE_USD": 1801.1328817246065,
       "RMSE_USD": 3559.839746654167,
@@ -3633,11 +3633,11 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10537.64108648206,
+      "CVaR95_absolute_USD": 10537.641086482063,
       "VaR95_absolute_USD": 5574.923865137583,
       "MAE_USD": 1820.9753865451264,
       "RMSE_USD": 3597.528704725471,
-      "worst_one_pct_USD": 22283.10055253255
+      "worst_one_pct_USD": 22283.100552532545
     },
     {
       "study": "ft29",
@@ -3646,11 +3646,11 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10539.475559154189,
+      "CVaR95_absolute_USD": 10539.475559154187,
       "VaR95_absolute_USD": 5725.4151449000365,
       "MAE_USD": 1844.6074531270872,
       "RMSE_USD": 3584.577818665861,
-      "worst_one_pct_USD": 21824.68515827086
+      "worst_one_pct_USD": 21824.685158270862
     },
     {
       "study": "ft29",
@@ -3659,11 +3659,11 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10540.119556798196,
+      "CVaR95_absolute_USD": 10540.119556798194,
       "VaR95_absolute_USD": 5640.4330291346805,
       "MAE_USD": 1925.2907865428992,
       "RMSE_USD": 3598.6569413787397,
-      "worst_one_pct_USD": 21907.774914222242
+      "worst_one_pct_USD": 21907.774914222235
     },
     {
       "study": "ft29",
@@ -3676,7 +3676,7 @@
       "VaR95_absolute_USD": 5560.251186475065,
       "MAE_USD": 1826.020626345337,
       "RMSE_USD": 3624.061903275141,
-      "worst_one_pct_USD": 22519.607548284006
+      "worst_one_pct_USD": 22519.60754828401
     },
     {
       "study": "ft29",
@@ -3715,7 +3715,7 @@
       "VaR95_absolute_USD": 5614.655476068526,
       "MAE_USD": 1869.2935499177263,
       "RMSE_USD": 3617.27752071796,
-      "worst_one_pct_USD": 22224.057395412678
+      "worst_one_pct_USD": 22224.057395412674
     },
     {
       "study": "ft29",
@@ -3728,7 +3728,7 @@
       "VaR95_absolute_USD": 5563.002745389732,
       "MAE_USD": 1815.1168372730685,
       "RMSE_USD": 3591.687297238228,
-      "worst_one_pct_USD": 22331.65242386466
+      "worst_one_pct_USD": 22331.652423864656
     },
     {
       "study": "ft29",
@@ -3750,7 +3750,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10553.990009993797,
+      "CVaR95_absolute_USD": 10553.990009993799,
       "VaR95_absolute_USD": 5687.683006349047,
       "MAE_USD": 1857.5647479187685,
       "RMSE_USD": 3595.3851846785496,
@@ -3776,7 +3776,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10558.977581583633,
+      "CVaR95_absolute_USD": 10558.977581583631,
       "VaR95_absolute_USD": 5529.254395254382,
       "MAE_USD": 1818.3381876550786,
       "RMSE_USD": 3609.8171690873646,
@@ -3789,7 +3789,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10561.94394447584,
+      "CVaR95_absolute_USD": 10561.943944475839,
       "VaR95_absolute_USD": 5592.628740183364,
       "MAE_USD": 1827.542199602279,
       "RMSE_USD": 3605.458168900543,
@@ -3806,7 +3806,7 @@
       "VaR95_absolute_USD": 5556.470735944241,
       "MAE_USD": 1816.9243809839147,
       "RMSE_USD": 3602.052617659261,
-      "worst_one_pct_USD": 22396.67103105377
+      "worst_one_pct_USD": 22396.671031053775
     },
     {
       "study": "ft29",
@@ -3819,7 +3819,7 @@
       "VaR95_absolute_USD": 5607.15772439373,
       "MAE_USD": 1876.550282619104,
       "RMSE_USD": 3644.6803517229064,
-      "worst_one_pct_USD": 22325.003051963504
+      "worst_one_pct_USD": 22325.003051963507
     },
     {
       "study": "ft29",
@@ -3828,7 +3828,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10573.278322439544,
+      "CVaR95_absolute_USD": 10573.278322439546,
       "VaR95_absolute_USD": 5548.805624210319,
       "MAE_USD": 1830.30164071915,
       "RMSE_USD": 3616.391573494939,
@@ -3867,7 +3867,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10587.284095274319,
+      "CVaR95_absolute_USD": 10587.284095274317,
       "VaR95_absolute_USD": 5546.439377367947,
       "MAE_USD": 1809.5865745094652,
       "RMSE_USD": 3597.7435089291707,
@@ -3919,7 +3919,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10597.50265039043,
+      "CVaR95_absolute_USD": 10597.502650390428,
       "VaR95_absolute_USD": 5752.772658420539,
       "MAE_USD": 1920.6671157486846,
       "RMSE_USD": 3664.5183544932083,
@@ -3932,7 +3932,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10597.668602862912,
+      "CVaR95_absolute_USD": 10597.66860286291,
       "VaR95_absolute_USD": 5576.683522185167,
       "MAE_USD": 1836.613603669253,
       "RMSE_USD": 3602.5533269342577,
@@ -3949,7 +3949,7 @@
       "VaR95_absolute_USD": 5568.060896618809,
       "MAE_USD": 1819.4542733094383,
       "RMSE_USD": 3609.891394330264,
-      "worst_one_pct_USD": 22504.25190304149
+      "worst_one_pct_USD": 22504.251903041488
     },
     {
       "study": "fm26",
@@ -3962,7 +3962,7 @@
       "VaR95_absolute_USD": 5560.576061577569,
       "MAE_USD": 1807.6931224263035,
       "RMSE_USD": 3601.4811779658994,
-      "worst_one_pct_USD": 22556.049116908896
+      "worst_one_pct_USD": 22556.049116908893
     },
     {
       "study": "ft29",
@@ -3975,7 +3975,7 @@
       "VaR95_absolute_USD": 5481.088841939704,
       "MAE_USD": 1862.5459372674447,
       "RMSE_USD": 3651.9822561962164,
-      "worst_one_pct_USD": 22917.26216674126
+      "worst_one_pct_USD": 22917.262166741253
     },
     {
       "study": "ft29",
@@ -4023,7 +4023,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10618.253378012678,
+      "CVaR95_absolute_USD": 10618.25337801268,
       "VaR95_absolute_USD": 5563.7486647516,
       "MAE_USD": 1810.778257602696,
       "RMSE_USD": 3605.02681681681,
@@ -4036,7 +4036,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10619.897002665168,
+      "CVaR95_absolute_USD": 10619.897002665166,
       "VaR95_absolute_USD": 5584.99602678038,
       "MAE_USD": 1821.5643002433949,
       "RMSE_USD": 3615.041455318566,
@@ -4079,7 +4079,7 @@
       "VaR95_absolute_USD": 5573.169527435296,
       "MAE_USD": 1824.624282931548,
       "RMSE_USD": 3621.7096190833736,
-      "worst_one_pct_USD": 22636.579207161092
+      "worst_one_pct_USD": 22636.57920716109
     },
     {
       "study": "ft29",
@@ -4101,7 +4101,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10633.913748113135,
+      "CVaR95_absolute_USD": 10633.913748113137,
       "VaR95_absolute_USD": 5587.649253024375,
       "MAE_USD": 1821.6032293369033,
       "RMSE_USD": 3622.8721400133522,
@@ -4118,7 +4118,7 @@
       "VaR95_absolute_USD": 5561.125104841453,
       "MAE_USD": 1816.0311604795018,
       "RMSE_USD": 3616.248217200208,
-      "worst_one_pct_USD": 22726.206982994663
+      "worst_one_pct_USD": 22726.20698299467
     },
     {
       "study": "ft29",
@@ -4127,7 +4127,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10636.613571473148,
+      "CVaR95_absolute_USD": 10636.613571473146,
       "VaR95_absolute_USD": 5745.320794956363,
       "MAE_USD": 1943.1609926241995,
       "RMSE_USD": 3625.0254045778574,
@@ -4179,7 +4179,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10643.548363938575,
+      "CVaR95_absolute_USD": 10643.548363938573,
       "VaR95_absolute_USD": 5572.084078909997,
       "MAE_USD": 1806.2243748926087,
       "RMSE_USD": 3600.878853559217,
@@ -4192,7 +4192,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10643.927893630154,
+      "CVaR95_absolute_USD": 10643.927893630153,
       "VaR95_absolute_USD": 5592.9016386916555,
       "MAE_USD": 1820.4678013355285,
       "RMSE_USD": 3621.0075150248263,
@@ -4222,7 +4222,7 @@
       "VaR95_absolute_USD": 5594.081370639833,
       "MAE_USD": 1829.896736658482,
       "RMSE_USD": 3634.7680564841894,
-      "worst_one_pct_USD": 22675.38424210172
+      "worst_one_pct_USD": 22675.384242101725
     },
     {
       "study": "ft29",
@@ -4248,7 +4248,7 @@
       "VaR95_absolute_USD": 5607.505489655884,
       "MAE_USD": 1822.260163814158,
       "RMSE_USD": 3624.0751412329178,
-      "worst_one_pct_USD": 22652.3164176915
+      "worst_one_pct_USD": 22652.316417691498
     },
     {
       "study": "ft29",
@@ -4261,7 +4261,7 @@
       "VaR95_absolute_USD": 5588.973285831815,
       "MAE_USD": 1825.367309829678,
       "RMSE_USD": 3652.3673041022294,
-      "worst_one_pct_USD": 22831.983694420232
+      "worst_one_pct_USD": 22831.98369442023
     },
     {
       "study": "ft29",
@@ -4274,7 +4274,7 @@
       "VaR95_absolute_USD": 5580.902339178929,
       "MAE_USD": 1818.1719399316453,
       "RMSE_USD": 3635.2331813994656,
-      "worst_one_pct_USD": 22744.091240990503
+      "worst_one_pct_USD": 22744.0912409905
     },
     {
       "study": "ft29",
@@ -4296,7 +4296,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10671.708308239798,
+      "CVaR95_absolute_USD": 10671.708308239797,
       "VaR95_absolute_USD": 5576.45991035131,
       "MAE_USD": 1825.6946985166092,
       "RMSE_USD": 3643.065817778508,
@@ -4335,7 +4335,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10682.519677698108,
+      "CVaR95_absolute_USD": 10682.51967769811,
       "VaR95_absolute_USD": 5552.603528484374,
       "MAE_USD": 1827.179969571706,
       "RMSE_USD": 3648.1345395638914,
@@ -4387,7 +4387,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10688.046184542436,
+      "CVaR95_absolute_USD": 10688.046184542434,
       "VaR95_absolute_USD": 5747.0013105271855,
       "MAE_USD": 1878.0535576777738,
       "RMSE_USD": 3626.0943792500525,
@@ -4400,11 +4400,11 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10693.691176720915,
+      "CVaR95_absolute_USD": 10693.691176720917,
       "VaR95_absolute_USD": 5607.793716174273,
       "MAE_USD": 1823.5421818557925,
       "RMSE_USD": 3636.8665194691744,
-      "worst_one_pct_USD": 22789.758045341187
+      "worst_one_pct_USD": 22789.758045341183
     },
     {
       "study": "fm10",
@@ -4439,7 +4439,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10700.20066148666,
+      "CVaR95_absolute_USD": 10700.200661486662,
       "VaR95_absolute_USD": 5571.640065290685,
       "MAE_USD": 1816.730324471941,
       "RMSE_USD": 3645.8295298470525,
@@ -4452,11 +4452,11 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10702.400207423678,
+      "CVaR95_absolute_USD": 10702.40020742368,
       "VaR95_absolute_USD": 5589.394776093193,
       "MAE_USD": 1830.8530318004468,
       "RMSE_USD": 3663.010758209038,
-      "worst_one_pct_USD": 22936.715202768482
+      "worst_one_pct_USD": 22936.71520276848
     },
     {
       "study": "ft29",
@@ -4478,7 +4478,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10717.177130092361,
+      "CVaR95_absolute_USD": 10717.17713009236,
       "VaR95_absolute_USD": 5646.296883607363,
       "MAE_USD": 1829.8489708178265,
       "RMSE_USD": 3633.4139530190046,
@@ -4517,7 +4517,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10721.540966994255,
+      "CVaR95_absolute_USD": 10721.540966994253,
       "VaR95_absolute_USD": 5563.118135294638,
       "MAE_USD": 1847.2493095432592,
       "RMSE_USD": 3672.230355921245,
@@ -4530,7 +4530,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10722.269672650196,
+      "CVaR95_absolute_USD": 10722.269672650198,
       "VaR95_absolute_USD": 5730.8018662749455,
       "MAE_USD": 1864.3305049016974,
       "RMSE_USD": 3601.235725795242,
@@ -4569,7 +4569,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10723.228747593665,
+      "CVaR95_absolute_USD": 10723.228747593666,
       "VaR95_absolute_USD": 5649.5893451575075,
       "MAE_USD": 1830.0282044253524,
       "RMSE_USD": 3634.6658042498066,
@@ -4586,7 +4586,7 @@
       "VaR95_absolute_USD": 5648.695630398207,
       "MAE_USD": 1829.9722638301478,
       "RMSE_USD": 3634.645588210662,
-      "worst_one_pct_USD": 22720.638686385737
+      "worst_one_pct_USD": 22720.638686385744
     },
     {
       "study": "fm26",
@@ -4595,7 +4595,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10723.975285241451,
+      "CVaR95_absolute_USD": 10723.975285241453,
       "VaR95_absolute_USD": 5664.59777192998,
       "MAE_USD": 1828.6224169213099,
       "RMSE_USD": 3631.958119848818,
@@ -4634,11 +4634,11 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10733.20187689583,
+      "CVaR95_absolute_USD": 10733.201876895831,
       "VaR95_absolute_USD": 5660.266337089387,
       "MAE_USD": 1830.2435535716668,
       "RMSE_USD": 3640.175347773972,
-      "worst_one_pct_USD": 22727.846370778792
+      "worst_one_pct_USD": 22727.84637077879
     },
     {
       "study": "ft29",
@@ -4660,7 +4660,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10735.448325323228,
+      "CVaR95_absolute_USD": 10735.448325323227,
       "VaR95_absolute_USD": 5664.518432182537,
       "MAE_USD": 1829.3494703229346,
       "RMSE_USD": 3634.2012238696284,
@@ -4690,7 +4690,7 @@
       "VaR95_absolute_USD": 5672.558244038822,
       "MAE_USD": 1830.1778191247636,
       "RMSE_USD": 3644.038315090083,
-      "worst_one_pct_USD": 22770.17328901674
+      "worst_one_pct_USD": 22770.173289016744
     },
     {
       "study": "fm26",
@@ -4699,11 +4699,11 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10748.057891515044,
+      "CVaR95_absolute_USD": 10748.057891515042,
       "VaR95_absolute_USD": 5678.085103458766,
       "MAE_USD": 1832.1381178168504,
       "RMSE_USD": 3644.7531658868147,
-      "worst_one_pct_USD": 22765.623870164545
+      "worst_one_pct_USD": 22765.62387016455
     },
     {
       "study": "fm10",
@@ -4729,7 +4729,7 @@
       "VaR95_absolute_USD": 5680.4937732466215,
       "MAE_USD": 1832.3972499070771,
       "RMSE_USD": 3645.891423340804,
-      "worst_one_pct_USD": 22775.119350312318
+      "worst_one_pct_USD": 22775.11935031232
     },
     {
       "study": "ft29",
@@ -4738,7 +4738,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10754.12069161879,
+      "CVaR95_absolute_USD": 10754.120691618791,
       "VaR95_absolute_USD": 5815.151405107153,
       "MAE_USD": 1908.5892572417374,
       "RMSE_USD": 3638.6178944515723,
@@ -4781,7 +4781,7 @@
       "VaR95_absolute_USD": 5856.271416277888,
       "MAE_USD": 1920.9039094525378,
       "RMSE_USD": 3640.8425255725056,
-      "worst_one_pct_USD": 21946.096740828914
+      "worst_one_pct_USD": 21946.096740828918
     },
     {
       "study": "fm26",
@@ -4829,7 +4829,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10769.33397176136,
+      "CVaR95_absolute_USD": 10769.333971761358,
       "VaR95_absolute_USD": 5647.748368506383,
       "MAE_USD": 1828.2064844046736,
       "RMSE_USD": 3661.4395422742787,
@@ -4868,7 +4868,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10778.222217236504,
+      "CVaR95_absolute_USD": 10778.222217236502,
       "VaR95_absolute_USD": 5713.4669595393325,
       "MAE_USD": 1907.8314782073173,
       "RMSE_USD": 3687.454597046288,
@@ -4881,11 +4881,11 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10781.195347931513,
+      "CVaR95_absolute_USD": 10781.19534793151,
       "VaR95_absolute_USD": 5636.542675063243,
       "MAE_USD": 1830.2278045251933,
       "RMSE_USD": 3666.8789360862716,
-      "worst_one_pct_USD": 22996.527593052106
+      "worst_one_pct_USD": 22996.52759305211
     },
     {
       "study": "ft29",
@@ -4924,7 +4924,7 @@
       "VaR95_absolute_USD": 5640.819380169192,
       "MAE_USD": 1845.799286575542,
       "RMSE_USD": 3681.7656581733763,
-      "worst_one_pct_USD": 23102.971221138516
+      "worst_one_pct_USD": 23102.97122113852
     },
     {
       "study": "ft29",
@@ -5002,7 +5002,7 @@
       "VaR95_absolute_USD": 5679.641225193326,
       "MAE_USD": 1834.482866814611,
       "RMSE_USD": 3681.7835072101607,
-      "worst_one_pct_USD": 23119.661339238617
+      "worst_one_pct_USD": 23119.66133923861
     },
     {
       "study": "ft29",
@@ -5011,11 +5011,11 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10827.019455415855,
+      "CVaR95_absolute_USD": 10827.019455415857,
       "VaR95_absolute_USD": 5873.742982149473,
       "MAE_USD": 1952.5621801688778,
       "RMSE_USD": 3686.956360327655,
-      "worst_one_pct_USD": 22300.700172774606
+      "worst_one_pct_USD": 22300.70017277461
     },
     {
       "study": "ft29",
@@ -5028,7 +5028,7 @@
       "VaR95_absolute_USD": 5686.578287927627,
       "MAE_USD": 1834.2181287083718,
       "RMSE_USD": 3685.223160354725,
-      "worst_one_pct_USD": 23121.908822983765
+      "worst_one_pct_USD": 23121.90882298376
     },
     {
       "study": "ft29",
@@ -5076,7 +5076,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10848.733618560002,
+      "CVaR95_absolute_USD": 10848.733618560003,
       "VaR95_absolute_USD": 5673.934620333446,
       "MAE_USD": 1833.7305333112763,
       "RMSE_USD": 3688.1633299806363,
@@ -5089,11 +5089,11 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10848.746048568344,
+      "CVaR95_absolute_USD": 10848.746048568342,
       "VaR95_absolute_USD": 5678.7520241476495,
       "MAE_USD": 1839.5892921187647,
       "RMSE_USD": 3690.84105418147,
-      "worst_one_pct_USD": 23124.114579379413
+      "worst_one_pct_USD": 23124.114579379417
     },
     {
       "study": "ft29",
@@ -5102,11 +5102,11 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10849.129747410421,
+      "CVaR95_absolute_USD": 10849.129747410423,
       "VaR95_absolute_USD": 5689.858987786585,
       "MAE_USD": 1830.4348506262497,
       "RMSE_USD": 3671.6991744471607,
-      "worst_one_pct_USD": 23080.467782701184
+      "worst_one_pct_USD": 23080.46778270118
     },
     {
       "study": "ft29",
@@ -5115,7 +5115,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10849.314553182894,
+      "CVaR95_absolute_USD": 10849.314553182892,
       "VaR95_absolute_USD": 5688.0718437853775,
       "MAE_USD": 1838.9009710139544,
       "RMSE_USD": 3690.0290791789485,
@@ -5128,7 +5128,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10856.13040625967,
+      "CVaR95_absolute_USD": 10856.130406259668,
       "VaR95_absolute_USD": 5658.707275179058,
       "MAE_USD": 1834.2732676461274,
       "RMSE_USD": 3692.5159148275907,
@@ -5141,11 +5141,11 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10857.195241555923,
+      "CVaR95_absolute_USD": 10857.19524155592,
       "VaR95_absolute_USD": 5680.650775810315,
       "MAE_USD": 1838.0056698285505,
       "RMSE_USD": 3698.869669743512,
-      "worst_one_pct_USD": 23214.330540931747
+      "worst_one_pct_USD": 23214.33054093175
     },
     {
       "study": "ft29",
@@ -5184,7 +5184,7 @@
       "VaR95_absolute_USD": 5666.976308488554,
       "MAE_USD": 1850.8228073509513,
       "RMSE_USD": 3708.6008567895497,
-      "worst_one_pct_USD": 23342.44078147296
+      "worst_one_pct_USD": 23342.440781472957
     },
     {
       "study": "ft29",
@@ -5197,7 +5197,7 @@
       "VaR95_absolute_USD": 5693.024179856835,
       "MAE_USD": 1840.464232191176,
       "RMSE_USD": 3704.5507753265224,
-      "worst_one_pct_USD": 23279.52844604842
+      "worst_one_pct_USD": 23279.528446048425
     },
     {
       "study": "fm26",
@@ -5236,7 +5236,7 @@
       "VaR95_absolute_USD": 5722.168571750025,
       "MAE_USD": 1845.096784230879,
       "RMSE_USD": 3695.573960345555,
-      "worst_one_pct_USD": 23159.830042835532
+      "worst_one_pct_USD": 23159.830042835536
     },
     {
       "study": "ft29",
@@ -5262,7 +5262,7 @@
       "VaR95_absolute_USD": 5705.911017933011,
       "MAE_USD": 1844.5279519487096,
       "RMSE_USD": 3698.8694869560345,
-      "worst_one_pct_USD": 23209.004387601963
+      "worst_one_pct_USD": 23209.004387601966
     },
     {
       "study": "fm26",
@@ -5271,7 +5271,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10889.286027156842,
+      "CVaR95_absolute_USD": 10889.28602715684,
       "VaR95_absolute_USD": 5705.4621450762415,
       "MAE_USD": 1840.7011205379572,
       "RMSE_USD": 3691.918194266462,
@@ -5297,7 +5297,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10890.809083766673,
+      "CVaR95_absolute_USD": 10890.809083766671,
       "VaR95_absolute_USD": 5711.850333644541,
       "MAE_USD": 1846.4511951177096,
       "RMSE_USD": 3698.464095234087,
@@ -5327,7 +5327,7 @@
       "VaR95_absolute_USD": 5733.073370083038,
       "MAE_USD": 1844.6602393332078,
       "RMSE_USD": 3700.2735992841694,
-      "worst_one_pct_USD": 23203.632478440188
+      "worst_one_pct_USD": 23203.632478440184
     },
     {
       "study": "fm26",
@@ -5405,7 +5405,7 @@
       "VaR95_absolute_USD": 5734.614946838553,
       "MAE_USD": 1846.5623228139295,
       "RMSE_USD": 3706.9403277325687,
-      "worst_one_pct_USD": 23281.837431126325
+      "worst_one_pct_USD": 23281.83743112633
     },
     {
       "study": "fm10",
@@ -5414,11 +5414,11 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10924.654908395936,
+      "CVaR95_absolute_USD": 10924.654908395938,
       "VaR95_absolute_USD": 5733.648002625801,
       "MAE_USD": 1846.5372742604843,
       "RMSE_USD": 3707.128068011792,
-      "worst_one_pct_USD": 23283.503124078517
+      "worst_one_pct_USD": 23283.503124078514
     },
     {
       "study": "fm26",
@@ -5427,7 +5427,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10927.21241743103,
+      "CVaR95_absolute_USD": 10927.212417431032,
       "VaR95_absolute_USD": 5737.4951305142185,
       "MAE_USD": 1847.2465045329845,
       "RMSE_USD": 3708.026372932529,
@@ -5466,7 +5466,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10958.652690144938,
+      "CVaR95_absolute_USD": 10958.65269014494,
       "VaR95_absolute_USD": 5751.666164547342,
       "MAE_USD": 1847.7642132699034,
       "RMSE_USD": 3714.2485357114597,
@@ -5479,11 +5479,11 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10961.49299814763,
+      "CVaR95_absolute_USD": 10961.492998147633,
       "VaR95_absolute_USD": 5751.6405661859135,
       "MAE_USD": 1847.7090934313608,
       "RMSE_USD": 3711.8133494417507,
-      "worst_one_pct_USD": 23321.840334688066
+      "worst_one_pct_USD": 23321.84033468807
     },
     {
       "study": "ft29",
@@ -5509,7 +5509,7 @@
       "VaR95_absolute_USD": 5756.55540915002,
       "MAE_USD": 1850.977219306537,
       "RMSE_USD": 3719.9208872310355,
-      "worst_one_pct_USD": 23347.028013756535
+      "worst_one_pct_USD": 23347.02801375653
     },
     {
       "study": "ft29",
@@ -5531,11 +5531,11 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10969.86526476619,
+      "CVaR95_absolute_USD": 10969.865264766187,
       "VaR95_absolute_USD": 5749.441598015253,
       "MAE_USD": 1850.3368462057554,
       "RMSE_USD": 3723.5921202031573,
-      "worst_one_pct_USD": 23396.540588253636
+      "worst_one_pct_USD": 23396.54058825363
     },
     {
       "study": "ft29",
@@ -5557,7 +5557,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10983.286008728523,
+      "CVaR95_absolute_USD": 10983.286008728524,
       "VaR95_absolute_USD": 5761.316406547162,
       "MAE_USD": 1850.7511952864604,
       "RMSE_USD": 3724.0673345109794,
@@ -5609,7 +5609,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10995.255294110131,
+      "CVaR95_absolute_USD": 10995.255294110133,
       "VaR95_absolute_USD": 5770.08477970939,
       "MAE_USD": 1851.7824687731975,
       "RMSE_USD": 3732.375381104688,
@@ -5622,7 +5622,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 10999.526949241552,
+      "CVaR95_absolute_USD": 10999.526949241548,
       "VaR95_absolute_USD": 5763.363092942043,
       "MAE_USD": 1854.5240078181037,
       "RMSE_USD": 3734.7842505710314,
@@ -5635,7 +5635,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11000.981344677004,
+      "CVaR95_absolute_USD": 11000.981344677006,
       "VaR95_absolute_USD": 5756.678936846062,
       "MAE_USD": 1851.833055296537,
       "RMSE_USD": 3734.0202603723965,
@@ -5648,7 +5648,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11001.28371607662,
+      "CVaR95_absolute_USD": 11001.283716076621,
       "VaR95_absolute_USD": 5770.902410093444,
       "MAE_USD": 1852.6529600798224,
       "RMSE_USD": 3730.2815433673695,
@@ -5674,7 +5674,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11002.230103704185,
+      "CVaR95_absolute_USD": 11002.230103704183,
       "VaR95_absolute_USD": 5756.609893317003,
       "MAE_USD": 1854.4900008925306,
       "RMSE_USD": 3735.029875752814,
@@ -5700,7 +5700,7 @@
       "xgb_lemon_weight": 0.9,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11004.594840513224,
+      "CVaR95_absolute_USD": 11004.594840513222,
       "VaR95_absolute_USD": 5762.506245011234,
       "MAE_USD": 1857.8067308374011,
       "RMSE_USD": 3741.507406522663,
@@ -5821,7 +5821,7 @@
       "VaR95_absolute_USD": 5777.456893332015,
       "MAE_USD": 1857.5391309572478,
       "RMSE_USD": 3737.2908162953577,
-      "worst_one_pct_USD": 23512.94199635412
+      "worst_one_pct_USD": 23512.94199635411
     },
     {
       "study": "ft29",
@@ -5869,7 +5869,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5882,7 +5882,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5895,7 +5895,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5908,7 +5908,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5921,7 +5921,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5934,7 +5934,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5947,7 +5947,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5960,7 +5960,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5973,7 +5973,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5986,7 +5986,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -5999,7 +5999,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6012,7 +6012,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6025,7 +6025,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6038,7 +6038,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6051,7 +6051,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6064,7 +6064,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6077,7 +6077,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6090,7 +6090,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6103,7 +6103,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6116,7 +6116,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6129,7 +6129,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6142,7 +6142,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6155,7 +6155,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6168,7 +6168,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6181,7 +6181,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6194,7 +6194,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6207,7 +6207,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6220,7 +6220,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6233,7 +6233,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6246,7 +6246,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6259,7 +6259,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6272,7 +6272,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6285,7 +6285,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6298,7 +6298,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6311,7 +6311,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6324,7 +6324,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6337,7 +6337,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6350,7 +6350,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6363,7 +6363,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6376,7 +6376,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6389,7 +6389,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6402,7 +6402,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6415,7 +6415,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6428,7 +6428,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6441,7 +6441,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6454,7 +6454,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6467,7 +6467,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6480,7 +6480,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6493,7 +6493,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6506,7 +6506,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6519,7 +6519,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6532,7 +6532,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6545,7 +6545,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6558,7 +6558,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6571,7 +6571,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6584,7 +6584,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6597,7 +6597,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6610,7 +6610,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6623,7 +6623,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6636,7 +6636,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6649,7 +6649,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6662,7 +6662,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6675,7 +6675,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6688,7 +6688,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6701,7 +6701,7 @@
       "xgb_lemon_weight": 1.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11179.954067907664,
+      "CVaR95_absolute_USD": 11179.954067907665,
       "VaR95_absolute_USD": 5857.945505101307,
       "MAE_USD": 1875.983533155698,
       "RMSE_USD": 3787.983305738479,
@@ -6744,7 +6744,7 @@
       "VaR95_absolute_USD": 5958.040195095701,
       "MAE_USD": 1897.8743013283886,
       "RMSE_USD": 3835.8196231726943,
-      "worst_one_pct_USD": 24238.96452058099
+      "worst_one_pct_USD": 24238.964520580987
     },
     {
       "study": "fm10",
@@ -6757,7 +6757,7 @@
       "VaR95_absolute_USD": 6012.243978262005,
       "MAE_USD": 1916.4936303133372,
       "RMSE_USD": 3855.4051571626137,
-      "worst_one_pct_USD": 24284.910433613102
+      "worst_one_pct_USD": 24284.910433613106
     },
     {
       "study": "fm10",
@@ -6779,7 +6779,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11614.498995347285,
+      "CVaR95_absolute_USD": 11614.498995347283,
       "VaR95_absolute_USD": 6380.885107039792,
       "MAE_USD": 2143.0878217187515,
       "RMSE_USD": 3945.203570529074,
@@ -6809,7 +6809,7 @@
       "VaR95_absolute_USD": 6184.627116739483,
       "MAE_USD": 1951.199621498273,
       "RMSE_USD": 3928.152556477548,
-      "worst_one_pct_USD": 24868.10424182773
+      "worst_one_pct_USD": 24868.104241827725
     },
     {
       "study": "fm10",
@@ -6818,7 +6818,7 @@
       "xgb_lemon_weight": 0.8,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 11967.706516986153,
+      "CVaR95_absolute_USD": 11967.706516986154,
       "VaR95_absolute_USD": 6312.516517036715,
       "MAE_USD": 2004.248875681392,
       "RMSE_USD": 3982.8365145905987,
@@ -6861,7 +6861,7 @@
       "VaR95_absolute_USD": 6631.990599734185,
       "MAE_USD": 2079.230229459122,
       "RMSE_USD": 4143.189275609999,
-      "worst_one_pct_USD": 26326.63305599686
+      "worst_one_pct_USD": 26326.633055996856
     },
     {
       "study": "fm10",
@@ -6870,7 +6870,7 @@
       "xgb_lemon_weight": 0.65,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 13058.07818766613,
+      "CVaR95_absolute_USD": 13058.078187666128,
       "VaR95_absolute_USD": 6988.784450209683,
       "MAE_USD": 2204.7086508251173,
       "RMSE_USD": 4274.086781845516,
@@ -6926,7 +6926,7 @@
       "VaR95_absolute_USD": 7817.709829800861,
       "MAE_USD": 2461.6794567781044,
       "RMSE_USD": 4664.819211796013,
-      "worst_one_pct_USD": 29150.15312379655
+      "worst_one_pct_USD": 29150.153123796546
     },
     {
       "study": "fm10",
@@ -6935,7 +6935,7 @@
       "xgb_lemon_weight": 0.5,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 14796.27089545117,
+      "CVaR95_absolute_USD": 14796.270895451173,
       "VaR95_absolute_USD": 8117.055749282085,
       "MAE_USD": 2530.5794625661465,
       "RMSE_USD": 4738.173378277534,
@@ -6961,11 +6961,11 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 16182.536084179334,
+      "CVaR95_absolute_USD": 16182.536084179335,
       "VaR95_absolute_USD": 8536.589073055991,
       "MAE_USD": 2588.225178475029,
       "RMSE_USD": 5066.390171611797,
-      "worst_one_pct_USD": 32688.220591659483
+      "worst_one_pct_USD": 32688.220591659476
     },
     {
       "study": "fm10",
@@ -6987,7 +6987,7 @@
       "xgb_lemon_weight": 0.25,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 17866.90856469863,
+      "CVaR95_absolute_USD": 17866.908564698635,
       "VaR95_absolute_USD": 9792.833891878028,
       "MAE_USD": 3073.9394720127993,
       "RMSE_USD": 5596.798640489341,
@@ -7004,7 +7004,7 @@
       "VaR95_absolute_USD": 10010.556923283435,
       "MAE_USD": 3138.3859901415794,
       "RMSE_USD": 5892.897349028181,
-      "worst_one_pct_USD": 37462.06227063647
+      "worst_one_pct_USD": 37462.06227063646
     },
     {
       "study": "fm10",
@@ -7030,7 +7030,7 @@
       "VaR95_absolute_USD": 11275.834478564586,
       "MAE_USD": 3515.8501751542426,
       "RMSE_USD": 6423.388389461206,
-      "worst_one_pct_USD": 40112.621975443355
+      "worst_one_pct_USD": 40112.62197544336
     },
     {
       "study": "fm10",
@@ -7039,7 +7039,7 @@
       "xgb_lemon_weight": 0.0,
       "rows": 82380,
       "worst_five_pct_rows": 4119,
-      "CVaR95_absolute_USD": 21326.726946124498,
+      "CVaR95_absolute_USD": 21326.726946124494,
       "VaR95_absolute_USD": 11619.202621489618,
       "MAE_USD": 3670.4105572181784,
       "RMSE_USD": 6588.888017622611,
