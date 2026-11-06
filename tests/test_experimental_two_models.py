@@ -52,7 +52,9 @@ def test_entire_embedding_ask_model_not_ridge_head():
         output=model(numeric,cats,embeddings)
     assert output.shape==(2,2) and torch.isfinite(output).all()
     from pricing.neural_ask_embedding_live import FOLDER,FILES
-    assert "encoder-int8.onnx" in FILES
+    assert "weights.pt" in FILES
+    assert "encoder-int8.onnx" not in FILES
+    assert "tokenizer.json" not in FILES
     assert FOLDER.endswith("ask-bge")
 
 

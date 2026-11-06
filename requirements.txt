@@ -125,3 +125,8 @@ faiss-cpu>=1.8,<2
 gliner2[local]==2.1.0
 
 # Turso functionality telemetry release (2026-11-05): force Streamlit Cloud full redeploy.
+
+# Native, unquantized BGE research asking model; loaded lazily only in Experimental models
+sentence-transformers==3.4.1
+transformers==4.49.0
+huggingface-hub==0.30.2
