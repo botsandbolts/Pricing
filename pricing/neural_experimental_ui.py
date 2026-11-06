@@ -263,23 +263,202 @@ def _explanation(root):
     st.markdown("[Original CVaR95 audit](https://github.com/botsandbolts/Pricing/blob/main/reports/cvar95/previously-selected/comparison.json)"
                 " · [Full 109-model overnight validation audit](https://github.com/botsandbolts/Pricing/actions/workflows/overnight-cvar95-all-models.yml)")
 
+
+def _apply_example():
+    from pricing.description_examples import load_examples
+    n=st.session_state.get("experimental_example",0)
+    if not n:return
+    e=load_examples()[n-1]
+    keys={"year":"year","manufacturer":"make","model":"model","odometer":"mileage",
+          "state":"state","type":"body","condition":"condition","fuel":"fuel",
+          "transmission":"transmission","drive":"drive","title_status":"title",
+          "cylinders":"cylinders","paint_color":"paint"}
+    options={"body":["sedan","suv","truck","pickup","hatchback","coupe","wagon","van","convertible","other","unknown"],
+             "condition":["good","excellent","fair","like new","new","salvage","unknown"],
+             "fuel":["gas","diesel","hybrid","electric","other","unknown"],
+             "transmission":["automatic","manual","other","unknown"],
+             "drive":["fwd","rwd","4wd","unknown"],
+             "title":["clean","rebuilt","salvage","lien","missing","parts only","unknown"],
+             "cylinders":["4 cylinders","6 cylinders","8 cylinders","3 cylinders","5 cylinders","unknown"],
+             "paint":["silver","white","black","grey","blue","red","green","brown","other","unknown"]}
+    for name,key in keys.items():
+        v=e.get("fields",{}).get(name)
+        if v is None:continue
+        if key in options:
+            v=str(v).lower().strip()
+            if v not in options[key]:v="unknown"
+        if key=="state":v=str(v).lower()[:2]
+        st.session_state["bge_ask_"+key]=v
+    st.session_state["bge_ask_description"]=e.get("text","")[:8000]
+    st.session_state.pop("experimental_combined_receipt",None)
+
+
+class _FixedHistoricalPrice:
+    """Adapter: reuse exactly the main calculator's date transport, without a surrogate ML model."""
+    manifest={}
+    def __init__(self,price):self.price=float(price)
+    def predict(self,*args,**kwargs):return {"price":self.price}
+
+
+def _adjust_price(transport,price,fields,side,when,allow_analogue):
+    from marketbridge.time_engine import today
+    if side=="ask":
+        return transport.estimate(None,"",fields,when,side="ask",
+                                  anchor_price=float(price),as_of=today())
+    return transport.estimate(_FixedHistoricalPrice(price),"",fields,when,
+                              side="bid",allow_newer_bid=allow_analogue,
+                              as_of=today())
+
+
+def _usd(value):return "$"+f"{float(value):,.0f}"
+
+
 def render(root):
     root=Path(root)
     st.markdown(CSS+"""
-<section class="exp-hero" aria-label="Experimental vehicle pricing models">
-<small>CAR PRICE STUDIO · RESEARCH GARAGE · EXPERIMENTAL ONLY</small>
-<h1>Different engines.<br>The whole story.</h1>
-<p>Explore the full neural response to a seller's description, and an
-ensemble for historical wholesale auctions. Real model weights, guarded
-by strict original-holdout serving tests. Ordinary predictions meet the
-unusual cases. Not another pricing oracle in a lab coat.</p>
-<span class="exp-chip">✍ BGE + DeepCross/AFT</span>
-<span class="exp-chip">🚘 DeepFM + XGBoost</span>
-<span class="exp-chip">🛡️ CVaR95 · WORST 5%</span>
-<span class="exp-chip">🇩🇪 Made in Germany</span>
+<section class="exp-hero" aria-label="Experimental pricing, asking and wholesale together">
+<small>CAR PRICE STUDIO · THE RESEARCH GARAGE</small>
+<h1>Two markets. One car.<br>Fewer pricing nightmares.</h1>
+<p>Seller asking and wholesale auction estimates on the same screen, with the complete original experimental engines. CVaR95 asks how badly the model misses when luck takes a coffee break.</p>
+<span class="exp-chip">✍ Full BGE + DeepCross/AFT</span>
+<span class="exp-chip">🚘 DeepFM + Lemon XGBoost</span>
+<span class="exp-chip">🛡️ CVaR95 · worst 5%</span>
+<span class="exp-chip">📆 This month's scenario</span>
 </section>""",unsafe_allow_html=True)
-    ask,bid,science=st.tabs([
-        "✍ Full neural asking","🚘 Wholesale ensemble","🛡️ CVaR95 · Business & science"])
-    with ask:_ask(root)
-    with bid:_bid(root)
-    with science:_explanation(root)
+    from pricing.studio_design import market_guide
+    from pricing.description_examples import load_examples
+    from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
+    from pricing.cvar95_experiment_science import model_kpis,all_validation
+    market_guide()
+    examples=load_examples()
+    st.markdown("### 🚗 01 / Pick a car, or bring your own")
+    if examples:
+        st.selectbox(
+            f"Search {len(examples):,} real, price-redacted car adverts",
+            range(len(examples)+1),key="experimental_example",
+            format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
+            on_change=_apply_example)
+        st.caption("Real historical seller descriptions; prices and contact details redacted. Source: Tom’s Used Cars Dataset (CC BY 4.0). These are examples, not 400 fresh appraisals.")
+    valuation_date,allow_analogue=clock_controls(prefix="experimental")
+    # These historical models and their original data are never retrained by changing the date.
+    try:
+        transport,error=current_transport(root)
+        render_market_clock(transport,valuation_date,error)
+    except (OSError,ValueError,KeyError) as exc:
+        transport=None
+        st.warning("This month's market transport cannot be loaded: "+str(exc))
+    ask_ready=ask_available(root);bid_ready=bid_available(root)
+    a,b=st.columns(2)
+    with a:
+        st.markdown("**✍ Seller asking · full neural network**")
+        st.caption("BGE text embeddings → complete DeepCross/AFT. No Ridge or MiniLM price replacement.")
+        if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
+    with b:
+        st.markdown("**🔨 Wholesale auction · full ensemble**")
+        st.caption("75% DeepFM16 + 25% original Lemon XGBoost, with original historical auction assumptions.")
+        if not bid_ready:st.warning("Wholesale model has not passed deployment parity; estimate disabled.")
+    st.caption("Original holdout metrics below are measured in historical dollars. They are NOT measured November 2026 accuracy.")
+    for side,title in (("ask","Seller asking"),("bid","Wholesale auction")):
+        if all_validation(root,side):
+            k=model_kpis(root,side)
+            if k:
+                with st.expander(title+" · historical test accuracy (CVaR95 primary)"):
+                    x,y,z=st.columns(3)
+                    x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
+                    y.metric("RMSE",_usd(k["RMSE_USD"]))
+                    z.metric("MAE",_usd(k["MAE_USD"]))
+    with st.expander("🔨 Auction reference assumptions",expanded=False):
+        auction=st.date_input("Original auction date (2014–2015)",
+            pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
+            max_value=pd.Timestamp("2015-12-31").date(),key="experiment_joint_auction")
+        grade=st.selectbox("Historical pre-sale grade",["unknown","1","2","3","4","5"],index=3,key="experiment_joint_grade")
+        st.caption("For newer model years the historical auction engine cannot accept a future car. We refuse to pretend the training data saw it.")
+    fields,notes,go=_vehicle("bge_ask",ready=ask_ready or bid_ready)
+    if go:
+        results={"fields":fields,"notes":notes,"date":str(valuation_date)}
+        if ask_ready:
+            try:
+                from pricing.neural_ask_embedding_live import load as ask_load
+                with st.spinner("Running the complete BGE + DeepCross/AFT network…"):
+                    results["ask"]=ask_load(root).predict(notes,fields)
+            except Exception as exc:
+                st.error("Asking engine unavailable: "+str(exc))
+        if bid_ready:
+            try:
+                from pricing.neural_bid_blend_live import load as bid_load
+                bid_fields={**fields,"auction_date":str(auction),"auction_grade":grade}
+                with st.spinner("Running verified wholesale DeepFM + Lemon XGBoost…"):
+                    results["bid"]=bid_load(root).predict(bid_fields)
+            except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+                st.warning("Wholesale unavailable for this vehicle: "+str(exc))
+        st.session_state["experimental_combined_receipt"]=results
+    saved=st.session_state.get("experimental_combined_receipt")
+    if saved:
+        st.markdown("### 💵 02 / Both prices, same car")
+        prices={};adjusted={}
+        columns=st.columns(2)
+        for col,side,label in zip(columns,("ask","bid"),("Seller asking","Wholesale auction")):
+            with col:
+                result=saved.get(side)
+                if result is None:
+                    st.info(label+" · no verified model output for this vehicle.")
+                    continue
+                historical=float(result["price"])
+                st.metric(label+" · historical anchor",_usd(historical))
+                if transport is None:
+                    st.warning("Current-month conversion unavailable; historical price only.")
+                    continue
+                try:
+                    receipt=_adjust_price(transport,historical,saved["fields"],
+                                          side,valuation_date,allow_analogue)
+                    adjusted[side]=receipt;prices[side]=receipt["price"]
+                    _price(label+" · "+str(valuation_date)+" scenario",receipt["price"],
+                        "Date-adjusted estimate, NOT an observed 2026 transaction or a guaranteed bid.")
+                    render_adjustment(receipt)
+                except (OSError,ValueError,KeyError,TypeError) as exc:
+                    st.warning("Cannot adjust "+label.lower()+" to this month: "+str(exc))
+        if len(prices)==2:
+            st.metric("Asking minus wholesale · indicative market gap",
+                      _usd(prices["ask"]-prices["bid"]))
+            st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
+        if adjusted:
+            render_time_evidence(transport,adjusted)
+        if "ask" in saved and ask_ready:
+            with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
+                alt=st.text_area("Alternative advertisement",value=saved["notes"],key="experimental_reword",max_chars=8000)
+                if st.button("Recalculate complete neural asking model",key="experimental_reword_go"):
+                    try:
+                        from pricing.neural_ask_embedding_live import load
+                        revised=load(root).predict(alt,saved["fields"])["price"]
+                        new=_adjust_price(transport,revised,saved["fields"],"ask",valuation_date,allow_analogue) if transport else None
+                        st.metric("Rewritten historical asking",_usd(revised),delta=_usd(revised-saved["ask"]["price"]))
+                        if new:st.metric("Rewritten date-adjusted asking",_usd(new["price"]))
+                        st.caption("A change in model prediction is not evidence rewriting an advert changes what a buyer pays.")
+                    except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+                        st.error("What-if calculation unavailable: "+str(exc))
+            with st.expander("📉 Mileage sensitivity · full-network reruns"):
+                try:
+                    from pricing.neural_ask_embedding_live import load
+                    model=load(root)
+                    prepared=model.prepare_text(saved["notes"])
+                    rows=[]
+                    for change in (-20000,-10000,0,10000,20000):
+                        f={**saved["fields"],"odometer":max(0,saved["fields"]["odometer"]+change)}
+                        p=model.predict_prepared(f,prepared)["price"]
+                        if transport:p=_adjust_price(transport,p,f,"ask",valuation_date,allow_analogue)["price"]
+                        rows.append({"Mileage":int(f["odometer"]),"Asking USD":p})
+                    st.line_chart(pd.DataFrame(rows).set_index("Mileage"))
+                except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+                    st.info("Mileage sensitivity unavailable: "+str(exc))
+        report={"model_family":"Original experimental neural models, unchanged",
+                "valuation_date":str(valuation_date),"vehicle":saved["fields"],
+                "historical_predictions":{k:saved[k] for k in ("ask","bid") if k in saved},
+                "date_adjusted":adjusted,"description":"omitted for privacy",
+                "warning":"Date transport is an unvalidated individual 2026 scenario."}
+        st.download_button("📥 Download both-model research receipt (JSON)",
+            json.dumps(report,indent=2,default=str),file_name="experimental-bid-ask.json",
+            mime="application/json",key="experimental_both_download")
+    st.markdown("### 🧰 03 / Other tools from the main garage")
+    st.caption("The original car calculator, listing inspector, timelines, scientific evidence, merchant comparisons and diagnostics remain accessible using the Studio panels above. No parallel, potentially inconsistent copy of their models is made.")
+    with st.expander("🛡️ Why CVaR95? The business case and the original scientific evidence"):
+        _explanation(root)
