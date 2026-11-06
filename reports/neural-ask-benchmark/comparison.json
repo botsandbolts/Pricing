@@ -1,0 +1,866 @@
+{
+  "status": "complete",
+  "target": "historical Craigslist asking dollars",
+  "comparison_rule": "Validation MAE chooses architecture/loss/cohort; test never chooses a winner",
+  "winner_by_original_validation": {
+    "architecture": "deepcross",
+    "loss": "aft",
+    "train_cohort": "full",
+    "validation_mae_usd": 3138.081826940489
+  },
+  "architectures": [
+    "resmlp",
+    "deepcross",
+    "fttransformer"
+  ],
+  "losses": [
+    "huber",
+    "quantile50",
+    "aft"
+  ],
+  "train_cohorts": [
+    "full",
+    "lemon"
+  ],
+  "tested_arms": 18,
+  "holdout_rows": {
+    "validation": 31668,
+    "test": 31682
+  },
+  "frozen_xgboost_lemon_reference": {
+    "type": "Exact per-row paired validation/test",
+    "validation": {
+      "rows": 31668,
+      "mae_usd": 3503.995866092028,
+      "rmse_usd": 7315.37813558393,
+      "mean_bias_usd": -1257.944982739008,
+      "rmse_log": 0.422411503125333
+    },
+    "test": {
+      "rows": 31682,
+      "mae_usd": 3706.416622643729,
+      "rmse_usd": 7647.756379693193,
+      "mean_bias_usd": -1444.5357789580896,
+      "rmse_log": 0.42638944407188484
+    }
+  },
+  "published_full_xgboost_reference": {
+    "type": "Published original fivefold summary only; per-row identity not independently rechecked",
+    "validation": {
+      "n": 31668,
+      "mae_usd": 3180.472381855843,
+      "rmse_log": 0.38686592607495773,
+      "median_signed_log_residual": 0.036531190880072055
+    },
+    "test": {
+      "n": 31682,
+      "mae_usd": 3377.729954553564,
+      "rmse_log": 0.39512568728683123,
+      "median_signed_log_residual": 0.03501419498847951
+    }
+  },
+  "methodology": {
+    "split": "Original chronological partitions; no original validation or test filtering",
+    "preprocessing": "Fitted only on original training; label-free TF-IDF/SVD",
+    "regularization": "AdamW weight decay, dropout, layer norm, gradient clipping, mild input noise, cosine LR and early stopping",
+    "aft": "Exact log-normal likelihood only: observed asking prices are not censored",
+    "hierarchy": "None",
+    "evaluation": "All arms and frozen Lemon XGBoost assessed on identical row_ids and observed prices",
+    "uncertainty": "Paired listing bootstrap for MAE difference, assumes rows independent; may understate correlated uncertainty",
+    "warning": "Original full-cohort XGBoost reference is an aggregate with same counts, not an audited per-listing paired comparator."
+  },
+  "results": [
+    {
+      "architecture": "deepcross",
+      "loss": "aft",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 34,
+      "rows": 31682,
+      "mae_usd": 3395.328178445818,
+      "rmse_usd": 6902.244343753232,
+      "mean_bias_usd": -631.6664366424413,
+      "rmse_log": 0.37239725959302167,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -311.08844419791114,
+      "fraction_listings_beating_xgboost": 0.5358563222018812,
+      "paired_delta_95pct_bootstrap_usd": [
+        -358.01374507091407,
+        -258.6608072976263
+      ],
+      "validation_rank": 1
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "aft",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 34,
+      "rows": 31668,
+      "mae_usd": 3138.081826940489,
+      "rmse_usd": 6427.701740999223,
+      "mean_bias_usd": -633.5256659314321,
+      "rmse_log": 0.36479952898551454,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -365.9140391515391,
+      "fraction_listings_beating_xgboost": 0.5401667298219023,
+      "paired_delta_95pct_bootstrap_usd": [
+        -406.069266741321,
+        -321.19543533075546
+      ],
+      "validation_rank": 1
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "huber",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 30,
+      "rows": 31682,
+      "mae_usd": 3423.568545416912,
+      "rmse_usd": 6853.386620984103,
+      "mean_bias_usd": -682.5827191889455,
+      "rmse_log": 0.3823606783911527,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -282.848077226817,
+      "fraction_listings_beating_xgboost": 0.5388233066094312,
+      "paired_delta_95pct_bootstrap_usd": [
+        -318.73267173130625,
+        -242.18103615244564
+      ],
+      "validation_rank": 2
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "huber",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 30,
+      "rows": 31668,
+      "mae_usd": 3220.99126990586,
+      "rmse_usd": 6512.646805589933,
+      "mean_bias_usd": -578.1965910448822,
+      "rmse_log": 0.3746452406220601,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -283.00459618616816,
+      "fraction_listings_beating_xgboost": 0.5429455601869395,
+      "paired_delta_95pct_bootstrap_usd": [
+        -319.2146124118398,
+        -243.4042029243272
+      ],
+      "validation_rank": 2
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "aft",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 35,
+      "rows": 31682,
+      "mae_usd": 3456.144085186675,
+      "rmse_usd": 6867.779427279234,
+      "mean_bias_usd": -560.0914979934249,
+      "rmse_log": 0.37789136664443296,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -250.27253745705437,
+      "fraction_listings_beating_xgboost": 0.5279022788965343,
+      "paired_delta_95pct_bootstrap_usd": [
+        -297.44548616064793,
+        -200.21245913704388
+      ],
+      "validation_rank": 3
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "aft",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 35,
+      "rows": 31668,
+      "mae_usd": 3226.212689433014,
+      "rmse_usd": 6543.607158872604,
+      "mean_bias_usd": -526.8356199938906,
+      "rmse_log": 0.37238327941002175,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -277.7831766590144,
+      "fraction_listings_beating_xgboost": 0.5361879499810535,
+      "paired_delta_95pct_bootstrap_usd": [
+        -315.3202511621672,
+        -238.38816445908262
+      ],
+      "validation_rank": 3
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "quantile50",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 30,
+      "rows": 31682,
+      "mae_usd": 3455.7682767657598,
+      "rmse_usd": 6891.024223896428,
+      "mean_bias_usd": -753.1836696282473,
+      "rmse_log": 0.38398723769912335,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -250.64834587796983,
+      "fraction_listings_beating_xgboost": 0.5331102834417019,
+      "paired_delta_95pct_bootstrap_usd": [
+        -289.2788726494776,
+        -208.18332849548898
+      ],
+      "validation_rank": 4
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "quantile50",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 30,
+      "rows": 31668,
+      "mae_usd": 3228.3913156943586,
+      "rmse_usd": 6528.029350827673,
+      "mean_bias_usd": -624.2032597535042,
+      "rmse_log": 0.37620792702207284,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -275.60455039766975,
+      "fraction_listings_beating_xgboost": 0.5392825565239359,
+      "paired_delta_95pct_bootstrap_usd": [
+        -309.6746612422036,
+        -242.19997833724526
+      ],
+      "validation_rank": 4
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "aft",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 31,
+      "rows": 31682,
+      "mae_usd": 3494.8855971599633,
+      "rmse_usd": 7136.003017613693,
+      "mean_bias_usd": -705.3142479359676,
+      "rmse_log": 0.40506017190469973,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -211.5310254837661,
+      "fraction_listings_beating_xgboost": 0.5325105738274098,
+      "paired_delta_95pct_bootstrap_usd": [
+        -246.85290295873585,
+        -175.89574303995445
+      ],
+      "validation_rank": 5
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "aft",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 31,
+      "rows": 31668,
+      "mae_usd": 3305.9271192789865,
+      "rmse_usd": 6827.860592767556,
+      "mean_bias_usd": -695.1433704247034,
+      "rmse_log": 0.39995312185743476,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -198.06874681304146,
+      "fraction_listings_beating_xgboost": 0.5372300113679424,
+      "paired_delta_95pct_bootstrap_usd": [
+        -227.96621348841768,
+        -165.60868996697607
+      ],
+      "validation_rank": 5
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "quantile50",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 22,
+      "rows": 31682,
+      "mae_usd": 3559.444867763374,
+      "rmse_usd": 6870.622479777937,
+      "mean_bias_usd": 567.6778227757289,
+      "rmse_log": 0.4076996854720151,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -146.97175488035523,
+      "fraction_listings_beating_xgboost": 0.48784798939460894,
+      "paired_delta_95pct_bootstrap_usd": [
+        -191.81633717035183,
+        -98.03248264014827
+      ],
+      "validation_rank": 6
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "quantile50",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 22,
+      "rows": 31668,
+      "mae_usd": 3369.717854149595,
+      "rmse_usd": 6501.523997382485,
+      "mean_bias_usd": 619.4857094416396,
+      "rmse_log": 0.39837615805290455,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -134.27801194243318,
+      "fraction_listings_beating_xgboost": 0.4868321333838575,
+      "paired_delta_95pct_bootstrap_usd": [
+        -171.02458809042466,
+        -92.7697194324392
+      ],
+      "validation_rank": 6
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "aft",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 28,
+      "rows": 31682,
+      "mae_usd": 3618.0970199080953,
+      "rmse_usd": 7325.66316456493,
+      "mean_bias_usd": -1209.2849702002575,
+      "rmse_log": 0.41031248712673246,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -88.31960273563388,
+      "fraction_listings_beating_xgboost": 0.5184963070513225,
+      "paired_delta_95pct_bootstrap_usd": [
+        -122.94091471241222,
+        -59.086062544031314
+      ],
+      "validation_rank": 7
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "aft",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 28,
+      "rows": 31668,
+      "mae_usd": 3414.8087239029182,
+      "rmse_usd": 7002.793651818806,
+      "mean_bias_usd": -1083.731171283403,
+      "rmse_log": 0.40622306280329157,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -89.18714218911,
+      "fraction_listings_beating_xgboost": 0.5188834154351396,
+      "paired_delta_95pct_bootstrap_usd": [
+        -117.6058462726239,
+        -61.25751470946171
+      ],
+      "validation_rank": 7
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "huber",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 34,
+      "rows": 31682,
+      "mae_usd": 3611.657762151861,
+      "rmse_usd": 7303.556824185096,
+      "mean_bias_usd": -754.2550624980269,
+      "rmse_log": 0.41228051247998265,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -94.75886049186863,
+      "fraction_listings_beating_xgboost": 0.5256928224228269,
+      "paired_delta_95pct_bootstrap_usd": [
+        -130.45681287266711,
+        -64.28789667022947
+      ],
+      "validation_rank": 8
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "huber",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 34,
+      "rows": 31668,
+      "mae_usd": 3424.2173338625503,
+      "rmse_usd": 6982.355207907493,
+      "mean_bias_usd": -635.6635324768858,
+      "rmse_log": 0.4081015168896625,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -79.77853222947779,
+      "fraction_listings_beating_xgboost": 0.5279461917392951,
+      "paired_delta_95pct_bootstrap_usd": [
+        -109.5866466496473,
+        -47.63984113746681
+      ],
+      "validation_rank": 8
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "quantile50",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 32,
+      "rows": 31682,
+      "mae_usd": 3668.5140109136037,
+      "rmse_usd": 7380.803491218863,
+      "mean_bias_usd": -844.9146617951232,
+      "rmse_log": 0.4159151824411366,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -37.90261173012568,
+      "fraction_listings_beating_xgboost": 0.515087431349031,
+      "paired_delta_95pct_bootstrap_usd": [
+        -71.38184132799499,
+        -8.400960013384468
+      ],
+      "validation_rank": 9
+    },
+    {
+      "architecture": "fttransformer",
+      "loss": "quantile50",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 32,
+      "rows": 31668,
+      "mae_usd": 3461.199034178951,
+      "rmse_usd": 7050.58980038649,
+      "mean_bias_usd": -705.0303171722138,
+      "rmse_log": 0.41067444645524587,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -42.79683191307694,
+      "fraction_listings_beating_xgboost": 0.5203991410887963,
+      "paired_delta_95pct_bootstrap_usd": [
+        -73.53037123431763,
+        -10.26184829782978
+      ],
+      "validation_rank": 9
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "huber",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 12,
+      "rows": 31682,
+      "mae_usd": 3679.809029083511,
+      "rmse_usd": 7095.107502731518,
+      "mean_bias_usd": 149.77552106518888,
+      "rmse_log": 0.41531254503734893,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": -26.607593560218536,
+      "fraction_listings_beating_xgboost": 0.4770532163373524,
+      "paired_delta_95pct_bootstrap_usd": [
+        -67.79214492291086,
+        17.479763908024353
+      ],
+      "validation_rank": 10
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "huber",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 12,
+      "rows": 31668,
+      "mae_usd": 3480.6956137571246,
+      "rmse_usd": 6740.474700732919,
+      "mean_bias_usd": 271.19150506916776,
+      "rmse_log": 0.4064116591681205,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": -23.300252334903284,
+      "fraction_listings_beating_xgboost": 0.47789566755083995,
+      "paired_delta_95pct_bootstrap_usd": [
+        -60.51777395110115,
+        14.942572623207672
+      ],
+      "validation_rank": 10
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "huber",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 19,
+      "rows": 31682,
+      "mae_usd": 3752.404761308256,
+      "rmse_usd": 7423.127486421908,
+      "mean_bias_usd": -249.3698990814007,
+      "rmse_log": 0.44109996968281207,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 45.98813866452698,
+      "fraction_listings_beating_xgboost": 0.461239820718389,
+      "paired_delta_95pct_bootstrap_usd": [
+        8.263712792492763,
+        84.35969018143344
+      ],
+      "validation_rank": 11
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "huber",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 19,
+      "rows": 31668,
+      "mae_usd": 3548.4135967910365,
+      "rmse_usd": 7078.382578620899,
+      "mean_bias_usd": -118.34495800728534,
+      "rmse_log": 0.4336714736480077,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 44.41773069900857,
+      "fraction_listings_beating_xgboost": 0.4590122521157004,
+      "paired_delta_95pct_bootstrap_usd": [
+        14.236179839309159,
+        80.32463353963908
+      ],
+      "validation_rank": 11
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "quantile50",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 15,
+      "rows": 31682,
+      "mae_usd": 4075.7773307995017,
+      "rmse_usd": 7467.355617617945,
+      "mean_bias_usd": 1049.6183513836186,
+      "rmse_log": 0.4632772946408804,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 369.360708155772,
+      "fraction_listings_beating_xgboost": 0.40915977526671293,
+      "paired_delta_95pct_bootstrap_usd": [
+        326.9909114105699,
+        411.59104086754974
+      ],
+      "validation_rank": 12
+    },
+    {
+      "architecture": "deepcross",
+      "loss": "quantile50",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 15,
+      "rows": 31668,
+      "mae_usd": 3885.1408096994505,
+      "rmse_usd": 7145.687325712332,
+      "mean_bias_usd": 1092.666870414718,
+      "rmse_log": 0.45668149567325667,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 381.144943607423,
+      "fraction_listings_beating_xgboost": 0.4037514209928003,
+      "paired_delta_95pct_bootstrap_usd": [
+        345.08333737204686,
+        424.02984192336635
+      ],
+      "validation_rank": 12
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "aft",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 23,
+      "rows": 31682,
+      "mae_usd": 4988.983125948427,
+      "rmse_usd": 8408.404027757331,
+      "mean_bias_usd": 3458.2774870240783,
+      "rmse_log": 0.43734266977882286,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 1282.5665033046985,
+      "fraction_listings_beating_xgboost": 0.3824253519348526,
+      "paired_delta_95pct_bootstrap_usd": [
+        1221.8824323234471,
+        1354.4620222145961
+      ],
+      "validation_rank": 13
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "aft",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 23,
+      "rows": 31668,
+      "mae_usd": 4732.54875708748,
+      "rmse_usd": 8030.013556890103,
+      "mean_bias_usd": 3317.2956687959963,
+      "rmse_log": 0.43114338663231455,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 1228.5528909954517,
+      "fraction_listings_beating_xgboost": 0.38164708854364027,
+      "paired_delta_95pct_bootstrap_usd": [
+        1177.0972282805333,
+        1292.0844210504245
+      ],
+      "validation_rank": 13
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "huber",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 11,
+      "rows": 31682,
+      "mae_usd": 5807.36183424165,
+      "rmse_usd": 9267.15054884058,
+      "mean_bias_usd": 4034.289486004231,
+      "rmse_log": 0.498141006251978,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 2100.945211597921,
+      "fraction_listings_beating_xgboost": 0.30181175430844015,
+      "paired_delta_95pct_bootstrap_usd": [
+        2040.6210135172628,
+        2168.1615039228177
+      ],
+      "validation_rank": 14
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "huber",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 11,
+      "rows": 31668,
+      "mae_usd": 5523.510519260704,
+      "rmse_usd": 8882.706057910389,
+      "mean_bias_usd": 3859.5239843603244,
+      "rmse_log": 0.49258189857081436,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 2019.5146531686767,
+      "fraction_listings_beating_xgboost": 0.302797776935708,
+      "paired_delta_95pct_bootstrap_usd": [
+        1952.795386369893,
+        2083.3422983146647
+      ],
+      "validation_rank": 14
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "huber",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 4,
+      "rows": 31682,
+      "mae_usd": 6227.487282283029,
+      "rmse_usd": 10221.744508346532,
+      "mean_bias_usd": 4619.180509683864,
+      "rmse_log": 0.5081251209265647,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 2521.0706596392997,
+      "fraction_listings_beating_xgboost": 0.30474717505208004,
+      "paired_delta_95pct_bootstrap_usd": [
+        2447.4791145424397,
+        2602.327827908175
+      ],
+      "validation_rank": 15
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "huber",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 4,
+      "rows": 31668,
+      "mae_usd": 5809.178608304692,
+      "rmse_usd": 9589.408477511957,
+      "mean_bias_usd": 4299.959672770992,
+      "rmse_log": 0.4981071334957878,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 2305.1827422126635,
+      "fraction_listings_beating_xgboost": 0.3079449286345838,
+      "paired_delta_95pct_bootstrap_usd": [
+        2230.082464070295,
+        2379.7483497191324
+      ],
+      "validation_rank": 15
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "quantile50",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 3,
+      "rows": 31682,
+      "mae_usd": 6155.747859612546,
+      "rmse_usd": 9782.241342979345,
+      "mean_bias_usd": 3979.396432992275,
+      "rmse_log": 0.5387775170857813,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 2449.3312369688156,
+      "fraction_listings_beating_xgboost": 0.3006754624076763,
+      "paired_delta_95pct_bootstrap_usd": [
+        2382.3208330244156,
+        2518.138589670631
+      ],
+      "validation_rank": 16
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "quantile50",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 3,
+      "rows": 31668,
+      "mae_usd": 5845.138309284784,
+      "rmse_usd": 9418.785050886614,
+      "mean_bias_usd": 3796.844446447462,
+      "rmse_log": 0.5357484448644695,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 2341.1424431927558,
+      "fraction_listings_beating_xgboost": 0.30052418845522294,
+      "paired_delta_95pct_bootstrap_usd": [
+        2270.156201149082,
+        2413.004173978175
+      ],
+      "validation_rank": 16
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "aft",
+      "train_cohort": "lemon",
+      "partition": "test",
+      "train_rows_fit": 99749,
+      "best_epoch": 8,
+      "rows": 31682,
+      "mae_usd": 6169.602792476427,
+      "rmse_usd": 9206.522356432468,
+      "mean_bias_usd": 4473.007250019878,
+      "rmse_log": 0.5656381917103918,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 2463.1861698326984,
+      "fraction_listings_beating_xgboost": 0.23622246070323843,
+      "paired_delta_95pct_bootstrap_usd": [
+        2402.8107958275928,
+        2523.6786464999072
+      ],
+      "validation_rank": 17
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "aft",
+      "train_cohort": "lemon",
+      "partition": "validation",
+      "train_rows_fit": 99749,
+      "best_epoch": 8,
+      "rows": 31668,
+      "mae_usd": 5969.804279404831,
+      "rmse_usd": 8896.726474701358,
+      "mean_bias_usd": 4446.929503387005,
+      "rmse_log": 0.5627311933481121,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 2465.8084133128036,
+      "fraction_listings_beating_xgboost": 0.23010610079575597,
+      "paired_delta_95pct_bootstrap_usd": [
+        2405.671565647584,
+        2534.1004151752386
+      ],
+      "validation_rank": 17
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "quantile50",
+      "train_cohort": "full",
+      "partition": "test",
+      "train_rows_fit": 133000,
+      "best_epoch": 5,
+      "rows": 31682,
+      "mae_usd": 7101.908188023813,
+      "rmse_usd": 10965.018715400736,
+      "mean_bias_usd": 5792.8491524504325,
+      "rmse_log": 0.5294404350347323,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3706.416622643729,
+      "delta_mae_vs_xgboost_usd": 3395.4915653800836,
+      "fraction_listings_beating_xgboost": 0.2747301306735686,
+      "paired_delta_95pct_bootstrap_usd": [
+        3319.037488082768,
+        3484.7732474760114
+      ],
+      "validation_rank": 18
+    },
+    {
+      "architecture": "resmlp",
+      "loss": "quantile50",
+      "train_cohort": "full",
+      "partition": "validation",
+      "train_rows_fit": 133000,
+      "best_epoch": 5,
+      "rows": 31668,
+      "mae_usd": 6762.276788180892,
+      "rmse_usd": 10465.86851697127,
+      "mean_bias_usd": 5573.602205000034,
+      "rmse_log": 0.5254588692222051,
+      "reference_model": "XGBoost AFT + frozen training-only Lemon trim (no hierarchy)",
+      "reference_mae_usd": 3503.995866092028,
+      "delta_mae_vs_xgboost_usd": 3258.280922088864,
+      "fraction_listings_beating_xgboost": 0.27740937223695844,
+      "paired_delta_95pct_bootstrap_usd": [
+        3179.5081355139737,
+        3332.93953272606
+      ],
+      "validation_rank": 18
+    }
+  ]
+}
