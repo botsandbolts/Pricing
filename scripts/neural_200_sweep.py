@@ -143,7 +143,7 @@ def _save(output,group,trial,settings,fit_report,prices,ids,y,net,metadata):
                   "observed_price":y.astype(float),"predicted_price":prices}).to_csv(
                   output/"validation.csv.gz",index=False)
     record={"status":"completed","group":group,"trial":trial,
-            "seed":SEED+GROUPS.index(group)*1000+trial,
+            "seed":SEED+GROUPS.index(group.replace("_refined","_structure"))*1000+trial,
             "trial_configuration":settings,
             "selection_metric":"validation absolute USD CVaR95",
             "selection_split":"original validation only",
@@ -157,7 +157,7 @@ def _save(output,group,trial,settings,fit_report,prices,ids,y,net,metadata):
     print("CVaR95_TRIAL_COMPLETE",group,trial,json.dumps(fit_report),flush=True)
 
 
-def ask(group,trial,original,embeddings,output,max_seconds):
+def ask(group,trial,original,embeddings,output,max_seconds,refinement=None):
     from scripts.raw_embedding_ask_train import frozen_source
     from scripts.neural_ask_train import seed_everything,predict,objective
     # BGE vectors were frozen and SHA256-verified before tuning; no encoder training.
@@ -169,8 +169,8 @@ def ask(group,trial,original,embeddings,output,max_seconds):
     val=np.flatnonzero(phase=="validation")
     if (len(fit),len(inner),len(val))!=(133000,14777,31668):
         raise ValueError("Original chronological asking holdouts changed")
-    cfg=spec(group,trial)
-    hp=cfg if group=="ask_hparams" else defaults(group)
+    cfg=refinement["structure"] if refinement is not None else spec(group,trial)
+    hp=refinement["hyperparameters"] if refinement is not None else (cfg if group=="ask_hparams" else defaults(group))
     ds=TensorDataset(torch.from_numpy(z["num"].astype(np.float32)),
         torch.from_numpy(z["cat"].astype(np.int64)),torch.from_numpy(e),
         torch.from_numpy(np.log(z["y"]).astype(np.float32)))
@@ -216,7 +216,9 @@ def ask(group,trial,original,embeddings,output,max_seconds):
           "encoder":encoder_meta["model_id"],
           "training_rows":133000,"internal_stop_rows":14777,
           "validation_rows":31668,"no_description_price_head":True}
-    _save(output,group,trial,cfg,scores,pv,z["ids"][val],z["y"][val],model,meta)
+    _save(output,"ask_refined" if refinement is not None else group,trial,
+          {"structure":cfg,"hyperparameters":hp} if refinement is not None else cfg,
+          scores,pv,z["ids"][val],z["y"][val],model,meta)
 
 
 def _matched_auction_baseline(path,ids,y):
@@ -232,7 +234,7 @@ def _matched_auction_baseline(path,ids,y):
     return aligned.predicted_price.to_numpy(float)
 
 
-def bid(group,trial,features,baseline,output,max_seconds):
+def bid(group,trial,features,baseline,output,max_seconds,refinement=None):
     from scripts.bid_fm_kernel_train import source,partition,y_price
     from scripts.bid_fm_scale_train import ScaledAuctionFM,prediction
     z,manifest=source(features)
@@ -241,8 +243,8 @@ def bid(group,trial,features,baseline,output,max_seconds):
     np.random.seed(SEED+GROUPS.index(group)*1000+trial)
     torch.manual_seed(SEED+GROUPS.index(group)*1000+trial)
     torch.set_num_threads(2)
-    cfg=spec(group,trial)
-    hp=cfg if group=="bid_hparams" else defaults(group)
+    cfg=refinement["structure"] if refinement is not None else spec(group,trial)
+    hp=refinement["hyperparameters"] if refinement is not None else (cfg if group=="bid_hparams" else defaults(group))
     numeric=z["num"].astype(np.float32);cat=z["cat"].astype(np.int64)
     y=z["y"].astype(np.float64)
     init=float(np.median(np.log(y[fit])))
@@ -294,7 +296,9 @@ def bid(group,trial,features,baseline,output,max_seconds):
           "training_rows":384198,"validation_rows":82380,
           "baseline":"original matched Lemon XGBoost, unchanged",
           "selection":"validation blend CVaR95 only","test_used":False}
-    _save(output,group,trial,cfg,scores,pv,z["ids"][val],y[val],model,meta)
+    _save(output,"bid_refined" if refinement is not None else group,trial,
+          {"structure":cfg,"hyperparameters":hp} if refinement is not None else cfg,
+          scores,pv,z["ids"][val],y[val],model,meta)
 
 
 @torch.no_grad()
