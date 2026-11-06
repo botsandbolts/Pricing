@@ -1,7 +1,7 @@
 """Experimental model workshop: two independent parity-gated neural engines.
 
 Ask: description -> pinned BGE embedding -> entire DeepCross/AFT price model.
-Bid: full-data DeepFM32 (75%) + matched Lemon XGBoost (25%).
+Bid: full-data DeepFM16 (75%) + matched Lemon XGBoost (25%).
 Research models are never substituted by the primary calculator's predictions.
 """
 import json
@@ -114,7 +114,8 @@ def _ask(root):
     st.caption("No MiniLM Ridge, no text-only price head and no TF-IDF/SVD price scalar. "
                "All 384 BGE embedding dimensions feed the learned neural projection.")
     from pricing.cvar95_experiment_science import model_kpis
-    kpi=model_kpis(root,"ask")
+    from pricing.cvar95_experiment_science import all_validation
+    kpi=model_kpis(root,"ask") if all_validation(root,"ask") else None
     if kpi:
         a,c,e=st.columns(3)
         a.metric("🛡️ CVaR95 · PRIMARY", "$"+f"{kpi['CVaR95_absolute_USD']:,.0f}")
@@ -194,7 +195,8 @@ def _bid(root):
     st.caption("Historical completed 2014–15 wholesale auction sales, expressed "
                "in January 2015-indexed dollars. No current-year price guarantee.")
     from pricing.cvar95_experiment_science import model_kpis,evidence
-    kpi=model_kpis(root,"bid")
+    from pricing.cvar95_experiment_science import all_validation
+    kpi=model_kpis(root,"bid") if all_validation(root,"bid") else None
     d=evidence(root)
     baseline=next((x for x in d.get("bid",[]) if x.get("model")=="Lemon XGBoost historical baseline"),None)
     if kpi:
@@ -218,7 +220,7 @@ def _bid(root):
     if go:
         try:
             from pricing.neural_bid_blend_live import load
-            with st.spinner("Evaluating DeepFM32 and matched Lemon XGBoost…"):
+            with st.spinner("Evaluating DeepFM16 and matched Lemon XGBoost…"):
                 result=load(root).predict(fields)
             st.session_state["deepfm_complete_receipt"]={"fields":fields,"result":result}
         except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
@@ -230,7 +232,7 @@ def _bid(root):
         _price("Historical wholesale sale · 2015-indexed USD",
                r["price"],"Not a dealer bid, guaranteed sale, or November 2026 appraisal")
         a,b=st.columns(2)
-        a.metric("DeepFM32 · 75%","$"+f"{r['deepfm_price']:,.0f}")
+        a.metric("DeepFM16 · 75%","$"+f"{r['deepfm_price']:,.0f}")
         b.metric("Lemon XGBoost · 25%","$"+f"{r['xgboost_lemon_price']:,.0f}")
         if r["unrecognized_categories"]:
             st.info("These features use original unknown-category fallbacks: "+
@@ -249,8 +251,8 @@ def _explanation(root):
              "average absolute dollar error was about **$19,985**, against "
              "**$21,453** for MiniLM-scalar DeepCross.")
     st.write("**Wholesale:** DeepFM learns vehicle feature interactions and a small "
-             "neural network branch. A 75% DeepFM32 full-data / 25% Lemon XGBoost "
-             "blend recorded **$8,694 CVaR95**, versus **$11,140** for the matched "
+             "neural network branch. A 75% DeepFM16 full-data / 25% Lemon XGBoost "
+             "blend recorded **$8,860 CVaR95**, versus **$11,140** for the matched "
              "Lemon XGBoost, on historical 2015-normalized auction sales.")
     st.info("These are historical matched research comparisons, NOT proof that either "
             "experimental model is superior to the primary calculator for a "

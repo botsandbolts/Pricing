@@ -1,4 +1,4 @@
-"""Bundle DeepFM32+original Lemon XGBoost for experimental wholesale ONLY
+"""Bundle DeepFM16+original Lemon XGBoost for experimental wholesale ONLY
 when original VIN-disjoint archived validation/test predictions match serving.
 No new model training; no extrapolation disguised as an observed auction sale.
 """
@@ -50,27 +50,27 @@ def original_preprocessing(frame,z,m):
 def package(a):
     root=Path(a.root);out=Path(a.output)
     z,provenance=source(a.features)
-    frame=pd.read_parquet(a.parquet)
+    frame=pd.read_parquet(a.parquet,
+             columns=["row_id","date","year","odometer","condition",*CATS])
     if len(frame)!=550181 or not np.array_equal(
         frame.row_id.astype(str).to_numpy(),z["ids"].astype(str)):
         raise ValueError("The original VIN-disjoint source rows/order changed")
-    report=json.loads(Path(a.report).read_text())
-    audit=json.loads(Path(a.rmse_report).read_text())
-    pick=audit["standalone_selected_on_validation"]
-    blend=audit["blend_selected_on_validation"]
-    if (report.get("status"),report["selected_by_validation"].get("trial"),
-        audit.get("status"),audit.get("study"),pick.get("trial"),
-        blend.get("trial"),blend.get("model_weight"),
-        blend.get("xgboost_lemon_weight"))!=(
-        "complete","deepfm32_full","complete","fm26",
-        "deepfm32_full","deepfm32_full",.75,.25):
-        raise ValueError("Full vs Lemon original validation has not selected DeepFM32 75/25")
+    audit=json.loads(Path(a.cvar_report).read_text())
+    chosen=audit.get("chosen_blend",{})
+    if (audit.get("status"),audit.get("primary_metric"),
+        audit.get("validation_models"),chosen.get("study"),chosen.get("model"),
+        chosen.get("neural_weight"),chosen.get("xgb_lemon_weight"),
+        audit.get("training_objectives_unchanged"),
+        audit.get("models_chosen_by_test")) != (
+        "complete","validation_absolute_dollar_CVaR95",65,"fm26",
+        "deepfm16_full",.75,.25,True,False):
+        raise ValueError("Original CVaR95-validation winner is not DeepFM16 + 25% Lemon XGBoost")
     record=json.loads((Path(a.winner)/"result.json").read_text())
     if (record.get("trial"),record.get("family"),record.get("rank"),
         record.get("cohort"),record.get("test_evaluated"),
         record.get("cohort_sha256"))!=(
-        "deepfm32_full","deepfm",32,"full",False,provenance["cohort_sha256"]):
-        raise ValueError("Wrong archived full-data DeepFM32 checkpoint")
+        "deepfm16_full","deepfm",16,"full",False,provenance["cohort_sha256"]):
+        raise ValueError("Wrong archived full-data DeepFM16 checkpoint")
     state,numeric_diff=original_preprocessing(frame,z,provenance)
     out.mkdir(parents=True,exist_ok=True)
     shutil.copy2(Path(a.winner)/"weights.pt",out/"weights.pt")
@@ -81,19 +81,21 @@ def package(a):
     published=json.loads((bxgb/"evaluation.json").read_text())
     if (published["scores"]["test"]["n"]!=83603 or
         abs(published["scores"]["test"]["mae_usd"]-
-            audit["matched_lemon_xgboost"]["test"]["mae_usd"])>.05):
+            audit["original_xgboost_lemon_reference"]["original_test"]["MAE_USD"])>.05):
         raise ValueError("Deployed historical Lemon XGBoost differs from benchmark; fail closed")
     (out/"preprocessing.json").write_text(json.dumps(state,indent=2))
     manifest={
       "status":"awaiting_parity_on_original_auction_holdouts",
-      "model":"deepfm32_full_xgb_lemon_75_25",
-      "display_name":"DeepFM32 full (75%) + Lemon XGBoost (25%)",
+      "model":"deepfm16_full_xgb_lemon_75_25",
+      "display_name":"DeepFM16 full (75%) + Lemon XGBoost (25%)",
       "weights_frozen":True,
       "full_data_deepfm":384198,"lemon_xgboost":288148,
       "original_validation":82380,"original_test":83603,
       "price_basis":"2015-index-normalized historical auction sales",
-      "test_rmse_usd":report["selected_winner_xgboost_blend"]["test"]["rmse_usd"],
-      "test_mae_usd":report["selected_winner_xgboost_blend"]["test"]["mae_usd"],
+      "test_rmse_usd":chosen["original_test"]["RMSE_USD"],
+      "test_mae_usd":chosen["original_test"]["MAE_USD"],
+      "test_cvar95_absolute_usd":chosen["original_test"]["CVaR95_absolute_USD"],
+      "selected_on_original_validation_CVaR95":True,
       "no_live_2026_accuracy_claim":True,
       "only_experimental_panel":True,"not_asking_prices":True,
       "original_holdout_row_sha256":provenance["holdout_row_sha256"],
@@ -103,14 +105,19 @@ def package(a):
     (out/"manifest.json").write_text(json.dumps(manifest,indent=2))
     # Temporary verification only permits a local CI serving parity test.
     (out/"verification.json").write_text(json.dumps({
-      "status":"passed","verified":True,"original_holdout_rows_checked":44,
-      "xgboost_archived_predictions_match":True,
-      "deepfm_archived_predictions_match":True,"provisional_only":True}))
-    engine=VerifiedWholesaleBlend(root)
+      "status":"pending","verified":False,"original_holdout_rows_checked":0,
+      "xgboost_archived_predictions_match":False,
+      "deepfm_archived_predictions_match":False,"provisional_only":True}))
+    # Explicit packaging-only inference; public UI still requires PASSED original holdout certificate.
+    engine=VerifiedWholesaleBlend(root,_parity_test=True)
     from scripts.neural_bid_report import reference
     baseline=reference(a.xgb_reference)
     val=pd.read_csv(Path(a.winner)/"validation.csv.gz",dtype={"row_id":str}).set_index("row_id")
     test=pd.read_csv(a.test_predictions,dtype={"row_id":str}).set_index("row_id")
+    if not set(("selected_blend_constituent_price","observed_price","split")).issubset(test.columns):
+        raise ValueError("Missing ID-verified original CVaR-selected DeepFM16 test predictions")
+    if not test.split.eq("test").all():
+        raise ValueError("Wrong test phase in CVaR95 original predictions")
     if len(baseline)!=165983 or len(val)!=82380 or len(test)!=83603:
         raise ValueError("Archived wholesale prediction row counts are incomplete")
     phase=z["phase"].astype(str)
@@ -130,7 +137,7 @@ def package(a):
                           auction_grade=row.get("condition",row.get("auction_condition")))
             pred=engine.predict(fields)
             rid=str(row["row_id"])
-            archived=float(archive.loc[rid,"predicted_price"])
+            archived=float(archive.loc[rid,"predicted_price" if split=="validation" else "selected_blend_constituent_price"])
             ref=float(baseline.loc[rid,"predicted_price"])
             errors["deepfm"].append(abs(pred["deepfm_price"]-archived)/max(archived,100))
             errors["xgboost"].append(abs(pred["xgboost_lemon_price"]-ref)/max(ref,100))
@@ -169,9 +176,9 @@ if __name__=="__main__":
     p.add_argument("--features",default="training-cache/neural-bid/features.npz")
     p.add_argument("--parquet",default="training-cache/neural-bid/canonical-bid.parquet")
     p.add_argument("--winner",default="training-cache/bid-winner")
-    p.add_argument("--test-predictions",default="training-cache/bid-report/winner-original-test.csv.gz")
-    p.add_argument("--report",default="reports/bid-fm-scale/comparison.json")
-    p.add_argument("--rmse-report",default="reports/bid-rmse/fm26/comparison.json")
+    p.add_argument("--test-predictions",default="reports/cvar95/all-candidates/bid/CVaR95-preselected-original-test.csv.gz")
+    
+    p.add_argument("--cvar-report",default="reports/cvar95/all-candidates/bid/comparison.json")
     p.add_argument("--xgb-reference",default="benchmark-reference/bid/predictions.csv.gz")
     p.add_argument("--output",default=FOLDER)
     a=p.parse_args()

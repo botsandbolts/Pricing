@@ -19,8 +19,10 @@ def test_verified_historical_tail_card_and_wrong_status_fail_closed(tmp_path):
        "ask":[k("BGE-256 + full DeepCross/AFT")]}
     f.write_text(json.dumps(d))
     assert evidence(tmp_path)["status"]=="complete"
-    assert model_kpis(tmp_path,"bid")["CVaR95_absolute_USD"]==10000
-    assert model_kpis(tmp_path,"ask")["MAE_USD"]==1500
+    # Historical MAE/RMSE-selected test scores do not impersonate
+    # the new validation-CVaR95-selected engine.
+    assert model_kpis(tmp_path,"bid") is None
+    assert model_kpis(tmp_path,"ask") is None
     d["test_used_for_reselection"]=True
     f.write_text(json.dumps(d))
     assert evidence(tmp_path)=={}

@@ -133,10 +133,10 @@ def install(a):
     (output/"manifest.json").write_text(json.dumps(manifest,indent=2))
     # This temporary CI-only marker is removed or overwritten upon failures.
     (output/"verification.json").write_text(json.dumps({
-       "status":"passed","verified":True,"provisional_only":True,
-       "native_encoder_parity":True,"full_network_parity_passed":True,
+       "status":"pending","verified":False,"provisional_only":True,
+       "native_encoder_parity":False,"full_network_parity_passed":False,
        "original_holdout_samples_checked":0}))
-    engine=BGEDeepCrossAsk(root)
+    engine=BGEDeepCrossAsk(root,_parity_test=True)
     val=pd.read_csv(saved/"validation.csv.gz",dtype={"row_id":str}).set_index("row_id")
     test=pd.read_csv(a.test_predictions,dtype={"row_id":str}).set_index("row_id")
     if (len(val),len(test))!=(31668,31682):

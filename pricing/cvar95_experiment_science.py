@@ -72,19 +72,24 @@ def _number(n):
 
 def model_kpis(root,market):
     """Safe panel top-line primary CVaR95 with secondary RMSE and MAE."""
-    d=evidence(root)
-    if not d:return None
-    group="bid" if market=="bid" else "ask"
-    items=d.get(group,[])
-    if not items:return None
-    match=("fm26 / validated_blend" if market=="bid" else
-           "BGE-256 + full DeepCross/AFT")
-    found=next((row for row in items if row.get("model")==match),None)
-    if found is None:return None
-    for x in ("CVaR95_absolute_USD","RMSE_USD","MAE_USD","VaR95_absolute_USD"):
-        if not isinstance(found.get(x),(int,float)) or found[x]<=0:
-            return None
-    return found
+    selected=all_validation(root,market)
+    if market=="bid" and selected:
+        choice=selected.get("chosen_blend",{})
+        if (choice.get("model"),choice.get("neural_weight"),
+            choice.get("xgb_lemon_weight"))==("deepfm16_full",.75,.25):
+            v=choice.get("original_test",{})
+            if v.get("CVaR95_absolute_USD",0)>0:
+                return v
+    if market=="ask" and selected:
+        choice=selected.get("CVaR95_selection",{})
+        if (choice.get("model")=="bge-256" and
+            choice.get("test_status")=="scored_after_validation_selection"):
+            v=choice.get("original_test") or {}
+            if v.get("CVaR95_absolute_USD",0)>0:
+                return v
+    # An older test-score champion must never silently substitute for the
+    # independently CVaR-selected checkpoint when that selection is missing.
+    return None
 
 
 def render(root):
@@ -137,10 +142,10 @@ def render(root):
     ask=model_kpis(root,"ask")
     bid=model_kpis(root,"bid")
     with a:
-        if ask:st.metric("2021 asking · full BGE model",_number(ask["CVaR95_absolute_USD"]))
+        if ask:st.metric("2021 asking · CVaR-selected BGE model",_number(ask["CVaR95_absolute_USD"]))
         st.caption("31,682 original advertised asking prices, not confirmed sales.")
     with b:
-        if bid:st.metric("2015 wholesale · DeepFM blend",_number(bid["CVaR95_absolute_USD"]))
+        if bid:st.metric("2015 wholesale · CVaR-selected DeepFM16 blend",_number(bid["CVaR95_absolute_USD"]))
         st.caption("83,603 completed historical auctions, 2015-indexed USD.")
     st.caption("Cross-market CVaR values are not comparable because vehicle prices, "
                "targets, dates and cohorts differ. Previously selected models "

@@ -62,13 +62,13 @@ def categoricals(fields,maps):
 
 
 class BGEDeepCrossAsk:
-    def __init__(self,root):
+    def __init__(self,root,*,_parity_test=False):
         import torch
         from sentence_transformers import SentenceTransformer
         from scripts.raw_embedding_ask_train import EmbeddingOnlyDeepCross
         from scripts.raw_embedding_ask_encode import SPECS
         root=Path(root)
-        if not available(root):
+        if not _parity_test and not available(root):
             raise FileNotFoundError("Unverified native BGE + complete DeepCross/AFT release")
         folder=root/FOLDER
         self.manifest=json.loads((folder/"manifest.json").read_text())
@@ -90,8 +90,7 @@ class BGEDeepCrossAsk:
             raise ValueError("Original train-only numerical/categorical preprocessing differs")
         candidate="bge-256"
         model_id,max_tokens,dimension=SPECS[candidate]
-        if ((model_id,max_tokens,dimension),
-            self.manifest.get("encoder_revision"))[0] != (
+        if (model_id,max_tokens,dimension) != (
             self.manifest["encoder_model"],self.manifest["encoder_max_tokens"],384):
             raise ValueError("Unexpected native pretrained sentence encoder")
         ckpt=torch.load(folder/"weights.pt",map_location="cpu",weights_only=True)

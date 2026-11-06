@@ -1,4 +1,4 @@
-"""Fail-closed DeepFM32-full(75%)+original Lemon XGBoost(25%) wholesale lab.
+"""Fail-closed DeepFM16-full(75%)+original Lemon XGBoost(25%) wholesale lab.
 
 The historical target is OBSERVED auction sale amount, in 2015-normalized
 USD, not a submitted dealer offer or a November 2026 market forecast.
@@ -22,7 +22,7 @@ def available(root):
     try:
         m=json.loads((folder/"manifest.json").read_text())
         v=json.loads((folder/"verification.json").read_text())
-        return bool(m.get("model")=="deepfm32_full_xgb_lemon_75_25"
+        return bool(m.get("model")=="deepfm16_full_xgb_lemon_75_25"
                     and m.get("weights_frozen") is True
                     and v.get("status")=="passed"
                     and v.get("verified") is True
@@ -80,13 +80,13 @@ def checked_price(price,label):
 
 
 class VerifiedWholesaleBlend:
-    def __init__(self,root):
+    def __init__(self,root,*,_parity_test=False):
         import torch
         import xgboost as xgb
         from scripts.bid_fm_scale_train import ScaledAuctionFM
         from pricing.suite_storage import read_model_file
         root=Path(root)
-        if not available(root):
+        if not _parity_test and not available(root):
             raise FileNotFoundError("No original-holdout-verified wholesale model bundle")
         folder=root/FOLDER
         self.state=json.loads((folder/"preprocessing.json").read_text())
@@ -105,9 +105,9 @@ class VerifiedWholesaleBlend:
         pack=torch.load(folder/"weights.pt",map_location="cpu",weights_only=True)
         if (pack.get("trial"),pack.get("family"),pack.get("rank"),
             pack.get("cohort"),pack.get("cards"),pack.get("seed"))!=(
-                "deepfm32_full","deepfm",32,"full",self.cards,20261106):
+                "deepfm16_full","deepfm",16,"full",self.cards,20261106):
             raise ValueError("Unexpected neural checkpoint identity")
-        self.model=ScaledAuctionFM(self.cards,"deepfm",32,
+        self.model=ScaledAuctionFM(self.cards,"deepfm",16,
                                    pack["initial_log_price"])
         self.model.load_state_dict(pack["state_dict"],strict=True)
         self.model.eval()
@@ -145,7 +145,7 @@ class VerifiedWholesaleBlend:
                                        original,float(raw[1]),"bid")
         xgb_price=checked_price(xgb_price,"Lemon XGBoost")
         combined=checked_price(.75*deepfm+.25*xgb_price,"Experimental bid blend")
-        return {"market":"bid","model":"deepfm32_full_xgb_lemon_75_25",
+        return {"market":"bid","model":"deepfm16_full_xgb_lemon_75_25",
                 "price":combined,"deepfm_price":deepfm,
                 "xgboost_lemon_price":xgb_price,
                 "historical_price_basis":"2015-index-normalized USD",
@@ -157,7 +157,7 @@ class VerifiedWholesaleBlend:
 
 def _cache(root,signature):
     import streamlit as st
-    @st.cache_resource(max_entries=2,show_spinner=False)
+    @st.cache_resource(max_entries=1,show_spinner=False)
     def make(root_,signature_):
         return VerifiedWholesaleBlend(root_)
     return make(root,signature)
