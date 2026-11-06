@@ -61,3 +61,17 @@ def test_no_unsupported_missing_trainings_pass_as_complete(tmp_path):
     assert audit["successful_audited_trials"]==0
     assert audit["missing"]==list(range(25))
     assert audit["automatic_deployment"] is False
+
+
+def test_bid_workflow_is_delayed_until_ask_has_finished():
+    from pathlib import Path
+    workflow=Path(".github/workflows/bid25-delayed-joint-cvar95.yml").read_text()
+    lines=[line.strip() for line in workflow.splitlines()]
+    assert "workflow_run:" in lines
+    assert "types: [completed]" in lines
+    assert "Ask · 25 joint architecture + hyperparameter CVaR95 trials" in workflow
+    assert "github.event.workflow_run.status == 'completed'" in workflow
+    assert "max-parallel: 3" in lines
+    assert "push:" not in lines
+    assert "successful_audited_trials" not in workflow
+    assert "test \"$running\" = \"0\"" in workflow
