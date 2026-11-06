@@ -72,19 +72,20 @@ def test_training_cohorts_preserve_original_unfiltered_holdouts():
 
 def test_val_alignment_rejects_missing_rows_and_changed_target():
     import pandas as pd
+    from io import StringIO
     baseline=pd.DataFrame({
         "row_id":["a","b"],"split":["validation","validation"],
         "observed_price":[100.,200.],"predicted_price":[105.,205.]}).set_index("row_id")
     shuffled=pd.DataFrame({
         "row_id":["b","a"],"split":["validation","validation"],
         "observed_price":[200.,100.],"predicted_price":[199.,99.]})
-    found=validation_frame(shuffled,baseline)
+    found=validation_frame(StringIO(shuffled.to_csv(index=False)),baseline)
     assert found.index.tolist()==["a","b"]
     with pytest.raises(ValueError):
-        validation_frame(shuffled.iloc[:1],baseline)
+        validation_frame(StringIO(shuffled.iloc[:1].to_csv(index=False)),baseline)
     wrong=shuffled.copy();wrong.loc[0,"observed_price"]=9999.
     with pytest.raises(ValueError):
-        validation_frame(wrong,baseline)
+        validation_frame(StringIO(wrong.to_csv(index=False)),baseline)
 
 
 def test_rff_uses_sparse_onehot_and_raw_numeric_without_price():
