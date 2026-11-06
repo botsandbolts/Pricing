@@ -31,6 +31,15 @@ _description_scan_release_v13()
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
+# Friendly landing-page doorway to the two-market research garage.
+if st.session_state.get('landing_studio_workspace','🚗 Price my car') == '🚗 Price my car':
+    st.markdown("""<div role="note" style="background:linear-gradient(115deg,#163755,#3b3278);color:#fff;border-radius:22px;padding:20px 24px;margin:16px 0;border:1px solid #aec5e6">
+    <strong style="font-size:1.25rem;color:#e9f5a7">🧬 Experimental garage: two prices enter, panic leaves.</strong>
+    <p style="color:#f0f3ff;margin:8px 0">One car, seller asking + wholesale auction, 400 real listing examples and a November 2026 market scenario. CVaR95 watches the worst 5% of pricing mistakes—because nobody frames their largest valuation error.</p>
+    </div>""",unsafe_allow_html=True)
+    if st.button('🧪 Open the two-market experimental garage ↗',key='experimental_landing_entry',type='primary'):
+        st.session_state['_navigate_to']='🧬 Experimental models'
+        st.rerun()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
 # Mount consent and first-party telemetry on early-return workspaces as well.
