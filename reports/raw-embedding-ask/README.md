@@ -1,0 +1,3 @@
+# Frozen raw-embedding DeepCross AFT asking-price study
+
+All 8 encoder/context variants use 7 original numeric features, 11 original categorical embeddings and frozen **sentence embeddings only**. The only price-predicting parameters are in the learned projection + DeepCross AFT; no pretrained text-derived price head, MiniLM price scalar or TF-IDF/SVD input. All models selected by chronological original validation MAE, with the original test evaluated for ONE winner after selection. Batch-one serving consistency is verified against batch-sixteen embedding inference. Two additional training seeds are reported on validation without cherry-picking. No production promotion.

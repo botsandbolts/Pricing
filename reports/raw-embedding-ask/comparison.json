@@ -1,0 +1,91 @@
+{
+  "status": "complete",
+  "study": "Direct pretrained embeddings -> learned projector -> DeepCross+AFT, no text price heads",
+  "market": "ask",
+  "user_request": "Only embeddings. Price comes from full neural model.",
+  "encoder_candidates": 8,
+  "winner_by_original_validation": {
+    "status": "selected_by_validation_only",
+    "candidate": "bge-256",
+    "selected_validation_mae_usd": 2853.2938142152857,
+    "original_validation_mae_usd": 3046.6140848566,
+    "original_untouched_test_winner_mae_usd": 3261.536912607632,
+    "selection_rule": "lowest original chronological validation MAE; no new candidate test predictions scored",
+    "number_of_encoder_context_candidates": 8,
+    "model_id": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "embedding_only": true,
+    "text_price_heads": 0,
+    "production_changed": false
+  },
+  "winner_test": {
+    "rows": 31682,
+    "mae_usd": 3036.7538600323796,
+    "rmse_usd": 6299.0084843863215,
+    "mean_bias_usd": -373.8171049137643,
+    "median_absolute_percentage_error": 0.14608151378521855,
+    "rmse_log": 0.3528313555399542,
+    "spearman": 0.930987221204736
+  },
+  "original_deepcross_minilm_scalar_test_mae_usd": 3261.536912607632,
+  "winner_delta_test_mae_vs_prior_usd": -224.7830525752515,
+  "paired_95pct_bootstrap_test_delta_usd": [
+    -262.0622964134568,
+    -182.20424187977267
+  ],
+  "winner_fraction_better_than_prior_test": 0.5285019885108263,
+  "independent_seed_validation_robustness": {
+    "42": {
+      "validation_mae_usd": 2925.537420414874,
+      "best_epoch": 22
+    },
+    "1729": {
+      "validation_mae_usd": 2924.193041089375,
+      "best_epoch": 32
+    }
+  },
+  "three_seed_validation_mean_usd": 2901.0080919065113,
+  "full_xgboost_published_unpaired": {
+    "validation": {
+      "n": 31668,
+      "mae_usd": 3180.472381855843,
+      "rmse_log": 0.38686592607495773,
+      "median_signed_log_residual": 0.036531190880072055
+    },
+    "test": {
+      "n": 31682,
+      "mae_usd": 3377.729954553564,
+      "rmse_log": 0.39512568728683123,
+      "median_signed_log_residual": 0.03501419498847951
+    },
+    "limitation": "Only aggregate data; per-listing prediction identity not verified"
+  },
+  "heldout_rows": {
+    "validation": 31668,
+    "test": 31682
+  },
+  "encoder_serving_consistency": {
+    "samples": 240,
+    "max_absolute_difference": 2.086162567138672e-07,
+    "minimum_cosine_similarity": 0.9999997615814209,
+    "train_batch_size": 16,
+    "live_batch_size": 1,
+    "relative_to_price_target": "none"
+  },
+  "embedding_snapshot": {
+    "model": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "max_tokens": 256,
+    "stored_precision": "float16",
+    "sha256": "d619d6b8b4bb17475b500dbfb7835aeb125609c3ed54dbd6113264a2a7569a33"
+  },
+  "inference_checkpoint_sha256": "2abdebdb912f18710681e2a7f6bb5478d3708674d16d26267b9c98ea580210fc",
+  "selection": "All candidate training jobs return validation only; test evaluated for one validation winner",
+  "production_promotion": false,
+  "caveats": [
+    "Embedding model pretraining may contain unknown training corpora; no direct test-set label access here",
+    "Historical 2021 asking prices are not verified sale transactions",
+    "The original MiniLM scalar is a different feature representation, not an identical architecture",
+    "Model winner must pass complete Streamlit serving parity before any release"
+  ]
+}
