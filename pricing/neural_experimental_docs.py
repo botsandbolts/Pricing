@@ -7,6 +7,8 @@ def render(root,report=None):
     st.markdown("## 05 / Behind the price oracle")
     st.caption("Choose the business explanation or the scientific protocol. Both report limits, not magic.")
     business,science,limits=st.tabs(["💼 Business","🔬 Scientific","⚠️ Limits & privacy"])
+    from pricing.error_metrics_science import render as render_error_metrics_science
+    render_error_metrics_science(root, compact=True)
     with business:
         st.markdown("### What does the figure mean?")
         st.write("It estimates the **advertised asking price** a seller might list in an advert. "

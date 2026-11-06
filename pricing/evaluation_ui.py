@@ -20,7 +20,9 @@ def render_model_comparison():
         rows.append({'Model':'Auction-structure LightGBM','Original test MAE (USD)':score['mae_usd'],'Original test RMSE (USD)':score['rmse_usd']})
     st.subheader('Historical benchmarks · separate experiments')
     st.dataframe(rows,hide_index=True)
-    st.caption('These recorded assessments use different experiment cohorts and training protocols; they are not a matched leaderboard. Recorded chronological assessments precede full-data deployment refits. Lower MAE is better: an MAE of $3,500 means $3,500 average absolute error, not a $3,500 guarantee for your car. The transformer does not automatically win just because it has read more words than your mechanic.')
+    st.caption('These historical assessments use different experiment cohorts and training protocols; they are not a matched leaderboard. Dollar RMSE highlights large pricing misses; MAE is the average absolute miss. Neither is a guarantee or a prediction interval. Original chronological assessments precede full-data deployment refits.')
+    from pricing.error_metrics_science import render as render_error_metric_science
+    render_error_metric_science(Path(__file__).parent)
     file=Path('reports/studio-audit/studio-audit.json')
     if file.exists():
         audit=json.loads(file.read_text())

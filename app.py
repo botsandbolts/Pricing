@@ -95,6 +95,8 @@ if _workspace=='🧠 The science':
     from pricing.analytics import render_privacy
     render_privacy()
     explain()
+    from pricing.error_metrics_science import render as render_error_metrics_science
+    render_error_metrics_science(Path(__file__).parent)
     footer()
     st.stop()
 if _workspace=='📅 Value over time':

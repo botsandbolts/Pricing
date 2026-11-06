@@ -1,0 +1,190 @@
+name: Re-rank wholesale neural and FM models by USD RMSE and catastrophic error tails
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/bid_rmse_reselect.py
+      - tests/test_bid_rmse_reselect.py
+      - .github/workflows/bid-rmse-first-audit.yml
+  workflow_run:
+    workflows: ["Wholesale 26-model FM family scale full vs Lemon"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: write
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  checks:
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install narrow CPU verification stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib pytest
+      - name: Verify correct USD RMSE, tail metrics, and test-data isolation
+        run: |
+          python -m compileall -q scripts/bid_rmse_reselect.py
+          python -m pytest -q tests/test_bid_rmse_reselect.py
+
+  archived:
+    if: github.event_name != 'workflow_run'
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - study: ft29
+            old_run: '42256103702'
+            artifact_prefix: ft-bid-tune-
+          - study: fm10
+            old_run: '42275395253'
+            artifact_prefix: bid-fm-kernel-
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install audited CPU inference dependencies
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - name: Download all PREVIOUSLY TRAINED validation candidates
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ matrix.artifact_prefix }}*
+          run-id: ${{ matrix.old_run }}
+          github-token: ${{ github.token }}
+          path: training-cache/bid-rmse/candidates
+          merge-multiple: false
+      - name: Recover original VIN-disjoint auction features (no new training)
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Recover exact original XGBoost Lemon predictions for PAIRED tests
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Rerank ALL candidates by USD RMSE; score only validation-preselected test models
+        run: |
+          python -u -m scripts.bid_rmse_reselect \
+            --study '${{ matrix.study }}' \
+            --results training-cache/bid-rmse/candidates \
+            --features training-cache/neural-bid/features.npz \
+            --output 'reports/bid-rmse/${{ matrix.study }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: usd-rmse-bid-audit-${{ matrix.study }}
+          path: reports/bid-rmse/${{ matrix.study }}/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Publish RMSE-first results only, no model deployment
+        run: |
+          mkdir -p "$RUNNER_TEMP/rmse"
+          cp -a 'reports/bid-rmse/${{ matrix.study }}/.' "$RUNNER_TEMP/rmse/"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p 'reports/bid-rmse/${{ matrix.study }}'
+            cp -a "$RUNNER_TEMP/rmse/." 'reports/bid-rmse/${{ matrix.study }}/'
+            git add 'reports/bid-rmse/${{ matrix.study }}/'
+            git diff --cached --quiet && exit 0
+            git commit -m 'Publish independent USD RMSE selection: ${{ matrix.study }}'
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
+
+  scaled:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install same audited CPU inference stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - name: Download original 26-model run, all validation predictions only
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bid-fm-scale-*
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: training-cache/bid-rmse/candidates
+          merge-multiple: false
+      - name: Recover original VIN-disjoint full/Lemon training feature identities
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Recover matched XGBoost Lemon reference
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Select all 26 model ranks and cohorts by original USD validation RMSE
+        run: |
+          python -u -m scripts.bid_rmse_reselect \
+            --study fm26 \
+            --results training-cache/bid-rmse/candidates \
+            --features training-cache/neural-bid/features.npz \
+            --output reports/bid-rmse/fm26
+      - uses: actions/upload-artifact@v4
+        with:
+          name: usd-rmse-bid-audit-26-fm-family
+          path: reports/bid-rmse/fm26/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Publish RMSE-first factorization comparison without production changes
+        run: |
+          mkdir -p "$RUNNER_TEMP/rmse"
+          cp -a reports/bid-rmse/fm26/. "$RUNNER_TEMP/rmse/"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/bid-rmse/fm26
+            cp -a "$RUNNER_TEMP/rmse/." reports/bid-rmse/fm26/
+            git add reports/bid-rmse/fm26/
+            git diff --cached --quiet && exit 0
+            git commit -m 'Publish independent USD RMSE selection: 26 FM family full versus Lemon'
+            git push origin HEAD:main && exit 0
+          done
+          exit 1
