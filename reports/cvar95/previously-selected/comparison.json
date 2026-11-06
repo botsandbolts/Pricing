@@ -1,0 +1,134 @@
+{
+  "status": "complete",
+  "metric": "CVaR95 absolute dollar error",
+  "definition": "Mean of the largest ceil(0.05*N) absolute prediction errors, original-dollar units; lower is better",
+  "original_holdout_sizes": {
+    "wholesale": 83603,
+    "asking": 31682
+  },
+  "bid": [
+    {
+      "model": "fm26 / validated_blend",
+      "previous_selection_metric": "validation USD RMSE",
+      "rows": 83603,
+      "worst_five_pct_rows": 4181,
+      "CVaR95_absolute_USD": 8693.643554914497,
+      "VaR95_absolute_USD": 5043.830558203373,
+      "MAE_USD": 1787.8134859403187,
+      "RMSE_USD": 3089.9479961998445,
+      "worst_one_pct_USD": 17180.289008477845
+    },
+    {
+      "model": "fm26 / standalone",
+      "previous_selection_metric": "validation USD RMSE",
+      "rows": 83603,
+      "worst_five_pct_rows": 4181,
+      "CVaR95_absolute_USD": 9018.78576926522,
+      "VaR95_absolute_USD": 5298.148563378145,
+      "MAE_USD": 1877.6059698559347,
+      "RMSE_USD": 3178.153382760867,
+      "worst_one_pct_USD": 17669.78509028569
+    },
+    {
+      "model": "fm10 / validated_blend",
+      "previous_selection_metric": "validation USD RMSE",
+      "rows": 83603,
+      "worst_five_pct_rows": 4181,
+      "CVaR95_absolute_USD": 9402.820348757867,
+      "VaR95_absolute_USD": 5501.597191687261,
+      "MAE_USD": 1960.5554959134763,
+      "RMSE_USD": 3348.9336311203274,
+      "worst_one_pct_USD": 18368.127388163386
+    },
+    {
+      "model": "fm10 / standalone",
+      "previous_selection_metric": "validation USD RMSE",
+      "rows": 83603,
+      "worst_five_pct_rows": 4181,
+      "CVaR95_absolute_USD": 10044.570357441416,
+      "VaR95_absolute_USD": 5924.072016914717,
+      "MAE_USD": 2123.8355889911713,
+      "RMSE_USD": 3569.245955083289,
+      "worst_one_pct_USD": 19306.74385938929
+    },
+    {
+      "model": "ft29 / standalone",
+      "previous_selection_metric": "validation USD RMSE",
+      "rows": 83603,
+      "worst_five_pct_rows": 4181,
+      "CVaR95_absolute_USD": 10169.950841646632,
+      "VaR95_absolute_USD": 5531.191254285943,
+      "MAE_USD": 2026.8923573670584,
+      "RMSE_USD": 3607.61218066029,
+      "worst_one_pct_USD": 21003.956488170945
+    },
+    {
+      "model": "ft29 / validated_blend",
+      "previous_selection_metric": "validation USD RMSE",
+      "rows": 83603,
+      "worst_five_pct_rows": 4181,
+      "CVaR95_absolute_USD": 10215.115945980886,
+      "VaR95_absolute_USD": 5497.176328898382,
+      "MAE_USD": 1928.581766903066,
+      "RMSE_USD": 3576.0360723235785,
+      "worst_one_pct_USD": 21356.12031185232
+    },
+    {
+      "model": "Lemon XGBoost historical baseline",
+      "previous_selection_metric": "original baseline",
+      "rows": 83603,
+      "worst_five_pct_rows": 4181,
+      "CVaR95_absolute_USD": 11140.19039591788,
+      "VaR95_absolute_USD": 5753.704525507234,
+      "MAE_USD": 1920.3822321683579,
+      "RMSE_USD": 3887.6900941212684,
+      "worst_one_pct_USD": 24648.211034377542
+    }
+  ],
+  "ask": [
+    {
+      "model": "BGE-256 + full DeepCross/AFT",
+      "previous_selection_metric": "validation MAE across eight encoders",
+      "rows": 31682,
+      "worst_five_pct_rows": 1585,
+      "CVaR95_absolute_USD": 19985.05294033147,
+      "VaR95_absolute_USD": 10140.173854873761,
+      "MAE_USD": 3036.7538600323796,
+      "RMSE_USD": 6299.0084843863215,
+      "worst_one_pct_USD": 41926.431439412336
+    },
+    {
+      "model": "MiniLM scalar + DeepCross/AFT, 12% dropout",
+      "previous_selection_metric": "earlier research validation MAE",
+      "rows": 31682,
+      "worst_five_pct_rows": 1585,
+      "CVaR95_absolute_USD": 21453.14290027534,
+      "VaR95_absolute_USD": 10990.77794239753,
+      "MAE_USD": 3261.536912607632,
+      "RMSE_USD": 6740.978270016007,
+      "worst_one_pct_USD": 44973.01491417808
+    },
+    {
+      "model": "MiniLM scalar + DeepCross/AFT, 4-expert MoE",
+      "previous_selection_metric": "earlier research validation MAE",
+      "rows": 31682,
+      "worst_five_pct_rows": 1585,
+      "CVaR95_absolute_USD": 21721.843881786543,
+      "VaR95_absolute_USD": 11581.49341744368,
+      "MAE_USD": 3368.5134917918635,
+      "RMSE_USD": 6779.536286984529,
+      "worst_one_pct_USD": 44398.24909823737
+    }
+  ],
+  "models_were_selected_before_cvar95_became_primary": true,
+  "test_used_for_reselection": false,
+  "no_retraining": true,
+  "production_models_unchanged": true,
+  "full_data_XGBoost_original_test_dollar_CVaR_unavailable": true,
+  "caveat": "This identifies CVaR95 among previously validation-selected models only. Choosing the new CVaR-optimal model requires separate original-validation CVaR95 ranking before scoring that choice on test.",
+  "theoretical_reference": {
+    "paper": "Optimization of Conditional Value-at-Risk",
+    "authors": "Rockafellar and Uryasev (2000)",
+    "doi": "https://doi.org/10.21314/JOR.2000.038"
+  }
+}
