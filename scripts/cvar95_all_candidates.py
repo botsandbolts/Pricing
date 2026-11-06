@@ -133,8 +133,13 @@ def bid(args):
         "full_data_xgboost_CVaR95":"not verified from per-vehicle original test predictions",
         "validation_ranked_models":entries,
         "validation_ranked_blends":mixes}
-    return result,{"standalone":tested[(champion["study"],champion["model"])],
-                   "blend":bp,"truth":truth,"xgb_lemon":baseline}
+    return result,{"row_id":test.index.to_numpy(str),
+                   "split":np.repeat("test",len(test)),
+                   "observed_price":truth,
+                   "selected_standalone_price":tested[(champion["study"],champion["model"])],
+                   "selected_blend_constituent_price":tested[(blend["study"],blend["model"])],
+                   "selected_blend_price":bp,
+                   "xgboost_lemon_price":baseline}
 
 
 def ask(args):
