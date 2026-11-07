@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - .github/workflows/adaptive-cvar95-tpe-asha.yml
+      - scripts/adaptive_cvar95.py
+      - tests/test_adaptive_cvar95.py
 
 permissions:
   actions: read
