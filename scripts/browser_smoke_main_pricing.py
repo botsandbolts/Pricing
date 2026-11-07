@@ -37,7 +37,8 @@ def visit(browser,case,base,screens):
         page.locator(".exp-hero h1").wait_for(timeout=90000)
         required=("One car. Two prices.","Ask","Bid","CVaR95",
                   "Historical date","Tell us about the car",
-                  "seller Ask + wholesale Bid")
+                  "seller Ask + wholesale Bid",
+                  "Your AI explanation is included")
         # Streamlit streams widgets AFTER rendering its hero. A hero-only
         # visibility condition is not evidence that the date control or
         # form has finished mounting on a slow mobile/webkit browser.
