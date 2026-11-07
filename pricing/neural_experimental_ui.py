@@ -48,63 +48,104 @@ def _report(root,name):
     except (OSError,ValueError,TypeError):return {}
 
 
-def _vehicle(prefix,bid=False,ready=False):
+def _vehicle(prefix,bid=False,ready=False,compact=False):
+    """One unified, keyboard-accessible form. Main pricing has no scan/BART step."""
     with st.form(prefix+"_vehicle",clear_on_submit=False):
-        st.markdown("#### 01 / Describe the vehicle")
+        st.markdown("### 🚗 02 / Tell us about the car" if compact
+                    else "#### 01 / Describe the vehicle")
+        if compact:
+            st.caption("No VIN upload, no special instructions and no degree in "
+                       "automotive engineering required. The description is optional "
+                       "for Bid but useful for Ask.")
         a,b,c=st.columns(3)
         year=a.number_input("Model year",1900,2021,2015,key=prefix+"_year")
         make=b.text_input("Make","Toyota",key=prefix+"_make")
         model=c.text_input("Model / trim","Corolla",key=prefix+"_model")
         a,b,c=st.columns(3)
-        miles=a.number_input("Mileage (miles)",0,2000000,95000,step=1000,key=prefix+"_mileage")
-        state=b.text_input("US state code","ca",max_chars=2,key=prefix+"_state")
-        body=c.selectbox("Body style",["sedan","suv","truck","pickup",
-              "hatchback","coupe","wagon","van","convertible","other","unknown"],
+        miles=a.number_input("Mileage (miles)",0,2000000,95000,
+                             step=1000,key=prefix+"_mileage")
+        state=b.text_input("US state code","ca",max_chars=2,
+                           key=prefix+"_state")
+        body=c.selectbox("Body style",[
+              "sedan","suv","truck","pickup","hatchback","coupe",
+              "wagon","van","convertible","other","unknown"],
               key=prefix+"_body")
-        with st.expander("⚙️ Mechanical, condition and title details"):
-            a,b,c=st.columns(3)
-            condition=a.selectbox("Condition",["good","excellent","fair",
-                 "like new","new","salvage","unknown"],key=prefix+"_condition")
-            fuel=b.selectbox("Fuel",["gas","diesel","hybrid","electric","other","unknown"],
+        if compact:
+            st.caption("Three useful facts; everything else is recorded as "
+                       "'unknown', not guessed.")
+            a,b,d=st.columns(3)
+            condition=a.selectbox("Condition",[
+                "unknown","good","excellent","fair","like new","new","salvage"],
+                key=prefix+"_condition")
+            title=b.selectbox("Title status",[
+                "unknown","clean","rebuilt","salvage","lien","missing","parts only"],
+                key=prefix+"_title")
+            transmission=d.selectbox("Transmission",[
+                "unknown","automatic","manual","other"],
+                key=prefix+"_transmission")
+            fuel=st.session_state.get(prefix+"_fuel","unknown")
+            drive=st.session_state.get(prefix+"_drive","unknown")
+            cylinders=st.session_state.get(prefix+"_cylinders","unknown")
+            paint=st.session_state.get(prefix+"_paint","unknown")
+        else:
+            with st.expander("Optional condition, engine and ownership facts"):
+                a,b,d=st.columns(3)
+                condition=a.selectbox("Condition",[
+                    "good","excellent","fair","like new","new","salvage","unknown"],
+                    key=prefix+"_condition")
+                fuel=b.selectbox("Fuel",[
+                    "gas","diesel","hybrid","electric","other","unknown"],
                     key=prefix+"_fuel")
-            transmission=c.selectbox("Transmission",["automatic","manual","other","unknown"],
+                transmission=d.selectbox("Transmission",[
+                    "automatic","manual","other","unknown"],
                     key=prefix+"_transmission")
-            a,b,c=st.columns(3)
-            drive=a.selectbox("Drivetrain",["fwd","rwd","4wd","unknown"],key=prefix+"_drive")
-            title=b.selectbox("Title",["clean","rebuilt","salvage","lien",
-                      "missing","parts only","unknown"],key=prefix+"_title")
-            cylinders=c.selectbox("Cylinders",["4 cylinders","6 cylinders","8 cylinders",
-                      "3 cylinders","5 cylinders","unknown"],key=prefix+"_cylinders")
-            paint=a.selectbox("Paint",["silver","white","black","grey",
-                     "blue","red","green","brown","other","unknown"],key=prefix+"_paint")
+                a,b,d=st.columns(3)
+                drive=a.selectbox("Drivetrain",[
+                    "fwd","rwd","4wd","unknown"],key=prefix+"_drive")
+                title=b.selectbox("Title",[
+                    "clean","rebuilt","salvage","lien","missing","parts only","unknown"],
+                    key=prefix+"_title")
+                cylinders=d.selectbox("Cylinders",[
+                    "4 cylinders","6 cylinders","8 cylinders",
+                    "3 cylinders","5 cylinders","unknown"],
+                    key=prefix+"_cylinders")
+                paint=a.selectbox("Paint",[
+                    "silver","white","black","grey","blue","red","green",
+                    "brown","other","unknown"],key=prefix+"_paint")
         fields={"year":int(year),"manufacturer":make,"model":model,
                 "odometer":float(miles),"state":state,"type":body,
                 "condition":condition,"fuel":fuel,
                 "transmission":transmission,"drive":drive,
-                "title_status":title,"cylinders":cylinders,"paint_color":paint}
+                "title_status":title,"cylinders":cylinders,
+                "paint_color":paint}
         if bid:
-            st.markdown("#### 02 / Historical wholesale auction")
+            st.markdown("#### Historical wholesale auction")
             a,b=st.columns(2)
-            auction=a.date_input("2014–2015 auction date",
+            auction=a.date_input("Auction reference date (2014–2015)",
                   pd.Timestamp("2015-01-15").date(),
                   min_value=pd.Timestamp("2014-01-01").date(),
                   max_value=pd.Timestamp("2015-12-31").date(),
                   key=prefix+"_auction_date")
-            grade=b.selectbox("Pre-sale auction grade",["unknown","1","2","3","4","5"],
-                              index=3,key=prefix+"_grade")
-            fields["auction_date"]=str(auction);fields["auction_grade"]=grade
+            grade=b.selectbox("Pre-sale auction grade",[
+                  "unknown","1","2","3","4","5"],
+                  index=3,key=prefix+"_grade")
+            fields["auction_date"]=str(auction)
+            fields["auction_grade"]=grade
             notes=""
         else:
-            st.markdown("#### 02 / The car's entire story")
+            st.markdown("### ✍ 03 / What does the advert say?" if compact
+                        else "#### 02 / The car's entire story")
             notes=st.text_area("Seller's description",
-                 "Well maintained. Clean title. New tires.",max_chars=8000,height=140,
-                 key=prefix+"_description",
-                 help="BGE turns wording into an embedding; complete DeepCross/AFT predicts the price. No Ridge head.")
-        sent=st.form_submit_button(
-                "🚀 Run complete "+("wholesale" if bid else "asking-price neural")+" model",
-                type="primary",disabled=not ready,use_container_width=True)
-    return fields,notes,sent
-
+                "Well maintained. Clean title. New tires.",
+                max_chars=8000,height=125 if compact else 140,
+                key=prefix+"_description",
+                help="The original BGE text encoder interprets the advert. "
+                     "A full neural network combines it with the vehicle facts.")
+        submitted=st.form_submit_button(
+            "🚗 Calculate seller Ask + wholesale Bid" if compact else
+            "🚀 Run complete "+("wholesale" if bid else "asking-price neural")+" model",
+            type="primary",disabled=not ready,use_container_width=True)
+    return fields,notes,submitted
 
 def _price(label,price,subtitle):
     if not np.isfinite(float(price)) or float(price)<=0:
