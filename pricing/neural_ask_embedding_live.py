@@ -1,10 +1,10 @@
-"""Native pinned BGE sentence transformer -> complete PyTorch DeepCross/AFT.
+"""Verified frozen BGE encoder -> unchanged PyTorch DeepCross/AFT.
 
-NO ONNX conversion, quantization, pickle/joblib, Ridge text-price head,
-or surrogate inference model. Loading is lazy, one cache_resource per release
-fingerprint. The original PyTorch checkpoint and pinned pretrained encoder
-are used as-is; only the small JSON numerical/category dictionaries are
-materialized, and only after full original-holdout price parity has passed.
+The ORIGINAL trained neural price heads, categories and normalization remain
+byte-for-byte identical. The frozen pretrained BGE can use a separately
+parity-checked INT8 ONNX serving backend, reducing resident encoder memory.
+If there is no independently approved INT8 release, use the original
+SentenceTransformer; never use an unverified lightweight substitute.
 """
 import json
 import re
@@ -64,7 +64,6 @@ def categoricals(fields,maps):
 class BGEDeepCrossAsk:
     def __init__(self,root,*,_parity_test=False):
         import torch
-        from sentence_transformers import SentenceTransformer
         from scripts.raw_embedding_ask_train import EmbeddingOnlyDeepCross
         from scripts.raw_embedding_ask_encode import SPECS
         root=Path(root)
@@ -104,15 +103,26 @@ class BGEDeepCrossAsk:
         self.price_network=EmbeddingOnlyDeepCross(self.cards,7,dimension)
         self.price_network.load_state_dict(ckpt["state_dict"],strict=True)
         self.price_network.eval()
-        # Use one original pretrained native SentenceTransformer, pinned to
-        # the exact trained model SHA. No duplicate ONNX/PyTorch encoders.
-        self.encoder=SentenceTransformer(
-            model_id,revision=self.manifest["encoder_revision"],
-            device="cpu",trust_remote_code=False)
+        # The small pricing head is never quantized: Captum requires its
+        # gradients and the verified checkpoint remains completely unchanged.
+        # The ONLY compressed component is the frozen pretrained BGE encoder.
+        # Release-gated INT8 contains original pinned tokenizer and a checked
+        # 384D CLS + L2 contract, not a replacement language model.
+        from pricing.quantized_bge_runtime import preferred,VerifiedInt8BGE
+        if preferred(root,model_id,self.manifest["encoder_revision"]):
+            self.encoder=VerifiedInt8BGE(
+                root,model_id,self.manifest["encoder_revision"])
+            self.encoder_backend="onnx-int8-avx2"
+        else:
+            from sentence_transformers import SentenceTransformer
+            self.encoder=SentenceTransformer(
+                model_id,revision=self.manifest["encoder_revision"],
+                device="cpu",trust_remote_code=False)
+            self.encoder_backend="native-pytorch"
         self.encoder.max_seq_length=256
         self.encoder.eval()
         if self.encoder.get_sentence_embedding_dimension()!=384:
-            raise ValueError("Original BGE encoder output dimension has changed")
+            raise ValueError("Pinned BGE encoder output dimension has changed")
 
     def prepare_text(self,description):
         from scripts.common import clean
@@ -165,6 +175,12 @@ def load(root):
     folder=Path(root)/FOLDER
     fingerprint=tuple((name,(folder/name).stat().st_size,
         (folder/name).stat().st_mtime_ns) for name in FILES)
+    # An optional verified INT8 encoder release changes cache identity. The
+    # old float32 encoder is not a second active model on a new deployment.
+    from pricing.quantized_bge_runtime import manifest_path
+    extra=manifest_path(root)
+    fingerprint+=(("bge-runtime",extra.stat().st_size,extra.stat().st_mtime_ns)
+                  if extra.is_file() else ("bge-runtime",0,0),)
     # No network on page import; actual native BGE loads only when requested.
     return _cached(str(root),fingerprint)
 
