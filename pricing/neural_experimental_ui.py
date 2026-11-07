@@ -502,6 +502,9 @@ models used on our main price calculator.</p>
                 with st.spinner("Running verified wholesale DeepFM + Lemon XGBoost…"):
                     results["bid"]=(load_champion_bid(root) if bid_champion
                                     else bid_load(root)).predict(bid_fields)
+                    # The exact historical features must travel with the saved
+                    # receipt; explain the served Bid, not a reconstructed guess.
+                    results["bid_fields"]=bid_fields
                 if analogue:results["bid_analogue"]=analogue
             except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
                 results["bid_error"]=str(exc)
@@ -543,7 +546,14 @@ models used on our main price calculator.</p>
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
         if adjusted:
             render_time_evidence(transport,adjusted)
-        if "ask" in saved and ask_ready:
+        if main:
+            # Full, optional neural/tree explainability is on the PUBLIC page.
+            # No Captum/BGE re-encoding happens until the user clicks Explain.
+            from pricing.neural_price_xai_ui import render as render_price_explanations
+            render_price_explanations(
+                root,saved,valuation_date,adjusted,transport,allow_analogue,
+                ask_champion=ask_champion,bid_champion=bid_champion)
+        if not main and "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
                 alt=st.text_area("Alternative advertisement",value=saved["notes"],key="experimental_reword",max_chars=8000)
                 if st.button("Recalculate complete neural asking model",key="experimental_reword_go"):
