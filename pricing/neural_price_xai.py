@@ -364,3 +364,81 @@ def phrase_removal_effects(model,fields,description,original_price,
             "items":out,"original_price_usd":original,
             "encoder_runs":len(chunks)+1,"causal":False,
             "warning":"Individual removal effects may overlap and DO NOT add up to total price. Never interpret an advert rewrite as a guaranteed transaction gain."}
+
+
+def bounded_goal_scenarios(predictor,fields,observed_price,target,market,
+                           max_candidates=48):
+    """Find predicted target-price *comparable cars*, not 'actions' or a sale plan.
+
+    All outcomes are calls to the original native model, no learned surrogate.
+    Keep year/make/model fixed, vary at most 3 disclosed study signals. Price
+    target is in the SAME historical source-dollar unit as the input model.
+    """
+    from itertools import product
+    if market not in ("ask","bid"):
+        raise ValueError("Unknown market target")
+    if not (1<=int(max_candidates)<=48):
+        raise ValueError("Unsafe model-comparison budget")
+    desired=float(target);published=float(observed_price)
+    if not isfinite(desired) or not 100<=desired<=1e6:
+        raise ValueError("Target dollar amount outside supported range")
+    if not isfinite(published) or published<=0:
+        raise ValueError("Invalid original vehicle price")
+    check=float(predictor(dict(fields)))
+    if abs(check-published)>max(.5,.00002*published):
+        raise ValueError("Current native model does not reproduce saved scenario")
+    mileage=float(fields["odometer"])
+    mileages=sorted(set(max(0.,min(2e6,mileage+step))
+                       for step in (-20000.,-10000.,0.,10000.,20000.)))
+    titles=list(dict.fromkeys([str(fields.get("title_status") or "unknown"),
+                               "clean","rebuilt"]))
+    if market=="ask":
+        extra_name="condition"
+        extra=list(dict.fromkeys([str(fields.get(extra_name) or "unknown"),
+                                  "fair","good","excellent"]))
+    else:
+        extra_name="auction_grade"
+        extra=list(dict.fromkeys([str(fields.get(extra_name) or "unknown"),
+                                  "2","3","4","5"]))
+    candidates=[]
+    seen=set()
+    # Deterministic bounded neighborhood; no claims about vehicle modifications.
+    for miles,title,grade_or_condition in product(mileages,titles,extra):
+        candidate={**fields,"odometer":miles,"title_status":title,
+                   extra_name:grade_or_condition}
+        changes={k:{"from":fields.get(k),"to":candidate[k]}
+                 for k in ("odometer","title_status",extra_name)
+                 if str(candidate[k])!=str(fields.get(k))}
+        identity=(miles,title,grade_or_condition)
+        if identity in seen:continue
+        seen.add(identity)
+        if len(seen)>max_candidates:break
+        predicted=float(predictor(candidate))
+        if not isfinite(predicted) or not 100<=predicted<=1e6:
+            raise ValueError("Native goal scenario produced invalid dollars")
+        candidates.append({
+            "predicted_usd":predicted,
+            "difference_from_current_usd":predicted-published,
+            "difference_from_target_usd":predicted-desired,
+            "hits_or_exceeds_target":bool(predicted>=desired),
+            "number_of_changes":len(changes),
+            "changed_facts":changes,
+            "model_year_and_trim_unchanged":True,
+        })
+    # Rank genuinely predicted scenarios that clear target first, then the
+    # closest non-crossing alternatives if there is no reachable grid point.
+    candidates.sort(key=lambda x:(
+        not x["hits_or_exceeds_target"],
+        abs(x["difference_from_target_usd"]),
+        x["number_of_changes"],
+        abs(x["difference_from_current_usd"])))
+    return {
+        "market":market,"historical_target_usd":desired,
+        "source_prediction_usd":published,
+        "candidates_tested":len(candidates),
+        "scenarios":candidates[:8],
+        "method":"Bounded real-checkpoint model comparisons; no DiCE surrogate",
+        "warning":"These are hypothetical comparable cars, not plans to alter a VIN, "
+                  "odometer, title, condition or historical auction grade. No "
+                  "causal, legal, physical or sale-price guarantees. Source-year dollars.",
+    }
