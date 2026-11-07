@@ -1,77 +1,97 @@
-# Why this price? · Native neural explainability
+# Why this price? · Lightweight model-faithful explanations
 
-Car Price Studio uses **two economic targets**, not two labels for one target:
+**Live public implementation:** [`pricing/price_explain_lite.py`](../pricing/price_explain_lite.py) attached to the main seller Ask + wholesale Bid calculator.
 
-- **Seller Ask**: a historical advertised asking price (not a completed retail sale). The source encoder is the pinned BGE-small 256-token, 384-dimensional sentence embedder followed by the complete native PyTorch asking network (DeepCross/AFT or the parity-verified ResMLP challenger).
-- **Wholesale Bid**: a completed historical 2014–2015 wholesale auction-sale target in 2015-index-normalized USD, **not a dealer's live bid or an offer**. The source engine is DeepFM16 + the original Lemon XGBoost on VIN-disjoint auction cohorts. The neural/tree blend weight comes from the released model's validation selection.
+## Stable release decision
 
-The original neural checkpoints, preprocessing, frozen BGE encoder and Lemon XGBoost are loaded through their verified serving APIs; XAI neither retrains nor serializes alternative model weights.
+On 2026-11-07 the pricing UI was restored from GitHub revision
+[`490a6906`](https://github.com/botsandbolts/Pricing/commit/490a6906e45f301a245aaaa951f480fef20b06a9),
+the version active shortly before the LinkedIn announcement. The native pricing
+models, release gates, in-process loaders and caching remain unchanged:
 
-## Main-page UX
+- **Ask**: pinned BGE encoder + complete original DeepCross/AFT PyTorch head
+  (or validation-selected ResMLP only if its release manifests and parity receipts
+  are installed and verified).
+- **Bid**: original DeepFM16 + Lemon XGBoost (or the verified challenger only
+  when its release-gate artifacts exist).
+- Models are obtained from the original `st.cache_resource` pathways,
+  shared across sessions and reruns. **No subprocesses, per-request model
+  loading/unloading, encoder copies, hidden fallback models, or quantized
+  conversion files**.
 
-After a user requests an appraisal, **🔍 Why this price?** offers:
+In the original 2026-11-07 public state, the new CVaR95 challenger checkpoint
+bundles were still unavailable. The UI displays their presence correctly and
+falls back to the existing holdout-verified native models. It does not fabricate
+CVaR95 test results or claim the unavailable winners were deployed.
 
-1. **Simple**: positive and negative dollar drivers compared against a disclosed *hypothetical reference configuration*, with honest noncausal language.
-2. **Dollar drivers**: an accessible chart and screen-reader-friendly table; exactly six predeclared feature groups per market.
-3. **Price clock**: historical model anchor + dollar depreciation effect + dollar market-index effect = the *identical* selected-date estimate already displayed.
-4. **What if?**: mileage, title, Ask condition and advert wording; Bid pre-sale auction grade. Reruns original models (no surrogate). Includes a separately triggered *target-price comparable-vehicle explorer*: up to 48 deterministic, spread-out native-model evaluations with make/model/year held fixed; not DiCE-generated recourse, a real-world improvement recipe, or advice to alter a title/odometer.
-5. **Advanced AI**: Captum Integrated Gradients, native XGBoost TreeSHAP, BGE phrase-removal sensitivity, each separately on demand.
-6. **Research receipt**: redacted JSON download, no listing text, contact details, VINs or vehicle facts.
+## What the panel calculates
 
-The expensive parts are **never run on initial page load** or merely when a price is requested. Explain is one separate click; Captum/TreeSHAP/phrase-removal each need another explicit click. We use a single BGE encoder instance shared with Ask pricing. The group calculation reuses two prepared text embeddings across all 64 coalitions, rather than making 64 transformer calls. Stored results have a signature of the submitted price, input and model identity; changed data invalidate the previous explanation.
+- **Quick business-language explanation**, without inference: Ask is an
+  advertised listing price, Bid a historical wholesale sale target. They
+  concern different markets; their difference is not a dealer's profit.
+- **The real Bid ensemble**: show DeepFM's and Lemon XGBoost's prices and
+  checked blend weights. Refuse the breakdown unless weighted constituent
+  prices reconcile to the saved native model output.
+- **Exact price clock**: `historical model price + vehicle ageing + aggregate
+  market-index effect = selected-date estimate`. Verify the original anchor,
+  decomposition and final price; no hidden surrogate or stochastic XAI.
+- **One on-demand what-if**: mileage, title status or Bid auction grade. Reuse
+  the same globally cached model, and the **already-computed BGE embedding**
+  retained in session state for the Ask inference. Exactly one additional
+  native price evaluation per click. Explicitly label this *model sensitivity*,
+  not causality or a vehicle repair valuation.
+- **Optional one-row native XGBoost TreeSHAP**: directly call the installed
+  `Booster.predict(..., pred_contribs=True)` once on the same auction feature
+  row as the saved original tree component. Verify that the log contributions
+  reconstruct the tree margin and that the tree's dollar output matches the
+  saved Lemon price. Show the top contributors in **log-price**, not fake
+  additive dollar contributions. This explains only the tree's share of Bid,
+  not DeepFM or the entire ensemble.
 
-## Additive dollar explanation
+Explanations are **on demand**. The first appraisal adds no explanation
+inference; a closed tab does not compute XAI. The previous automatically
+executed five-point mileage sweeps and long diagnostic charts are not run on
+the public main page.
 
-The six groups for Ask are model+year, mileage, body+drivetrain, condition+title, state+paint, and advert description. Bid's sixth group is pre-sale auction grade instead of text.
+## What this deliberately does NOT include
 
-Let \\(x\\) be the submitted vehicle, \\(x_0\\) the chosen reference configuration, and \\(v(S)\\) be the *actual saved native model* prediction after replacing only the groups in \\(S\\). Exact grouped interventional Shapley for group \\(i\\):
+No Captum or gradients, no additional SHAP package, no 64- or 128-coalition
+model sweeps, no second BGE instance, no background model jobs, no heavyweight
+Plotly gallery, no loading/unloading processes, and no additional tracking.
+The earlier `neural_price_xai.py` research experiments remain source
+material but are **not imported by the public page**.
 
-\\[
-\\phi_i = \\sum_{S\\subseteq N\\setminus\\{i\\}} \\frac{v(S\\cup\\{i\\})-v(S)}{n\\binom{n-1}{|S|}}
-\\]
+### Important scientific caveats
 
-For \\(n=6\\) all \\(2^6=64\\) coalitions are evaluated. The application **refuses the explanation** unless:
+- Native XGBoost feature contributions are additive in the **raw untransformed
+  margin (log-price)**, not automatically additive in USD.
+- A single changed feature can interact with other attributes; local
+  sensitivity is not a causal estimate or expected transaction gain.
+- Historical asking listings and 2014–2015 wholesale auctions are distinct
+  label populations; date transport to 2026 is a scenario, not a current
+  transaction measurement.
+- Signed explained factors never establish the exact economic value of
+  changing a title, odometer reading, repair, condition or listing wording.
+- CVaR95 means average *absolute* USD error among the worst 5% of the
+  evaluated historical predictions, not a guaranteed individual error bound.
 
-- The full-coalition native price equals the saved prediction, within documented cents-level/numerical tolerance.
-- The reference price plus all six contribution dollars equals the full-coalition prediction.
-- Every coalition price is finite and positive.
+## Technical sources
 
-The reference is **not a dataset average, a conditional feature distribution, the model's global expectation, or a causally legitimate automotive counterfactual**. The user can compare either with the same make/model/year/body with standardized details, or a fixed 2010 Toyota Corolla. Arbitrary hybrid vehicles may not exist. Signed contributions explain the difference *from the chosen reference*; they are not the price or cost of replacing a part, an expected discount or a dealer margin.
+1. [Streamlit: model caching](https://docs.streamlit.io/develop/concepts/architecture/caching):
+   `st.cache_resource` shares a resource instance without copying it;
+   cached objects should be used safely across threads.
+2. [XGBoost Python API](https://xgboost.readthedocs.io/en/latest/python/python_api.html):
+   `pred_contribs=True` returns one row of native TreeSHAP feature
+   contributions, which add to the model's untransformed margin.
+3. [CatBoost's native ShapValues](https://catboost.ai/docs/en/features/feature-importances-calculation):
+   another dependency-free attribution route if a native CatBoost model is
+   chosen as the deployed estimator later.
 
-## Captum Integrated Gradients
+## QA
 
-Captum is imported only when the user selects Advanced AI and clicks Calculate. It interpolates **normalized numerical inputs** (and frozen BGE embeddings for Ask) along a baseline-to-vehicle path, computes the true PyTorch network's output in **historical dollar space**, and measures approximation convergence/completeness. Categorical embedding codes are **held fixed**, so IG does not purport to explain model-year/make/trim categorical differences. For Bid, IG explains only the neural branch; the combined ensemble requires a separate tree analysis.
+`python -m pytest -q tests/test_price_explain_lite.py tests/test_main_pricing_campaign.py tests/test_experimental_two_models.py tests/test_cvar95_experimental_ui.py`
 
-Refs: <https://captum.ai/api/integrated_gradients.html>
-
-## Native XGBoost TreeSHAP
-
-We invoke the **installed XGBoost Booster** with `pred_contribs=True` on the precise original feature matrix used to predict the Lemon branch. Its contributions are *additive in log dollars*. The UI displays those log contributions, plus an explicitly labeled exponential-path rescaling that reconciles **exactly** to the XGBoost **dollar** price:
-
-\\[
-d_i = \\phi_i \\frac{\\exp(z)-\\exp(b)}{z-b}, \\quad z=b+\\sum_i\\phi_i
-\\]
-
-This is **not dollar-space TreeSHAP**, and does not explain DeepFM. The total tree price must equal the actual Lemon component in the active model receipt, otherwise refuse the chart.
-
-## BGE advert phrase removal
-
-Split the user's text into at most 12 bounded sentence/word groups, remove each one in turn, and **re-embed the modified entire advert with the original pinned BGE** before rerunning the full neural price model. These are **one-at-a-time model sensitivities** (not additive SHAP and not causal evidence of negotiating improvements). The user's original advert remains local to the pricing request and never enters the download receipt.
-
-## The selected-date effect
-
-The app's historical model output (Ask May 2021 or Bid 2015) is transported using a *separately learned vehicle-age depreciation curve* and an aggregate used-car retail market index. We show an exact arithmetical reconciliation:
-
-Historical price + age change + market change = displayed date-adjusted scenario.
-
-This does **not** establish modern individual-car accuracy or wholesale market-index coverage. Recent generations, auction grades, title issues, textual ambiguity, dataset bias, and out-of-distribution listings may produce poor predictions.
-
-## Quality gates
-
-- `python -m pytest -q tests/test_neural_price_xai.py` tests exact Shapley including feature interactions, actual-vs-saved price parity, double-counted groups, source-cohort reference assumptions, BGE preparation count, Bid auction inputs, date bridge and real phrase-reembedding.
-- Captum tests use tiny synthetic PyTorch networks to audit dollar completeness; they do not fake source-model accuracy.
-- `python -m pytest -q tests/test_main_pricing_campaign.py tests/test_experimental_two_models.py tests/test_cvar95_experimental_ui.py` protects homepage routing, date controls, retired BART/scan flows and verified serving.
-- A separate Playwright smoke test probes Chromium desktop/tablet/Android, Firefox desktop and WebKit iPhone, with screenshots and a JSON report.
-- Actual original-trained checkpoints have their **own** no-fabrication native parity and release workflows. Passing synthetic attribution unit tests does not prove historical price quality or deployed checkpoint parity.
-
-This capability is **open source**, deliberately CPU bounded, consent-aware and privacy-safe by design. No external explanation API or new data broker is involved.
+The `price-explainability-qa.yml` workflow also checks the actual Streamlit
+home page at desktop/tablet/Android/iPhone dimensions and preserves screenshots.
+A passing offline QA receipt proves only this tested scope; it is **not**
+a direct measurement of live cloud RAM or modern vehicle-market accuracy.
