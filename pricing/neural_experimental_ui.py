@@ -545,7 +545,11 @@ models used on our main price calculator.</p>
                       _usd(prices["ask"]-prices["bid"]))
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
         if adjusted:
-            render_time_evidence(transport,adjusted)
+            if main:
+                with st.expander("📉 Show the full historical-to-selected-date evidence"):
+                    render_time_evidence(transport,adjusted)
+            else:
+                render_time_evidence(transport,adjusted)
         if main:
             # Full, optional neural/tree explainability is on the PUBLIC page.
             # No Captum/BGE re-encoding happens until the user clicks Explain.
