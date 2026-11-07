@@ -177,11 +177,40 @@ No second elephant-sized neural network in the garage.</div>
                     result=explain(root,saved,side,steps,
                         ask_champion=ask_champion,bid_champion=bid_champion)
                 st.session_state["captum_lite_result"]={"id":rid,"data":result}
-            except (ValueError,RuntimeError,TypeError,KeyError,ImportError,
-                    OSError,MemoryError):
+            except Exception as exc:
+                # Do not swallow the real traceback: user-supplied Streamlit
+                # logs must identify the failure without exposing advert text,
+                # model weights or service credentials in the browser.
+                import logging
+                logging.getLogger("car_price_studio.captum").exception(
+                    "On-demand Captum 24-step attribution failed: market=%s; error_type=%s",
+                    side,type(exc).__name__)
                 st.session_state.pop("captum_lite_result",None)
-                st.warning("Explanation unavailable at the fixed 24-step setting. "
-                           "Your original model price is unchanged.")
+                detail=str(exc)
+                if "Recalculate Ask once" in detail or "Recalculate Bid" in detail:
+                    cause="Original vehicle representation is missing."
+                    action="Calculate the vehicle price once more, then press Explain."
+                elif "does not reproduce the saved price" in detail:
+                    cause="Model parity check failed."
+                    action="Your price is preserved; reload the page and run a new quote."
+                elif "lane is busy" in detail:
+                    cause="Explanation lane is busy."
+                    action="Press Explain again once the other calculation finishes."
+                elif isinstance(exc,ImportError):
+                    cause="Captum or a required package is unavailable."
+                    action="Check the Streamlit deployment dependency logs."
+                elif isinstance(exc,MemoryError):
+                    cause="Not enough memory for gradient attribution."
+                    action="The price remains valid; check the hosting memory limit."
+                elif "Numerical attribution is invalid" in detail:
+                    cause="The model returned non-finite or invalid gradient values."
+                    action="This car cannot be explained reliably with this method."
+                else:
+                    cause="A neural explanation calculation failed ("+type(exc).__name__+")."
+                    action="Check the latest Streamlit log after clicking Explain."
+                st.warning("⚠️ Captum couldn't produce a reliable explanation. "
+                           +cause+" Your original price is unchanged.")
+                st.caption(action+" Technical details are recorded in the server log.")
         current=st.session_state.get("captum_lite_result")
         if current and current.get("id")==rid:
             r=current["data"]
