@@ -150,7 +150,8 @@ def test_public_homepage_has_real_weights_saved_embedding_and_lazy_button():
     assert "render_captum_lite(root,saved," in src
     assert "model.predict_prepared(fields,prepared)" in src
     assert "if st.button(\"Draw mileage sensitivity\"" in src
-    assert 'if st.button("Show historical-to-selected-date evidence"' in src
+    assert 'st.metric(label+" · historical anchor"' not in src
+    assert 'render_captum_lite(root,saved,adjusted=adjusted,' in src
     assert "load_champion_ask(root) if ask_champion" in src
     assert "load_champion_bid(root) if bid_champion" in src
     assert "subprocess.run(" not in src
@@ -238,3 +239,55 @@ def test_captum_failure_reports_parity_reason_instead_of_silent_warning(monkeypa
     assert any(t=="caption" and "run a new quote" in msg
                for t,msg in seen)
     assert "captum_lite_result" not in fake.session_state
+
+
+def test_selected_date_ask_captum_usd_reconciles_exactly():
+    saved=ask_saved()
+    r={"market":"ask","adequate":True,"neural_usd":14300.,
+       "anchor_usd":13000.,"items":[
+           {"feature":"Model year","dollars":1000.},
+           {"feature":"Log mileage","dollars":300.}]}
+    receipt={"side":"ask","date":"2026-11-07",
+             "anchor_price_reference_usd":14300.,
+             "age_factor":.603,"market_factor":1.026,
+             "price":14300.*.603*1.026}
+    out=lite.selected_date_breakdown(saved,"ask",r,receipt)
+    assert out["quote_usd"]==pytest.approx(receipt["price"])
+    assert out["reference_usd"]==pytest.approx(13000.*.603*1.026)
+    assert out["items"][0]["dollars"]==pytest.approx(1000.*.603*1.026)
+    assert out["xgboost_share_usd"]==0.
+    assert out["reconciliation_error_usd"]<.001
+
+
+def test_selected_date_bid_includes_unchanged_lemon_share():
+    saved=bid_saved()
+    saved["bid"]["xgboost_lemon_price"]=8400.
+    r={"market":"bid","adequate":True,"neural_usd":7560.,
+       "anchor_usd":7200.,"items":[{"feature":"Mileage","dollars":360.}]}
+    receipt={"side":"bid","date":"2026-11-07",
+             "anchor_price_reference_usd":8400.,
+             "age_factor":.4,"market_factor":1.05,
+             "price":8400.*.4*1.05}
+    out=lite.selected_date_breakdown(saved,"bid",r,receipt)
+    assert out["quote_usd"]==pytest.approx(receipt["price"])
+    assert out["xgboost_share_usd"]==pytest.approx(840.*.4*1.05)
+    assert out["reference_usd"]==pytest.approx(7200.*.4*1.05)
+    assert out["items"][0]["dollars"]==pytest.approx(360.*.4*1.05)
+    assert out["reconciliation_error_usd"]<.001
+
+
+def test_selected_date_explanation_rejects_wrong_anchor_or_date_price():
+    saved=ask_saved()
+    r={"market":"ask","adequate":True,"neural_usd":14300.,
+       "anchor_usd":13000.,"items":[{"feature":"Mileage","dollars":1300.}]}
+    receipt={"side":"ask","date":"2026-11-07",
+             "anchor_price_reference_usd":14300.,"age_factor":.6,
+             "market_factor":1.02,"price":14300.*.6*1.02}
+    with pytest.raises(ValueError,match="transport anchor"):
+        lite.selected_date_breakdown(saved,"ask",r,
+                                    {**receipt,"anchor_price_reference_usd":14000.})
+    with pytest.raises(ValueError,match="transport parity"):
+        lite.selected_date_breakdown(saved,"ask",r,
+                                    {**receipt,"price":receipt["price"]+100.})
+    with pytest.raises(ValueError,match="market"):
+        lite.selected_date_breakdown(saved,"bid",r,receipt)
