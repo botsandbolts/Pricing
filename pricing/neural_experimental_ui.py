@@ -38,6 +38,11 @@ def _valuation_probe(stage, started=None):
     logging.getLogger("car_price_studio.valuation").warning(
         "valuation stage=%s elapsed_ms=%s peak_rss_mb=%s python=%s",
         stage,elapsed,peak_mb,sys.version.split()[0])
+    from pricing.memory_watch import record as log_memory
+    log_memory(stage,elapsed_ms=elapsed,
+               detailed=stage in ("form_submitted","receipt_saved",
+                                  "ask_checkpoint_complete",
+                                  "bid_checkpoint_complete"))
 
 
 def _bound_native_cpu_threads():
