@@ -19,38 +19,31 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _description_scan_release_v13():
+def _main_two_market_release_v14():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
-    for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.bart_summary','pricing.same_car_markets','pricing.dealer_positioning_ui'):
+    for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_description_scan_release_v13()
+_main_two_market_release_v14()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
 render_hero()
-# Friendly landing-page doorway to the two-market research garage.
-if st.session_state.get('landing_studio_workspace','🚗 Price my car') == '🚗 Price my car':
-    st.markdown("""<div role="note" style="background:linear-gradient(115deg,#163755,#3b3278);color:#fff;border-radius:22px;padding:20px 24px;margin:16px 0;border:1px solid #aec5e6">
-    <strong style="font-size:1.25rem;color:#e9f5a7">🧬 Experimental garage: two prices enter, panic leaves.</strong>
-    <p style="color:#f0f3ff;margin:8px 0">One car, seller asking + wholesale auction, 400 real listing examples and a November 2026 market scenario. CVaR95 watches the worst 5% of pricing mistakes—because nobody frames their largest valuation error.</p>
-    </div>""",unsafe_allow_html=True)
-    if st.button('🧪 Open the two-market experimental garage ↗',key='experimental_landing_entry',type='primary'):
-        st.session_state['_navigate_to']='🧬 Experimental models'
-        st.rerun()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
 # Mount consent and first-party telemetry on early-return workspaces as well.
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
     from pricing.analytics import render_privacy
     render_privacy()
-if _workspace=='🧬 Experimental models':
+# The public homepage is THE same Ask/Bid calculator that previously lived
+# in Experimental. Run it before historical legacy-model routing and stop.
+if _workspace=='🚗 Price my car':
     from pricing.analytics import render_privacy
     render_privacy()
-    from pricing.neural_experimental_ui import render as render_neural_lab
-    render_neural_lab(Path(__file__).parent)
+    from pricing.neural_experimental_ui import render as render_two_market_pricing
+    render_two_market_pricing(Path(__file__).parent,main=True)
     from pricing.ga_events import render_events
     render_events()
     footer()
@@ -92,7 +85,7 @@ if _workspace=='🔎 Listing Inspector':
     render_events()
     footer()
     st.stop()
-if _workspace in ['🚗 Price my car','🌳 Hierarchical model'] and (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
+if _workspace=='🌳 Hierarchical model' and (Path(__file__).parent/'models/xgboost-hierarchy/release.json').exists():
     from pricing.hierarchy_sparse_studio import render
     render(Path(__file__).parent)
     from pricing.ga_events import render_events
@@ -227,7 +220,7 @@ if _workspace=='🚗 Price my car':
                 miles=a.number_input('Mileage (miles)',key='vehicle_odometer',min_value=0,max_value=2000000,value=None,step=1000)
                 state=b.text_input('US state abbreviation',key='vehicle_state',value=None,max_chars=2)
                 body=c.selectbox('Body type',['sedan','SUV','truck','pickup','hatchback','coupe','wagon','van','convertible','other','unknown'],key='vehicle_type')
-                with st.expander('Fine-tune the details · condition, engine & more'):
+                with st.expander('Historical comparator vehicle facts (optional)'):
                     a,b,c=st.columns(3)
                     condition=a.selectbox('Condition',['unknown','excellent','good','fair','like new','new','salvage'],key='vehicle_condition')
                     fuel=b.selectbox('Fuel',['gas','diesel','hybrid','electric','other','unknown'],key='vehicle_fuel')
@@ -336,9 +329,8 @@ if _workspace=='🚗 Price my car':
         }
         from pricing.valuation_story import extend_report
         report=extend_report(report,Path(__file__).parent,saved[2],saved[1],dated_receipts,transport,path,locals().get('bid_path'))
-        with st.container(key='story_receipt'):
-            from pricing.bart_summary import render_story
-            render_story(saved[2],saved[3],valuation=report)
+        # Removed BART story generator from pricing. The factual JSON receipt
+        # remains available without a second language-model inference.
         if dated_result:
             render_market_clock(transport,valuation_date,refresh_error)
             render_time_evidence(transport,dated_receipts)
