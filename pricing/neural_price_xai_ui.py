@@ -169,6 +169,13 @@ def _what_if(root,saved,date,adjusted,transport,allow_analogue,champions,token):
                   index=conds.index(old_c) if old_c in conds else 0)
         title=c.selectbox("What-if title",titles,
                   index=titles.index(old_t) if old_t in titles else 0)
+        grade_options=["unknown","1","2","3","4","5"]
+        old_grade=str(saved.get("bid_fields",{}).get("auction_grade","unknown"))
+        grade=st.selectbox("Wholesale auction pre-sale grade (Bid only)",
+                 grade_options,index=grade_options.index(old_grade)
+                 if old_grade in grade_options else 0,
+                 help="The Bid model uses auction grade; the seller's condition "
+                      "dropdown is not secretly substituted for this signal.")
         notes=st.text_area("Alternative seller wording (Ask only)",
                 value=saved.get("notes",""),max_chars=8000,height=105,
                 help="This changes Ask text embeddings. Bid uses auction facts, "
@@ -186,7 +193,7 @@ def _what_if(root,saved,date,adjusted,transport,allow_analogue,champions,token):
                 if side=="ask":new=model.predict(notes,changed)["price"]
                 else:
                     bfields={**saved["bid_fields"],"odometer":float(mileage),
-                             "condition":condition,"title_status":title}
+                             "auction_grade":grade,"title_status":title}
                     new=model.predict(bfields)["price"]
                 if not np.isfinite(new) or new<=0:raise ValueError("Invalid native price")
                 when=None
@@ -220,6 +227,8 @@ def _what_if(root,saved,date,adjusted,transport,allow_analogue,champions,token):
                          if item["date_change_usd"] is not None else None)
         st.caption("A change in the model's predicted price after editing inputs "
                    "does NOT prove the same action changes what an actual buyer pays.")
+        st.caption("Bid responds to auction grade and other pre-sale facts, NOT "
+                   "the retail condition word or seller advert text.")
 
 
 def _technical(root,saved,champions,token):
