@@ -2,18 +2,6 @@ name: Experimental two-model release · BGE DeepCross ask + DeepFM wholesale
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - pricing/neural_ask_embedding_live.py
-      - pricing/neural_bid_blend_live.py
-      - pricing/neural_experimental_ui.py
-      - scripts/package_ask_bge_experimental.py
-      - scripts/package_bid_deepfm_experimental.py
-      - tests/test_experimental_two_models.py
-      - tests/test_cvar95_experimental_ui.py
-      - pricing/cvar95_experiment_science.py
-      - .github/workflows/experimental-two-model-release.yml
 
 permissions:
   actions: read
@@ -56,14 +44,14 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           app=Path('app.py').read_text()
-          assert "if _workspace=='🧬 Experimental models':" in app
+          assert "if _workspace=='🚗 Price my car':" in app
           original=Path('pricing/neural_experimental_ui.py').read_text()
           assert 'bge_whatif_run' in original and 'deepfm_bid' in original
           assert "from pricing.neural_ask_embedding_live import load" in original
           assert "from pricing.neural_bid_blend_live import load" in original
           assert "MiniLM Ridge" in original
           assert "head_price(" not in Path('pricing/neural_ask_embedding_live.py').read_text()
-          print('Both research engines confined to Experimental models. Main calculator unchanged.')
+          print('Legacy research serving engines remain available for main Ask/Bid fail-safe fallback.')
           PY
 
   ask:
