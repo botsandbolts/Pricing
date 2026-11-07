@@ -1,4 +1,5 @@
 name: Car Price Studio · LinkedIn-era Models + Lightweight Explainability QA
+run-name: Stable cached Ask/Bid + tiny XAI · ${{ github.sha }}
 
 on:
   workflow_dispatch:
