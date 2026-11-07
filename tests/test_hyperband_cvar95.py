@@ -154,7 +154,7 @@ def test_hyperband_two_brackets_pinned_study_and_six_batches():
     assert study.pruner._max_resource == 42
     assert study.pruner._reduction_factor == 4
     # Two brackets: floor(log_4(42/4)) + 1.
-    assert study.pruner._n_brackets == 0 or study.pruner._n_brackets == 2
+    assert study.pruner._n_brackets in (None, 2)
 
 
 def test_incumbent_comparison_uses_matching_original_validation_cohorts():
