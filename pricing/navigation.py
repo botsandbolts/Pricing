@@ -16,12 +16,12 @@ def render_navigation():
     from pricing.accessibility import announce
     announce('Current panel: '+page)
     from html import escape
-    notes={'🚗 Price my car':'Start here · Your car details → two market estimates.',
+    notes={'🚗 Price my car':'Two markets · seller Ask + wholesale Bid, with historical-date controls.',
            '🔎 Listing Inspector':'Look a little closer · Compare vehicles and explore the evidence.',
            '🚦 Pick your garage':'A little car chemistry · Rate real representatives, then discover your shortlist.',
            '📅 Value over time':'Take the long view · Explore how the same car’s price scenario changes.',
            '🧠 The science':'Under the bonnet · Methods, assumptions and what the models can tell you.',
-           '🚗 Price my car':'Two markets · seller Ask + wholesale Bid, with historical-date controls.'}
+           '🏪 Merchant lens':'Dealer-level context and merchant comparisons.'}
     st.markdown('<div class="garage-route-note">'+escape(notes.get(page,'The curious corner · Explore the models, evidence and historical comparisons.'))+'</div>',unsafe_allow_html=True)
     return page
 
