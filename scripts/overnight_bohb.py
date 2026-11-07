@@ -127,15 +127,18 @@ def read_history(path):
     if len(rows)!=len({(r["market"],r["stage"],r["slot"]) for r in rows}):
         raise ValueError("Repeated BOHB trial IDs")
     for r in rows:
-        if (r["market"] not in MARKETS or r["state"]!="COMPLETE"
+        if (r["market"] not in MARKETS or r["state"] not in ("COMPLETE","FAILED")
             or r["budget"] not in BUDGETS or not isinstance(r["trial"],int)
             or r.get("test_evaluated") is not False):
             raise ValueError("Incomplete, unregistered or test-contaminated BOHB evidence")
-        if not math.isfinite(float(r["validation"]["CVaR95_absolute_USD"])):
-            raise ValueError("Nonfinite BOHB CVaR95 metric")
+        if r["state"]=="COMPLETE":
+            if not math.isfinite(float(r["validation"]["CVaR95_absolute_USD"])):
+                raise ValueError("Nonfinite BOHB CVaR95 metric")
+        elif r.get("validation") is not None or not r.get("error"):
+            raise ValueError("Failed experiments need error details, no fabricated metrics")
     for market in MARKETS:
         hashes={r["provenance"]["holdout_row_sha256"]["validation"]
-                for r in rows if r["market"]==market}
+                for r in rows if r["market"]==market and r["state"]=="COMPLETE"}
         if len(hashes)>1:
             raise ValueError("BOHB validation vehicle cohorts changed")
     return rows
@@ -148,7 +151,7 @@ def bohb_generator(market,history):
                    min_points_in_model=36,
                    random_fraction=.35,num_samples=96)
     # Load only completed, independently audited per-budget objective values.
-    for row in sorted((r for r in history if r["market"]==market),
+    for row in sorted((r for r in history if r["market"]==market and r["state"]=="COMPLETE"),
                       key=lambda r:(r["stage"],r["slot"])):
         wrapper=SimpleNamespace(
             id=(row["stage"],row["slot"],0),
@@ -166,7 +169,7 @@ def _identity(params):
 
 def _promotion(market,history,target,planned):
     prev={18:6,54:18,162:54,216:162}[target]
-    eligible=[r for r in history if r["market"]==market and r["budget"]==prev]
+    eligible=[r for r in history if r["market"]==market and r["state"]=="COMPLETE" and r["budget"]==prev]
     seen={(r["budget"],_identity(r["params"])) for r in history if r["market"]==market}
     seen.update((r["budget"],_identity(r["params"])) for r in planned)
     eligible=[r for r in eligible if (target,_identity(r["params"])) not in seen]
@@ -258,13 +261,30 @@ def train(plan_path,market,slot,output,args):
     if seconds<120:
         raise RuntimeError("Too close to 06:00 Berlin cutoff for safe scoring")
     # Native trial index is the original seed for a promoted candidate.
-    if market=="ask":
-        native.ask("ask_structure",chosen["origin_trial"],args.ask_features,args.ask_embeddings,
-                   root,seconds,refinement=chosen["config"])
-    else:
-        native.bid("bid_structure",chosen["origin_trial"],args.bid_features,args.bid_baseline,
-                   root,seconds,refinement=chosen["config"])
-        audit_and_save_bid_blend(root,args.bid_baseline)
+    try:
+        if market=="ask":
+            native.ask("ask_structure",chosen["origin_trial"],args.ask_features,args.ask_embeddings,
+                       root,seconds,refinement=chosen["config"])
+        else:
+            native.bid("bid_structure",chosen["origin_trial"],args.bid_features,args.bid_baseline,
+                       root,seconds,refinement=chosen["config"])
+            audit_and_save_bid_blend(root,args.bid_baseline)
+    except (ValueError,RuntimeError,FloatingPointError,MemoryError) as exc:
+        # A genuinely unstable network is an expected BOHB observation, not
+        # permission to disrupt every other independent overnight candidate.
+        # Fail closed on source provenance, immutable cohorts, and CSV parity.
+        message=str(exc)
+        security=("cohort","sha256","original","VIN-disjoint","manifest",
+                  "baseline target mismatch","parity","heldout","frozen")
+        if any(term.lower() in message.lower() for term in security):
+            raise
+        summary={**chosen,"state":"FAILED","validation":None,
+                 "provenance":None,"test_evaluated":False,"auto_deploy":False,
+                 "checkpoint_reused":False,"same_origin_seed":True,
+                 "error":type(exc).__name__+": "+message[:1500]}
+        (root/"summary.json").write_text(json.dumps(summary,indent=2,allow_nan=False))
+        print("NIGHTMARE_TRIAL_FAILED",market,chosen["stage"],slot,summary["error"],flush=True)
+        return
     native_receipt=json.loads((root/"result.json").read_text())
     if native_receipt["trial_configuration"]!=chosen["config"] or native_receipt["test_evaluated"] is not False:
         raise ValueError("BOHB native checkpoint settings differ from registered study")
@@ -299,6 +319,15 @@ def collect(plan_path,history_path,artifacts,output):
                      "promoted_from_trial","params","config","budget","source"):
             if r[name]!=registered[name]:
                 raise ValueError("BOHB trained an unregistered configuration: "+name)
+        if r["state"]=="FAILED":
+            if r["validation"] is not None or not r.get("error"):
+                raise ValueError("Failed BOHB candidate lacks verified error receipt")
+            if file.with_name("validation.csv.gz").exists():
+                raise ValueError("Failed BOHB candidate must not claim validation")
+            gathered[key]=r
+            continue
+        if r["state"]!="COMPLETE":
+            raise ValueError("Unexpected overnight BOHB trial state")
         native_receipt=json.loads(file.with_name("result.json").read_text())
         if (native_receipt["trial_configuration"]!=r["config"]
             or native_receipt["test_evaluated"] is not False):
@@ -323,7 +352,7 @@ def collect(plan_path,history_path,artifacts,output):
     # Only the registered highest 216-epoch fidelity qualifies as a challenger.
     full={}
     for m in MARKETS:
-        chosen=[r for r in all_records if r["market"]==m and r["budget"]==216]
+        chosen=[r for r in all_records if r["market"]==m and r["state"]=="COMPLETE" and r["budget"]==216]
         chosen.sort(key=lambda r:(r["validation"]["CVaR95_absolute_USD"],
                                   r["validation"]["RMSE_USD"],r["trial"]))
         full[m]=[{"trial":r["trial"],"origin_trial":r["origin_trial"],
@@ -339,6 +368,7 @@ def collect(plan_path,history_path,artifacts,output):
               "budget_distribution":{m:{str(b):sum(r["market"]==m and r["budget"]==b
                                       for r in all_records) for b in BUDGETS} for m in MARKETS},
               "optimizer":"HpBandSter BOHB KDE + 14 losses + 216-epoch promotion",
+              "failed_counts":{m:sum(r["market"]==m and r["state"]=="FAILED" for r in all_records) for m in MARKETS},
               "deadline_utc":DEADLINE.isoformat(),
               "promotion_checkpoint_restoration":False,
               "training_restart_same_seed":True,
