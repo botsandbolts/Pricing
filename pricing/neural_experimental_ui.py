@@ -491,8 +491,12 @@ models used on our main price calculator.</p>
             try:
                 from pricing.neural_ask_embedding_live import load as ask_load
                 with st.spinner("Running the complete BGE + DeepCross/AFT network…"):
-                    results["ask"]=(load_champion_ask(root) if ask_champion
-                                    else ask_load(root)).predict(notes,fields)
+                    # Reuse the precise frozen BGE vector from pricing for
+                    # optional Captum; no second encoder call or weights copy.
+                    model=load_champion_ask(root) if ask_champion else ask_load(root)
+                    prepared=model.prepare_text(notes)
+                    results["ask"]=model.predict_prepared(fields,prepared)
+                    results["ask_embedding"]=prepared["embedding"]
             except Exception as exc:
                 st.error("Asking engine unavailable: "+str(exc))
         if bid_ready:
@@ -502,6 +506,7 @@ models used on our main price calculator.</p>
                 with st.spinner("Running verified wholesale DeepFM + Lemon XGBoost…"):
                     results["bid"]=(load_champion_bid(root) if bid_champion
                                     else bid_load(root)).predict(bid_fields)
+                    results["bid_fields"]=bid_fields
                 if analogue:results["bid_analogue"]=analogue
             except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
                 results["bid_error"]=str(exc)
@@ -542,7 +547,16 @@ models used on our main price calculator.</p>
                       _usd(prices["ask"]-prices["bid"]))
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
         if adjusted:
-            render_time_evidence(transport,adjusted)
+            with st.expander("📈 Advanced historical price clock"):
+                if st.button("Show historical-to-selected-date evidence",
+                             key="price_clock_evidence_go"):
+                    render_time_evidence(transport,adjusted)
+        if main:
+            # A real saved price and its tiny 384D embedding travel only in
+            # session_state. Captum is imported by the explanation button.
+            from pricing.captum_price_lite import render as render_captum_lite
+            render_captum_lite(root,saved,
+                ask_champion=ask_champion,bid_champion=bid_champion)
         if "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
                 alt=st.text_area("Alternative advertisement",value=saved["notes"],key="experimental_reword",max_chars=8000)
@@ -558,19 +572,23 @@ models used on our main price calculator.</p>
                     except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
                         st.error("What-if calculation unavailable: "+str(exc))
             with st.expander("📉 Mileage sensitivity · full-network reruns"):
-                try:
-                    from pricing.neural_ask_embedding_live import load
-                    model=load_champion_ask(root) if ask_champion else load(root)
-                    prepared=model.prepare_text(saved["notes"])
-                    rows=[]
-                    for change in (-20000,-10000,0,10000,20000):
-                        f={**saved["fields"],"odometer":max(0,saved["fields"]["odometer"]+change)}
-                        p=model.predict_prepared(f,prepared)["price"]
-                        if transport:p=_adjust_price(transport,p,f,"ask",valuation_date,allow_analogue)["price"]
-                        rows.append({"Mileage":int(f["odometer"]),"Asking USD":p})
-                    st.line_chart(pd.DataFrame(rows).set_index("Mileage"))
-                except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
-                    st.info("Mileage sensitivity unavailable: "+str(exc))
+                st.caption("Five real model calls only when you ask; your memory "
+                           "budget is not an all-you-can-eat buffet.")
+                if st.button("Draw mileage sensitivity",key="experimental_mileage_go"):
+                    try:
+                        from pricing.neural_ask_embedding_live import load
+                        model=load_champion_ask(root) if ask_champion else load(root)
+                        prepared=({"embedding":saved["ask_embedding"],"raw":saved["notes"]}
+                                  if "ask_embedding" in saved else model.prepare_text(saved["notes"]))
+                        rows=[]
+                        for change in (-20000,-10000,0,10000,20000):
+                            f={**saved["fields"],"odometer":max(0,saved["fields"]["odometer"]+change)}
+                            p=model.predict_prepared(f,prepared)["price"]
+                            if transport:p=_adjust_price(transport,p,f,"ask",valuation_date,allow_analogue)["price"]
+                            rows.append({"Mileage":int(f["odometer"]),"Asking USD":p})
+                        st.line_chart(pd.DataFrame(rows).set_index("Mileage"))
+                    except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
+                        st.info("Mileage sensitivity unavailable: "+str(exc))
         report={"model_family":"Parity-gated CVaR95-selected neural challengers (original fallback if unavailable)",
                 "valuation_date":str(valuation_date),"vehicle":saved["fields"],
                 "historical_predictions":{k:saved[k] for k in ("ask","bid") if k in saved},
