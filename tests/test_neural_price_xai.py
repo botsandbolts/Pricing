@@ -255,3 +255,25 @@ def test_real_xgboost_native_treeshap_log_and_dollar_reconciliation():
     assert abs(result["dollar_reconciliation_error"])<.15
     with pytest.raises(ValueError,match="displayed Lemon XGBoost"):
         xai.bid_treeshap(Published(),fields,actual_xgb+100)
+
+
+def test_bounded_goal_explorer_uses_real_predictions_and_capped_grid():
+    a=vehicle()
+    model=FakeAsk()
+    def true_native(row):
+        return model.predict(a["listing_text"],row)["price"]
+    original=true_native(a)
+    report=xai.bounded_goal_scenarios(
+        true_native,a,original,original+100,"ask",max_candidates=24)
+    assert report["candidates_tested"]<=24
+    assert report["candidates_tested"]>6
+    assert len(report["scenarios"])<=8
+    assert all(z["model_year_and_trim_unchanged"] for z in report["scenarios"])
+    assert all(np.isfinite(z["predicted_usd"]) for z in report["scenarios"])
+    assert "not plans to alter" in report["warning"]
+    with pytest.raises(ValueError,match="does not reproduce"):
+        xai.bounded_goal_scenarios(
+            true_native,a,original+1000,original+100,"ask")
+    with pytest.raises(ValueError,match="budget"):
+        xai.bounded_goal_scenarios(
+            true_native,a,original,original+100,"ask",max_candidates=49)
