@@ -150,3 +150,26 @@ def test_public_homepage_has_real_weights_saved_embedding_and_lazy_button():
     assert "subprocess.run(" not in src
     assert "from pricing.captum_price_lite import render" in src
     assert "captum==0.9.0" in (ROOT/"requirements.txt").read_text()
+
+
+def test_flagship_captum_controls_are_visible_and_reachable_after_price():
+    # Prevent a "deployed but invisible" regression: a successful real quote
+    # must show its Captum form, never an extra collapsed accordion.
+    page=(ROOT/"pricing/neural_experimental_ui.py").read_text()
+    captum=(ROOT/"pricing/captum_price_lite.py").read_text()
+    assert "Your AI explanation is included" in page  # before quote
+    assert 'if main:' in page
+    assert "### 🔍 04 / Why THAT price? · Your AI price detective" in page
+    assert page.index('saved=st.session_state.get("experimental_combined_receipt")') < page.index(
+        "render_captum_lite(root,saved,")
+    assert "with st.container(border=True):" in captum
+    assert 'with st.expander("🧠 Captum' not in captum
+    assert "🔬 Explain THIS price · Captum" in captum
+    assert 'internal_batch_size=1' in captum  # unchanged memory gate
+    assert 'from captum.attr import IntegratedGradients' in captum
+
+
+def test_pre_quote_teaser_is_present_in_browser_release_contract():
+    smoke=(ROOT/"scripts/browser_smoke_main_pricing.py").read_text()
+    assert "Your AI explanation is included" in smoke
+    assert "Missing public-page message" in smoke
