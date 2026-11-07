@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/bge-int8-release.yml
       - scripts/release_bge_int8.py
+      - scripts/memory_watch_selftest.py
       - pricing/quantized_bge_runtime.py
       - pricing/neural_ask_embedding_live.py
       - pricing/memory_watch.py
