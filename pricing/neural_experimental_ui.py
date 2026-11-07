@@ -350,7 +350,7 @@ def _usd(value):return "$"+f"{float(value):,.0f}"
 def render(root):
     root=Path(root)
     st.markdown(CSS+"""
-<section class="exp-hero" aria-label="Experimental pricing, asking and wholesale together">
+<section class="exp-hero" aria-label="Experimental vehicle pricing models">
 <small>CAR PRICE STUDIO · THE RESEARCH GARAGE</small>
 <h1>Two markets. One car.<br>Fewer pricing nightmares.</h1>
 <p>Seller asking and wholesale auction estimates on the same screen, with the complete original experimental engines. CVaR95 asks how badly the model misses when luck takes a coffee break.</p>
@@ -432,27 +432,37 @@ def render(root):
                     y.metric("RMSE",_usd(k["RMSE_USD"]))
                     z.metric("MAE",_usd(k["MAE_USD"]))
     with st.expander("🧠 How the new models work · tail-risk research",expanded=False):
-        st.markdown("**✍ Ask · a residual neural network that reads the advert.** "
-                    "A fixed BGE-small language encoder converts the seller description "
-                    "into a 384-dimensional vector. A learned projection compresses the "
-                    "text representation; residual MLP blocks combine it with mileage, "
-                    "age, condition and other categorical vehicle facts. The complete "
-                    "network predicts historical advertised asking dollars. "
-                    "It is not a text-to-price Ridge model.")
-        st.markdown("**🔨 Bid · neural interactions plus a trusted tree baseline.** "
-                    "DeepFM learns individual features, feature-pair interactions and "
-                    "a small nonlinear correction for original 2014–2015 auction sales. "
-                    "A fixed Lemon-cleaned XGBoost model contributes an independent "
-                    "prediction; the neural mixing proportion was chosen using the "
-                    "original VIN-disjoint validation rows.")
-        st.markdown("**🛡️ Why CVaR95?** It averages the *absolute* dollar errors "
-                    "among the 5% worst misses. This rewards fewer catastrophic "
-                    "appraisal mistakes without claiming that absolute error equals "
-                    "realized dealer losses. RMSE and MAE remain visible.")
-        st.warning("The Ask training labels are historical advertised prices; "
-                   "the Bid labels are completed historical auctions in 2015-indexed USD. "
-                   "Today's date transport is a scenario, not modern ground truth. "
-                   "Newer vehicles may be outside the source cohorts.")
+        explain_ask,explain_bid,explain_risk=st.tabs(
+            ["✍ Asking · BGE ResMLP","🔨 Wholesale · DeepFM","🛡️ Risk & limitations"])
+        with explain_ask:
+            st.markdown("**A residual neural network that reads the advert.** "
+                        "The pinned BGE-small encoder maps description text to "
+                        "384 semantic dimensions. A learned projector compresses "
+                        "this vector and residual MLP blocks mix it with the "
+                        "vehicle's mileage, model year and category features. "
+                        "The model predicts a historical *advertised* asking price. "
+                        "No Ridge or MiniLM price head substitutes for the full network.")
+            st.caption("Research winner: Ask25 trial 15 (when its original-test "
+                       "checkpoint passes the separate serving release gate).")
+        with explain_bid:
+            st.markdown("**FM interactions plus an independent XGBoost voice.** "
+                        "DeepFM learns individual effects, feature-pair interactions "
+                        "and a compact nonlinear correction over auction attributes. "
+                        "The complete neural output is blended with the original "
+                        "Lemon-cleaned XGBoost wholesale estimate. The blend weight "
+                        "was selected using VIN-disjoint historical validation.")
+            st.caption("Research winner: Bid hyperparameter trial 18 when verified. "
+                       "Auction label: completed 2014–2015 sale in 2015-indexed USD.")
+        with explain_risk:
+            st.markdown("**CVaR95:** the mean of absolute pricing errors among "
+                        "the largest 5% of misses. It helps identify the models "
+                        "that tend to make fewer costly mistakes; RMSE and MAE "
+                        "remain secondary diagnostics.")
+            st.warning("Both studies use historical training populations. "
+                       "Ask estimates asking prices, Bid predicts auction sales, "
+                       "and date transport to today's dollars is a scenario. "
+                       "Models are NOT validated on November 2026 vehicle sales. "
+                       "Recent model years may be outside the training support.")
     with st.expander("🔨 Auction reference assumptions",expanded=False):
         auction=st.date_input("Original auction date (2014–2015)",
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
