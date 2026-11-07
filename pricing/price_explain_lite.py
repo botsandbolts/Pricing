@@ -120,6 +120,55 @@ def one_scenario(root,saved,market,choice,ask_champion=False,bid_champion=False)
     }
 
 
+def native_bid_tree_drivers(root,saved,*,bid_champion=False):
+    """Native XGBoost TreeSHAP on ONE row; no shap pip package or new model.
+
+    Reconciles with the already displayed XGBoost component before showing
+    anything. These are log-price contributions of the tree BRANCH only.
+    """
+    import numpy as np
+    from pricing.neural_bid_blend_live import CATS,_norm
+    from pricing.hierarchy_sparse_live import design_matrix
+    if "bid_fields" not in saved or "bid" not in saved:
+        raise ValueError("Original auction-feature receipt is unavailable.")
+    if bid_champion:
+        from pricing.neural_champion_live import load_bid
+        model=load_bid(root)
+    else:
+        from pricing.neural_bid_blend_live import load
+        model=load(root)
+    original=getattr(model,"original",model)
+    fields=saved["bid_fields"]
+    _,_,raw,_=original.features(fields)
+    pack={**{k:_norm(fields.get(k)) for k in CATS[:8]},
+          "odometer":float(fields["odometer"]),
+          "auction_grade":float(raw[-1]) if np.isfinite(raw[-1]) else None}
+    booster=original.xgb
+    row,_=design_matrix(booster,original.xgb_schema,None,pack,float(raw[1]))
+    parts=np.asarray(booster.predict(row,pred_contribs=True),dtype=float)
+    margin=float(booster.predict(row,output_margin=True)[0])
+    if parts.ndim!=2 or parts.shape[0]!=1 or parts.shape[1]<2:
+        raise ValueError("Wrong native feature-contribution dimensions.")
+    if not math.isfinite(margin) or abs(float(parts[0].sum())-margin)>.002:
+        raise ValueError("Tree contributions do not reconcile.")
+    target=float(math.exp(min(13.815510557964274,max(4.605170186,margin))))
+    expected=float(saved["bid"]["xgboost_lemon_price"])
+    if abs(target-expected)>max(.50,.0001*expected):
+        raise ValueError("TreeSHAP was not computed on the saved model price.")
+    names=row.feature_names or [f"Feature {i+1}" for i in range(parts.shape[1]-1)]
+    values=parts[0,:-1]
+    if len(names)!=len(values) or not np.isfinite(values).all():
+        raise ValueError("Tree feature names or contributions are invalid.")
+    indices=np.argsort(np.abs(values))[::-1][:7]
+    result=[{"Feature":str(names[int(i)]),
+             "Direction":"Raises tree estimate" if values[i]>0 else
+                         "Lowers tree estimate" if values[i]<0 else "Neutral",
+             "Effect (log price)":round(float(values[i]),4)}
+            for i in indices]
+    return {"tree_price_usd":target,"log_reconciliation":float(parts[0].sum())-margin,
+            "top_drivers":result,"scope":"Native Lemon XGBoost branch, not DeepFM or full Bid"}
+
+
 def render(root,saved,adjusted,*,ask_champion=False,bid_champion=False):
     import streamlit as st
     if "ask" not in saved and "bid" not in saved:return
@@ -234,5 +283,32 @@ def render(root,saved,adjusted,*,ask_champion=False,bid_champion=False):
                     "decomposition is exact accounting; the what-if is one "
                     "real-model sensitivity; the wholesale breakdown is the "
                     "actual weighted ensemble.")
+        if "bid" in saved and "bid_fields" in saved:
+            with st.expander("🌳 Native one-row XGBoost feature contributions"):
+                st.caption("A precise local tree explanation with XGBoost's "
+                           "built-in TreeSHAP. No extra package or network call. "
+                           "These numbers are in **log-price units**, and explain "
+                           "only the tree's share of the Bid estimate.")
+                if st.button("Inspect the existing XGBoost model",key="lite_tree_go"):
+                    try:
+                        with st.spinner("Explaining one row of the cached tree…"):
+                            data=native_bid_tree_drivers(root,saved,
+                                                       bid_champion=bid_champion)
+                        st.session_state["cps_lite_tree"]={"id":token,"data":data}
+                    except (OSError,ValueError,TypeError,KeyError,RuntimeError,
+                            MemoryError):
+                        st.session_state.pop("cps_lite_tree",None)
+                        st.warning("Native tree contributions could not be "
+                                   "verified for this auction estimate.")
+                report=st.session_state.get("cps_lite_tree")
+                if report and report.get("id")==token:
+                    result=report["data"]
+                    st.metric("Original XGBoost component",
+                              money(result["tree_price_usd"]))
+                    st.table(result["top_drivers"])
+                    st.caption("The signed contributions add up to the native "
+                               "log-price prediction with bias; these top "
+                               "factors are not dollar discounts, causation, "
+                               "or an explanation of the DeepFM component.")
         st.caption("Open source. No registration. On-demand predictions; "
                    "no additional external explanation service or tracking.")
