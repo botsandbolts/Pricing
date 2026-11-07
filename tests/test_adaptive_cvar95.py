@@ -95,7 +95,7 @@ def test_bid_csv_reconciles_blended_cvar95_not_standalone_neural(tmp_path, monke
     from scripts.cvar95_historical import risk
     import scripts.neural_200_sweep as native
 
-    y = np.linspace(1500, 40000, 100, dtype=float)
+    y = np.linspace(5000, 40000, 100, dtype=float)
     neural = y + np.linspace(-2200, 3200, 100)
     lemon = y + np.linspace(700, -1700, 100)
     alpha = .7
