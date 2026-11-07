@@ -419,6 +419,26 @@ models used on our main price calculator.</p>
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
     market_guide()
+    if main:
+        # Visibility is intentional: Captum itself still runs ONLY on a user
+        # click after pricing. A pre-price guide prevents the key feature
+        # disappearing beyond the fold for mobile and first-time visitors.
+        st.markdown("""
+<section aria-label="Where to find the price explanation"
+style="border:1px solid #6daea8;border-left:5px solid #168775;
+border-radius:14px;padding:12px 15px;margin:10px 0 14px;
+background:rgba(34,150,132,.07)">
+<div style="font-size:1.03rem;font-weight:800;margin-bottom:5px">
+🔬 Why THAT price? · Your AI explanation is included
+</div>
+<div style="font-size:.91rem;line-height:1.5">
+<strong>1.</strong> Enter your car.
+<strong>2.</strong> Tap <strong>Calculate seller Ask + wholesale Bid</strong>.
+<strong>3.</strong> Find the open <strong>Why THAT price?</strong>
+panel directly under your price results. The AI explains itself
+only when you ask. No model circus required. 🎪🚗
+</div></section>
+""",unsafe_allow_html=True)
     examples=load_examples()
     st.markdown("### 🚗 01 / Start with an example—or your own car")
     if examples:
@@ -552,8 +572,11 @@ models used on our main price calculator.</p>
                              key="price_clock_evidence_go"):
                     render_time_evidence(transport,adjusted)
         if main:
-            # A real saved price and its tiny 384D embedding travel only in
-            # session_state. Captum is imported by the explanation button.
+            # High-visibility explanation directly after prices. Preserve
+            # lazy Captum imports and unchanged native cached checkpoints.
+            st.markdown("### 🔍 04 / Why THAT price? · Your AI price detective")
+            st.caption("Right here under your quote. Choose Ask or Bid and "
+                       "click Explain; the first quote has zero Captum overhead.")
             from pricing.captum_price_lite import render as render_captum_lite
             render_captum_lite(root,saved,
                 ask_champion=ask_champion,bid_champion=bid_champion)
