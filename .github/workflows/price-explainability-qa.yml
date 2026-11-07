@@ -19,7 +19,7 @@ on:
       - requirements.txt
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: public-low-ram-pricing-${{ github.ref }}
@@ -148,3 +148,54 @@ jobs:
           path: reports/qa/neural-low-ram/browsers/
           retention-days: 30
           if-no-files-found: warn
+
+  publish_qa_receipt:
+    if: always()
+    needs: [low_ram_contracts,cross_browser_smoke]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Publish only verified per-run status, never marketing claims
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          UNITS: ${{ needs.low_ram_contracts.result }}
+          BROWSERS: ${{ needs.cross_browser_smoke.result }}
+        run: |
+          mkdir -p reports/qa/neural-low-ram
+          python - <<'PY'
+          import os,json
+          from datetime import datetime,timezone
+          u=os.environ["UNITS"];b=os.environ["BROWSERS"]
+          result={
+              "source_commit":os.environ["SOURCE_SHA"],
+              "workflow_run_id":os.environ["WORKFLOW_RUN_ID"],
+              "tested_utc":datetime.now(timezone.utc).isoformat(),
+              "unit_contracts":u,
+              "five_browser_smoke":b,
+              "status":"passed" if u=="success" and b=="success" else "failed",
+              "scope":"Offline unit+browser pre-inference checks; not live host memory or real BGE weight inference",
+              "real_checkpoint_performance_checked":False
+          }
+          with open("reports/qa/neural-low-ram/latest.json","w") as f:
+              json.dump(result,f,indent=2)
+          print(json.dumps(result,indent=2))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          cp reports/qa/neural-low-ram/latest.json /tmp/native-cps-qa.json
+          published=0
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p reports/qa/neural-low-ram
+            cp /tmp/native-cps-qa.json reports/qa/neural-low-ram/latest.json
+            git add reports/qa/neural-low-ram/latest.json
+            if git diff --cached --quiet; then published=1;break;fi
+            git commit -m 'Record native pricing low-RAM QA result (non-release evidence)'
+            if git push origin HEAD:main; then published=1;break;fi
+          done
+          test "$published" = "1"
