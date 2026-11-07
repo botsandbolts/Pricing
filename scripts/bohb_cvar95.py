@@ -191,6 +191,16 @@ def train(plan_path,market,slot,output,args):
     chosen=plan["candidates"][market][slot]
     if (chosen["market"],chosen["slot"],chosen["stage"])!=(market,slot,plan["stage"]):
         raise ValueError("Wrong worker for BOHB proposal")
+    history=read_history(args.history)
+    if len(history)!=plan["stage"]*SLOTS*len(MARKETS):
+        raise ValueError("BOHB worker missing previous audited batch history")
+    if chosen["promoted_from_trial"] is not None:
+        parent=[r for r in history if r["market"]==market
+                and r["trial"]==chosen["promoted_from_trial"]]
+        if (len(parent)!=1 or parent[0]["params"]!=chosen["params"]
+            or parent[0]["origin_trial"]!=chosen["origin_trial"]
+            or parent[0]["budget"]!={12:4,36:12}[chosen["budget"]]):
+            raise ValueError("BOHB promotion must reproduce audited preceding rung")
     if chosen["config"]!=settings_from_params(market,chosen["params"],chosen["budget"]):
         raise ValueError("BOHB optimizer proposal was modified")
     root=Path(output);root.mkdir(parents=True,exist_ok=True)
@@ -296,6 +306,7 @@ def main():
     q.add_argument("--output",required=True)
     t=sub.add_parser("train")
     t.add_argument("--plan",required=True)
+    t.add_argument("--history")
     t.add_argument("--market",required=True,choices=MARKETS)
     t.add_argument("--slot",required=True,type=int)
     t.add_argument("--output",required=True)
