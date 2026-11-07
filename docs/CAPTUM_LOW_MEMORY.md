@@ -13,7 +13,7 @@ Captum's original [Integrated Gradients API](https://captum.ai/api/integrated_gr
 | Parameter | Chosen behavior | Reason |
 |---|---|---|
 | `internal_batch_size` | **1, fixed** | Evaluate each interpolation point separately, rather than constructing a large `n_steps * batch_size` activation graph |
-| `n_steps` | **8 / 16 / 24** | A bounded quick-to-detailed choice instead of Captum's 50-step default |
+| `n_steps` | **24, fixed** | No precision slider; uses a consistent, bounded integration budget instead of Captum's 50-step default |
 | `method` | `gausslegendre` | Captum's quadrature approximation; efficient at low step budgets |
 | `return_convergence_delta` | `True` | Explicit completeness check; exposes numerical integration residual |
 | `multiply_by_inputs` | `True` | Return integrated changes relative to a baseline rather than raw gradient sensitivity |
@@ -23,6 +23,8 @@ Captum's original [Integrated Gradients API](https://captum.ai/api/integrated_gr
 | Execution | **Only on button click** | No extra gradient work on page load or first price request |
 | Concurrency | **One active request** | Protect other Streamlit sessions from overlapping attribution memory spikes |
 | Backend | **Existing CPU PyTorch checkpoint** | No quantization, surrogate, ONNX transformation, subprocess or model reloading |
+
+The pricing page provides **no precision slider**. Users simply press Explain; every run uses 24 sequential integration steps and `internal_batch_size=1`. The existing convergence check still suppresses questionable feature bars.
 
 ## What is explained, precisely?
 
@@ -54,7 +56,7 @@ The first public page view imports only lightweight helper functions. `from capt
 
 The GitHub workflow [`captum-price-qa.yml`](../.github/workflows/captum-price-qa.yml) runs:
 
-1. Actual Captum 8- and 16-step gradients on representative PyTorch pricing-head architectures, with exact dollar reconciliation.
+1. Actual Captum **24-step** gradients on representative PyTorch pricing-head architectures, with exact dollar reconciliation; requests for lower step counts are rejected.
 2. Release-gate tests for Ask and Bid, original model class and immutable checkpoint contracts.
 3. Assertions that the form reuses the saved BGE representation and exact historical Bid input record, and that the large history/mileage charts remain click-triggered.
 4. A Playwright browser smoke test for desktop, tablet, Android-sized, WebKit iPhone-sized and Firefox screens.
