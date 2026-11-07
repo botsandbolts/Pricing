@@ -1,9 +1,9 @@
 {
-  "source_commit": "eff76c14c3abf39de56b773ea41deb5013409e2e",
-  "workflow_run_id": "42349529273",
-  "tested_utc": "2026-11-07T07:04:32.005248+00:00",
-  "unit_contracts": "cancelled",
-  "five_browser_smoke": "cancelled",
+  "source_commit": "f6e420fa047002e00ef9f664a245d10ea20c26af",
+  "workflow_run_id": "42349678811",
+  "tested_utc": "2026-11-07T07:06:50.216890+00:00",
+  "unit_contracts": "failure",
+  "five_browser_smoke": "skipped",
   "status": "failed",
   "scope": "Offline unit+browser pre-inference checks; not live host memory or real BGE weight inference",
   "real_checkpoint_performance_checked": false
