@@ -9,6 +9,7 @@ on:
       - pricing/captum_price_lite.py
       - pricing/neural_experimental_ui.py
       - tests/test_captum_price_lite.py
+      - scripts/browser_smoke_main_pricing.py
       - requirements.txt
 
 permissions:
