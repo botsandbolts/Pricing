@@ -46,6 +46,7 @@ jobs:
         run: |
           python -m compileall -q pricing/quantized_bge_runtime.py pricing/neural_ask_embedding_live.py pricing/memory_watch.py scripts/release_bge_int8.py
           python -m scripts.memory_watch_selftest
+      # Production promotion remains gated: failed parity, memory, or native-head smoke tests block the push.
       - name: Quantize pinned BGE encoder; measure REAL vehicle price drift and process RSS
         run: |
           mkdir -p reports/qa/bge-int8-release
