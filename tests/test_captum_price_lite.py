@@ -67,13 +67,13 @@ def bid_saved():
             "date":"2026-11-07"}
 
 
-def test_real_ask_ig_8_steps_single_batches_no_bge_encoder(monkeypatch):
+def test_real_ask_ig_24_steps_single_batches_no_bge_encoder(monkeypatch):
     pytest.importorskip("captum")
     original=FakeAskOriginal()
     monkeypatch.setattr(lite,"_model",lambda *a:original)
-    r=lite.explain(ROOT,ask_saved(),"ask",steps=8)
+    r=lite.explain(ROOT,ask_saved(),"ask",steps=24)
     assert r["market"]=="ask" and r["batch_size"]==1
-    assert r["steps"]==8
+    assert r["steps"]==24
     assert r["neural_usd"]==pytest.approx(14300.,abs=.01)
     assert r["anchor_usd"]==pytest.approx(13000.,abs=.01)
     assert r["reconciliation_error_usd"]<.1
@@ -88,7 +88,7 @@ def test_real_bid_ig_attributes_weighted_neural_only(monkeypatch):
     original=FakeBidOriginal()
     model=SimpleNamespace(model=TinyBid().eval(),original=original,alpha=.9)
     monkeypatch.setattr(lite,"_model",lambda *a:model)
-    r=lite.explain(ROOT,bid_saved(),"bid",steps=16,bid_champion=True)
+    r=lite.explain(ROOT,bid_saved(),"bid",steps=24,bid_champion=True)
     assert r["neural_usd"]==pytest.approx(.9*8400.,abs=.01)
     assert r["anchor_usd"]==pytest.approx(.9*8000.,abs=.01)
     assert r["reconciliation_error_usd"]<.1
@@ -103,12 +103,13 @@ def test_mismatch_refuses_fabricated_model_attribution(monkeypatch):
     bad=ask_saved()
     bad["ask"]["price"]+=1000
     with pytest.raises(ValueError,match="does not reproduce"):
-        lite.explain(ROOT,bad,"ask",steps=8)
+        lite.explain(ROOT,bad,"ask",steps=24)
 
 
 def test_steps_budget_and_busy_attribution_lane(monkeypatch):
-    with pytest.raises(ValueError,match="8, 16 or 24"):
-        lite.explain(ROOT,ask_saved(),"ask",steps=100)
+    for forbidden in (8,16,100):
+        with pytest.raises(ValueError,match="exactly 24"):
+            lite.explain(ROOT,ask_saved(),"ask",steps=forbidden)
     class Busy:
         def acquire(self,blocking=False):
             assert blocking is False
@@ -117,7 +118,7 @@ def test_steps_budget_and_busy_attribution_lane(monkeypatch):
             raise AssertionError("Never release an unacquired semaphore")
     monkeypatch.setattr(lite,"_LANE",Busy())
     with pytest.raises(RuntimeError,match="busy"):
-        lite.explain(ROOT,ask_saved(),"ask",steps=8)
+        lite.explain(ROOT,ask_saved(),"ask",steps=24)
 
 
 def test_source_has_no_eager_captum_model_load_or_extra_encoder():
@@ -125,6 +126,11 @@ def test_source_has_no_eager_captum_model_load_or_extra_encoder():
     tree=ast.parse(src)
     assert "from captum.attr import IntegratedGradients" in src
     assert "internal_batch_size=1" in src
+    assert "INTEGRATION_STEPS=24" in src
+    assert "def explain(root,saved,side,steps=INTEGRATION_STEPS" in src
+    assert "steps=INTEGRATION_STEPS" in src
+    assert "st.select_slider(" not in src
+    assert "24 Gauss–Legendre integration steps" in src
     assert "n_steps=steps" in src
     assert "method=\"gausslegendre\"" in src
     assert "return_convergence_delta=True" in src
@@ -165,6 +171,8 @@ def test_flagship_captum_controls_are_visible_and_reachable_after_price():
     assert "with st.container(border=True):" in captum
     assert 'with st.expander("🧠 Captum' not in captum
     assert "🔬 Explain THIS price · Captum" in captum
+    assert "st.select_slider(" not in captum
+    assert "24 Gauss–Legendre integration steps" in captum
     assert 'internal_batch_size=1' in captum  # unchanged memory gate
     assert 'from captum.attr import IntegratedGradients' in captum
 
@@ -187,7 +195,6 @@ def test_render_after_saved_price_displays_unhidden_captum_form(monkeypatch):
         container=lambda **kwargs:nullcontext(),
         form=lambda *args,**kwargs:nullcontext(),
         radio=lambda *args,**kwargs:"ask",
-        select_slider=lambda *args,**kwargs:8,
         form_submit_button=lambda label,**kwargs:seen.append(("button",label)) or False,
         session_state={},
     )
@@ -196,6 +203,8 @@ def test_render_after_saved_price_displays_unhidden_captum_form(monkeypatch):
     assert any(kind=="markdown" and "Why THAT price?" in value
                for kind,value in seen)
     assert any(kind=="button" and "Explain THIS price" in value
+               for kind,value in seen)
+    assert any(kind=="caption" and "24 Gauss–Legendre" in value
                for kind,value in seen)
     assert not any(kind=="caption" and "hidden" in value.lower()
                    for kind,value in seen)
