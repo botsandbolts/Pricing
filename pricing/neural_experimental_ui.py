@@ -654,7 +654,7 @@ only when you ask. No model circus required. 🎪🚗
             st.caption("Right here under your quote. Choose Ask or Bid and "
                        "click Explain; the first quote has zero Captum overhead.")
             from pricing.captum_price_lite import render as render_captum_lite
-            render_captum_lite(root,saved,
+            render_captum_lite(root,saved,adjusted=adjusted,
                 ask_champion=ask_champion,bid_champion=bid_champion)
         if "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
