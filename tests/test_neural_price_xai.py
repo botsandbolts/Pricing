@@ -200,3 +200,58 @@ def test_captum_bid_does_not_claim_to_cover_xgboost():
     assert len(r["attributions"])==5
     assert "neural branch" in r["scope"].lower()
     assert abs(r["convergence_delta_usd"])<5.
+
+
+def test_real_xgboost_native_treeshap_log_and_dollar_reconciliation():
+    xgb=pytest.importorskip("xgboost")
+    from pricing.neural_bid_blend_live import CATS
+    import numpy as np
+    names=["age","log_miles","auction_grade",*CATS[:8]]
+    types=["q","q","q",*(["c"]*8)]
+    rng=np.random.default_rng(20261107)
+    raw=np.column_stack([
+        rng.uniform(1,20,size=80),
+        rng.uniform(8,13,size=80),
+        rng.uniform(1,5,size=80),
+        rng.integers(0,3,size=(80,8)),
+    ]).astype(np.float32)
+    targets=np.log(7000.+400*raw[:,0]+100*raw[:,1]+1100*(raw[:,3]==1))
+    matrix=xgb.DMatrix(raw,label=targets,
+                       feature_names=names,feature_types=types,
+                       enable_categorical=True)
+    booster=xgb.train({"objective":"reg:squarederror","tree_method":"hist",
+                       "max_depth":2,"eta":.3,"nthread":2},matrix,num_boost_round=8)
+    schema={name:["unknown","toyota","ford","other"] for name in CATS[:8]}
+
+    class LightweightOriginal:
+        xgb=booster
+        xgb_schema=schema
+        def features(self,fields):
+            year=int(fields["year"])
+            age=float(2015-year)
+            odom=float(fields["odometer"])
+            grade=float(fields.get("auction_grade",3))
+            r=np.array([year,age,np.log1p(odom),
+                        np.log1p(odom/max(age,1.)),grade],dtype=float)
+            return (np.zeros((1,5),dtype=np.float32),
+                    np.ones((1,10),dtype=np.int64),r,[])
+
+    class Published:
+        original=LightweightOriginal()
+
+    from pricing.hierarchy_sparse_live import design_matrix
+    fields=vehicle()
+    fields.update(manufacturer="toyota",model="corolla",
+                  title_status="unknown",state="ca")
+    pack={k:fields.get(k) for k in CATS[:8]}
+    pack.update(odometer=fields["odometer"],
+                auction_grade=float(fields["auction_grade"]))
+    matrix,_=design_matrix(booster,schema,None,pack,0.)
+    actual_xgb=float(np.exp(booster.predict(matrix,output_margin=True)[0]))
+    result=xai.bid_treeshap(Published(),fields,actual_xgb)
+    assert result["tree_prediction_usd"]==pytest.approx(actual_xgb,abs=.5)
+    assert len(result["features"])==len(names)
+    assert abs(result["log_additivity_error"])<.002
+    assert abs(result["dollar_reconciliation_error"])<.15
+    with pytest.raises(ValueError,match="displayed Lemon XGBoost"):
+        xai.bid_treeshap(Published(),fields,actual_xgb+100)
