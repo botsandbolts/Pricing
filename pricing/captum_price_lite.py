@@ -184,7 +184,7 @@ def selected_date_breakdown(saved, side, attribution, receipt):
         xgb=0.
     else:
         prediction=saved["bid"]
-        weight=float(prediction["neural_weight"])
+        weight=float(prediction.get("neural_weight",.75))  # Verified original Bid uses 75/25.
         original_xgb=float(prediction["xgboost_lemon_price"])
         if not (math.isfinite(weight) and .5<=weight<=1. and
                 math.isfinite(original_xgb) and original_xgb>0):
@@ -300,6 +300,11 @@ No second elephant-sized neural network in the garage.</div>
             if adjusted is None or side not in adjusted:
                 st.warning("Recalculate a selected-date quote before viewing this explanation.")
                 return
+            if not r["adequate"]:
+                st.warning("The 24-step attribution did not converge "
+                           "sufficiently; individual driver figures are "
+                           "hidden rather than inventing an explanation.")
+                return
             try:
                 dated=selected_date_breakdown(saved,side,r,adjusted[side])
             except (ValueError,TypeError,KeyError,OverflowError) as exc:
@@ -319,15 +324,13 @@ No second elephant-sized neural network in the garage.</div>
                        format(dated["age_factor"],".3f")+"; market index ×"+
                        format(dated["market_factor"],".3f")+
                        ". Both multipliers apply to each dollar contribution.")
-            if not r["adequate"]:
-                st.warning("The 24-step attribution did not converge "
-                           "sufficiently; individual driver figures are "
-                           "hidden rather than inventing an explanation.")
-                return
-            st.markdown("**How the numeric features move the selected-date quote**")
+            st.markdown("**Historical model effects, rescaled to your selected date**")
             st.caption("Captum compares the actual car with standardized numeric "
                        "reference inputs; category inputs and BGE text stay fixed. "
-                       "The reference is NOT an actual historic vehicle or transaction.")
+                       "The reference is NOT an actual historic vehicle or transaction. "
+                       "These rescaled Captum effects hold the chosen car's age "
+                       "and market-adjustment multipliers fixed, so they are "
+                       "not full end-to-end causal effects of changing car age.")
             for item in sorted(dated["items"],key=lambda x:-abs(x["dollars"])):
                 left,right=st.columns([3,1])
                 left.write(("🟢 " if item["dollars"]>=0 else "🟠 ")+item["feature"])
