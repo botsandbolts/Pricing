@@ -89,6 +89,10 @@ def explain(root,saved,side,steps=INTEGRATION_STEPS,*,ask_champion=False,bid_cha
         raise ValueError("Calculate a saved price first")
     if not _LANE.acquire(blocking=False):
         raise RuntimeError("The explanation lane is busy. Retry shortly.")
+    import time
+    from pricing.memory_watch import record as log_memory
+    started=time.monotonic()
+    log_memory("captum_start",detailed=True)
     try:
         import torch
         from captum.attr import IntegratedGradients
@@ -119,6 +123,8 @@ def explain(root,saved,side,steps=INTEGRATION_STEPS,*,ask_champion=False,bid_cha
         if len(values)!=len(names) or not np.isfinite(values).all() or not math.isfinite(delta):
             raise ValueError("Numerical attribution is invalid")
         residual=abs(anchor+float(values.sum())-actual)
+        log_memory("captum_24step_complete",
+                   elapsed_ms=1000*(time.monotonic()-started),detailed=True)
         return {
             "market":side,"scope":scope,"steps":steps,"batch_size":1,
             "anchor_usd":anchor,"neural_usd":actual,
@@ -129,6 +135,10 @@ def explain(root,saved,side,steps=INTEGRATION_STEPS,*,ask_champion=False,bid_cha
             "reference":"Standardized numeric medians (zero); same categories and BGE vector. The synthetic baseline need not be a real car.",
             "warning":"Captum explains local neural sensitivity, NOT causal dollar value, dealer profit, text words or the XGBoost contribution.",
         }
+    except Exception:
+        log_memory("captum_failed",
+                   elapsed_ms=1000*(time.monotonic()-started),detailed=True)
+        raise
     finally:
         _LANE.release()
 
