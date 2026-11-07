@@ -32,7 +32,7 @@ BUDGETS=(6,18,54,162,216)
 SEED=20261107
 ROW_COUNTS={"ask":31668,"bid":82380}
 DEADLINE=datetime(2026,11,8,5,0,0,tzinfo=timezone.utc)  # 06:00 Berlin CET
-MIN_START_SECONDS=1200
+MIN_START_SECONDS=1800
 
 def promotions_for(stage):
     return ((),(18,),(54,18),(162,54,18),(216,162,54))[stage%5]
@@ -209,7 +209,7 @@ def propose(stage,history_path,output):
             else:
                 raise ValueError("BOHB could not find unseen configuration")
             existing.add(_identity(params))
-            proposed.append({"params":params,"budget":4,
+            proposed.append({"params":params,"budget":BUDGETS[0],
                              "origin_trial":stage*SLOTS+len(proposed),
                              "promoted_from_trial":None,
                              "source":"hpbandster_kde" if info.get("model_based_pick") else "hpbandster_prior"})
