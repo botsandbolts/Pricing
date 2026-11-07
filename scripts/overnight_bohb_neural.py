@@ -104,7 +104,8 @@ def build_ask(cards,embedding_dim,group,config):
         model.projector = nn.Sequential(*modules)
         settings = original_config("dropout12")
         settings.update({key:config[key] for key in
-            ("cross_layers","rank","experts","width","blocks","dropout","activation")})
+            ("cross_layers","rank","experts","width","blocks","dropout","activation",
+              "cross_scale","embed_dropout","output_dropout")})
         model.price_network = TunedDeepCross(cards,7,size,settings)
     return model
 
@@ -283,6 +284,7 @@ def bid(group,trial,features,baseline,output,max_seconds,refinement=None):
     # BOHB registers the blend coefficient in TRAIN-ONLY optimization; do not
     # sweep the ORIGINAL VALIDATION set for an extra post-hoc winning blend.
     weights=np.array([float(hp["blend_alpha"])])
+    if not .5<=weights[0]<=1.:raise ValueError("Bad pre-registered blend coefficient")
     choices=[(risk(y[val],alpha*pv+(1-alpha)*baseline_p),float(alpha))
              for alpha in weights]
     scores,alpha=min(choices,key=lambda pair:(pair[0]["CVaR95_absolute_USD"],pair[1]))
