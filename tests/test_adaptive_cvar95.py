@@ -85,3 +85,60 @@ def test_no_cross_market_holdout_drift(tmp_path):
     previous.write_text(json.dumps({"records":results}))
     with pytest.raises(ValueError, match="Mismatched holdout"):
         a._read_history(previous)
+
+
+
+def test_bid_csv_reconciles_blended_cvar95_not_standalone_neural(tmp_path, monkeypatch):
+    """The exact bug that blocked collect_0: CSV must reflect the scored blend."""
+    import numpy as np
+    import pandas as pd
+    from scripts.cvar95_historical import risk
+    import scripts.neural_200_sweep as native
+
+    y = np.linspace(1500, 40000, 100, dtype=float)
+    neural = y + np.linspace(-2200, 3200, 100)
+    lemon = y + np.linspace(700, -1700, 100)
+    alpha = .7
+    combined = alpha * neural + (1-alpha) * lemon
+    metrics = {**risk(y, combined), "neural_weight": alpha}
+    (tmp_path/"result.json").write_text(json.dumps({"validation": metrics}))
+    original = pd.DataFrame({
+        "row_id": [str(i) for i in range(len(y))],
+        "split": ["validation"]*len(y),
+        "observed_price": y,
+        "predicted_price": neural,
+    })
+    original.to_csv(tmp_path/"validation.csv.gz",index=False)
+    monkeypatch.setattr(native, "_matched_auction_baseline",
+                        lambda path, ids, observed: lemon)
+    assert abs(risk(y, neural)["CVaR95_absolute_USD"] -
+               metrics["CVaR95_absolute_USD"]) > .05
+    a.audit_and_save_bid_blend(tmp_path, "synthetic-baseline.csv.gz")
+    corrected = pd.read_csv(tmp_path/"validation.csv.gz")
+    assert np.allclose(corrected["predicted_price"], combined)
+    assert np.allclose(corrected["deepfm_price_before_blend"], neural)
+    assert np.allclose(corrected["lemon_xgboost_price_before_blend"], lemon)
+    assert risk(corrected["observed_price"],
+                corrected["predicted_price"])["CVaR95_absolute_USD"] == pytest.approx(
+                metrics["CVaR95_absolute_USD"], abs=.05)
+
+
+def test_bad_bid_blend_is_rejected_not_silently_accepted(tmp_path, monkeypatch):
+    import numpy as np
+    import pandas as pd
+    import scripts.neural_200_sweep as native
+    from scripts.cvar95_historical import risk
+
+    y = np.full(100, 20000.)
+    neural = y + 500.
+    lemon = y - 500.
+    metrics = {**risk(y, neural), "neural_weight": .5}
+    (tmp_path/"result.json").write_text(json.dumps({"validation":metrics}))
+    pd.DataFrame({"row_id": [str(i) for i in range(100)],
+                  "split": ["validation"]*100,"observed_price": y,
+                  "predicted_price": neural}).to_csv(
+                      tmp_path/"validation.csv.gz",index=False)
+    monkeypatch.setattr(native, "_matched_auction_baseline",
+                        lambda path, ids, actual: lemon)
+    with pytest.raises(ValueError,match="blended validation does not match"):
+        a.audit_and_save_bid_blend(tmp_path,"baseline.csv.gz")
