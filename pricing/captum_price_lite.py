@@ -15,7 +15,7 @@ ASK_NAMES=("Model year","Age in 2021","Log mileage","Mileage per year",
            "Log description characters","Log description words","Punctuation")
 BID_NAMES=("Model year","Auction vehicle age","Log mileage",
            "Log mileage per year","Auction grade")
-STEPS=(8,16,24)
+INTEGRATION_STEPS=24  # Single fixed budget: 24 sequential Gauss–Legendre evaluations
 
 
 def receipt_id(saved):
@@ -82,8 +82,9 @@ def _native_inputs(model,side,saved):
     return network,x,fixed,weight,saved_price,names,scope
 
 
-def explain(root,saved,side,steps=8,*,ask_champion=False,bid_champion=False):
-    if steps not in STEPS:raise ValueError("Choose 8, 16 or 24 steps")
+def explain(root,saved,side,steps=INTEGRATION_STEPS,*,ask_champion=False,bid_champion=False):
+    if steps != INTEGRATION_STEPS:
+        raise ValueError("Captum uses exactly 24 integration steps; custom budgets are disabled")
     if side not in ("ask","bid") or side not in saved:
         raise ValueError("Calculate a saved price first")
     if not _LANE.acquire(blocking=False):
@@ -159,17 +160,16 @@ No second elephant-sized neural network in the garage.</div>
             side=st.radio("Explain which market?",sides,horizontal=True,
                 format_func=lambda s:"🏷 Seller Ask · neural price" if s=="ask"
                   else "🔨 Wholesale Bid · DeepFM only")
-            steps=st.select_slider("Precision versus CPU time",options=[8,16,24],
-                value=8,format_func=lambda v:{
-                    8:"⚡ Quick · 8 steps",
-                    16:"⚖️ Balanced · 16 steps",
-                    24:"🔍 More detail · 24 steps"}[v])
-            st.caption("RAM limiter: **internal_batch_size=1**, one vehicle, "
-                       "Gauss–Legendre, no BGE backpropagation.")
+            # Fixed 24-step precision: no slider and no lower-precision option.
+            # Only 1 interpolation point is processed at a time.
+            steps=INTEGRATION_STEPS
+            st.caption("🔬 **24 Gauss–Legendre integration steps · fixed**. "
+                       "RAM limiter: **internal_batch_size=1**, one vehicle, "
+                       "no BGE backpropagation. No precision slider to babysit.")
             go=st.form_submit_button("🔬 Explain THIS price · Captum",
                 type="primary",use_container_width=True)
-        # A stored explanation belongs to ONE chosen market and step budget.
-        # Changing Ask to Bid (or 8 to 24 steps) must never show stale bars.
+        # A stored explanation belongs to ONE chosen market and the fixed
+        # 24-step precision. Switching Ask/Bid must never show stale bars.
         rid=receipt_id(saved)+f":{side}:{steps}"
         if go:
             try:
@@ -180,15 +180,15 @@ No second elephant-sized neural network in the garage.</div>
             except (ValueError,RuntimeError,TypeError,KeyError,ImportError,
                     OSError,MemoryError):
                 st.session_state.pop("captum_lite_result",None)
-                st.warning("Explanation unavailable. Your original model price "
-                           "is unchanged; retry with fewer steps.")
+                st.warning("Explanation unavailable at the fixed 24-step setting. "
+                           "Your original model price is unchanged.")
         current=st.session_state.get("captum_lite_result")
         if current and current.get("id")==rid:
             r=current["data"]
             if not r["adequate"]:
-                st.warning("This low-step approximation didn't converge "
-                           "sufficiently. Try 16 or 24 steps; individual "
-                           "driver figures are hidden until they pass.")
+                st.warning("The 24-step attribution did not converge "
+                           "sufficiently; individual driver figures are "
+                           "hidden rather than inventing an explanation.")
             else:
                 st.markdown("#### 💵 How numerical features move the neural estimate")
                 st.caption("Against normalized training-median numbers; "
