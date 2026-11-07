@@ -276,7 +276,7 @@ if _workspace=='🚗 Price my car':
                 cylinders=cylinders,paint_color=color,state=state)
             try:
                 with st.spinner('Interviewing the trees. They have opinions…'):
-                    p=get_pipeline(str(path)).predict(notes,fields,explain=True)
+                    p=get_pipeline(str(path)).predict(notes,fields,explain=False)
                 st.session_state['last_explained_price']=(str(path),p,fields,notes)
                 import uuid
                 st.session_state['_price_request_id']=str(uuid.uuid4())
@@ -363,20 +363,16 @@ if _workspace=='🚗 Price my car':
         report=extend_report(report,Path(__file__).parent,saved[2],saved[1],dated_receipts,transport,path,locals().get('bid_path'))
         # Removed BART story generator from pricing. The factual JSON receipt
         # remains available without a second language-model inference.
+        # Memory incident recovery: DO NOT compute TreeSHAP, native BGE,
+        # multi-chart SHAP galleries or phrase sweeps on ordinary page reruns.
         if dated_result:
             render_market_clock(transport,valuation_date,refresh_error)
-            render_time_evidence(transport,dated_receipts)
-            from pricing.text_attribution_ui import render_text_attribution
-            render_text_attribution(dated_result,saved[2],saved[3],dated_pipeline)
-        st.divider()
-        section('The receipts / Explainable machine learning','Pop the bonnet. Question everything.')
-        st.caption('The current-date price and phrase effects are above. The historical model diagnostics below explain the original May 2021 anchor, before time adjustment.')
-        with st.expander('Historical base-model diagnostics · May 2021, before time adjustment'):
-            st.metric('Original historical asking anchor · May 2021',f"${saved[1]['price']:,.0f}")
-            from pricing.explanations import render_explanation
-            render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
-            from pricing.explanation_ui import render_visual_explanations
-            render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
+            if st.checkbox("📊 Show detailed historical price-clock charts",
+                           value=False,key="pricing_detail_time_charts"):
+                render_time_evidence(transport,dated_receipts)
+        from pricing.lightweight_price_xai_ui import render as render_light_xai
+        render_light_xai(saved,dated_receipts,
+                         lambda:get_pipeline(str(path)))
 if _workspace=='📅 Value over time':
     from pricing.time_ui import render_time_studio
     time_saved=st.session_state.get('last_explained_price')
