@@ -24,21 +24,21 @@ def test_every_changed_public_python_module_parses():
         ast.parse(read(name),filename=name)
 
 
-def test_main_page_starts_native_two_market_calculator_before_old_tree_fallback():
+def test_neural_beta_is_gated_and_earlier_public_calculator_restored():
     src=read("app.py")
-    start=src.index("if _workspace=='🚗 Price my car':")
-    stop=src.index("if _workspace=='🏪 Merchant lens':",start)
-    public=src[start:stop]
-    assert "render_two_market_pricing(Path(__file__).parent,main=True)" in public
-    assert "render_privacy()" in public
-    assert "render_events()" in public
-    assert "footer()" in public
-    assert "st.stop()" in public
-    assert start<src.index("if _workspace=='🌳 Hierarchical model'")
+    beta=src.index("if _workspace=='🚗 Price my car' and st.query_params.get('beta_neural')=='1':")
+    next_panel=src.index("if _workspace=='🏪 Merchant lens':",beta)
+    beta_section=src[beta:next_panel]
+    assert "render_two_market_pricing(Path(__file__).parent,main=True)" in beta_section
+    assert "render_privacy()" in beta_section
+    assert "st.stop()" in beta_section
+    restored=src.index("if _workspace=='🚗 Price my car':",next_panel)
+    assert restored>next_panel
+    assert "get_pipeline(str(path)).predict(notes,fields,explain=False)" in src
+    assert "render_light_xai(saved,dated_receipts," in src
     assert "from pricing.bart_summary import" not in src
     assert "Fine-tune the details" not in src
     assert "scan_description" not in src
-
 
 def test_separate_experimental_page_removed_but_legacy_links_redirect():
     src=read("pricing/navigation.py")
