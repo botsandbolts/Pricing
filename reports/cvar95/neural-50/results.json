@@ -1,0 +1,1487 @@
+{
+  "status": "partial_or_invalid",
+  "completed_valid_trials": 25,
+  "planned_trials": 50,
+  "ask_count": 25,
+  "bid_count": 0,
+  "missing": [
+    {
+      "market": "bid",
+      "trial": 0
+    },
+    {
+      "market": "bid",
+      "trial": 1
+    },
+    {
+      "market": "bid",
+      "trial": 2
+    },
+    {
+      "market": "bid",
+      "trial": 3
+    },
+    {
+      "market": "bid",
+      "trial": 4
+    },
+    {
+      "market": "bid",
+      "trial": 5
+    },
+    {
+      "market": "bid",
+      "trial": 6
+    },
+    {
+      "market": "bid",
+      "trial": 7
+    },
+    {
+      "market": "bid",
+      "trial": 8
+    },
+    {
+      "market": "bid",
+      "trial": 9
+    },
+    {
+      "market": "bid",
+      "trial": 10
+    },
+    {
+      "market": "bid",
+      "trial": 11
+    },
+    {
+      "market": "bid",
+      "trial": 12
+    },
+    {
+      "market": "bid",
+      "trial": 13
+    },
+    {
+      "market": "bid",
+      "trial": 14
+    },
+    {
+      "market": "bid",
+      "trial": 15
+    },
+    {
+      "market": "bid",
+      "trial": 16
+    },
+    {
+      "market": "bid",
+      "trial": 17
+    },
+    {
+      "market": "bid",
+      "trial": 18
+    },
+    {
+      "market": "bid",
+      "trial": 19
+    },
+    {
+      "market": "bid",
+      "trial": 20
+    },
+    {
+      "market": "bid",
+      "trial": 21
+    },
+    {
+      "market": "bid",
+      "trial": 22
+    },
+    {
+      "market": "bid",
+      "trial": 23
+    },
+    {
+      "market": "bid",
+      "trial": 24
+    }
+  ],
+  "invalid": [
+    {
+      "artifact": "collected/cvar50-trial-bid-0/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-1/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-10/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-11/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-12/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-13/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-14/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-15/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-16/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-17/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-18/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-19/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-2/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-20/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-21/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-22/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-23/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-24/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-3/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-4/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-5/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-6/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-7/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-8/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    },
+    {
+      "artifact": "collected/cvar50-trial-bid-9/result.json",
+      "error": "Saved predictions disagree with reported CVaR95_absolute_USD"
+    }
+  ],
+  "metrics": "Original validation USD CVaR95, RMSE, MAE",
+  "original_test_used": false,
+  "date_2026_external_accuracy_validated": false,
+  "production_changed": false,
+  "next_steps": "Independently verify selected winner(s) on original untouched test, native checkpoint serving parity, and deployment budgets.",
+  "regression_diagnostics": {
+    "ask": {
+      "hyperparameters": {
+        "model": "Standardized RidgeCV with nested 5-fold OOF assessment",
+        "observations": 50,
+        "cv_r2": 0.4494121629502028,
+        "cv_mae_usd": 1533.5377296615054,
+        "observed_CVaR95_min": 18274.894198770715,
+        "observed_CVaR95_median": 19383.040488624993,
+        "ridge_alpha": 15.848931924611142,
+        "surrogate_used_for_ranking": true,
+        "fallback": null,
+        "main_effects_only": true,
+        "interactions_between_structure_and_hyperparameters_unobserved": true,
+        "largest_standardized_coefficients": [
+          {
+            "feature": "optimizer_adam",
+            "standardized_usd_effect": 1071.3998960240701
+          },
+          {
+            "feature": "optimizer_adamw",
+            "standardized_usd_effect": -1071.3998960240697
+          },
+          {
+            "feature": "wd",
+            "standardized_usd_effect": 508.1871168576565
+          },
+          {
+            "feature": "lr",
+            "standardized_usd_effect": -359.7730845035912
+          },
+          {
+            "feature": "noise",
+            "standardized_usd_effect": 281.85570253458707
+          },
+          {
+            "feature": "schedule_cosine",
+            "standardized_usd_effect": 241.7663418282262
+          },
+          {
+            "feature": "schedule_constant",
+            "standardized_usd_effect": -241.7663418282247
+          },
+          {
+            "feature": "clip",
+            "standardized_usd_effect": -111.75728560029866
+          },
+          {
+            "feature": "batch",
+            "standardized_usd_effect": 106.75151536353106
+          },
+          {
+            "feature": "epochs",
+            "standardized_usd_effect": 57.045658225094485
+          }
+        ]
+      },
+      "architecture": {
+        "model": "Standardized RidgeCV with nested 5-fold OOF assessment",
+        "observations": 50,
+        "cv_r2": 0.03905909188358769,
+        "cv_mae_usd": 511.1575028065326,
+        "observed_CVaR95_min": 18392.64616138984,
+        "observed_CVaR95_median": 19013.8174477116,
+        "ridge_alpha": 39.810717055349734,
+        "surrogate_used_for_ranking": true,
+        "fallback": null,
+        "main_effects_only": true,
+        "interactions_between_structure_and_hyperparameters_unobserved": true,
+        "largest_standardized_coefficients": [
+          {
+            "feature": "dropout",
+            "standardized_usd_effect": 200.01103651438703
+          },
+          {
+            "feature": "cross_layers",
+            "standardized_usd_effect": -117.03959573487722
+          },
+          {
+            "feature": "rank",
+            "standardized_usd_effect": 103.05831894978394
+          },
+          {
+            "feature": "blocks",
+            "standardized_usd_effect": -90.63685548455143
+          },
+          {
+            "feature": "width",
+            "standardized_usd_effect": -73.89951944283101
+          },
+          {
+            "feature": "project_layers",
+            "standardized_usd_effect": 41.64884661824875
+          },
+          {
+            "feature": "projection",
+            "standardized_usd_effect": 37.09162276634527
+          },
+          {
+            "feature": "activation_silu",
+            "standardized_usd_effect": 32.92808572341841
+          },
+          {
+            "feature": "activation_gelu",
+            "standardized_usd_effect": -32.92808572341838
+          },
+          {
+            "feature": "experts",
+            "standardized_usd_effect": -18.38573723076098
+          }
+        ]
+      },
+      "selection": "minimize additive relative marginal CVaR95 surrogate; cap reuse at three occurrences per source configuration",
+      "caution": "No Stage-1 joint hyperparameter/architecture interactions observed. The 25 actual joint fits are needed to measure them."
+    },
+    "bid": {
+      "hyperparameters": {
+        "model": "Standardized RidgeCV with nested 5-fold OOF assessment",
+        "observations": 50,
+        "cv_r2": 0.11563858901854795,
+        "cv_mae_usd": 109.85223541102597,
+        "observed_CVaR95_min": 8720.656277073376,
+        "observed_CVaR95_median": 9096.438982706097,
+        "ridge_alpha": 15.848931924611142,
+        "surrogate_used_for_ranking": true,
+        "fallback": null,
+        "main_effects_only": true,
+        "interactions_between_structure_and_hyperparameters_unobserved": true,
+        "largest_standardized_coefficients": [
+          {
+            "feature": "tail_lambda",
+            "standardized_usd_effect": 53.671422571427826
+          },
+          {
+            "feature": "lr",
+            "standardized_usd_effect": 52.54094075025338
+          },
+          {
+            "feature": "batch",
+            "standardized_usd_effect": -10.762813400715793
+          },
+          {
+            "feature": "wd",
+            "standardized_usd_effect": -9.260623408725145
+          },
+          {
+            "feature": "epochs",
+            "standardized_usd_effect": -7.549866787329802
+          },
+          {
+            "feature": "beta",
+            "standardized_usd_effect": -4.55306634779193
+          },
+          {
+            "feature": "patience",
+            "standardized_usd_effect": -3.19542737130358
+          },
+          {
+            "feature": "clip",
+            "standardized_usd_effect": -0.1571515605145395
+          }
+        ]
+      },
+      "architecture": {
+        "model": "Standardized RidgeCV with nested 5-fold OOF assessment",
+        "observations": 50,
+        "cv_r2": 0.03832306631167792,
+        "cv_mae_usd": 82.03472200877535,
+        "observed_CVaR95_min": 8802.637900172786,
+        "observed_CVaR95_median": 9011.406398054021,
+        "ridge_alpha": 15.848931924611142,
+        "surrogate_used_for_ranking": true,
+        "fallback": null,
+        "main_effects_only": true,
+        "interactions_between_structure_and_hyperparameters_unobserved": true,
+        "largest_standardized_coefficients": [
+          {
+            "feature": "width1",
+            "standardized_usd_effect": -37.10657645224634
+          },
+          {
+            "feature": "dropout",
+            "standardized_usd_effect": 17.89762098222733
+          },
+          {
+            "feature": "depth",
+            "standardized_usd_effect": -14.412799022660552
+          },
+          {
+            "feature": "pairgate_True",
+            "standardized_usd_effect": -10.886926120175175
+          },
+          {
+            "feature": "pairgate_False",
+            "standardized_usd_effect": 10.886926120175161
+          },
+          {
+            "feature": "activation_silu",
+            "standardized_usd_effect": 5.040535616813535
+          },
+          {
+            "feature": "activation_gelu",
+            "standardized_usd_effect": -5.0405356168135205
+          },
+          {
+            "feature": "width2",
+            "standardized_usd_effect": -4.455451943596805
+          },
+          {
+            "feature": "rank",
+            "standardized_usd_effect": -1.4830123932079986
+          }
+        ]
+      },
+      "selection": "minimize additive relative marginal CVaR95 surrogate; cap reuse at three occurrences per source configuration",
+      "caution": "No Stage-1 joint hyperparameter/architecture interactions observed. The 25 actual joint fits are needed to measure them."
+    }
+  },
+  "previous_stage_best": {
+    "ask": {
+      "group": "ask_hparams",
+      "trial": 39,
+      "validation": {
+        "rows": 31668,
+        "worst_five_pct_rows": 1584,
+        "CVaR95_absolute_USD": 18274.894198770715,
+        "VaR95_absolute_USD": 9437.999876552243,
+        "MAE_USD": 2820.3485013662867,
+        "RMSE_USD": 5794.642601392244,
+        "worst_one_pct_USD": 38317.67042167086,
+        "best_epoch": 18,
+        "inner_stopping_CVaR95_USD": 16867.04611773961,
+        "elapsed_seconds": 123.2
+      }
+    },
+    "bid": {
+      "group": "bid_hparams",
+      "trial": 18,
+      "validation": {
+        "rows": 82380,
+        "worst_five_pct_rows": 4119,
+        "CVaR95_absolute_USD": 8720.656277073376,
+        "VaR95_absolute_USD": 4962.939794664232,
+        "MAE_USD": 1684.1235315746776,
+        "RMSE_USD": 2975.843306165396,
+        "worst_one_pct_USD": 17219.477698318,
+        "best_epoch": 9,
+        "neural_weight": 0.9000000000000004,
+        "lemon_xgb_weight": 0.1,
+        "neural_only_CVaR95_USD": 8752.519667014554,
+        "inner_stopping_CVaR95_USD": 7058.50199828479,
+        "elapsed_seconds": 85.1
+      }
+    }
+  },
+  "improvement_vs_previous_stage": {
+    "ask": {
+      "previous_best_group": "ask_hparams",
+      "previous_best_trial": 39,
+      "previous_best_CVaR95_USD": 18274.894198770715,
+      "new_best_CVaR95_USD": 18112.38820839412,
+      "CVaR95_saved_USD": 162.50599037659413,
+      "improvement_percent": 0.8892308136455603
+    },
+    "bid": null
+  },
+  "ranked": {
+    "ask": [
+      {
+        "trial": 2,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18112.38820839412,
+          "VaR95_absolute_USD": 9477.249754449675,
+          "MAE_USD": 2808.2115132902572,
+          "RMSE_USD": 5783.851697341445,
+          "worst_one_pct_USD": 37923.98332631671,
+          "best_epoch": 31,
+          "inner_stopping_CVaR95_USD": 16821.10866350956,
+          "elapsed_seconds": 363.8
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.15,
+            "cross_layers": 5,
+            "rank": 24,
+            "experts": 3,
+            "width": 256,
+            "blocks": 3,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0016677999641362513,
+            "wd": 0.0213727717178725,
+            "batch": 768,
+            "noise": 0.0,
+            "clip": 0.7,
+            "patience": 10,
+            "epochs": 35,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 6,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18284.043265275966,
+          "VaR95_absolute_USD": 9551.573096161259,
+          "MAE_USD": 2885.756595454706,
+          "RMSE_USD": 5784.717994784226,
+          "worst_one_pct_USD": 37772.17340499081,
+          "best_epoch": 28,
+          "inner_stopping_CVaR95_USD": 16838.653479472712,
+          "elapsed_seconds": 636.7
+        },
+        "configuration": {
+          "structure": {
+            "projection": 192,
+            "project_layers": 1,
+            "proj_dropout": 0.23,
+            "cross_layers": 3,
+            "rank": 24,
+            "experts": 1,
+            "width": 384,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0016677999641362513,
+            "wd": 0.0213727717178725,
+            "batch": 768,
+            "noise": 0.0,
+            "clip": 0.7,
+            "patience": 10,
+            "epochs": 35,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 21,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18387.33800029361,
+          "VaR95_absolute_USD": 9630.2520091002,
+          "MAE_USD": 2849.2119803810638,
+          "RMSE_USD": 5803.7932729812055,
+          "worst_one_pct_USD": 37988.56338930038,
+          "best_epoch": 25,
+          "inner_stopping_CVaR95_USD": 17775.36540805228,
+          "elapsed_seconds": 189.1
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.08,
+            "cross_layers": 3,
+            "rank": 24,
+            "experts": 1,
+            "width": 192,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0014212032048445805,
+            "wd": 0.010377796828473831,
+            "batch": 768,
+            "noise": 0.004,
+            "clip": 0.35,
+            "patience": 4,
+            "epochs": 28,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 12,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18524.224969845814,
+          "VaR95_absolute_USD": 9856.90106041063,
+          "MAE_USD": 2904.119137961564,
+          "RMSE_USD": 5887.391395232963,
+          "worst_one_pct_USD": 37938.79899943117,
+          "best_epoch": 13,
+          "inner_stopping_CVaR95_USD": 17109.825589467964,
+          "elapsed_seconds": 265.4
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 3,
+            "proj_dropout": 0.08,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 1,
+            "width": 384,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0018820883829266954,
+            "wd": 0.08449339501460514,
+            "batch": 384,
+            "noise": 0.0,
+            "clip": 1.5,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 3,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18643.925023778684,
+          "VaR95_absolute_USD": 9621.466748287083,
+          "MAE_USD": 2919.034471396645,
+          "RMSE_USD": 5933.129369306457,
+          "worst_one_pct_USD": 39190.881505456775,
+          "best_epoch": 21,
+          "inner_stopping_CVaR95_USD": 17019.762249281448,
+          "elapsed_seconds": 336.0
+        },
+        "configuration": {
+          "structure": {
+            "projection": 192,
+            "project_layers": 1,
+            "proj_dropout": 0.23,
+            "cross_layers": 3,
+            "rank": 24,
+            "experts": 1,
+            "width": 384,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0017767464590506266,
+            "wd": 0.0009314877563997183,
+            "batch": 768,
+            "noise": 0.008,
+            "clip": 0.35,
+            "patience": 6,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 9,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18658.227614586856,
+          "VaR95_absolute_USD": 9373.799797790924,
+          "MAE_USD": 2884.087270864244,
+          "RMSE_USD": 5934.810852278647,
+          "worst_one_pct_USD": 39987.83358814988,
+          "best_epoch": 18,
+          "inner_stopping_CVaR95_USD": 17258.990960998522,
+          "elapsed_seconds": 175.0
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.23,
+            "cross_layers": 4,
+            "rank": 32,
+            "experts": 1,
+            "width": 192,
+            "blocks": 3,
+            "dropout": 0.12,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0018820883829266954,
+            "wd": 0.08449339501460514,
+            "batch": 384,
+            "noise": 0.0,
+            "clip": 1.5,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 17,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18783.61712420682,
+          "VaR95_absolute_USD": 9738.279386116626,
+          "MAE_USD": 2898.7422869583215,
+          "RMSE_USD": 5927.195276031873,
+          "worst_one_pct_USD": 39144.33681437646,
+          "best_epoch": 19,
+          "inner_stopping_CVaR95_USD": 16791.783972477013,
+          "elapsed_seconds": 149.0
+        },
+        "configuration": {
+          "structure": {
+            "projection": 128,
+            "project_layers": 2,
+            "proj_dropout": 0.05,
+            "cross_layers": 5,
+            "rank": 24,
+            "experts": 1,
+            "width": 192,
+            "blocks": 1,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0021888993621203465,
+            "wd": 0.00045727734966165084,
+            "batch": 768,
+            "noise": 0.008,
+            "clip": 0.7,
+            "patience": 6,
+            "epochs": 35,
+            "optimizer": "adamw",
+            "schedule": "cosine"
+          }
+        }
+      },
+      {
+        "trial": 15,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18799.950225083096,
+          "VaR95_absolute_USD": 9772.710758094267,
+          "MAE_USD": 2844.4009968925234,
+          "RMSE_USD": 5825.804150400914,
+          "worst_one_pct_USD": 37675.61303917062,
+          "best_epoch": 17,
+          "inner_stopping_CVaR95_USD": 17131.684517461363,
+          "elapsed_seconds": 150.9
+        },
+        "configuration": {
+          "structure": {
+            "projection": 128,
+            "project_layers": 2,
+            "proj_dropout": 0.05,
+            "cross_layers": 5,
+            "rank": 24,
+            "experts": 1,
+            "width": 192,
+            "blocks": 1,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0018820883829266954,
+            "wd": 0.08449339501460514,
+            "batch": 384,
+            "noise": 0.0,
+            "clip": 1.5,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 0,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18816.14109957507,
+          "VaR95_absolute_USD": 9976.286378282,
+          "MAE_USD": 3170.357054089549,
+          "RMSE_USD": 6120.485677271585,
+          "worst_one_pct_USD": 39417.01433342516,
+          "best_epoch": 13,
+          "inner_stopping_CVaR95_USD": 17857.01664504831,
+          "elapsed_seconds": 206.6
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.15,
+            "cross_layers": 5,
+            "rank": 24,
+            "experts": 3,
+            "width": 256,
+            "blocks": 3,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0017767464590506266,
+            "wd": 0.0009314877563997183,
+            "batch": 768,
+            "noise": 0.008,
+            "clip": 0.35,
+            "patience": 6,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 11,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18843.17936774523,
+          "VaR95_absolute_USD": 9572.008765050965,
+          "MAE_USD": 2855.6324143020342,
+          "RMSE_USD": 5948.747051760638,
+          "worst_one_pct_USD": 39497.93536293675,
+          "best_epoch": 23,
+          "inner_stopping_CVaR95_USD": 17376.78370115606,
+          "elapsed_seconds": 201.2
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.23,
+            "cross_layers": 4,
+            "rank": 32,
+            "experts": 1,
+            "width": 192,
+            "blocks": 3,
+            "dropout": 0.12,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0021888993621203465,
+            "wd": 0.00045727734966165084,
+            "batch": 768,
+            "noise": 0.008,
+            "clip": 0.7,
+            "patience": 6,
+            "epochs": 35,
+            "optimizer": "adamw",
+            "schedule": "cosine"
+          }
+        }
+      },
+      {
+        "trial": 14,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18853.476091654135,
+          "VaR95_absolute_USD": 9952.427304630033,
+          "MAE_USD": 2937.9429457739,
+          "RMSE_USD": 5964.505000743518,
+          "worst_one_pct_USD": 38401.08350361669,
+          "best_epoch": 15,
+          "inner_stopping_CVaR95_USD": 17558.17466476077,
+          "elapsed_seconds": 331.4
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 3,
+            "proj_dropout": 0.08,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 1,
+            "width": 384,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0021888993621203465,
+            "wd": 0.00045727734966165084,
+            "batch": 768,
+            "noise": 0.008,
+            "clip": 0.7,
+            "patience": 6,
+            "epochs": 35,
+            "optimizer": "adamw",
+            "schedule": "cosine"
+          }
+        }
+      },
+      {
+        "trial": 4,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18901.711216164946,
+          "VaR95_absolute_USD": 10037.35402018109,
+          "MAE_USD": 3190.7824207618614,
+          "RMSE_USD": 6069.481651671728,
+          "worst_one_pct_USD": 38900.073423763686,
+          "best_epoch": 15,
+          "inner_stopping_CVaR95_USD": 17518.29205513573,
+          "elapsed_seconds": 277.5
+        },
+        "configuration": {
+          "structure": {
+            "projection": 192,
+            "project_layers": 1,
+            "proj_dropout": 0.23,
+            "cross_layers": 3,
+            "rank": 24,
+            "experts": 1,
+            "width": 384,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0024331226520495587,
+            "wd": 0.0015679683228644028,
+            "batch": 1024,
+            "noise": 0.014,
+            "clip": 0.7,
+            "patience": 4,
+            "epochs": 28,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 7,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18936.356955600626,
+          "VaR95_absolute_USD": 10066.43415281946,
+          "MAE_USD": 2962.263447213572,
+          "RMSE_USD": 6005.433772207432,
+          "worst_one_pct_USD": 38838.21201791666,
+          "best_epoch": 21,
+          "inner_stopping_CVaR95_USD": 17471.43983877782,
+          "elapsed_seconds": 185.8
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 1,
+            "proj_dropout": 0.08,
+            "cross_layers": 4,
+            "rank": 16,
+            "experts": 2,
+            "width": 384,
+            "blocks": 2,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0024331226520495587,
+            "wd": 0.0015679683228644028,
+            "batch": 1024,
+            "noise": 0.014,
+            "clip": 0.7,
+            "patience": 4,
+            "epochs": 28,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 13,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 18968.36322249054,
+          "VaR95_absolute_USD": 9643.015507319447,
+          "MAE_USD": 2906.706569599918,
+          "RMSE_USD": 6028.453253626461,
+          "worst_one_pct_USD": 39742.67927270295,
+          "best_epoch": 19,
+          "inner_stopping_CVaR95_USD": 17538.85557261904,
+          "elapsed_seconds": 350.3
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 3,
+            "proj_dropout": 0.08,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 1,
+            "width": 384,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.002068238201139736,
+            "wd": 0.000712135824984641,
+            "batch": 1536,
+            "noise": 0.004,
+            "clip": 1.0,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "cosine"
+          }
+        }
+      },
+      {
+        "trial": 22,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19011.57634884786,
+          "VaR95_absolute_USD": 10159.803767158215,
+          "MAE_USD": 3059.351037798676,
+          "RMSE_USD": 6006.354113034778,
+          "worst_one_pct_USD": 38074.693254373626,
+          "best_epoch": 21,
+          "inner_stopping_CVaR95_USD": 17745.415347169088,
+          "elapsed_seconds": 161.2
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.08,
+            "cross_layers": 3,
+            "rank": 24,
+            "experts": 1,
+            "width": 192,
+            "blocks": 4,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0010045022221427888,
+            "wd": 0.002549682761049991,
+            "batch": 1536,
+            "noise": 0.014,
+            "clip": 1.0,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 10,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19137.766011390388,
+          "VaR95_absolute_USD": 10186.390156988473,
+          "MAE_USD": 3162.797762839508,
+          "RMSE_USD": 6103.117171589942,
+          "worst_one_pct_USD": 38944.66513555917,
+          "best_epoch": 21,
+          "inner_stopping_CVaR95_USD": 17733.546114170684,
+          "elapsed_seconds": 131.9
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.23,
+            "cross_layers": 4,
+            "rank": 32,
+            "experts": 1,
+            "width": 192,
+            "blocks": 3,
+            "dropout": 0.12,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.002068238201139736,
+            "wd": 0.000712135824984641,
+            "batch": 1536,
+            "noise": 0.004,
+            "clip": 1.0,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "cosine"
+          }
+        }
+      },
+      {
+        "trial": 20,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19156.84412639975,
+          "VaR95_absolute_USD": 9758.657491493672,
+          "MAE_USD": 2914.515916681004,
+          "RMSE_USD": 5973.6307494546245,
+          "worst_one_pct_USD": 39102.13780856127,
+          "best_epoch": 32,
+          "inner_stopping_CVaR95_USD": 17629.326578527176,
+          "elapsed_seconds": 253.3
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 3,
+            "proj_dropout": 0.05,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 1,
+            "width": 384,
+            "blocks": 1,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0017198400035977383,
+            "wd": 0.0024941600740772123,
+            "batch": 1024,
+            "noise": 0.0,
+            "clip": 1.0,
+            "patience": 10,
+            "epochs": 35,
+            "optimizer": "adamw",
+            "schedule": "cosine"
+          }
+        }
+      },
+      {
+        "trial": 8,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19284.221776903083,
+          "VaR95_absolute_USD": 10216.0721962375,
+          "MAE_USD": 3092.7034856231453,
+          "RMSE_USD": 6109.407231890254,
+          "worst_one_pct_USD": 39083.50059758134,
+          "best_epoch": 10,
+          "inner_stopping_CVaR95_USD": 17782.654755990792,
+          "elapsed_seconds": 186.6
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 1,
+            "proj_dropout": 0.08,
+            "cross_layers": 4,
+            "rank": 16,
+            "experts": 2,
+            "width": 384,
+            "blocks": 2,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0016677999641362513,
+            "wd": 0.0213727717178725,
+            "batch": 768,
+            "noise": 0.0,
+            "clip": 0.7,
+            "patience": 10,
+            "epochs": 35,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 18,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19386.932493732318,
+          "VaR95_absolute_USD": 9972.470244303739,
+          "MAE_USD": 2979.8083711591476,
+          "RMSE_USD": 6087.047642167636,
+          "worst_one_pct_USD": 39991.52759585203,
+          "best_epoch": 17,
+          "inner_stopping_CVaR95_USD": 17792.741982425603,
+          "elapsed_seconds": 130.4
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 3,
+            "proj_dropout": 0.05,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 1,
+            "width": 384,
+            "blocks": 1,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0014212032048445805,
+            "wd": 0.010377796828473831,
+            "batch": 768,
+            "noise": 0.004,
+            "clip": 0.35,
+            "patience": 4,
+            "epochs": 28,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 16,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19455.928153989375,
+          "VaR95_absolute_USD": 10182.118229090876,
+          "MAE_USD": 3035.440116562696,
+          "RMSE_USD": 6077.511078500287,
+          "worst_one_pct_USD": 39451.53546535323,
+          "best_epoch": 21,
+          "inner_stopping_CVaR95_USD": 17887.184221238487,
+          "elapsed_seconds": 117.9
+        },
+        "configuration": {
+          "structure": {
+            "projection": 128,
+            "project_layers": 2,
+            "proj_dropout": 0.05,
+            "cross_layers": 5,
+            "rank": 24,
+            "experts": 1,
+            "width": 192,
+            "blocks": 1,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.002068238201139736,
+            "wd": 0.000712135824984641,
+            "batch": 1536,
+            "noise": 0.004,
+            "clip": 1.0,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "cosine"
+          }
+        }
+      },
+      {
+        "trial": 24,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19599.479440000698,
+          "VaR95_absolute_USD": 10277.553826183193,
+          "MAE_USD": 3026.9115836800315,
+          "RMSE_USD": 6150.338412650679,
+          "worst_one_pct_USD": 40242.78713874156,
+          "best_epoch": 22,
+          "inner_stopping_CVaR95_USD": 18169.903116911915,
+          "elapsed_seconds": 162.2
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.05,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 3,
+            "width": 384,
+            "blocks": 1,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0010045022221427888,
+            "wd": 0.002549682761049991,
+            "batch": 1536,
+            "noise": 0.014,
+            "clip": 1.0,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 5,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19863.322143701887,
+          "VaR95_absolute_USD": 10599.471639400263,
+          "MAE_USD": 3109.5493296734817,
+          "RMSE_USD": 6271.8109373705165,
+          "worst_one_pct_USD": 40518.43206758006,
+          "best_epoch": 9,
+          "inner_stopping_CVaR95_USD": 18793.12775436722,
+          "elapsed_seconds": 113.8
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 1,
+            "proj_dropout": 0.08,
+            "cross_layers": 4,
+            "rank": 16,
+            "experts": 2,
+            "width": 384,
+            "blocks": 2,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0017767464590506266,
+            "wd": 0.0009314877563997183,
+            "batch": 768,
+            "noise": 0.008,
+            "clip": 0.35,
+            "patience": 6,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 19,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 19958.996445737204,
+          "VaR95_absolute_USD": 10591.812525351177,
+          "MAE_USD": 3174.764163827247,
+          "RMSE_USD": 6253.521985108672,
+          "worst_one_pct_USD": 40352.011489021286,
+          "best_epoch": 21,
+          "inner_stopping_CVaR95_USD": 18213.704321435718,
+          "elapsed_seconds": 197.1
+        },
+        "configuration": {
+          "structure": {
+            "projection": 96,
+            "project_layers": 3,
+            "proj_dropout": 0.05,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 1,
+            "width": 384,
+            "blocks": 1,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0010045022221427888,
+            "wd": 0.002549682761049991,
+            "batch": 1536,
+            "noise": 0.014,
+            "clip": 1.0,
+            "patience": 10,
+            "epochs": 22,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 1,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 20067.369190992096,
+          "VaR95_absolute_USD": 10726.466074287951,
+          "MAE_USD": 3473.8592983550257,
+          "RMSE_USD": 6520.318049758093,
+          "worst_one_pct_USD": 41659.557566316456,
+          "best_epoch": 5,
+          "inner_stopping_CVaR95_USD": 19221.054830527155,
+          "elapsed_seconds": 61.0
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.15,
+            "cross_layers": 5,
+            "rank": 24,
+            "experts": 3,
+            "width": 256,
+            "blocks": 3,
+            "dropout": 0.08,
+            "activation": "gelu"
+          },
+          "hyperparameters": {
+            "lr": 0.0024331226520495587,
+            "wd": 0.0015679683228644028,
+            "batch": 1024,
+            "noise": 0.014,
+            "clip": 0.7,
+            "patience": 4,
+            "epochs": 28,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      },
+      {
+        "trial": 23,
+        "validation": {
+          "rows": 31668,
+          "worst_five_pct_rows": 1584,
+          "CVaR95_absolute_USD": 22104.133726529923,
+          "VaR95_absolute_USD": 13388.29647640903,
+          "MAE_USD": 3975.9132265902203,
+          "RMSE_USD": 7053.5311154771025,
+          "worst_one_pct_USD": 40566.41512424955,
+          "best_epoch": 4,
+          "inner_stopping_CVaR95_USD": 21027.805704664264,
+          "elapsed_seconds": 42.7
+        },
+        "configuration": {
+          "structure": {
+            "projection": 48,
+            "project_layers": 1,
+            "proj_dropout": 0.05,
+            "cross_layers": 3,
+            "rank": 16,
+            "experts": 3,
+            "width": 384,
+            "blocks": 1,
+            "dropout": 0.12,
+            "activation": "silu"
+          },
+          "hyperparameters": {
+            "lr": 0.0014212032048445805,
+            "wd": 0.010377796828473831,
+            "batch": 768,
+            "noise": 0.004,
+            "clip": 0.35,
+            "patience": 4,
+            "epochs": 28,
+            "optimizer": "adamw",
+            "schedule": "constant"
+          }
+        }
+      }
+    ],
+    "bid": []
+  }
+}
