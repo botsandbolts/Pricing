@@ -143,11 +143,84 @@ def explain(root,saved,side,steps=INTEGRATION_STEPS,*,ask_champion=False,bid_cha
         _LANE.release()
 
 
-def render(root,saved,*,ask_champion=False,bid_champion=False):
+
+def selected_date_breakdown(saved, side, attribution, receipt):
+    """Translate actual 24-step Captum dollar terms using the public price clock.
+
+    The original head is still evaluated in training-period dollars. The
+    selected-day quote is historical full-model price * depreciation *
+    aggregate market-index ratio. Those multipliers are constant for this
+    vehicle and attribution path. Bid also retains its original XGBoost
+    component, which Captum does not attempt to explain.
+    """
+    if side not in ("ask", "bid") or attribution.get("market") != side:
+        raise ValueError("Explanation market does not match the quote")
+    if not attribution.get("adequate"):
+        raise ValueError("Attribution has not passed convergence checks")
+    if receipt.get("side") != side or not receipt.get("date"):
+        raise ValueError("Selected-date receipt is unavailable")
+    source=float(saved[side]["price"])
+    anchor=float(receipt["anchor_price_reference_usd"])
+    age=float(receipt["age_factor"])
+    market=float(receipt["market_factor"])
+    quoted=float(receipt["price"])
+    if not all(math.isfinite(v) and v>0 for v in
+               (source,anchor,age,market,quoted)):
+        raise ValueError("Nonfinite pricing or time multipliers")
+    multiplier=age*market
+    tolerance=max(.05,quoted*1e-6)
+    if abs(source-anchor)>max(.05,source*1e-6):
+        raise ValueError("The transport anchor does not match this actual model quote")
+    if abs(source*multiplier-quoted)>tolerance:
+        raise ValueError("Selected-date quote did not pass exact transport parity")
+    neural=float(attribution["neural_usd"])
+    baseline=float(attribution["anchor_usd"])
+    items=attribution["items"]
+    if not all(math.isfinite(float(row["dollars"])) for row in items):
+        raise ValueError("Nonfinite Captum contributions")
+    if side=="ask":
+        if abs(neural-source)>max(.05,source*1e-5):
+            raise ValueError("Captum and the full Ask model disagree")
+        xgb=0.
+    else:
+        prediction=saved["bid"]
+        weight=float(prediction["neural_weight"])
+        original_xgb=float(prediction["xgboost_lemon_price"])
+        if not (math.isfinite(weight) and .5<=weight<=1. and
+                math.isfinite(original_xgb) and original_xgb>0):
+            raise ValueError("Unverified Bid component weights")
+        xgb=(1.-weight)*original_xgb
+        if abs(neural+xgb-source)>max(.05,source*1e-5):
+            raise ValueError("DeepFM + original Lemon XGBoost does not match the Bid quote")
+    signed_residual=(neural-baseline-sum(float(x["dollars"]) for x in items))*multiplier
+    selected_items=[{"feature":row["feature"],
+                     "dollars":float(row["dollars"])*multiplier}
+                    for row in items]
+    selected_baseline=baseline*multiplier
+    selected_xgb=xgb*multiplier
+    reconstructed=(selected_baseline+sum(x["dollars"] for x in selected_items)
+                   +signed_residual+selected_xgb)
+    if abs(reconstructed-quoted)>tolerance:
+        raise ValueError("Selected-date explanation does not reconcile to the quote")
+    return {
+        "side":side,"date":str(receipt["date"]),"quote_usd":quoted,
+        "reference_usd":selected_baseline,"items":selected_items,
+        "xgboost_share_usd":selected_xgb,"integration_residual_usd":signed_residual,
+        "age_factor":age,"market_factor":market,"multiplier":multiplier,
+        "reconciliation_error_usd":abs(reconstructed-quoted),
+        "bid_has_fixed_xgb":side=="bid",
+    }
+
+
+def render(root,saved,*,ask_champion=False,bid_champion=False,adjusted=None):
     import streamlit as st
     sides=[s for s in ("ask","bid") if s in saved and
-           (s!="bid" or "bid_fields" in saved)]
-    if not sides:return
+           (s!="bid" or "bid_fields" in saved) and
+           (adjusted is None or s in adjusted)]
+    if not sides:
+        if adjusted is not None:
+            st.info("The selected-date price must be available before it can be explained.")
+        return
     st.markdown("""
 <div style="background:linear-gradient(110deg,#152f49,#166975);
 border-radius:17px;padding:18px 21px;margin:18px 0 8px;color:white">
@@ -224,23 +297,66 @@ No second elephant-sized neural network in the garage.</div>
         current=st.session_state.get("captum_lite_result")
         if current and current.get("id")==rid:
             r=current["data"]
+            if adjusted is None or side not in adjusted:
+                st.warning("Recalculate a selected-date quote before viewing this explanation.")
+                return
+            try:
+                dated=selected_date_breakdown(saved,side,r,adjusted[side])
+            except (ValueError,TypeError,KeyError,OverflowError) as exc:
+                import logging
+                logging.getLogger("car_price_studio.captum").warning(
+                    "Date-adjusted explanation rejected: %s",type(exc).__name__)
+                st.warning("The explanation cannot be reconciled to the displayed "
+                           "date-adjusted price. The quote is unchanged; "
+                           "individual contribution figures are hidden.")
+                return
+            st.markdown("#### 📅 Why this price on "+dated["date"]+"?")
+            st.metric("Explained "+("seller asking" if side=="ask" else "wholesale auction")+
+                      " · selected-date scenario",
+                      "$"+format(dated["quote_usd"],",.0f"))
+            st.caption("These are the SAME selected-date dollars as your price "
+                       "above—not unadjusted training-era dollars. Vehicle ageing ×"+
+                       format(dated["age_factor"],".3f")+"; market index ×"+
+                       format(dated["market_factor"],".3f")+
+                       ". Both multipliers apply to each dollar contribution.")
             if not r["adequate"]:
                 st.warning("The 24-step attribution did not converge "
                            "sufficiently; individual driver figures are "
                            "hidden rather than inventing an explanation.")
-            else:
-                st.markdown("#### 💵 How numerical features move the neural estimate")
-                st.caption("Against normalized training-median numbers; "
-                           "categories and the BGE text embedding stay fixed.")
-                for item in sorted(r["items"],key=lambda x:-abs(x["dollars"])):
-                    left,right=st.columns([3,1])
-                    left.write(("🟢 " if item["dollars"]>=0 else "🟠 ")+item["feature"])
-                    right.metric("Model effect","$"+format(item["dollars"],"+,.0f"))
+                return
+            st.markdown("**How the numeric features move the selected-date quote**")
+            st.caption("Captum compares the actual car with standardized numeric "
+                       "reference inputs; category inputs and BGE text stay fixed. "
+                       "The reference is NOT an actual historic vehicle or transaction.")
+            for item in sorted(dated["items"],key=lambda x:-abs(x["dollars"])):
+                left,right=st.columns([3,1])
+                left.write(("🟢 " if item["dollars"]>=0 else "🟠 ")+item["feature"])
+                right.metric("Selected-date effect",
+                             "$"+format(item["dollars"],"+,.0f"))
             a,b=st.columns(2)
-            a.metric("Neural baseline","$"+format(r["anchor_usd"],",.0f"))
-            b.metric("Actual neural output","$"+format(r["neural_usd"],",.0f"))
-            st.caption("Integration reconciliation error: $"+
-                format(r["reconciliation_error_usd"],",.2f")+
-                " · "+str(r["steps"])+" sequential steps · batch **1**")
+            a.metric("Reference · selected-day dollars",
+                     "$"+format(dated["reference_usd"],",.0f"))
+            if dated["bid_has_fixed_xgb"]:
+                b.metric("Lemon XGBoost · fixed Bid share",
+                         "$"+format(dated["xgboost_share_usd"],",.0f"))
+                st.caption("Bid is a blend: Captum explains ONLY the DeepFM "
+                           "numerical inputs. The original Lemon XGBoost "
+                           "component is carried to the same date, but not "
+                           "misrepresented as a Captum feature effect.")
+            else:
+                b.metric("Captum numerical features",
+                         "$"+format(sum(x["dollars"] for x in dated["items"]),"+,.0f"))
+            st.caption("Arithmetic: reference + feature effects"+
+                       (" + XGBoost ensemble share" if side=="bid" else "")+
+                       " + numerical integration remainder = displayed "+
+                       ("Bid" if side=="bid" else "Ask")+" price.")
+            st.caption("Integration remainder: $"+
+                       format(dated["integration_residual_usd"],"+,.2f")+
+                       " · date-price reconciliation error: $"+
+                       format(dated["reconciliation_error_usd"],",.2f")+
+                       " · "+str(r["steps"])+" sequential steps · batch **1**")
             st.info(r["scope"]+" "+r["warning"])
-            st.caption(r["reference"])
+            st.caption("The age adjustment uses a learned depreciation curve "
+                       "and the market adjustment an aggregate price index. "
+                       "Neither validates a current individual-car transaction "
+                       "or makes the price movement causal.")
