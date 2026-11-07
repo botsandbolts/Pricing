@@ -27,7 +27,14 @@ MODEL_GROUPS=(
     ("Location & color",("state","paint_color")),
 )
 ASK_GROUPS=MODEL_GROUPS+(("Advert description",("listing_text",)),)
-BID_GROUPS=MODEL_GROUPS+(("Auction grade",("auction_grade",)),)
+BID_GROUPS=(
+    ("Make, model & year",("manufacturer","model","year")),
+    ("Mileage",("odometer",)),
+    ("Body & drivetrain",("type","fuel","transmission","drive","cylinders")),
+    ("Title status",("title_status",)),
+    ("Location & color",("state","paint_color")),
+    ("Auction grade",("auction_grade",)),
+)
 REFERENCE={
     "year":2010,"manufacturer":"Toyota","model":"Corolla",
     "odometer":95000.,"state":"ca","type":"sedan",
