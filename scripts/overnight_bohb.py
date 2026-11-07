@@ -200,7 +200,14 @@ def propose(stage,history_path,output):
         proposed=[]
         existing={_identity(r["params"]) for r in history if r["market"]==market}
         for budget in promotions_for(stage):
-            params,origin,parent=_promotion(market,history,budget,proposed)
+            try:
+                params,origin,parent=_promotion(market,history,budget,proposed)
+            except ValueError as exc:
+                if "No completed eligible candidate" in str(exc):
+                    # Don't let an unstable early rung take down the search.
+                    print("NIGHTMARE_NO_PROMOTION",market,stage,budget,flush=True)
+                    continue
+                raise
             proposed.append({"params":params,"budget":budget,"origin_trial":origin,
                              "promoted_from_trial":parent,"source":"successive_halving"})
         for _ in range(SLOTS-len(proposed)):
