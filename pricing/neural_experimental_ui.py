@@ -388,25 +388,39 @@ def _historical_bid_features(fields,auction,grade,allow_analogue):
 def _usd(value):return "$"+f"{float(value):,.0f}"
 
 
-def render(root):
+def render(root,*,main=False):
+    """Public homepage and research fallback share exactly one Ask/Bid inference path."""
     root=Path(root)
-    st.markdown(CSS+"""
+    hero=("""
+<section class="exp-hero" aria-label="Car Price Studio main price calculator">
+<small>CAR PRICE STUDIO · MADE IN GERMANY · OPEN-SOURCE CAR INTELLIGENCE</small>
+<h1>One car. Two prices.<br>Zero crystal balls.</h1>
+<p>Discover the seller's <strong>Ask</strong> and a comparable wholesale
+<strong>Bid</strong>—with historical pricing dates and full-model AI.
+Different markets. Real research. No auctioneer hiding under the bonnet.</p>
+<span class="exp-chip">🏷 Seller Ask</span>
+<span class="exp-chip">🔨 Wholesale Bid</span>
+<span class="exp-chip">🧠 Real neural networks</span>
+<span class="exp-chip">🛡 CVaR95 · worst 5%</span>
+<span class="exp-chip">📅 Today's or historical date</span>
+</section>""" if main else """
 <section class="exp-hero" aria-label="Experimental vehicle pricing models">
-<small>CAR PRICE STUDIO · THE RESEARCH GARAGE</small>
+<small>CAR PRICE STUDIO · MODEL RESEARCH</small>
 <h1>Two markets. One car.<br>Fewer pricing nightmares.</h1>
-<p>Seller asking and wholesale auction estimates on the same screen, with the complete original experimental engines. CVaR95 asks how badly the model misses when luck takes a coffee break.</p>
-<span class="exp-chip">✍ BGE + CVaR95 ResMLP / DeepCross</span>
-<span class="exp-chip">🚘 CVaR95 DeepFM + Lemon XGBoost</span>
-<span class="exp-chip">🛡️ CVaR95 · worst 5%</span>
-<span class="exp-chip">📆 This month's scenario</span>
-</section>""",unsafe_allow_html=True)
+<p>Seller asking and wholesale auction estimates from the same verified
+models used on our main price calculator.</p>
+<span class="exp-chip">✍ BGE + ResMLP / DeepCross</span>
+<span class="exp-chip">🚘 DeepFM + Lemon XGBoost</span>
+<span class="exp-chip">🛡 CVaR95 · worst 5%</span>
+</section>""")
+    st.markdown(CSS+hero,unsafe_allow_html=True)
     from pricing.studio_design import market_guide
     from pricing.description_examples import load_examples
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
     market_guide()
     examples=load_examples()
-    st.markdown("### 🚗 01 / Pick a car, or bring your own")
+    st.markdown("### 🚗 01 / Start with an example—or your own car")
     if examples:
         st.selectbox(
             f"Search {len(examples):,} real, price-redacted car adverts",
@@ -414,7 +428,8 @@ def render(root):
             format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
             on_change=_apply_example)
         st.caption("Real historical seller descriptions; prices and contact details redacted. Source: Tom’s Used Cars Dataset (CC BY 4.0). These are examples, not 400 fresh appraisals.")
-    valuation_date,allow_analogue=clock_controls(prefix="experimental")
+    valuation_date,allow_analogue=clock_controls(
+        prefix="main" if main else "experimental",prominent=main)
     # These historical models and their original data are never retrained by changing the date.
     try:
         transport,error=current_transport(root)
@@ -444,7 +459,7 @@ def render(root):
             st.caption("Original 75% DeepFM16 + 25% Lemon XGBoost, with historical 2014–2015 auction assumptions.")
             if bid_ready:st.info("CVaR95 Bid challenger is not release-verified; original model remains active.")
         if not bid_ready:st.warning("Wholesale model has not passed deployment parity; estimate disabled.")
-    st.caption("Original holdout metrics below are measured in historical dollars. They are NOT measured November 2026 accuracy.")
+    st.caption("Historical test errors are not accuracy guarantees for cars on the selected date.")
     for side,title,new_ready,new_folder in (
         ("ask","Seller asking",ask_champion,"neural-experimental-ask-cvar95"),
         ("bid","Wholesale auction",bid_champion,"neural-experimental-bid-cvar95"),
@@ -504,13 +519,13 @@ def render(root):
                        "and date transport to today's dollars is a scenario. "
                        "Models are NOT validated on November 2026 vehicle sales. "
                        "Recent model years may be outside the training support.")
-    with st.expander("🔨 Auction reference assumptions",expanded=False):
+    with st.expander("🔨 Historical wholesale auction reference · advanced",expanded=False):
         auction=st.date_input("Original auction date (2014–2015)",
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
             max_value=pd.Timestamp("2015-12-31").date(),key="experiment_joint_auction")
         grade=st.selectbox("Historical pre-sale grade",["unknown","1","2","3","4","5"],index=3,key="experiment_joint_grade")
         st.caption("2016–2021 cars can use an optional *hypothetical five-year-old auction analogue*. It is not evidence of what that vehicle generation sold for in 2015.")
-    fields,notes,go=_vehicle("bge_ask",ready=ask_ready or bid_ready)
+    fields,notes,go=_vehicle("bge_ask",ready=ask_ready or bid_ready,compact=main)
     if go:
         results={"fields":fields,"notes":notes,"date":str(valuation_date)}
         if ask_ready:
@@ -537,7 +552,7 @@ def render(root):
         st.session_state["experimental_combined_receipt"]=results
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
-        st.markdown("### 💵 02 / Both prices, same car")
+        st.markdown("### 💵 Your car · two historical price anchors")
         prices={};adjusted={}
         columns=st.columns(2)
         for col,side,label in zip(columns,("ask","bid"),("Seller asking","Wholesale auction")):
@@ -552,14 +567,14 @@ def render(root):
                     st.caption("Proxy model year: "+str(saved["bid_analogue"]["proxy_model_year"])+"; requested model year: "+str(saved["bid_analogue"]["requested_model_year"]))
                 st.metric(label+" · historical anchor",_usd(historical))
                 if transport is None:
-                    st.warning("Current-month conversion unavailable; historical price only.")
+                    st.warning("Date conversion unavailable; historical price only.")
                     continue
                 try:
                     receipt=_adjust_price(transport,historical,saved["fields"],
                                           side,valuation_date,allow_analogue)
                     adjusted[side]=receipt;prices[side]=receipt["price"]
                     _price(label+" · "+str(valuation_date)+" scenario",receipt["price"],
-                        "Date-adjusted estimate, NOT an observed 2026 transaction or a guaranteed bid.")
+                        "Date-adjusted scenario, not an observed transaction or a guaranteed bid.")
                     render_adjustment(receipt)
                 except (OSError,ValueError,KeyError,TypeError) as exc:
                     st.warning("Cannot adjust "+label.lower()+" to this month: "+str(exc))
@@ -601,11 +616,17 @@ def render(root):
                 "valuation_date":str(valuation_date),"vehicle":saved["fields"],
                 "historical_predictions":{k:saved[k] for k in ("ask","bid") if k in saved},
                 "date_adjusted":adjusted,"bid_analogue":saved.get("bid_analogue"),"bid_error":saved.get("bid_error"),"description":"omitted for privacy",
-                "warning":"Date transport is an unvalidated individual 2026 scenario."}
+                "warning":"Date transport is a model-based reconstruction or forecast, not an observed transaction."}
         st.download_button("📥 Download both-model research receipt (JSON)",
             json.dumps(report,indent=2,default=str),file_name="experimental-bid-ask.json",
             mime="application/json",key="experimental_both_download")
-    st.markdown("### 🧰 03 / Other tools from the main garage")
-    st.caption("The original car calculator, listing inspector, timelines, scientific evidence, merchant comparisons and diagnostics remain accessible using the Studio panels above. No parallel, potentially inconsistent copy of their models is made.")
+    if main:
+        st.markdown("### 🚙 The car doesn't read spreadsheets. Luckily, we do.")
+        st.caption("Two separate historical targets, one transparent car studio. "
+                   "The asking price isn't a completed retail sale, and the auction "
+                   "estimate isn't a dealer offer. Date scenarios aren't transactions.")
+    else:
+        st.markdown("### 🧰 Other tools in Car Price Studio")
+        st.caption("More comparison tools are available from the Studio panels.")
     with st.expander("🛡️ Why CVaR95? The business case and the original scientific evidence"):
         _explanation(root)
