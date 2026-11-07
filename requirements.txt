@@ -129,6 +129,3 @@ gliner2[local]==2.1.0
 # Native, unquantized BGE research asking model; loaded lazily only in Experimental models
 sentence-transformers==6.2.0
 
-# On-demand native PyTorch Integrated Gradients for transparent dollar pricing.
-# Imported only after an explicit Advanced AI click; no encoder in the app boot.
-captum>=0.8.0,<0.9.0
