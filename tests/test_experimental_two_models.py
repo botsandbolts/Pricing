@@ -58,17 +58,18 @@ def test_entire_embedding_ask_model_not_ridge_head():
     assert FOLDER.endswith("ask-bge")
 
 
-def test_ui_scopes_both_engines_to_experimental_panel_only():
+def test_main_pricing_uses_both_verified_neural_engines():
     ui=Path("pricing/neural_experimental_ui.py").read_text()
     app=Path("app.py").read_text()
-    assert "if _workspace=='🧬 Experimental models':" in app
+    assert "if _workspace=='🚗 Price my car':" in app
+    assert "render_two_market_pricing(Path(__file__).parent,main=True)" in app
     assert "from pricing.neural_experimental_ui import render" in app
     assert "neural_ask_embedding_live" in ui
     assert "neural_bid_blend_live" in ui
     assert "Compare complete neural estimates" in ui
     assert "No MiniLM Ridge" in ui
     assert "st.form" in ui and "st.tabs" in ui
-    assert "primary calculator" in ui.lower()
+    assert "public homepage" in ui.lower() or "main price calculator" in ui.lower()
     assert "Ridge" not in ui.split("def _ask(root):",1)[1].split("def _bid(root):",1)[0].split("st.caption(",1)[-1] or "No MiniLM Ridge" in ui
 
 
