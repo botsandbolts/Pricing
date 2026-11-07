@@ -147,9 +147,14 @@ CAR PRICE STUDIO · EXPLAINABLE AI · MADE IN GERMANY</div>
 <div style="color:#e8fafa">The model has opinions. Now it has to show its work.
 No second elephant-sized neural network in the garage.</div>
 </div>""",unsafe_allow_html=True)
-    with st.expander("🧠 Captum · explain one real model prediction"):
-        st.caption("Optional, CPU-bounded and using your original cached model. "
-                   "The first appraisal runs without any attribution work.")
+    # The explanation form is ALWAYS visible after a successful quote.
+    # A collapsed expander made this flagship feature effectively invisible
+    # on mobile even though all Captum integration tests passed.
+    with st.container(border=True):
+        st.markdown("**🧠 Captum · explain one real model prediction**")
+        st.caption("Tap the button below to investigate this price. "
+                   "Your first appraisal remains fast: Captum runs only when "
+                   "you request it, with one interpolation point in memory.")
         with st.form("captum_light_form"):
             side=st.radio("Explain which market?",sides,horizontal=True,
                 format_func=lambda s:"🏷 Seller Ask · neural price" if s=="ask"
@@ -161,7 +166,7 @@ No second elephant-sized neural network in the garage.</div>
                     24:"🔍 More detail · 24 steps"}[v])
             st.caption("RAM limiter: **internal_batch_size=1**, one vehicle, "
                        "Gauss–Legendre, no BGE backpropagation.")
-            go=st.form_submit_button("✨ Make the model explain itself",
+            go=st.form_submit_button("🔬 Explain THIS price · Captum",
                 type="primary",use_container_width=True)
         # A stored explanation belongs to ONE chosen market and step budget.
         # Changing Ask to Bid (or 8 to 24 steps) must never show stale bars.
