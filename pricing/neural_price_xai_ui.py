@@ -378,6 +378,13 @@ No guessing, no magic unicorns, just the actual weights.</p>
 </section>""",unsafe_allow_html=True)
     st.caption("Explanations are optional. Your initial price is fast; "
                "deeper analyses run only when you ask.")
+    if saved.get("bid_analogue"):
+        proxy=saved["bid_analogue"]
+        st.warning("⚠️ Wholesale explanations concern the age-matched historical "
+                   "proxy model year "+str(proxy.get("proxy_model_year"))+
+                   ", not actual auctions of your "+str(proxy.get("requested_model_year"))+
+                   " generation. The missing generation cannot be explained "
+                   "away by sophisticated mathematics.")
     mode=st.radio("Compared with which hypothetical vehicle?",
                   ["Same make, model, year and body; neutralized other details",
                    "A fixed 2010 Toyota Corolla reference"],
