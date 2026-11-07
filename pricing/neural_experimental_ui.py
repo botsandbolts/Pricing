@@ -459,66 +459,9 @@ models used on our main price calculator.</p>
             st.caption("Original 75% DeepFM16 + 25% Lemon XGBoost, with historical 2014–2015 auction assumptions.")
             if bid_ready:st.info("CVaR95 Bid challenger is not release-verified; original model remains active.")
         if not bid_ready:st.warning("Wholesale model has not passed deployment parity; estimate disabled.")
-    st.caption("Historical test errors are not accuracy guarantees for cars on the selected date.")
-    for side,title,new_ready,new_folder in (
-        ("ask","Seller asking",ask_champion,"neural-experimental-ask-cvar95"),
-        ("bid","Wholesale auction",bid_champion,"neural-experimental-bid-cvar95"),
-    ):
-        if new_ready:
-            d=json.loads((root/"models"/new_folder/"manifest.json").read_text())
-            k=d["historical_test"]
-            with st.expander(title+" · selected model original TEST accuracy",expanded=True):
-                x,y,z=st.columns(3)
-                x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
-                y.metric("RMSE",_usd(k["RMSE_USD"]))
-                z.metric("MAE",_usd(k["MAE_USD"]))
-                st.caption("Original untouched historical TEST after validation selection; "
-                           "not a November 2026 forecast accuracy audit.")
-                v=d["historical_validation"]
-                old=d["historical_incumbent_test"]
-                st.caption("Original validation CVaR95: "+_usd(v["CVaR95_absolute_USD"])
-                           +" · previous model TEST CVaR95: "+_usd(old["CVaR95_absolute_USD"])
-                           +" (the splits are not interchangeable).")
-        elif all_validation(root,side):
-            k=model_kpis(root,side)
-            if k:
-                with st.expander(title+" · previous historical test accuracy"):
-                    x,y,z=st.columns(3)
-                    x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
-                    y.metric("RMSE",_usd(k["RMSE_USD"]))
-                    z.metric("MAE",_usd(k["MAE_USD"]))
-    with st.expander("🧠 How the new models work · tail-risk research",expanded=False):
-        explain_ask,explain_bid,explain_risk=st.tabs(
-            ["✍ Asking · BGE ResMLP","🔨 Wholesale · DeepFM","🛡️ Risk & limitations"])
-        with explain_ask:
-            st.markdown("**A residual neural network that reads the advert.** "
-                        "The pinned BGE-small encoder maps description text to "
-                        "384 semantic dimensions. A learned projector compresses "
-                        "this vector and residual MLP blocks mix it with the "
-                        "vehicle's mileage, model year and category features. "
-                        "The model predicts a historical *advertised* asking price. "
-                        "No Ridge or MiniLM price head substitutes for the full network.")
-            st.caption("Research winner: Ask25 trial 15 (when its original-test "
-                       "checkpoint passes the separate serving release gate).")
-        with explain_bid:
-            st.markdown("**FM interactions plus an independent XGBoost voice.** "
-                        "DeepFM learns individual effects, feature-pair interactions "
-                        "and a compact nonlinear correction over auction attributes. "
-                        "The complete neural output is blended with the original "
-                        "Lemon-cleaned XGBoost wholesale estimate. The blend weight "
-                        "was selected using VIN-disjoint historical validation.")
-            st.caption("Research winner: Bid hyperparameter trial 18 when verified. "
-                       "Auction label: completed 2014–2015 sale in 2015-indexed USD.")
-        with explain_risk:
-            st.markdown("**CVaR95:** the mean of absolute pricing errors among "
-                        "the largest 5% of misses. It helps identify the models "
-                        "that tend to make fewer costly mistakes; RMSE and MAE "
-                        "remain secondary diagnostics.")
-            st.warning("Both studies use historical training populations. "
-                       "Ask estimates asking prices, Bid predicts auction sales, "
-                       "and date transport to today's dollars is a scenario. "
-                       "Models are NOT validated on November 2026 vehicle sales. "
-                       "Recent model years may be outside the training support.")
+    st.caption("Ask is what a seller advertises. Bid is the wholesale auction "
+               "analogue. The gap is **not** dealer profit; it also spans different "
+               "types of transactions. One vehicle, two economic questions.")
     with st.expander("🔨 Historical wholesale auction reference · advanced",expanded=False):
         auction=st.date_input("Original auction date (2014–2015)",
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
@@ -628,5 +571,68 @@ models used on our main price calculator.</p>
     else:
         st.markdown("### 🧰 Other tools in Car Price Studio")
         st.caption("More comparison tools are available from the Studio panels.")
+    st.markdown("### 🧪 Research notes: how it works, and where it can be wrong")
+    st.caption("We show audited historical test errors when available, never "
+               "pretending they're tomorrow's buyer or dealer prices.")
+    st.caption("Historical test errors are not accuracy guarantees for cars on the selected date.")
+    for side,title,new_ready,new_folder in (
+        ("ask","Seller asking",ask_champion,"neural-experimental-ask-cvar95"),
+        ("bid","Wholesale auction",bid_champion,"neural-experimental-bid-cvar95"),
+    ):
+        if new_ready:
+            d=json.loads((root/"models"/new_folder/"manifest.json").read_text())
+            k=d["historical_test"]
+            with st.expander(title+" · selected model original TEST accuracy",expanded=True):
+                x,y,z=st.columns(3)
+                x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
+                y.metric("RMSE",_usd(k["RMSE_USD"]))
+                z.metric("MAE",_usd(k["MAE_USD"]))
+                st.caption("Original untouched historical TEST after validation selection; "
+                           "not a November 2026 forecast accuracy audit.")
+                v=d["historical_validation"]
+                old=d["historical_incumbent_test"]
+                st.caption("Original validation CVaR95: "+_usd(v["CVaR95_absolute_USD"])
+                           +" · previous model TEST CVaR95: "+_usd(old["CVaR95_absolute_USD"])
+                           +" (the splits are not interchangeable).")
+        elif all_validation(root,side):
+            k=model_kpis(root,side)
+            if k:
+                with st.expander(title+" · previous historical test accuracy"):
+                    x,y,z=st.columns(3)
+                    x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
+                    y.metric("RMSE",_usd(k["RMSE_USD"]))
+                    z.metric("MAE",_usd(k["MAE_USD"]))
+    with st.expander("🧠 How the new models work · tail-risk research",expanded=False):
+        explain_ask,explain_bid,explain_risk=st.tabs(
+            ["✍ Asking · BGE ResMLP","🔨 Wholesale · DeepFM","🛡️ Risk & limitations"])
+        with explain_ask:
+            st.markdown("**A residual neural network that reads the advert.** "
+                        "The pinned BGE-small encoder maps description text to "
+                        "384 semantic dimensions. A learned projector compresses "
+                        "this vector and residual MLP blocks mix it with the "
+                        "vehicle's mileage, model year and category features. "
+                        "The model predicts a historical *advertised* asking price. "
+                        "No Ridge or MiniLM price head substitutes for the full network.")
+            st.caption("Research winner: Ask25 trial 15 (when its original-test "
+                       "checkpoint passes the separate serving release gate).")
+        with explain_bid:
+            st.markdown("**FM interactions plus an independent XGBoost voice.** "
+                        "DeepFM learns individual effects, feature-pair interactions "
+                        "and a compact nonlinear correction over auction attributes. "
+                        "The complete neural output is blended with the original "
+                        "Lemon-cleaned XGBoost wholesale estimate. The blend weight "
+                        "was selected using VIN-disjoint historical validation.")
+            st.caption("Research winner: Bid hyperparameter trial 18 when verified. "
+                       "Auction label: completed 2014–2015 sale in 2015-indexed USD.")
+        with explain_risk:
+            st.markdown("**CVaR95:** the mean of absolute pricing errors among "
+                        "the largest 5% of misses. It helps identify the models "
+                        "that tend to make fewer costly mistakes; RMSE and MAE "
+                        "remain secondary diagnostics.")
+            st.warning("Both studies use historical training populations. "
+                       "Ask estimates asking prices, Bid predicts auction sales, "
+                       "and date transport to today's dollars is a scenario. "
+                       "Models are NOT validated on November 2026 vehicle sales. "
+                       "Recent model years may be outside the training support.")
     with st.expander("🛡️ Why CVaR95? The business case and the original scientific evidence"):
         _explanation(root)
