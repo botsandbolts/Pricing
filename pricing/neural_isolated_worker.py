@@ -100,6 +100,13 @@ def evaluate(root,payload):
 
 def main():
     import pathlib
+    # On Linux, ask the OOM killer to sacrifice this short-lived isolated
+    # worker rather than Streamlit's long-lived public UI process. This is
+    # best-effort: some hosting kernels do not permit changing this value.
+    try:
+        pathlib.Path("/proc/self/oom_score_adj").write_text("700")
+    except (OSError,ValueError):
+        pass
     try:
         payload=json.load(sys.stdin)
         if not isinstance(payload,dict) or payload.get("market") not in ("ask","bid")            or payload.get("operation") not in ("predict","sensitivity"):
