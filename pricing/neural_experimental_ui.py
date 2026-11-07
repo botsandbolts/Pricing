@@ -433,7 +433,13 @@ models used on our main price calculator.</p>
     # These historical models and their original data are never retrained by changing the date.
     try:
         transport,error=current_transport(root)
-        render_market_clock(transport,valuation_date,error)
+        # A historical-chart render on every keystroke is unnecessary.
+        # Keep the selected date visible without eagerly plotting trends.
+        if not main:
+            render_market_clock(transport,valuation_date,error)
+        else:
+            st.caption("Historical date scenario ready. "
+                       "Age and market-index adjustments will appear with the price.")
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
@@ -489,19 +495,17 @@ models used on our main price calculator.</p>
         results={"fields":fields,"notes":notes,"date":str(valuation_date)}
         if ask_ready:
             try:
-                from pricing.neural_ask_embedding_live import load as ask_load
-                with st.spinner("Running the complete BGE + DeepCross/AFT network…"):
-                    results["ask"]=(load_champion_ask(root) if ask_champion
-                                    else ask_load(root)).predict(notes,fields)
+                from pricing.neural_isolated_serving import run as isolated_price
+                with st.spinner("Pricing Ask with the verified native BGE neural network…"):
+                    results["ask"]=isolated_price(root,"ask",fields,notes)
             except Exception as exc:
                 st.error("Asking engine unavailable: "+str(exc))
         if bid_ready:
             try:
-                from pricing.neural_bid_blend_live import load as bid_load
+                from pricing.neural_isolated_serving import run as isolated_price
                 bid_fields,analogue=_historical_bid_features(fields,auction,grade,allow_analogue)
-                with st.spinner("Running verified wholesale DeepFM + Lemon XGBoost…"):
-                    results["bid"]=(load_champion_bid(root) if bid_champion
-                                    else bid_load(root)).predict(bid_fields)
+                with st.spinner("Pricing Bid with native DeepFM + Lemon XGBoost…"):
+                    results["bid"]=isolated_price(root,"bid",bid_fields)
                     # The exact historical features must travel with the saved
                     # receipt; explain the served Bid, not a reconstructed guess.
                     results["bid_fields"]=bid_fields
@@ -544,20 +548,14 @@ models used on our main price calculator.</p>
             st.metric("Asking minus wholesale · indicative market gap",
                       _usd(prices["ask"]-prices["bid"]))
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
-        if adjusted:
-            if main:
-                with st.expander("📉 Show the full historical-to-selected-date evidence"):
-                    render_time_evidence(transport,adjusted)
-            else:
-                render_time_evidence(transport,adjusted)
-        # INCIDENT MITIGATION 2026-11-07: disable unverified XAI widget.
-        # Keep the entire native pricing experience available while reviewing
-        # repeated public GUI crashes. The optional XAI implementation remains
-        # committed for fixes/tests, but must NOT run on public sessions.
+        if adjusted and not main:
+            render_time_evidence(transport,adjusted)
         if main:
-            st.caption("The advanced Why this price? lab is temporarily offline "
-                       "for stability checks. Pricing and historical scenarios "
-                       "continue to use their original verified engines.")
+            # New native models stay on the PUBLIC main calculator.
+            # Only lightweight explanations: no plotly, Captum, SHAP matrices,
+            # or additional model weights in Streamlit's persistent process.
+            from pricing.neural_price_lite_ui import render as render_price_lite
+            render_price_lite(root,saved,adjusted)
         if not main and "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
                 alt=st.text_area("Alternative advertisement",value=saved["notes"],key="experimental_reword",max_chars=8000)
