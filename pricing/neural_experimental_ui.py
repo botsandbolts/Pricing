@@ -550,13 +550,14 @@ models used on our main price calculator.</p>
                     render_time_evidence(transport,adjusted)
             else:
                 render_time_evidence(transport,adjusted)
+        # INCIDENT MITIGATION 2026-11-07: disable unverified XAI widget.
+        # Keep the entire native pricing experience available while reviewing
+        # repeated public GUI crashes. The optional XAI implementation remains
+        # committed for fixes/tests, but must NOT run on public sessions.
         if main:
-            # Full, optional neural/tree explainability is on the PUBLIC page.
-            # No Captum/BGE re-encoding happens until the user clicks Explain.
-            from pricing.neural_price_xai_ui import render as render_price_explanations
-            render_price_explanations(
-                root,saved,valuation_date,adjusted,transport,allow_analogue,
-                ask_champion=ask_champion,bid_champion=bid_champion)
+            st.caption("The advanced Why this price? lab is temporarily offline "
+                       "for stability checks. Pricing and historical scenarios "
+                       "continue to use their original verified engines.")
         if not main and "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
                 alt=st.text_area("Alternative advertisement",value=saved["notes"],key="experimental_reword",max_chars=8000)
