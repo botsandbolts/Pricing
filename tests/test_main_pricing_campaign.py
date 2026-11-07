@@ -24,21 +24,20 @@ def test_every_changed_public_python_module_parses():
         ast.parse(read(name),filename=name)
 
 
-def test_main_uses_memory_isolated_native_ask_bid_and_small_xai():
+def test_main_page_starts_native_two_market_calculator_before_old_tree_fallback():
     src=read("app.py")
     start=src.index("if _workspace=='🚗 Price my car':")
-    end=src.index("if _workspace=='🏪 Merchant lens':",start)
-    public=src[start:end]
+    stop=src.index("if _workspace=='🏪 Merchant lens':",start)
+    public=src[start:stop]
     assert "render_two_market_pricing(Path(__file__).parent,main=True)" in public
-    assert "render_privacy()" in public and "st.stop()" in public
-    assert "beta_neural" not in public
+    assert "render_privacy()" in public
+    assert "render_events()" in public
+    assert "footer()" in public
+    assert "st.stop()" in public
+    assert start<src.index("if _workspace=='🌳 Hierarchical model'")
     assert "from pricing.bart_summary import" not in src
     assert "Fine-tune the details" not in src
-    ui=read("pricing/neural_experimental_ui.py")
-    assert 'isolated_price(root,"ask",fields,notes)' in ui
-    assert 'isolated_price(root,"bid",bid_fields)' in ui
-    assert "render_price_lite(root,saved,adjusted)" in ui
-    assert "render_price_explanations(" not in ui
+    assert "scan_description" not in src
 
 
 def test_separate_experimental_page_removed_but_legacy_links_redirect():
