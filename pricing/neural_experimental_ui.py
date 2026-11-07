@@ -469,6 +469,22 @@ models used on our main price calculator.</p>
         grade=st.selectbox("Historical pre-sale grade",["unknown","1","2","3","4","5"],index=3,key="experiment_joint_grade")
         st.caption("2016–2021 cars can use an optional *hypothetical five-year-old auction analogue*. It is not evidence of what that vehicle generation sold for in 2015.")
     fields,notes,go=_vehicle("bge_ask",ready=ask_ready or bid_ready,compact=main)
+    # The public date picker can predate a particular model year. Reject before
+    # expensive BGE inference, and do not retain a stale previous receipt.
+    if go:
+        from marketbridge.time_engine import age_on
+        age=age_on(fields["year"],valuation_date)
+        if age<0:
+            st.error("Time-machine paradox: that car model didn't exist on "
+                     "the selected historical date. Choose an earlier model year "
+                     "or a later valuation date.")
+            st.session_state.pop("experimental_combined_receipt",None)
+            go=False
+        elif age>30:
+            st.error("This research supports cars aged 0–30 years on the "
+                     "selected date. Collector cars need a specialist appraisal.")
+            st.session_state.pop("experimental_combined_receipt",None)
+            go=False
     if go:
         results={"fields":fields,"notes":notes,"date":str(valuation_date)}
         if ask_ready:
