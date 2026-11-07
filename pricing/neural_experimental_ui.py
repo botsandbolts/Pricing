@@ -13,6 +13,12 @@ import pandas as pd
 import streamlit as st
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.neural_bid_blend_live import available as bid_available
+from pricing.neural_champion_live import (
+    ask_available as champion_ask_available,
+    bid_available as champion_bid_available,
+    load_ask as load_champion_ask,
+    load_bid as load_champion_bid,
+)
 
 CSS="""
 <style>
@@ -348,8 +354,8 @@ def render(root):
 <small>CAR PRICE STUDIO · THE RESEARCH GARAGE</small>
 <h1>Two markets. One car.<br>Fewer pricing nightmares.</h1>
 <p>Seller asking and wholesale auction estimates on the same screen, with the complete original experimental engines. CVaR95 asks how badly the model misses when luck takes a coffee break.</p>
-<span class="exp-chip">✍ Full BGE + DeepCross/AFT</span>
-<span class="exp-chip">🚘 DeepFM + Lemon XGBoost</span>
+<span class="exp-chip">✍ BGE + CVaR95 ResMLP / DeepCross</span>
+<span class="exp-chip">🚘 CVaR95 DeepFM + Lemon XGBoost</span>
 <span class="exp-chip">🛡️ CVaR95 · worst 5%</span>
 <span class="exp-chip">📆 This month's scenario</span>
 </section>""",unsafe_allow_html=True)
@@ -375,26 +381,78 @@ def render(root):
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
-    ask_ready=ask_available(root);bid_ready=bid_available(root)
+    ask_champion=champion_ask_available(root)
+    bid_champion=champion_bid_available(root)
+    ask_ready=ask_champion or ask_available(root)
+    bid_ready=bid_champion or bid_available(root)
     a,b=st.columns(2)
     with a:
         st.markdown("**✍ Seller asking · full neural network**")
-        st.caption("BGE text embeddings → complete DeepCross/AFT. No Ridge or MiniLM price replacement.")
+        if ask_champion:
+            st.caption("NEW research winner: pinned BGE → trainable projection → ResMLP · trial 15. No Ridge or MiniLM price replacement.")
+        else:
+            st.caption("Original BGE text embeddings → complete DeepCross/AFT. No Ridge or MiniLM price replacement.")
+            if ask_ready:st.info("CVaR95 ResMLP challenger is not release-verified; original model remains active.")
         if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
     with b:
         st.markdown("**🔨 Wholesale auction · full ensemble**")
-        st.caption("75% DeepFM16 + 25% original Lemon XGBoost, with original historical auction assumptions.")
+        if bid_champion:
+            meta=json.loads((root/"models/neural-experimental-bid-cvar95/manifest.json").read_text())
+            st.caption(f"NEW research winner: {meta['neural_weight']:.0%} tuned DeepFM16 + {meta['lemon_weight']:.0%} original Lemon XGBoost.")
+        else:
+            st.caption("Original 75% DeepFM16 + 25% Lemon XGBoost, with historical 2014–2015 auction assumptions.")
+            if bid_ready:st.info("CVaR95 Bid challenger is not release-verified; original model remains active.")
         if not bid_ready:st.warning("Wholesale model has not passed deployment parity; estimate disabled.")
     st.caption("Original holdout metrics below are measured in historical dollars. They are NOT measured November 2026 accuracy.")
-    for side,title in (("ask","Seller asking"),("bid","Wholesale auction")):
-        if all_validation(root,side):
+    for side,title,new_ready,new_folder in (
+        ("ask","Seller asking",ask_champion,"neural-experimental-ask-cvar95"),
+        ("bid","Wholesale auction",bid_champion,"neural-experimental-bid-cvar95"),
+    ):
+        if new_ready:
+            d=json.loads((root/"models"/new_folder/"manifest.json").read_text())
+            k=d["historical_test"]
+            with st.expander(title+" · selected model original TEST accuracy",expanded=True):
+                x,y,z=st.columns(3)
+                x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
+                y.metric("RMSE",_usd(k["RMSE_USD"]))
+                z.metric("MAE",_usd(k["MAE_USD"]))
+                st.caption("Original untouched historical TEST after validation selection; "
+                           "not a November 2026 forecast accuracy audit.")
+                v=d["historical_validation"]
+                old=d["historical_incumbent_test"]
+                st.caption("Original validation CVaR95: "+_usd(v["CVaR95_absolute_USD"])
+                           +" · previous model TEST CVaR95: "+_usd(old["CVaR95_absolute_USD"])
+                           +" (the splits are not interchangeable).")
+        elif all_validation(root,side):
             k=model_kpis(root,side)
             if k:
-                with st.expander(title+" · historical test accuracy (CVaR95 primary)"):
+                with st.expander(title+" · previous historical test accuracy"):
                     x,y,z=st.columns(3)
                     x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
                     y.metric("RMSE",_usd(k["RMSE_USD"]))
                     z.metric("MAE",_usd(k["MAE_USD"]))
+    with st.expander("🧠 How the new models work · tail-risk research",expanded=False):
+        st.markdown("**✍ Ask · a residual neural network that reads the advert.** "
+                    "A fixed BGE-small language encoder converts the seller description "
+                    "into a 384-dimensional vector. A learned projection compresses the "
+                    "text representation; residual MLP blocks combine it with mileage, "
+                    "age, condition and other categorical vehicle facts. The complete "
+                    "network predicts historical advertised asking dollars. "
+                    "It is not a text-to-price Ridge model.")
+        st.markdown("**🔨 Bid · neural interactions plus a trusted tree baseline.** "
+                    "DeepFM learns individual features, feature-pair interactions and "
+                    "a small nonlinear correction for original 2014–2015 auction sales. "
+                    "A fixed Lemon-cleaned XGBoost model contributes an independent "
+                    "prediction; the neural mixing proportion was chosen using the "
+                    "original VIN-disjoint validation rows.")
+        st.markdown("**🛡️ Why CVaR95?** It averages the *absolute* dollar errors "
+                    "among the 5% worst misses. This rewards fewer catastrophic "
+                    "appraisal mistakes without claiming that absolute error equals "
+                    "realized dealer losses. RMSE and MAE remain visible.")
+        st.warning("The Ask training labels are historical advertised prices; "
+                   "the Bid labels are completed historical auctions in 2015-indexed USD. "
+                   "Today's date transport is a scenario, not modern ground truth. "
+                   "Newer vehicles may be outside the source cohorts.")
     with st.expander("🔨 Auction reference assumptions",expanded=False):
         auction=st.date_input("Original auction date (2014–2015)",
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
@@ -408,7 +466,8 @@ def render(root):
             try:
                 from pricing.neural_ask_embedding_live import load as ask_load
                 with st.spinner("Running the complete BGE + DeepCross/AFT network…"):
-                    results["ask"]=ask_load(root).predict(notes,fields)
+                    results["ask"]=(load_champion_ask(root) if ask_champion
+                                    else ask_load(root)).predict(notes,fields)
             except Exception as exc:
                 st.error("Asking engine unavailable: "+str(exc))
         if bid_ready:
@@ -416,7 +475,8 @@ def render(root):
                 from pricing.neural_bid_blend_live import load as bid_load
                 bid_fields,analogue=_historical_bid_features(fields,auction,grade,allow_analogue)
                 with st.spinner("Running verified wholesale DeepFM + Lemon XGBoost…"):
-                    results["bid"]=bid_load(root).predict(bid_fields)
+                    results["bid"]=(load_champion_bid(root) if bid_champion
+                                    else bid_load(root)).predict(bid_fields)
                 if analogue:results["bid_analogue"]=analogue
             except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
                 results["bid_error"]=str(exc)
@@ -464,7 +524,8 @@ def render(root):
                 if st.button("Recalculate complete neural asking model",key="experimental_reword_go"):
                     try:
                         from pricing.neural_ask_embedding_live import load
-                        revised=load(root).predict(alt,saved["fields"])["price"]
+                        revised=(load_champion_ask(root) if ask_champion
+                                 else load(root)).predict(alt,saved["fields"])["price"]
                         new=_adjust_price(transport,revised,saved["fields"],"ask",valuation_date,allow_analogue) if transport else None
                         st.metric("Rewritten historical asking",_usd(revised),delta=_usd(revised-saved["ask"]["price"]))
                         if new:st.metric("Rewritten date-adjusted asking",_usd(new["price"]))
@@ -474,7 +535,7 @@ def render(root):
             with st.expander("📉 Mileage sensitivity · full-network reruns"):
                 try:
                     from pricing.neural_ask_embedding_live import load
-                    model=load(root)
+                    model=load_champion_ask(root) if ask_champion else load(root)
                     prepared=model.prepare_text(saved["notes"])
                     rows=[]
                     for change in (-20000,-10000,0,10000,20000):
@@ -485,7 +546,7 @@ def render(root):
                     st.line_chart(pd.DataFrame(rows).set_index("Mileage"))
                 except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
                     st.info("Mileage sensitivity unavailable: "+str(exc))
-        report={"model_family":"Original experimental neural models, unchanged",
+        report={"model_family":"Parity-gated CVaR95-selected neural challengers (original fallback if unavailable)",
                 "valuation_date":str(valuation_date),"vehicle":saved["fields"],
                 "historical_predictions":{k:saved[k] for k in ("ask","bid") if k in saved},
                 "date_adjusted":adjusted,"bid_analogue":saved.get("bid_analogue"),"bid_error":saved.get("bid_error"),"description":"omitted for privacy",
