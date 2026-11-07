@@ -19,14 +19,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _main_two_market_release_v14():
+def _main_two_market_release_v15():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
     for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_main_two_market_release_v14()
+_main_two_market_release_v15()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
@@ -37,12 +37,10 @@ _workspace=render_navigation()
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
     from pricing.analytics import render_privacy
     render_privacy()
-# The public homepage is THE same Ask/Bid calculator that previously lived
-# in Experimental. Run it before historical legacy-model routing and stop.
-# Production recovery: the memory-heavy native neural research page is
-# disabled by default. Only explicit opt-in beta sessions may enter it.
-# Public visitors use the earlier lightweight price calculator below.
-if _workspace=='🚗 Price my car' and st.query_params.get('beta_neural')=='1':
+# Keep the full, verified native BGE + DeepFM/XGBoost pricing experience
+# on the main public page. Each inference runs in a short-lived memory-isolated
+# worker, so the public Streamlit interpreter never hosts both heavy models.
+if _workspace=='🚗 Price my car':
     from pricing.analytics import render_privacy
     render_privacy()
     try:
@@ -139,9 +137,6 @@ if _workspace=='📅 Value over time':
     render_events()
     footer()
     st.stop()
-if _workspace=='🚗 Price my car':
-    st.info("Our new neural price laboratory is paused for a performance check. "
-            "The previous pricing calculator is available below; no registration required.")
 st.caption('Historical comparison tools retain their own model names and assessment dates. They are not the current XGBoost calculator.')
 st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
 <strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
