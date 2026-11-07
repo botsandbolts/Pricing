@@ -173,3 +173,30 @@ def test_pre_quote_teaser_is_present_in_browser_release_contract():
     smoke=(ROOT/"scripts/browser_smoke_main_pricing.py").read_text()
     assert "Your AI explanation is included" in smoke
     assert "Missing public-page message" in smoke
+
+
+def test_render_after_saved_price_displays_unhidden_captum_form(monkeypatch):
+    """Exercise the actual post-valuation presentation without neural loading."""
+    import sys
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    seen=[]
+    fake=SimpleNamespace(
+        markdown=lambda value,**kwargs:seen.append(("markdown",value)),
+        caption=lambda value,**kwargs:seen.append(("caption",value)),
+        container=lambda **kwargs:nullcontext(),
+        form=lambda *args,**kwargs:nullcontext(),
+        radio=lambda *args,**kwargs:"ask",
+        select_slider=lambda *args,**kwargs:8,
+        form_submit_button=lambda label,**kwargs:seen.append(("button",label)) or False,
+        session_state={},
+    )
+    monkeypatch.setitem(sys.modules,"streamlit",fake)
+    lite.render(ROOT,ask_saved())
+    assert any(kind=="markdown" and "Why THAT price?" in value
+               for kind,value in seen)
+    assert any(kind=="button" and "Explain THIS price" in value
+               for kind,value in seen)
+    assert not any(kind=="caption" and "hidden" in value.lower()
+                   for kind,value in seen)
+    # No real model, Captum import, or attribution call before pressing the button.
