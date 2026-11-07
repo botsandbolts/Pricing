@@ -196,3 +196,19 @@ def test_bid_model_parts_are_required_to_add_up():
     assert 'abs(combined-published)>max(.5,published*.0001)' in ui
     assert "one-at-a-time" in ui
     assert "Captum" in ui  # marked EXCLUDED, not imported
+
+
+def test_parallel_campaign_visitors_cannot_spawn_extra_native_workers(monkeypatch):
+    attempts=[]
+    class Busy:
+        def acquire(self,timeout):
+            assert timeout<=15.
+            return False
+        def release(self):
+            raise AssertionError("Never release an unacquired slot")
+    monkeypatch.setattr(proxy,"_WORKER_SLOT",Busy())
+    monkeypatch.setattr(proxy.subprocess,"run",
+                        lambda *a,**kw:attempts.append((a,kw)))
+    with pytest.raises(proxy.IsolatedModelError,match="busy serving another visitor"):
+        proxy.run(ROOT,"ask",car(),"Full description")
+    assert attempts==[]
