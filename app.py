@@ -42,11 +42,37 @@ if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Ins
 if _workspace=='🚗 Price my car':
     from pricing.analytics import render_privacy
     render_privacy()
-    from pricing.neural_experimental_ui import render as render_two_market_pricing
-    render_two_market_pricing(Path(__file__).parent,main=True)
-    from pricing.ga_events import render_events
-    render_events()
-    footer()
+    try:
+        from pricing.neural_experimental_ui import render as render_two_market_pricing
+        render_two_market_pricing(Path(__file__).parent,main=True)
+    except Exception:
+        # Recoverable UI/model failures should NEVER blank the entire app.
+        # Only server logs contain the full traceback; do not expose
+        # visitor details or internal paths to the public browser.
+        import logging
+        logging.getLogger("car_price_studio").exception(
+            "Public two-market pricing render failed")
+        st.error("The main pricing panel encountered a temporary issue. "
+                 "Your car details have not been submitted again. "
+                 "Other Studio tools remain available.")
+        if st.button("↔ Open the alternative two-market garage",
+                     key="pricing_emergency_alt",type="primary"):
+            st.session_state["_navigate_to"]="↔ Two-market garage"
+            st.rerun()
+        st.caption("For support: report the approximate time and whether "
+                   "this happened on page load or after pressing Calculate.")
+    try:
+        from pricing.ga_events import render_events
+        render_events()
+    except Exception:
+        import logging
+        logging.getLogger("car_price_studio").exception(
+            "Optional analytics failed after public price render")
+    try:footer()
+    except Exception:
+        import logging
+        logging.getLogger("car_price_studio").exception(
+            "Optional footer failed after public price render")
     st.stop()
 if _workspace=='🏪 Merchant lens':
     from pricing.dealer_positioning_ui import render as render_dealer_positioning
