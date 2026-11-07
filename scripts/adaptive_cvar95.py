@@ -192,6 +192,50 @@ def propose(stage, history_path, output):
     print("ADAPTIVE_PLAN", stage, "Ask=4 Bid=4", flush=True)
 
 
+
+def audit_and_save_bid_blend(destination, baseline_path):
+    """Persist the SAME blended dollars scored for wholesale CVaR95.
+
+    The historical native Bid trainer used to save its standalone neural
+    predictions while reporting metrics for the blended Lemon+DeepFM target.
+    Keep native weights and reported objective unchanged, but correct this
+    adaptive study's saved validation predictions before artifact upload.
+    """
+    import pandas as pd
+    from scripts.cvar95_historical import risk
+    from scripts.neural_200_sweep import _matched_auction_baseline
+    result_path = Path(destination) / "result.json"
+    csv_path = Path(destination) / "validation.csv.gz"
+    result = json.loads(result_path.read_text())
+    frame = pd.read_csv(csv_path, dtype={"row_id": str})
+    required = {"row_id", "split", "observed_price", "predicted_price"}
+    if not required.issubset(frame.columns):
+        raise ValueError("Wholesale prediction receipt is incomplete")
+    alpha = float(result["validation"]["neural_weight"])
+    if not math.isfinite(alpha) or not .5 <= alpha <= 1.:
+        raise ValueError("Invalid trained blend weight")
+    ids = frame["row_id"].astype(str).to_numpy()
+    actual = frame["observed_price"].to_numpy(float)
+    neural = frame["predicted_price"].to_numpy(float)
+    baseline = _matched_auction_baseline(baseline_path, ids, actual)
+    combined = alpha * neural + (1.-alpha) * baseline
+    checked = risk(actual, combined)
+    for metric in ("CVaR95_absolute_USD", "RMSE_USD", "MAE_USD"):
+        if abs(checked[metric] - float(result["validation"][metric])) > .05:
+            raise ValueError("Wholesale blended validation does not match " + metric)
+    frame["deepfm_price_before_blend"] = neural
+    frame["lemon_xgboost_price_before_blend"] = baseline
+    frame["predicted_price"] = combined
+    frame.to_csv(csv_path, index=False)
+    reread = pd.read_csv(csv_path, dtype={"row_id": str})
+    after = risk(reread["observed_price"], reread["predicted_price"])
+    if abs(after["CVaR95_absolute_USD"] -
+           result["validation"]["CVaR95_absolute_USD"]) > .05:
+        raise ValueError("Wholesale CSV serialization changed the CVaR95 score")
+    print("BID_BLEND_PARITY", "CVaR95=", round(after["CVaR95_absolute_USD"], 2),
+          "DeepFM weight=", alpha, "rows=", len(frame), flush=True)
+
+
 def train(plan_path, market, slot, output, args):
     from optuna.trial import TrialState
     from scripts import neural_200_sweep as native
@@ -250,6 +294,10 @@ def train(plan_path, market, slot, output, args):
         native.risk = old_risk
 
     if state == "COMPLETE":
+        if market == "bid":
+            # Native Bid reports blend CVaR95 but historically persisted its
+            # DeepFM-only vector. Never pass that mismatched CSV to the audit.
+            audit_and_save_bid_blend(destination, args.bid_baseline)
         record = json.loads((destination / "result.json").read_text())
         if record["trial_configuration"] != chosen["config"]:
             raise ValueError("Native checkpoint differs from registered parameters")
