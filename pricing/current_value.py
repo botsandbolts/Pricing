@@ -59,24 +59,70 @@ def month_end(day=None):
     return day.replace(day=calendar.monthrange(day.year, day.month)[1])
 
 
-def clock_controls(prefix='main'):
-    """Today follows Berlin's calendar on every app rerun, never a frozen widget."""
-    day = today()
-    with st.expander('Valuation date & auction coverage', expanded=False):
-        mode = st.radio('Price date', ['Today · follows the calendar', 'Choose a date', 'End of this month · market nowcast'],
-                        horizontal=True, key=prefix+'_clock_mode_v3')
-        if mode.startswith('End of'):
-            selected = month_end(day)
-        elif mode.startswith('Today'):
-            selected = day
+def clock_controls(prefix='main', prominent=False):
+    """Date control with a prominent historical option for public Ask/Bid pricing.
+
+    Legacy study panels keep their unchanged compact clock if prominent=False.
+    For the main page dates before a vehicle's model year will be rejected by
+    TimeTransport.validate instead of inventing negative-age prices.
+    """
+    from datetime import date
+    day=today()
+    if prominent:
+        wrapper=st.container(border=True)
+    else:
+        wrapper=st.expander('Valuation date & auction coverage',expanded=False)
+    with wrapper:
+        if prominent:
+            st.markdown('### 📅 Price it today—or travel back in time')
+            st.caption('Pick the day you want the pricing scenario to describe. '
+                       'The historical models remain the same; only the age and '
+                       'market-index adjustment changes. No flux capacitor required.')
+            mode=st.radio('Valuation date',[
+                'Today','Historical date','End of this month'],
+                horizontal=True,key=prefix+'_clock_mode_main')
+            if mode=='Historical date':
+                selected=st.date_input(
+                    'Historical valuation date (January 2014 to today)',
+                    min(day,date(2021,5,1)),min_value=date(2014,1,1),
+                    max_value=day,key=prefix+'_historical_day')
+                st.caption('A reconstruction using historical model anchors and '
+                           'a market index—not an observed transaction on that day.')
+            elif mode=='End of this month':
+                selected=month_end(day)
+            else:
+                selected=day
+            with st.expander('Auction generation assumptions · optional'):
+                allow=st.checkbox(
+                    'Allow a hypothetical auction analogue for 2016–2021 model years',
+                    value=True,key=prefix+'_allow_analogue_v2',
+                    help='Auction training ends in 2015. Newer cars use an age-matched '
+                         'older reference rather than evidence of their generation.')
         else:
-            selected = st.date_input('Estimate for', day, key=prefix+'_clock_date')
-        allow = st.checkbox('Allow auction generation analogues for 2016–2021 cars',
-            value=True, key=prefix+'_allow_analogue_v2', help='Auction training ends at model year 2015. This optional assumption cannot recover the unobserved newer generation.')
+            mode=st.radio('Price date',[
+                'Today · follows the calendar','Choose a date',
+                'End of this month · market nowcast'],
+                horizontal=True,key=prefix+'_clock_mode_v3')
+            if mode.startswith('End of'):
+                selected=month_end(day)
+            elif mode.startswith('Today'):
+                selected=day
+            else:
+                selected=st.date_input('Estimate for',day,
+                                       key=prefix+'_clock_date')
+            allow=st.checkbox(
+                'Allow auction generation analogues for 2016–2021 cars',
+                value=True,key=prefix+'_allow_analogue_v2',
+                help='Auction training ends at model year 2015. This cannot '
+                     'recover the unobserved newer generation.')
     st.markdown(f'**Valuation date: {selected:%d %b %Y}** · '+
-                ('Month-end scenario, automatically updated each month.' if mode.startswith('End of') else 'Today, automatically updated on refresh.' if selected == day else 'Selected-date estimate.'))
-    st.caption('Enter the mileage and condition at that date. Ageing and market movement are adjusted separately; no extra mileage is silently added.')
-    return selected, allow
+                ('Historical reconstruction, not an actual sale.' if selected<day else
+                 'Month-end scenario using an index nowcast.' if selected>day else
+                 'Today, automatically updated on refresh.'))
+    st.caption('Enter mileage and condition as they were **on that date**. '
+               'Vehicle ageing and market movement are modeled separately; '
+               'no extra miles are silently added.')
+    return selected,allow
 
 
 def render_market_clock(transport, valuation_date, error=None):
