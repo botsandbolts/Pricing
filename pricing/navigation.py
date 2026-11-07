@@ -1,10 +1,10 @@
 """Single landing-page navigation, including callback and shared-link routing."""
 import streamlit as st
-PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🧬 Experimental models','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
+PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
 def render_navigation():
     pending=st.session_state.pop('_navigate_to',None)
-    if pending=='🌳 Hierarchical model':pending=PAGES[0]
-    if st.session_state.get('landing_studio_workspace') in ('🌳 Hierarchical model', '🧬 Experimental pricing'):st.session_state['landing_studio_workspace']=PAGES[0]
+    if pending in ('🌳 Hierarchical model','🧬 Experimental models','🧬 Experimental pricing'):pending=PAGES[0]
+    if st.session_state.get('landing_studio_workspace') in ('🌳 Hierarchical model','🧬 Experimental pricing','🧬 Experimental models'):st.session_state['landing_studio_workspace']=PAGES[0]
     if pending in PAGES:
         st.session_state['landing_studio_workspace']=pending
     elif 'landing_studio_workspace' not in st.session_state:
@@ -21,7 +21,7 @@ def render_navigation():
            '🚦 Pick your garage':'A little car chemistry · Rate real representatives, then discover your shortlist.',
            '📅 Value over time':'Take the long view · Explore how the same car’s price scenario changes.',
            '🧠 The science':'Under the bonnet · Methods, assumptions and what the models can tell you.',
-           '🧬 Experimental models':'Neural Lab · Deep & Cross, MiniLM, business and scientific experiments.'}
+           '🚗 Price my car':'Two markets · seller Ask + wholesale Bid, with historical-date controls.'}
     st.markdown('<div class="garage-route-note">'+escape(notes.get(page,'The curious corner · Explore the models, evidence and historical comparisons.'))+'</div>',unsafe_allow_html=True)
     return page
 
