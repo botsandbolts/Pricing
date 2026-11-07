@@ -109,6 +109,14 @@ def ask(args):
     if not np.allclose(z["y"][test],baseline.observed_price,rtol=1e-6,atol=.05):
         raise ValueError("Cannot audit matched original Ask test comparator")
     old=risk(z["y"][test].astype(float),baseline.predicted_price.to_numpy(float))
+    # The public user requests the MOST accurate CVaR95 model. A validation
+    # leaderboard winner is NOT automatically better on the untouched test.
+    # Retain the old live model if tail-risk generalization is worse.
+    if not trisk["CVaR95_absolute_USD"] < old["CVaR95_absolute_USD"]-0.01:
+        raise ValueError(
+            "Ask research winner failed out-of-sample CVaR95 promotion: "
+            f"candidate={trisk['CVaR95_absolute_USD']:.2f}, "
+            f"incumbent={old['CVaR95_absolute_USD']:.2f}; leave production untouched")
     out=Path(args.output or ASK_FOLDER)
     out.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(Path(args.winner)/"weights.pt",out/"weights.pt")
@@ -229,6 +237,13 @@ def bid(args):
     old={"CVaR95_absolute_USD":float(incumbent["test_cvar95_absolute_usd"]),
         "RMSE_USD":float(incumbent["test_rmse_usd"]),
         "MAE_USD":float(incumbent["test_mae_usd"])}
+    # Same untouched-test risk criterion as Ask: never publish a worse
+    # generalizing research model merely because it won the validation sweep.
+    if not trisk["CVaR95_absolute_USD"] < old["CVaR95_absolute_USD"]-0.01:
+        raise ValueError(
+            "Bid research winner failed out-of-sample CVaR95 promotion: "
+            f"candidate={trisk['CVaR95_absolute_USD']:.2f}, "
+            f"incumbent={old['CVaR95_absolute_USD']:.2f}; leave production untouched")
     out=Path(args.output or BID_FOLDER)
     out.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(Path(args.winner)/"weights.pt",out/"weights.pt")
