@@ -25,6 +25,10 @@ def render_hero():
     reading_options()
     page=st.session_state.get('_navigate_to') or st.session_state.get('landing_studio_workspace','🚗 Price my car')
     # Keep the large welcome on the calculator, and give other workspaces room.
+    # The new Ask/Bid homepage owns the branded hero. Do not stack two
+    # full-height landing billboards above the actual price form.
+    if page=='🚗 Price my car':
+        return
     if page!='🚗 Price my car':
         return
     st.markdown('''<section class="garage-hero" aria-label="Welcome to Car Price Studio">
