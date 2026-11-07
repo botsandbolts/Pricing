@@ -2,6 +2,11 @@
 import json
 import os
 from pathlib import Path
+# Resource ceiling for the in-process native BGE, DeepFM and XGBoost serving.
+# No model conversion or loading/unloading workaround.
+os.environ.setdefault("OMP_NUM_THREADS","2")
+os.environ.setdefault("MKL_NUM_THREADS","2")
+os.environ.setdefault("TOKENIZERS_PARALLELISM","false")
 import streamlit as st
 MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000

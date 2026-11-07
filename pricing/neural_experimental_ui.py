@@ -5,6 +5,8 @@ Bid: full-data DeepFM16 (75%) + matched Lemon XGBoost (25%).
 Research models are never substituted by the primary calculator's predictions.
 """
 import json
+import logging
+import sys
 import time
 from pathlib import Path
 from html import escape
@@ -19,6 +21,31 @@ from pricing.neural_champion_live import (
     load_ask as load_champion_ask,
     load_bid as load_champion_bid,
 )
+
+def _valuation_probe(stage, started=None):
+    """Server-only evaluation checkpoint; never record vehicle text or VINs.
+
+    The latest production log ended after BGE initialized without an exception.
+    These phase markers distinguish model-load, embedding and head failures,
+    including an abrupt process termination where Python can't print a traceback.
+    """
+    elapsed=round((time.monotonic()-started)*1000) if started is not None else None
+    try:
+        import resource
+        peak_mb=round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024)
+    except (OSError,ImportError,ValueError):
+        peak_mb=None
+    logging.getLogger("car_price_studio.valuation").warning(
+        "valuation stage=%s elapsed_ms=%s peak_rss_mb=%s python=%s",
+        stage,elapsed,peak_mb,sys.version.split()[0])
+
+
+def _bound_native_cpu_threads():
+    """Keep Torch from spawning an excessive CPU worker pool on Cloud."""
+    import torch
+    if torch.get_num_threads()>2:
+        torch.set_num_threads(2)
+
 
 CSS="""
 <style>
@@ -506,34 +533,84 @@ only when you ask. No model circus required. 🎪🚗
             st.session_state.pop("experimental_combined_receipt",None)
             go=False
     if go:
+        _valuation_probe("form_submitted")
         results={"fields":fields,"notes":notes,"date":str(valuation_date)}
+        try:
+            _bound_native_cpu_threads()
+            _valuation_probe("torch_cpu_threads_bounded")
+        except (ImportError,RuntimeError,OSError) as exc:
+            logging.getLogger("car_price_studio.valuation").exception(
+                "Cannot initialize CPU pricing runtime: %s",type(exc).__name__)
+            st.error("Pricing runtime is unavailable on this server. "
+                     "The form remains available; try again after the app recovers.")
+            results["ask_error"]="Pricing runtime initialization failed."
+            results["bid_error"]="Pricing runtime initialization failed."
+            ask_ready=bid_ready=False
         if ask_ready:
+            phase="load_checkpoint"
+            started=time.monotonic()
+            _valuation_probe("ask_checkpoint_start")
             try:
                 from pricing.neural_ask_embedding_live import load as ask_load
-                with st.spinner("Running the complete BGE + DeepCross/AFT network…"):
-                    # Reuse the precise frozen BGE vector from pricing for
-                    # optional Captum; no second encoder call or weights copy.
+                with st.spinner("🧠 Loading native Ask model and checking its weights…"):
                     model=load_champion_ask(root) if ask_champion else ask_load(root)
+                    _valuation_probe("ask_checkpoint_complete",started)
+                    phase="encode_description"
+                    started=time.monotonic()
+                    _valuation_probe("ask_bge_encode_start")
+                    # Use the exact original BGE embedding for pricing and
+                    # optional Captum: never create a second encoder.
                     prepared=model.prepare_text(notes)
+                    _valuation_probe("ask_bge_encode_complete",started)
+                    phase="price_head"
+                    started=time.monotonic()
+                    _valuation_probe("ask_native_forward_start")
                     results["ask"]=model.predict_prepared(fields,prepared)
                     results["ask_embedding"]=prepared["embedding"]
+                    _valuation_probe("ask_native_forward_complete",started)
             except Exception as exc:
-                st.error("Asking engine unavailable: "+str(exc))
+                logging.getLogger("car_price_studio.valuation").exception(
+                    "Ask valuation failed at phase=%s error_type=%s",
+                    phase,type(exc).__name__)
+                results["ask_error"]=(
+                    "Ask engine failed during "+phase+" ("+type(exc).__name__+
+                    "). Check server logs for valuation stage.")
+                st.error("Seller Ask couldn't finish "+phase.replace("_"," ")+
+                         ". Your inputs are preserved and Bid can still run. "
+                         "Details are in the app's private server log.")
         if bid_ready:
+            phase="build_features"
+            started=time.monotonic()
+            _valuation_probe("bid_features_start")
             try:
                 from pricing.neural_bid_blend_live import load as bid_load
                 bid_fields,analogue=_historical_bid_features(fields,auction,grade,allow_analogue)
-                with st.spinner("Running verified wholesale DeepFM + Lemon XGBoost…"):
-                    results["bid"]=(load_champion_bid(root) if bid_champion
-                                    else bid_load(root)).predict(bid_fields)
+                _valuation_probe("bid_features_complete",started)
+                phase="load_checkpoint"
+                started=time.monotonic()
+                _valuation_probe("bid_checkpoint_start")
+                with st.spinner("🔨 Running the native DeepFM + Lemon XGBoost Bid model…"):
+                    model=load_champion_bid(root) if bid_champion else bid_load(root)
+                    _valuation_probe("bid_checkpoint_complete",started)
+                    phase="price_head"
+                    started=time.monotonic()
+                    _valuation_probe("bid_native_forward_start")
+                    results["bid"]=model.predict(bid_fields)
                     results["bid_fields"]=bid_fields
+                    _valuation_probe("bid_native_forward_complete",started)
                 if analogue:results["bid_analogue"]=analogue
-            except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
-                results["bid_error"]=str(exc)
-                st.warning("Wholesale unavailable for this vehicle: "+str(exc))
-        elif not bid_ready:
+            except Exception as exc:
+                logging.getLogger("car_price_studio.valuation").exception(
+                    "Bid valuation failed at phase=%s error_type=%s",
+                    phase,type(exc).__name__)
+                results["bid_error"]="Bid engine failed during "+phase+" ("+type(exc).__name__+")."
+                st.warning("Wholesale Bid couldn't finish "+phase.replace("_"," ")+
+                           ". Ask remains available if it completed. "
+                           "Check the private server log for details.")
+        elif "bid_error" not in results:
             results["bid_error"]="Verified wholesale weights are not installed or have failed the parity gate."
         st.session_state["experimental_combined_receipt"]=results
+        _valuation_probe("receipt_saved")
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
         st.markdown("### 💵 Your car · two historical price anchors")

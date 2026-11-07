@@ -1,0 +1,50 @@
+name: Real native Ask-Bid inference · Python 3.14 production parity
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/native-pricing-runtime-qa.yml
+      - app.py
+      - pricing/neural_experimental_ui.py
+      - pricing/neural_champion_live.py
+      - pricing/neural_ask_embedding_live.py
+      - pricing/neural_bid_blend_live.py
+      - scripts/native_pricing_runtime_smoke.py
+      - requirements.txt
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-native-python314-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  python314_real_checkpoint_inference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Compile the exact public inference entrypoints
+        run: |
+          python -m compileall -q app.py pricing/neural_experimental_ui.py scripts/native_pricing_runtime_smoke.py
+      - name: Install production dependency set, not a tiny browser mock
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --no-cache-dir -r requirements.txt
+      - name: Execute the real BGE/ResMLP and DeepFM/Lemon models on Python 3.14
+        run: |
+          python -m scripts.native_pricing_runtime_smoke
