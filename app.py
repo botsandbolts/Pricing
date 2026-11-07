@@ -19,14 +19,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _main_two_market_release_v15():
+def _main_two_market_release_v14():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
     for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_main_two_market_release_v15()
+_main_two_market_release_v14()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
@@ -37,43 +37,16 @@ _workspace=render_navigation()
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
     from pricing.analytics import render_privacy
     render_privacy()
-# Keep the full, verified native BGE + DeepFM/XGBoost pricing experience
-# on the main public page. Each inference runs in a short-lived memory-isolated
-# worker, so the public Streamlit interpreter never hosts both heavy models.
+# The public homepage is THE same Ask/Bid calculator that previously lived
+# in Experimental. Run it before historical legacy-model routing and stop.
 if _workspace=='🚗 Price my car':
     from pricing.analytics import render_privacy
     render_privacy()
-    try:
-        from pricing.neural_experimental_ui import render as render_two_market_pricing
-        render_two_market_pricing(Path(__file__).parent,main=True)
-    except Exception:
-        # Recoverable UI/model failures should NEVER blank the entire app.
-        # Only server logs contain the full traceback; do not expose
-        # visitor details or internal paths to the public browser.
-        import logging
-        logging.getLogger("car_price_studio").exception(
-            "Public two-market pricing render failed")
-        st.error("The main pricing panel encountered a temporary issue. "
-                 "Your car details have not been submitted again. "
-                 "Other Studio tools remain available.")
-        if st.button("↔ Open the alternative two-market garage",
-                     key="pricing_emergency_alt",type="primary"):
-            st.session_state["_navigate_to"]="↔ Two-market garage"
-            st.rerun()
-        st.caption("For support: report the approximate time and whether "
-                   "this happened on page load or after pressing Calculate.")
-    try:
-        from pricing.ga_events import render_events
-        render_events()
-    except Exception:
-        import logging
-        logging.getLogger("car_price_studio").exception(
-            "Optional analytics failed after public price render")
-    try:footer()
-    except Exception:
-        import logging
-        logging.getLogger("car_price_studio").exception(
-            "Optional footer failed after public price render")
+    from pricing.neural_experimental_ui import render as render_two_market_pricing
+    render_two_market_pricing(Path(__file__).parent,main=True)
+    from pricing.ga_events import render_events
+    render_events()
+    footer()
     st.stop()
 if _workspace=='🏪 Merchant lens':
     from pricing.dealer_positioning_ui import render as render_dealer_positioning
@@ -271,7 +244,7 @@ if _workspace=='🚗 Price my car':
                 cylinders=cylinders,paint_color=color,state=state)
             try:
                 with st.spinner('Interviewing the trees. They have opinions…'):
-                    p=get_pipeline(str(path)).predict(notes,fields,explain=False)
+                    p=get_pipeline(str(path)).predict(notes,fields,explain=True)
                 st.session_state['last_explained_price']=(str(path),p,fields,notes)
                 import uuid
                 st.session_state['_price_request_id']=str(uuid.uuid4())
@@ -358,16 +331,20 @@ if _workspace=='🚗 Price my car':
         report=extend_report(report,Path(__file__).parent,saved[2],saved[1],dated_receipts,transport,path,locals().get('bid_path'))
         # Removed BART story generator from pricing. The factual JSON receipt
         # remains available without a second language-model inference.
-        # Memory incident recovery: DO NOT compute TreeSHAP, native BGE,
-        # multi-chart SHAP galleries or phrase sweeps on ordinary page reruns.
         if dated_result:
             render_market_clock(transport,valuation_date,refresh_error)
-            if st.checkbox("📊 Show detailed historical price-clock charts",
-                           value=False,key="pricing_detail_time_charts"):
-                render_time_evidence(transport,dated_receipts)
-        from pricing.lightweight_price_xai_ui import render as render_light_xai
-        render_light_xai(saved,dated_receipts,
-                         lambda:get_pipeline(str(path)))
+            render_time_evidence(transport,dated_receipts)
+            from pricing.text_attribution_ui import render_text_attribution
+            render_text_attribution(dated_result,saved[2],saved[3],dated_pipeline)
+        st.divider()
+        section('The receipts / Explainable machine learning','Pop the bonnet. Question everything.')
+        st.caption('The current-date price and phrase effects are above. The historical model diagnostics below explain the original May 2021 anchor, before time adjustment.')
+        with st.expander('Historical base-model diagnostics · May 2021, before time adjustment'):
+            st.metric('Original historical asking anchor · May 2021',f"${saved[1]['price']:,.0f}")
+            from pricing.explanations import render_explanation
+            render_explanation(saved[1],saved[2],saved[3],get_pipeline(str(path)))
+            from pricing.explanation_ui import render_visual_explanations
+            render_visual_explanations(saved[1],saved[2],saved[3],get_pipeline(str(path)))
 if _workspace=='📅 Value over time':
     from pricing.time_ui import render_time_studio
     time_saved=st.session_state.get('last_explained_price')
