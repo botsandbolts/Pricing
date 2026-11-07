@@ -62,8 +62,10 @@ def visit(browser,case,base,screens):
         if page.locator('[data-testid="stException"]').count():
             raise AssertionError("Streamlit uncaught exception visible on homepage")
         button=page.get_by_role("button",name=re.compile(r"Calculate seller Ask.*wholesale Bid"))
-        if not button.count():
-            raise AssertionError("One-form Ask/Bid action not displayed")
+        # Streamlit may finish rendering the hero and body text before the
+        # submit button becomes interactive. Wait for the actual control,
+        # rather than treating a mid-rerun DOM snapshot as a missing button.
+        button.first.wait_for(state="visible",timeout=30000)
         if not page.get_by_text("Historical date",exact=True).count():
             raise AssertionError("Historical pricing selector is missing")
         overflow=page.evaluate(
