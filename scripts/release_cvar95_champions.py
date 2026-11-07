@@ -126,6 +126,10 @@ def ask(args):
         "not_2026_market_accuracy":True,
         "description":"Frozen pinned BGE-small 256-token / two-layer projection / three-block ResMLP + AFT trained with a small train-only dollar-tail penalty"
     }
+    # Stage temporary candidate metadata for the packaging-only inference check.
+    # It is not a verified public release until the final receipt is written.
+    (out/"manifest.json").write_text(json.dumps(manifest,indent=2))
+    (out/"verification.json").write_text(json.dumps({"status":"pending","verified":False}))
     # Existing BGEDeepCrossAsk already verifies frozen encoder and preprocessing.
     engine=CVaR95Asking(args.root,_parity_test=True)
     population=np.random.default_rng(20261107).choice(val,size=32,replace=False)
@@ -242,6 +246,8 @@ def bid(args):
         "price_basis":"2015-index-normalized USD at historical 2014–15 auctions",
         "description":"DeepFM16 with spline main effects, learned pair interactions and nonlinear residual tower; mixed with original Lemon XGBoost"
     }
+    (out/"manifest.json").write_text(json.dumps(manifest,indent=2))
+    (out/"verification.json").write_text(json.dumps({"status":"pending","verified":False}))
     engine=CVaR95Wholesale(args.root,_parity_test=True)
     sample=np.random.default_rng(20261107).choice(val,size=40,replace=False)
     with torch.inference_mode():
