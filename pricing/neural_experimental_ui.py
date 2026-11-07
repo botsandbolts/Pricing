@@ -590,7 +590,10 @@ models used on our main price calculator.</p>
     st.markdown("### 🧪 Research notes: how it works, and where it can be wrong")
     st.caption("We show audited historical test errors when available, never "
                "pretending they're tomorrow's buyer or dealer prices.")
-    st.caption("Historical test errors are not accuracy guarantees for cars on the selected date.")
+    st.caption("The Ask training labels are historical advertised prices; "
+               "Bid labels are completed historical auctions. "
+               "Historical test errors are not accuracy guarantees for cars "
+               "on the selected date.")
     for side,title,new_ready,new_folder in (
         ("ask","Seller asking",ask_champion,"neural-experimental-ask-cvar95"),
         ("bid","Wholesale auction",bid_champion,"neural-experimental-bid-cvar95"),
