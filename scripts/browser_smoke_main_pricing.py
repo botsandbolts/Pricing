@@ -35,10 +35,22 @@ def visit(browser,case,base,screens):
     try:
         page.goto(base,wait_until="domcontentloaded",timeout=100000)
         page.locator(".exp-hero h1").wait_for(timeout=90000)
-        text=page.locator("body").inner_text(timeout=20000)
         required=("One car. Two prices.","Ask","Bid","CVaR95",
                   "Historical date","Tell us about the car",
                   "seller Ask + wholesale Bid")
+        # Streamlit streams widgets AFTER rendering its hero. A hero-only
+        # visibility condition is not evidence that the date control or
+        # form has finished mounting on a slow mobile/webkit browser.
+        # Wait for ALL original release contract labels without removing
+        # any of them or disguising a genuine missing UI control.
+        try:
+            page.wait_for_function(
+                "required => required.every(t => document.body.innerText.includes(t))",
+                arg=list(required),timeout=90000)
+        except Exception:
+            screens.mkdir(parents=True,exist_ok=True)
+            page.screenshot(path=str(screens/(label+"-failed.png")),full_page=True)
+        text=page.locator("body").inner_text(timeout=20000)
         missing=[x for x in required if x not in text]
         if missing:
             raise AssertionError("Missing public-page message: "+", ".join(missing))
