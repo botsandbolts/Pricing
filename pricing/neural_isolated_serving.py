@@ -11,7 +11,13 @@ import math
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
+
+# Shared by ALL Streamlit sessions in the public process. One native worker
+# at a time prevents simultaneous visitors from loading multiple BGE/DeepFM
+# copies and exceeding a small cloud instance's combined RAM allowance.
+_WORKER_SLOT=threading.BoundedSemaphore(1)
 
 
 class IsolatedModelError(RuntimeError):
@@ -49,19 +55,26 @@ def run(root,market,fields,description="",operation="predict",expected=None,
                 "OPENBLAS_NUM_THREADS":"1","NUMEXPR_NUM_THREADS":"2",
                 "TOKENIZERS_PARALLELISM":"false","MALLOC_ARENA_MAX":"2",
                 "HF_HUB_DISABLE_TELEMETRY":"1"})
+    if not _WORKER_SLOT.acquire(timeout=15.):
+        raise IsolatedModelError(
+            "The AI valuation lane is busy serving another visitor. "
+            "Please retry shortly; the page remains available.")
     try:
-        proc=subprocess.run(
-            [sys.executable,"-m","pricing.neural_isolated_worker"],
-            cwd=str(root),env=env,input=json.dumps(data,default=str),
-            capture_output=True,text=True,
-            timeout=min(max(float(timeout),5.),120.),
-            check=False)
-    except subprocess.TimeoutExpired as exc:
-        raise IsolatedModelError(
-            "The model took too long. Your page is safe; try another vehicle or retry.") from exc
-    except (OSError,ValueError) as exc:
-        raise IsolatedModelError(
-            "The isolated neural model could not start on this server.") from exc
+        try:
+            proc=subprocess.run(
+                [sys.executable,"-m","pricing.neural_isolated_worker"],
+                cwd=str(root),env=env,input=json.dumps(data,default=str),
+                capture_output=True,text=True,
+                timeout=min(max(float(timeout),5.),120.),
+                check=False)
+        except subprocess.TimeoutExpired as exc:
+            raise IsolatedModelError(
+                "The model took too long. Your page is safe; please retry.") from exc
+        except (OSError,ValueError) as exc:
+            raise IsolatedModelError(
+                "The isolated neural model could not start on this server.") from exc
+    finally:
+        _WORKER_SLOT.release()
     if proc.returncode!=0:
         if proc.returncode in (-9,137,-11):
             raise IsolatedModelError(
