@@ -53,7 +53,8 @@ def test_ui_accessibility_and_main_calculator_isolated():
     code=Path("pricing/neural_experimental_ui.py").read_text()
     science=Path("pricing/cvar95_experiment_science.py").read_text()
     app=Path("app.py").read_text()
-    assert "if _workspace=='🧬 Experimental models':" in app
+    assert "if _workspace=='🚗 Price my car':" in app
+    assert "render_two_market_pricing(Path(__file__).parent,main=True)" in app
     assert "from pricing.neural_experimental_ui import render" in app
     assert "st.tabs" in code and "st.form" in code
     assert 'aria-label="Experimental vehicle pricing models"' in code
