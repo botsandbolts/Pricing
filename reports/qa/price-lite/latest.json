@@ -1,9 +1,9 @@
 {
-  "source_commit": "43e308470dd7128b044f66d84f1a3391c6b0ce56",
-  "workflow_run_id": "42349852962",
-  "tested_utc": "2026-11-07T07:08:30.610177+00:00",
-  "unit_contracts": "failure",
-  "browser_smoke": "skipped",
+  "source_commit": "cea53f3d5c7d454d4b54d95b6a24ce8398986d82",
+  "workflow_run_id": "42350062000",
+  "tested_utc": "2026-11-07T07:14:11.121642+00:00",
+  "unit_contracts": "success",
+  "browser_smoke": "failure",
   "status": "failed",
   "scope": "Synthetic model contracts, native mock TreeSHAP and public browser smoke",
   "limits": "Not a direct measurement of production RAM, host logs or real checkpoint appraisal quality"
