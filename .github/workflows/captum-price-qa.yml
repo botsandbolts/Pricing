@@ -60,7 +60,9 @@ jobs:
           ui=Path('pricing/neural_experimental_ui.py').read_text()
           assert 'internal_batch_size=1' in x
           assert 'n_steps=steps' in x
-          assert 'steps not in STEPS' in x
+          assert 'steps != INTEGRATION_STEPS' in x
+          assert 'INTEGRATION_STEPS=24' in x
+          assert 'st.select_slider(' not in x
           assert 'return_convergence_delta=True' in x
           assert 'from captum.attr import IntegratedGradients' in x
           assert 'torch.load(' not in x and 'subprocess.run(' not in x
