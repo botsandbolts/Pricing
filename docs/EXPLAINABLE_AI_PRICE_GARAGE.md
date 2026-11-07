@@ -14,7 +14,7 @@ After a user requests an appraisal, **🔍 Why this price?** offers:
 1. **Simple**: positive and negative dollar drivers compared against a disclosed *hypothetical reference configuration*, with honest noncausal language.
 2. **Dollar drivers**: an accessible chart and screen-reader-friendly table; exactly six predeclared feature groups per market.
 3. **Price clock**: historical model anchor + dollar depreciation effect + dollar market-index effect = the *identical* selected-date estimate already displayed.
-4. **What if?**: mileage, title status, condition and Ask advert text. Reruns the original model, not an approximation or word-level causality assertion.
+4. **What if?**: mileage, title, Ask condition and advert wording; Bid pre-sale auction grade. Reruns original models (no surrogate). Includes a separately triggered *target-price comparable-vehicle explorer*: up to 48 deterministic, spread-out native-model evaluations with make/model/year held fixed; not DiCE-generated recourse, a real-world improvement recipe, or advice to alter a title/odometer.
 5. **Advanced AI**: Captum Integrated Gradients, native XGBoost TreeSHAP, BGE phrase-removal sensitivity, each separately on demand.
 6. **Research receipt**: redacted JSON download, no listing text, contact details, VINs or vehicle facts.
 
