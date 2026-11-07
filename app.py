@@ -39,7 +39,10 @@ if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Ins
     render_privacy()
 # The public homepage is THE same Ask/Bid calculator that previously lived
 # in Experimental. Run it before historical legacy-model routing and stop.
-if _workspace=='🚗 Price my car':
+# Production recovery: the memory-heavy native neural research page is
+# disabled by default. Only explicit opt-in beta sessions may enter it.
+# Public visitors use the earlier lightweight price calculator below.
+if _workspace=='🚗 Price my car' and st.query_params.get('beta_neural')=='1':
     from pricing.analytics import render_privacy
     render_privacy()
     try:
@@ -136,6 +139,9 @@ if _workspace=='📅 Value over time':
     render_events()
     footer()
     st.stop()
+if _workspace=='🚗 Price my car':
+    st.info("Our new neural price laboratory is paused for a performance check. "
+            "The previous pricing calculator is available below; no registration required.")
 st.caption('Historical comparison tools retain their own model names and assessment dates. They are not the current XGBoost calculator.')
 st.markdown('''<div style="background:linear-gradient(110deg,#251b39,#5b43bd);color:#fff;border-radius:22px;padding:22px 26px;margin:18px 0;border:1px solid #c6baf5">
 <strong style="color:#dfff92;font-size:1.2rem">🚙 Rare car? Meet the family tree.</strong><br>
