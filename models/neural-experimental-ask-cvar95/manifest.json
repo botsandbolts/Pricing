@@ -1,0 +1,71 @@
+{
+  "status": "release_candidate_verified",
+  "market": "ask",
+  "source_study": "ask25-joint",
+  "trial": 15,
+  "config": {
+    "family": "resmlp",
+    "project_dim": 96,
+    "project_layers": 2,
+    "project_dropout": 0.15,
+    "cross_layers": 3,
+    "rank": 16,
+    "experts": 3,
+    "width": 256,
+    "blocks": 3,
+    "dropout": 0.08,
+    "activation": "gelu",
+    "learning_rate": 0.0017874074919654863,
+    "weight_decay": 0.004437110360519138,
+    "beta1": 0.9,
+    "eps": 1e-07,
+    "batch_size": 512,
+    "epochs": 35,
+    "patience": 9,
+    "numeric_noise": 0.0,
+    "grad_clip": 0.5,
+    "tail_weight": 0.02,
+    "warmup_epochs": 0,
+    "lr_schedule": "cosine"
+  },
+  "checkpoint_sha256": "3a25d9721d14f4ad4b13be24665aa6bc17638afec52320e3861420f624a2d4b3",
+  "cohort_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "embedding_sha256": "d619d6b8b4bb17475b500dbfb7835aeb125609c3ed54dbd6113264a2a7569a33",
+  "frozen_encoder_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "original_holdout_row_sha256": {
+    "validation": "36268fb7de21cd84bf00dac443907afceb8e7e1f1bf8729d9babff9d09e1976a",
+    "test": "9f33965db700d9f5fee24bb000d64f98300658f2b09b758153a11692fca76835"
+  },
+  "historical_validation": {
+    "rows": 31668,
+    "worst_five_pct_rows": 1584,
+    "CVaR95_absolute_USD": 18069.284887157904,
+    "VaR95_absolute_USD": 9265.463168584389,
+    "MAE_USD": 2836.436124483788,
+    "RMSE_USD": 5718.302652885087,
+    "worst_one_pct_USD": 37466.454765761744
+  },
+  "historical_test": {
+    "rows": 31682,
+    "worst_five_pct_rows": 1585,
+    "CVaR95_absolute_USD": 19091.612647448077,
+    "VaR95_absolute_USD": 9841.666197146767,
+    "MAE_USD": 2993.921140796266,
+    "RMSE_USD": 6058.340484345518,
+    "worst_one_pct_USD": 39830.99062849152
+  },
+  "historical_incumbent_test": {
+    "rows": 31682,
+    "worst_five_pct_rows": 1585,
+    "CVaR95_absolute_USD": 19985.05294033147,
+    "VaR95_absolute_USD": 10140.173854873761,
+    "MAE_USD": 3036.7538600323796,
+    "RMSE_USD": 6299.0084843863215,
+    "worst_one_pct_USD": 41926.431439412336
+  },
+  "original_test_scored_after_validation_selection": true,
+  "native_pytorch_only": true,
+  "production_main_calculator_unchanged": true,
+  "not_2026_market_accuracy": true,
+  "description": "Frozen pinned BGE-small 256-token / two-layer projection / three-block ResMLP + AFT trained with a small train-only dollar-tail penalty"
+}
