@@ -23,18 +23,10 @@ def render_hero():
     st.markdown('<div class="garage-nav"><a class="garage-brand" href="#studio-workspace" aria-label="Car Price Studio · skip to workspace"><span class="garage-mark" aria-hidden="true">'+car_svg()+'</span><span class="garage-wordmark"><strong>car price studio</strong><small>A little car love. A lot of curiosity.</small></span></a>'+origin_badge()+'</div>',unsafe_allow_html=True)
     from pricing.accessibility import reading_options
     reading_options()
-    page=st.session_state.get('_navigate_to') or st.session_state.get('landing_studio_workspace','🚗 Price my car')
-    # Keep the large welcome on the calculator, and give other workspaces room.
-    # The new Ask/Bid homepage owns the branded hero. Do not stack two
-    # full-height landing billboards above the actual price form.
-    if page=='🚗 Price my car':
-        return
-    if page!='🚗 Price my car':
-        return
-    st.markdown('''<section class="garage-hero" aria-label="Welcome to Car Price Studio">
-<div><div class="garage-eyebrow">Your friendly neighbourhood car lab</div><h1>Big car feelings.<br><span class="garage-accent">Clearer numbers.</span></h1><p>Price the car you have. Find the kind you love.<br>A friendly garage for exploring what the data says.</p><a class="garage-cta" href="#studio-workspace">Let’s meet your car <span aria-hidden="true">↗</span></a><small class="garage-micro">Free to explore · Open source · Made with curiosity</small></div>
-<div class="garage-art" aria-hidden="true">'''+hero_svg()+'''</div></section>
-<div class="garage-ticker"><span><b>01</b> Meet your car</span><span><b>02</b> Explore its value</span><span><b>03</b> Find your favourites</span><span class="garage-ticker-note">Historical data. Real models. A little perspective.</span></div>''',unsafe_allow_html=True)
+    # The primary Ask/Bid screen provides the page-specific campaign hero.
+    # Other tools display compact panel headers. Avoid stacking two giant
+    # billboards above the input form, especially on narrow screens.
+    return
 
 
 def page_intro(kicker,title,description,icon='🚗'):
