@@ -209,3 +209,32 @@ def test_render_after_saved_price_displays_unhidden_captum_form(monkeypatch):
     assert not any(kind=="caption" and "hidden" in value.lower()
                    for kind,value in seen)
     # No real model, Captum import, or attribution call before pressing the button.
+
+
+def test_captum_failure_reports_parity_reason_instead_of_silent_warning(monkeypatch):
+    """User sees a specific safe category; traceback goes to server logging."""
+    import sys
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+    seen=[]
+    fake=SimpleNamespace(
+        markdown=lambda value,**kwargs:None,
+        caption=lambda value,**kwargs:seen.append(("caption",value)),
+        warning=lambda value,**kwargs:seen.append(("warning",value)),
+        container=lambda **kwargs:nullcontext(),
+        form=lambda *args,**kwargs:nullcontext(),
+        spinner=lambda *args,**kwargs:nullcontext(),
+        radio=lambda *args,**kwargs:"ask",
+        form_submit_button=lambda label,**kwargs:True,
+        session_state={},
+    )
+    monkeypatch.setitem(sys.modules,"streamlit",fake)
+    def fail(*args,**kwargs):
+        raise ValueError("Captum's model does not reproduce the saved price")
+    monkeypatch.setattr(lite,"explain",fail)
+    lite.render(ROOT,ask_saved())
+    assert any(t=="warning" and "Model parity check failed" in msg
+               for t,msg in seen)
+    assert any(t=="caption" and "run a new quote" in msg
+               for t,msg in seen)
+    assert "captum_lite_result" not in fake.session_state
