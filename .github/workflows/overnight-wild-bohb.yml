@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: overnight-wild-bohb-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   OMP_NUM_THREADS: '2'
@@ -4794,6 +4794,7 @@ jobs:
           assert report["not_for_deployment"] and not report["test_evaluated"]
           for market in ("ask","bid"):
               print("\n",market.upper(),"budget counts",report["budget_distribution"][market])
+              print("Unstable candidates safely rejected:",report.get("failed_counts",{}).get(market,0))
               incumbent=report["compared_to_deployed_verified"][market]
               for metric,values in incumbent["metrics"].items():
                   print(metric,"incumbent",values["incumbent"],"best full-fidelity challenger",values["challenger"],"USD saved",values["saved_usd"])
