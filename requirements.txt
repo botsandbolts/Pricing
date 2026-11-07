@@ -132,3 +132,6 @@ sentence-transformers==6.2.0
 # Only imported on a user's Explain click. Captum 0.9 supports NumPy 2.x.
 # IG is hard-limited to internal_batch_size=1 and <=24 sequential steps.
 captum==0.9.0
+# Lightweight memory telemetry: RSS/USS, cgroup OOM counters, CPU/thread usage.
+# Tracemalloc is standard-library and disabled unless explicitly enabled.
+psutil>=7.2,<9
