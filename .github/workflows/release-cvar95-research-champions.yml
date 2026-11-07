@@ -1,0 +1,234 @@
+name: Release parity-audited CVaR95 champions to Experimental tab
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/release-cvar95-research-champions.yml
+      - scripts/release_cvar95_champions.py
+      - pricing/neural_champion_live.py
+      - tests/test_cvar95_champion_release.py
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: deploy-neural-cvar95-champions
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  locate_and_preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      ask_run: ${{ steps.locate.outputs.ask_run }}
+      bid200_run: ${{ steps.locate.outputs.bid200_run }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU-only native PyTorch preflight dependencies
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scikit-learn>=1.4,<2' 'scipy>=1.11,<2' joblib pytest streamlit
+      - name: Exercise champion model shapes and fail-closed Experimental UI
+        run: |
+          python -m compileall -q pricing/neural_champion_live.py scripts/release_cvar95_champions.py pricing/neural_experimental_ui.py
+          python -m pytest -q tests/test_cvar95_champion_release.py tests/test_experimental_two_models.py
+      - name: Locate completed source runs; do not guess artifact run IDs
+        id: locate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ask_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ask25-joint-cvar95.yml/runs?branch=main&per_page=50" \
+            --jq '[.workflow_runs[] | select(.status=="completed" and .conclusion=="success")] | first | .id')
+          bid200_run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/neural-200-cvar95-search.yml/runs?branch=main&per_page=50" \
+            --jq '[.workflow_runs[] | select(.status=="completed" and .conclusion=="success")] | first | .id')
+          test -n "$ask_run" && test "$ask_run" != "null"
+          test -n "$bid200_run" && test "$bid200_run" != "null"
+          echo "ask_run=$ask_run" >> "$GITHUB_OUTPUT"
+          echo "bid200_run=$bid200_run" >> "$GITHUB_OUTPUT"
+          echo "Original 25-Ask Actions run: $ask_run"
+          echo "Original 200-study Actions run: $bid200_run"
+      - name: Verify the repository's published leaderboard winners are complete and honest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path('reports/cvar95/ask25-joint/results.json').read_text())
+          b=json.loads(Path('reports/cvar95/neural-200/results.json').read_text())
+          assert (a['status'],a['successful_audited_trials'],a['best_trial']['trial'])==('complete',25,15)
+          assert (b['status'],b['completed_valid_trials'],b['group_winners']['bid_hparams']['trial'])==('complete',200,18)
+          assert not a['original_test_accessed']
+          assert not b['invalid'] and not b['missing']
+          print('Selection locked: Ask ResMLP #15; Bid tuned DeepFM #18')
+          PY
+
+  release_ask:
+    needs: locate_and_preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 115
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native original BGE/PyTorch serving and audit stack, no model conversion
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' joblib streamlit
+          python -m pip install 'sentence-transformers==6.2.0' 'transformers==5.21.0'
+      - name: Recover original frozen 2021 asking cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover verified SHA-pinned pretrained BGE 384-dimensional coordinates
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Recover original incumbent untouched test labels and paired predictions
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-only-comparison
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/ask-bge-report
+      - name: Recover EXACT Ask25 validation-selected original trial 15 checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: ask25-joint-trial-15
+          run-id: ${{ needs.locate_and_preflight.outputs.ask_run }}
+          github-token: ${{ github.token }}
+          path: training-cache/ask-champion
+      - name: Audit native Ask winner ALL 31668 validation rows + ORIGINAL 31682 test rows
+        run: |
+          python -u -m scripts.release_cvar95_champions \
+            --market ask \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --winner training-cache/ask-champion \
+            --report reports/cvar95/ask25-joint/results.json \
+            --baseline-test training-cache/ask-bge-report/winner-original-test.csv.gz \
+            --output models/neural-experimental-ask-cvar95
+      - name: Assert full native release verification
+        run: |
+          python - <<'PY'
+          from pricing.neural_champion_live import ask_available
+          assert ask_available('.')
+          print('CVaR95 Ask winner native checkpoint ready for Experimental only')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cvar95-native-resmlp15-ask-release
+          path: models/neural-experimental-ask-cvar95/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Install only Ask research winner, preserving original Ask and main calculator
+        run: |
+          cp -a models/neural-experimental-ask-cvar95 "$RUNNER_TEMP/cvar95-ask"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          published=0
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p models/neural-experimental-ask-cvar95
+            cp -a "$RUNNER_TEMP/cvar95-ask/." models/neural-experimental-ask-cvar95/
+            git add -f models/neural-experimental-ask-cvar95/
+            if git diff --cached --quiet; then published=1; break; fi
+            git commit -m 'Install audited Ask BGE ResMLP15 CVaR95 winner in Experimental only'
+            if git push origin HEAD:main; then published=1; break; fi
+          done
+          test "$published" = "1"
+
+  release_bid:
+    needs: [locate_and_preflight,release_ask]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native PyTorch + exact original XGBoost auction runtime
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<3' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'xgboost>=3,<4' joblib streamlit
+      - name: Recover ORIGINAL unchanged VIN-disjoint 2015 wholesale features
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Recover matched ORIGINAL Lemon XGBoost validation and test prices
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Recover exactly CVaR95-winning Bid hyperparameters trial 18 model
+        uses: actions/download-artifact@v4
+        with:
+          name: cvar200-bid_hparams-18
+          run-id: ${{ needs.locate_and_preflight.outputs.bid200_run }}
+          github-token: ${{ github.token }}
+          path: training-cache/bid-champion
+      - name: Validate original 82380 wholesale validation and 83603 untouched test auctions
+        run: |
+          python -u -m scripts.release_cvar95_champions \
+            --market bid \
+            --features training-cache/neural-bid/features.npz \
+            --winner training-cache/bid-champion \
+            --report reports/cvar95/neural-200/results.json \
+            --baseline benchmark-reference/bid/predictions.csv.gz \
+            --output models/neural-experimental-bid-cvar95
+      - name: Assert fail-closed full original wholesale checkpoint parity
+        run: |
+          python - <<'PY'
+          from pricing.neural_champion_live import bid_available
+          assert bid_available('.')
+          print('CVaR95 Bid winner native checkpoint ready for Experimental only')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cvar95-native-deepfm18-bid-release
+          path: models/neural-experimental-bid-cvar95/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Install only Bid research winner, never replace original DeepFM/XGBoost
+        run: |
+          cp -a models/neural-experimental-bid-cvar95 "$RUNNER_TEMP/cvar95-bid"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+users.noreply.github.com'
+          published=0
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p models/neural-experimental-bid-cvar95
+            cp -a "$RUNNER_TEMP/cvar95-bid/." models/neural-experimental-bid-cvar95/
+            git add -f models/neural-experimental-bid-cvar95/
+            if git diff --cached --quiet; then published=1; break; fi
+            git commit -m 'Install audited Bid DeepFM18 CVaR95 winner in Experimental only'
+            if git push origin HEAD:main; then published=1; break; fi
+          done
+          test "$published" = "1"
