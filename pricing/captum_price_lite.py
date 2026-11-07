@@ -163,7 +163,9 @@ No second elephant-sized neural network in the garage.</div>
                        "Gauss–Legendre, no BGE backpropagation.")
             go=st.form_submit_button("✨ Make the model explain itself",
                 type="primary",use_container_width=True)
-        rid=receipt_id(saved)
+        # A stored explanation belongs to ONE chosen market and step budget.
+        # Changing Ask to Bid (or 8 to 24 steps) must never show stale bars.
+        rid=receipt_id(saved)+f":{side}:{steps}"
         if go:
             try:
                 with st.spinner("Doing tiny numerical integrations, not inviting another model…"):
@@ -179,15 +181,17 @@ No second elephant-sized neural network in the garage.</div>
         if current and current.get("id")==rid:
             r=current["data"]
             if not r["adequate"]:
-                st.warning("Approximation did not converge sufficiently. "
-                           "Use more steps before treating the figures as a decomposition.")
-            st.markdown("#### 💵 How numerical features move the neural estimate")
-            st.caption("Compared with normalized training-median numbers, "
-                       "while categories and text embedding remain unchanged.")
-            for item in sorted(r["items"],key=lambda x:-abs(x["dollars"])):
-                left,right=st.columns([3,1])
-                left.write(("🟢 " if item["dollars"]>=0 else "🟠 ")+item["feature"])
-                right.metric("Model effect","$"+format(item["dollars"],"+,.0f"))
+                st.warning("This low-step approximation didn't converge "
+                           "sufficiently. Try 16 or 24 steps; individual "
+                           "driver figures are hidden until they pass.")
+            else:
+                st.markdown("#### 💵 How numerical features move the neural estimate")
+                st.caption("Against normalized training-median numbers; "
+                           "categories and the BGE text embedding stay fixed.")
+                for item in sorted(r["items"],key=lambda x:-abs(x["dollars"])):
+                    left,right=st.columns([3,1])
+                    left.write(("🟢 " if item["dollars"]>=0 else "🟠 ")+item["feature"])
+                    right.metric("Model effect","$"+format(item["dollars"],"+,.0f"))
             a,b=st.columns(2)
             a.metric("Neural baseline","$"+format(r["anchor_usd"],",.0f"))
             b.metric("Actual neural output","$"+format(r["neural_usd"],",.0f"))
