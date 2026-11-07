@@ -12,6 +12,10 @@ MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
+# Real-time privacy-safe CPU/RAM and container OOM telemetry.
+# The module holds ONE daemon per process through Streamlit reruns.
+from pricing.memory_watch import ensure_monitor as _ensure_memory_monitor
+_ensure_memory_monitor()
 if st.query_params.get('accessibility_report') == '1':
     from pricing.accessibility_report import render as render_accessibility_report
     render_accessibility_report()
