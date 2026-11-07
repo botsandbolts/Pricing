@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "verified": true,
+  "complete_original_validation_parity": true,
+  "original_test_rows_scored": 83603,
+  "shared_preprocessor_parity": true,
+  "live_prediction_checked": true,
+  "weight_sha256": "a4aedfc7d57690decb00b754fbcbd514b985edadb5d1adcda1417135d7113a0e",
+  "sample_validation_serving_rows": 40,
+  "original_lemon_xgboost_reused": true,
+  "original_test_used_for_selection": false,
+  "historical_test_CVaR95_USD": 8591.09575883286,
+  "historical_incumbent_CVaR95_USD": 8860.3173632581
+}

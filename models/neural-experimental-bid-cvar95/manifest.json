@@ -1,0 +1,53 @@
+{
+  "status": "release_candidate_verified",
+  "market": "bid",
+  "source_study": "bid_hparams",
+  "trial": 18,
+  "config": {
+    "lr": 0.0005710281317613037,
+    "wd": 0.004472068714194894,
+    "batch": 512,
+    "beta": 0.4,
+    "tail_lambda": 0.05,
+    "clip": 1.0,
+    "patience": 5,
+    "epochs": 36
+  },
+  "neural_weight": 0.9000000000000004,
+  "lemon_weight": 0.09999999999999964,
+  "checkpoint_sha256": "a4aedfc7d57690decb00b754fbcbd514b985edadb5d1adcda1417135d7113a0e",
+  "cohort_sha256": "16290e5e7b7a2913edb47d2b7e34ffa6d4922bdd4269b729f705a53a4c135045",
+  "original_holdout_row_sha256": {
+    "validation": "319f0b1bfeeec3b1692092cbb88841282e6a116e8483a4466fed0a3d02896fa8",
+    "test": "0556fef8c28bd2043951036b378614ba79eeaadd3bb70cf3c5f09ea3a714eebb"
+  },
+  "historical_validation": {
+    "rows": 82380,
+    "worst_five_pct_rows": 4119,
+    "CVaR95_absolute_USD": 8720.656277073376,
+    "VaR95_absolute_USD": 4962.939794664232,
+    "MAE_USD": 1684.1235315746776,
+    "RMSE_USD": 2975.843306165396,
+    "worst_one_pct_USD": 17219.477698318
+  },
+  "historical_test": {
+    "rows": 83603,
+    "worst_five_pct_rows": 4181,
+    "CVaR95_absolute_USD": 8591.09575883286,
+    "VaR95_absolute_USD": 5009.413300522662,
+    "MAE_USD": 1815.7365456565303,
+    "RMSE_USD": 3066.853508099004,
+    "worst_one_pct_USD": 16873.08356924581
+  },
+  "historical_incumbent_test": {
+    "CVaR95_absolute_USD": 8860.3173632581,
+    "RMSE_USD": 3188.491899108656,
+    "MAE_USD": 1915.1971705612666
+  },
+  "original_test_scored_after_validation_selection": true,
+  "native_pytorch_only": true,
+  "production_main_calculator_unchanged": true,
+  "not_2026_market_accuracy": true,
+  "price_basis": "2015-index-normalized USD at historical 2014\u201315 auctions",
+  "description": "DeepFM16 with spline main effects, learned pair interactions and nonlinear residual tower; mixed with original Lemon XGBoost"
+}
