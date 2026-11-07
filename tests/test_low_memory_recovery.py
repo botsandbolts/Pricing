@@ -16,33 +16,33 @@ def test_python_modules_parse_after_rollback():
         ast.parse(code(path),filename=path)
 
 
-def test_public_price_homepage_is_not_neural_memory_heavy():
+def test_public_homepage_has_full_models_without_eager_weights():
     app=code("app.py")
-    # The resource-intensive BGE panel remains opt-in beta, not on public visits.
-    assert "st.query_params.get('beta_neural')=='1'" in app
-    assert "if _workspace=='🚗 Price my car':" in app
-    assert app.index("st.query_params.get('beta_neural')")<app.index(
-        "if _workspace=='🚗 Price my car':")
-    assert "The new neural price laboratory is paused" not in app or "previous" in app
-    assert "render_light_xai(saved,dated_receipts," in app
-    assert "get_pipeline(str(path)).predict(notes,fields,explain=False)" in app
-    assert "get_pipeline(str(path)).predict(notes,fields,explain=True)" not in app
-    # Neither the expensive old explanation suite nor the new XAI lab is
-    # run as part of the public main-page price receipt.
-    legacy=app[app.index("if _workspace=='🚗 Price my car':"):]
-    assert "render_visual_explanations(" not in legacy
-    assert "render_text_attribution(" not in legacy
-    assert "render_explanation(" not in legacy
-    assert "from pricing.bart_summary import render_story" not in legacy
-
-
-def test_public_xai_gated_and_no_gradients_dependency_at_boot():
+    assert "st.query_params.get('beta_neural')" not in app
+    start=app.index("if _workspace=='🚗 Price my car':")
+    end=app.index("if _workspace=='🏪 Merchant lens':",start)
+    assert "render_two_market_pricing(Path(__file__).parent,main=True)" in app[start:end]
+    assert "st.stop()" in app[start:end]
     ui=code("pricing/neural_experimental_ui.py")
+    assert 'isolated_price(root,"ask",fields,notes)' in ui
+    assert 'isolated_price(root,"bid",bid_fields)' in ui
+    assert "render_price_lite(root,saved,adjusted)" in ui
     assert "render_price_explanations(" not in ui
-    assert "The advanced Why this price? lab is temporarily offline" in ui
+    assert "if adjusted and not main:" in ui
     assert "captum>=" not in code("requirements.txt")
-    app=code("app.py")
     assert "'pricing.neural_price_xai_ui'" not in app
+
+
+def test_new_lite_explainer_has_no_eager_model_imports():
+    code0=code("pricing/neural_price_lite_ui.py")
+    node=ast.parse(code0)
+    assert all(not isinstance(n,(ast.Import,ast.ImportFrom))
+               for n in node.body)
+    assert "from captum" not in code0
+    assert "import torch" not in code0
+    assert "import plotly" not in code0
+    assert "import sentence_transformers" not in code0
+    assert "st.button(" in code0
 
 
 def test_factor_bridge_never_invents_dollars():
