@@ -23,7 +23,6 @@ import numpy as np
 from scripts.hyperband_cvar95 import (
     audit_and_save_bid_blend, incumbent_comparison,
 )
-from scripts import neural_200_sweep as native
 
 MARKETS=("ask","bid")
 SLOTS=4
@@ -56,8 +55,17 @@ def search_space(market):
 def settings_from_params(market,params,budget):
     if budget not in BUDGETS:
         raise ValueError("Unregistered BOHB training budget")
-    hp=native.defaults(market+"_structure")
-    arch=native.spec(market+"_structure",0)
+    if market=="ask":
+        hp=dict(lr=.001,wd=.025,batch=768,noise=.008,clip=1.,
+                patience=7,epochs=35,optimizer="adamw",schedule="constant")
+        arch=dict(projection=96,project_layers=1,proj_dropout=.08,
+                  cross_layers=3,rank=32,experts=1,width=256,blocks=2,
+                  dropout=.12,activation="gelu")
+    else:
+        hp=dict(lr=.0025,wd=.005,batch=2048,beta=.25,
+                tail_lambda=0.,clip=1.,patience=5,epochs=25)
+        arch=dict(rank=16,width1=128,width2=64,depth=2,dropout=.16,
+                  activation="gelu",pairgate=False)
     hp.update({k:params[k] for k in ("lr","wd","batch")})
     hp["epochs"]=budget
     if market=="ask":
@@ -176,6 +184,7 @@ def propose(stage,history_path,output):
 
 
 def train(plan_path,market,slot,output,args):
+    from scripts import neural_200_sweep as native
     plan=json.loads(Path(plan_path).read_text())
     if (plan["status"]!="ready" or market not in MARKETS or not 0<=slot<SLOTS):
         raise ValueError("Invalid BOHB plan or worker")
