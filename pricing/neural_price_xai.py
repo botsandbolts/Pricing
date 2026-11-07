@@ -401,18 +401,18 @@ def bounded_goal_scenarios(predictor,fields,observed_price,target,market,
         extra=list(dict.fromkeys([str(fields.get(extra_name) or "unknown"),
                                   "2","3","4","5"]))
     candidates=[]
-    seen=set()
-    # Deterministic bounded neighborhood; no claims about vehicle modifications.
-    for miles,title,grade_or_condition in product(mileages,titles,extra):
+    # Spread budget across the entire scenario grid (not merely first
+    # mileage values in product order) to avoid silently biased coverage.
+    grid=list(product(mileages,titles,extra))
+    count=min(max_candidates,len(grid))
+    chosen=np.linspace(0,len(grid)-1,num=count,dtype=int)
+    for i in chosen:
+        miles,title,grade_or_condition=grid[int(i)]
         candidate={**fields,"odometer":miles,"title_status":title,
                    extra_name:grade_or_condition}
         changes={k:{"from":fields.get(k),"to":candidate[k]}
                  for k in ("odometer","title_status",extra_name)
                  if str(candidate[k])!=str(fields.get(k))}
-        identity=(miles,title,grade_or_condition)
-        if identity in seen:continue
-        seen.add(identity)
-        if len(seen)>max_candidates:break
         predicted=float(predictor(candidate))
         if not isfinite(predicted) or not 100<=predicted<=1e6:
             raise ValueError("Native goal scenario produced invalid dollars")
