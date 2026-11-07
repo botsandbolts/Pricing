@@ -231,6 +231,72 @@ def _what_if(root,saved,date,adjusted,transport,allow_analogue,champions,token):
                    "the retail condition word or seller advert text.")
 
 
+
+def _goal_explorer(root,saved,champions,token):
+    with st.expander("🎯 Target-price explorer · find comparable cars"):
+        st.write("**What would a similar vehicle need to look like for the "
+                 "model to predict your target price?** A bounded, deterministic "
+                 "search of real model predictions—not a pricing guarantee.")
+        available=[side for side in ("ask","bid") if side in saved]
+        if not available:return
+        with st.form("xai_goal_form"):
+            side=st.radio("Market target",available,horizontal=True,
+                format_func=lambda value:"Seller Ask" if value=="ask" else "Wholesale Bid")
+            initial=round(float(saved[side]["price"])*1.10/100)*100
+            desired=st.number_input("Target historical price (USD)",
+                 min_value=100,max_value=1000000,value=max(100,min(1000000,initial)),
+                 step=500)
+            submit=st.form_submit_button(
+                "Find similar hypothetical cars",type="primary",
+                use_container_width=True)
+        st.caption("We hold make, model and model year fixed. "
+                   "For Ask we compare mileage, title and described condition. "
+                   "For Bid: mileage, title and real historical pre-sale auction grade.")
+        if submit:
+            try:
+                model=_model(root,side,champions)
+                if side=="ask":
+                    original_fields=dict(saved["fields"])
+                    prepared=model.prepare_text(saved.get("notes",""))
+                    def predict(row):
+                        return model.predict_prepared(row,prepared)["price"]
+                else:
+                    original_fields=dict(saved["bid_fields"])
+                    def predict(row):
+                        return model.predict(row)["price"]
+                with st.spinner("Testing up to 48 real native-model scenarios…"):
+                    result=xai.bounded_goal_scenarios(
+                        predict,original_fields,saved[side]["price"],
+                        desired,side,48)
+                st.session_state["xai_goal_result"]={
+                    "token":token,"side":side,"result":result}
+            except (ValueError,TypeError,RuntimeError,OSError,KeyError,
+                    MemoryError) as exc:
+                st.warning("Target-price explorer unavailable: "+str(exc))
+        old=st.session_state.get("xai_goal_result",{})
+        if old.get("token")==token:
+            res=old["result"]
+            st.metric("Historical price target",_money(res["historical_target_usd"]))
+            rows=[]
+            for i,scenario in enumerate(res["scenarios"],1):
+                changes=scenario["changed_facts"]
+                note=", ".join(
+                    k.replace("_"," ")+" → "+str(item["to"]) for k,item in
+                    changes.items()) or "Same vehicle"
+                rows.append({
+                    "Rank":i,"Comparable scenario":note,
+                    "Predicted source USD":round(scenario["predicted_usd"]),
+                    "Versus target USD":round(scenario["difference_from_target_usd"]),
+                    "Clears target?":"Yes" if scenario["hits_or_exceeds_target"] else "No",
+                })
+            st.dataframe(pd.DataFrame(rows),hide_index=True,width="stretch")
+            st.caption(str(res["candidates_tested"])+" native-model scenarios evaluated.")
+            st.warning(res["warning"])
+            st.caption("These comparisons do not establish the monetary value "
+                       "of a repair, change in condition, fewer miles, or an "
+                       "unrecorded transaction. Never alter an odometer or "
+                       "misrepresent the car.")
+
 def _technical(root,saved,champions,token):
     tab_captum,tab_tree,tab_phrases=st.tabs([
         "🧠 Captum · neural","🌳 TreeSHAP · XGBoost",
@@ -451,6 +517,7 @@ No guessing, no magic unicorns, just the actual weights.</p>
     with tab_clock:_bridge(saved,adjusted)
     with tab_scenarios:
         _what_if(root,saved,date,adjusted,transport,allow_analogue,champions,token)
+        _goal_explorer(root,saved,champions,token)
     with tab_technical:_technical(root,saved,champions,token)
     with tab_share:
         st.markdown("#### 🔬 Science you can inspect, not a marketing prophecy")
