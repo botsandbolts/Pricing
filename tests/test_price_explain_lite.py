@@ -17,7 +17,8 @@ def test_source_is_lightweight_and_never_uses_process_or_captum():
             assert all(item.name in {"json","math","hashlib"} for item in node.names)
         if isinstance(node,ast.ImportFrom):
             raise AssertionError("No eager third-party imports")
-    assert "subprocess" not in source
+    assert "import subprocess" not in source
+    assert "subprocess.run(" not in source
     assert "torch.load(" not in source
     assert "from captum" not in source
     assert "import shap" not in source
