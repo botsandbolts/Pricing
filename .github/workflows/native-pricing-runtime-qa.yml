@@ -12,6 +12,7 @@ on:
       - pricing/neural_ask_embedding_live.py
       - pricing/neural_bid_blend_live.py
       - scripts/native_pricing_runtime_smoke.py
+      - scripts/browser_native_valuation_smoke.py
       - requirements.txt
 
 permissions:
@@ -48,3 +49,35 @@ jobs:
       - name: Execute the real BGE/ResMLP and DeepFM/Lemon models on Python 3.14
         run: |
           python -m scripts.native_pricing_runtime_smoke
+      - name: Install Chromium for one genuine paid-model pricing and Captum click
+        run: |
+          python -m pip install --no-cache-dir 'playwright>=1.55,<2'
+          python -m playwright install --with-deps chromium
+      - name: Run the native Streamlit UI, submit a real appraisal and explain it
+        run: |
+          mkdir -p reports/qa/native-python314
+          python -m streamlit run app.py --server.port 8765 --server.address 127.0.0.1 --server.headless true >/tmp/cps-real314.log 2>&1 &
+          python - <<'PY'
+          import time,urllib.request
+          for _ in range(90):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8765/_stcore/health',timeout=3) as r:
+                      if r.status==200:
+                          print("Native Streamlit server healthy",flush=True)
+                          break
+              except Exception:time.sleep(2)
+          else:raise SystemExit("Native Streamlit server did not start")
+          PY
+          python -m scripts.browser_native_valuation_smoke
+      - name: Preserve native appraisal screenshots and server errors
+        if: always()
+        run: |
+          mkdir -p reports/qa/native-python314
+          cp /tmp/cps-real314.log reports/qa/native-python314/streamlit.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python314-real-native-valuation-and-captum
+          path: reports/qa/native-python314/
+          retention-days: 14
+          if-no-files-found: warn
