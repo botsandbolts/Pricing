@@ -618,7 +618,7 @@ only when you ask. No model circus required. 🎪🚗
         _valuation_probe("receipt_saved")
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
-        st.markdown("### 💵 Your car · two historical price anchors")
+        st.markdown("### 💵 Your car · estimated prices")
         prices={};adjusted={}
         columns=st.columns(2)
         for col,side,label in zip(columns,("ask","bid"),("Seller asking","Wholesale auction")):
@@ -629,11 +629,10 @@ only when you ask. No model circus required. 🎪🚗
                     continue
                 historical=float(result["price"])
                 if side=="bid" and saved.get("bid_analogue"):
-                    st.warning("⚠️ Historical age-matched analogue, not a real auction of this model year. Its 2015 baseline assumes an age-five proxy; accuracy for the newer generation is unknown.")
+                    st.warning("⚠️ The wholesale estimate uses an age-matched proxy, not an observed auction for this model year. Accuracy for newer generations is unknown.")
                     st.caption("Proxy model year: "+str(saved["bid_analogue"]["proxy_model_year"])+"; requested model year: "+str(saved["bid_analogue"]["requested_model_year"]))
-                st.metric(label+" · historical anchor",_usd(historical))
                 if transport is None:
-                    st.warning("Date conversion unavailable; historical price only.")
+                    st.warning("The selected-date estimate is unavailable. No historical price is shown as a substitute.")
                     continue
                 try:
                     receipt=_adjust_price(transport,historical,saved["fields"],
@@ -648,11 +647,6 @@ only when you ask. No model circus required. 🎪🚗
             st.metric("Asking minus wholesale · indicative market gap",
                       _usd(prices["ask"]-prices["bid"]))
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
-        if adjusted:
-            with st.expander("📈 Advanced historical price clock"):
-                if st.button("Show historical-to-selected-date evidence",
-                             key="price_clock_evidence_go"):
-                    render_time_evidence(transport,adjusted)
         if main:
             # High-visibility explanation directly after prices. Preserve
             # lazy Captum imports and unchanged native cached checkpoints.
