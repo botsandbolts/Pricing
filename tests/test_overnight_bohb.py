@@ -122,3 +122,39 @@ def test_bid_blend_receipt_is_pre_registered():
     assert hp["loss"] in LOSS_NAMES
     with pytest.raises(ValueError,match="fidelity"):
         b.settings_from_params("ask",{},300)
+
+
+def test_failed_unstable_trial_is_recorded_but_not_treated_as_a_win(tmp_path):
+    plan=tmp_path/"p.json"
+    b.propose(0,None,plan)
+    p0=json.loads(plan.read_text())
+    rows=_fake_records(p0)
+    rows[0]["state"]="FAILED"
+    rows[0]["validation"]=None
+    rows[0]["error"]="ValueError: Nonfinite BOHB objective"
+    rows[0]["provenance"]=None
+    history_file=tmp_path/"h0.json"
+    history_file.write_text(json.dumps({"records":rows}))
+    recovered=b.read_history(history_file)
+    assert len(recovered)==8
+    next_plan=tmp_path/"p1.json"
+    b.propose(1,history_file,next_plan)
+    p1=json.loads(next_plan.read_text())
+    assert p1["candidates"]["ask"][0]["origin_trial"]!=rows[0]["origin_trial"]
+
+
+def test_all_failed_first_rung_can_fall_back_to_new_configs(tmp_path):
+    plan=tmp_path/"p0.json"
+    b.propose(0,None,plan)
+    rows=_fake_records(json.loads(plan.read_text()))
+    for row in rows:
+        if row["market"]=="ask":
+            row.update(state="FAILED",validation=None,provenance=None,
+                       error="Nonfinite experimental loss")
+    history=tmp_path/"h.json"
+    history.write_text(json.dumps({"records":rows}))
+    next_plan=tmp_path/"p1.json"
+    b.propose(1,history,next_plan)
+    p=json.loads(next_plan.read_text())
+    assert all(row["budget"]==6 for row in p["candidates"]["ask"])
+    assert any(row["budget"]==18 for row in p["candidates"]["bid"])
