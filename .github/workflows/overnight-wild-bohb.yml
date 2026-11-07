@@ -1,0 +1,4809 @@
+name: Overnight WILD BOHB · 32 Ask / 26 Bid knobs · 06:00 CET cutoff
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/overnight-wild-bohb.yml
+      - scripts/overnight_bohb.py
+      - scripts/overnight_bohb_neural.py
+      - scripts/overnight_bohb_losses.py
+      - tests/test_overnight_bohb.py
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: overnight-wild-bohb-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify multi-loss gradients, 32-dimensional BOHB, budgets and deadline
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2' 'pandas>=2.1,<3' pytest
+          python -m compileall -q scripts/overnight_bohb.py scripts/overnight_bohb_neural.py scripts/overnight_bohb_losses.py tests/test_overnight_bohb.py
+          python -m pytest -q tests/test_overnight_bohb.py
+
+  propose_0:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 0 --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-0
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_0:
+    needs: propose_0
+    if: ${{ needs.propose_0.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-0
+          path: proposal
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s0-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_0:
+    needs: [propose_0, train_0]
+    if: ${{ needs.propose_0.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-0
+          path: proposal
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s0-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-0
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_1:
+    needs: collect_0
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-0
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 1 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-1
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_1:
+    needs: propose_1
+    if: ${{ needs.propose_1.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-1
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-0
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s1-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_1:
+    needs: [propose_1, train_1]
+    if: ${{ needs.propose_1.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-1
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-0
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s1-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-1
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_2:
+    needs: collect_1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-1
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 2 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-2
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_2:
+    needs: propose_2
+    if: ${{ needs.propose_2.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-2
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-1
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s2-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_2:
+    needs: [propose_2, train_2]
+    if: ${{ needs.propose_2.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-2
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-1
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s2-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-2
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_3:
+    needs: collect_2
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-2
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 3 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-3
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_3:
+    needs: propose_3
+    if: ${{ needs.propose_3.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-3
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-2
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s3-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_3:
+    needs: [propose_3, train_3]
+    if: ${{ needs.propose_3.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-3
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-2
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s3-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-3
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_4:
+    needs: collect_3
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-3
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 4 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-4
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_4:
+    needs: propose_4
+    if: ${{ needs.propose_4.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-4
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-3
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s4-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_4:
+    needs: [propose_4, train_4]
+    if: ${{ needs.propose_4.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-4
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-3
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s4-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-4
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_5:
+    needs: collect_4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-4
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 5 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-5
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_5:
+    needs: propose_5
+    if: ${{ needs.propose_5.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-5
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-4
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s5-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_5:
+    needs: [propose_5, train_5]
+    if: ${{ needs.propose_5.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-5
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-4
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s5-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-5
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_6:
+    needs: collect_5
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-5
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 6 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-6
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_6:
+    needs: propose_6
+    if: ${{ needs.propose_6.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-6
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-5
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s6-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_6:
+    needs: [propose_6, train_6]
+    if: ${{ needs.propose_6.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-6
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-5
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s6-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-6
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_7:
+    needs: collect_6
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-6
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 7 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-7
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_7:
+    needs: propose_7
+    if: ${{ needs.propose_7.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-7
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-6
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s7-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_7:
+    needs: [propose_7, train_7]
+    if: ${{ needs.propose_7.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-7
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-6
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s7-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-7
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_8:
+    needs: collect_7
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-7
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 8 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-8
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_8:
+    needs: propose_8
+    if: ${{ needs.propose_8.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-8
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-7
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s8-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_8:
+    needs: [propose_8, train_8]
+    if: ${{ needs.propose_8.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-8
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-7
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s8-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-8
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_9:
+    needs: collect_8
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-8
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 9 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-9
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_9:
+    needs: propose_9
+    if: ${{ needs.propose_9.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-9
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-8
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s9-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_9:
+    needs: [propose_9, train_9]
+    if: ${{ needs.propose_9.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-9
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-8
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s9-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-9
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_10:
+    needs: collect_9
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-9
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 10 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-10
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_10:
+    needs: propose_10
+    if: ${{ needs.propose_10.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-10
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-9
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s10-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_10:
+    needs: [propose_10, train_10]
+    if: ${{ needs.propose_10.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-10
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-9
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s10-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-10
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_11:
+    needs: collect_10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-10
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 11 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-11
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_11:
+    needs: propose_11
+    if: ${{ needs.propose_11.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-11
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-10
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s11-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_11:
+    needs: [propose_11, train_11]
+    if: ${{ needs.propose_11.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-11
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-10
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s11-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-11
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_12:
+    needs: collect_11
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-11
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 12 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-12
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_12:
+    needs: propose_12
+    if: ${{ needs.propose_12.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-12
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-11
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s12-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_12:
+    needs: [propose_12, train_12]
+    if: ${{ needs.propose_12.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-12
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-11
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s12-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-12
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_13:
+    needs: collect_12
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-12
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 13 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-13
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_13:
+    needs: propose_13
+    if: ${{ needs.propose_13.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-13
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-12
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s13-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_13:
+    needs: [propose_13, train_13]
+    if: ${{ needs.propose_13.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-13
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-12
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s13-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-13
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_14:
+    needs: collect_13
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-13
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 14 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-14
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_14:
+    needs: propose_14
+    if: ${{ needs.propose_14.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-14
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-13
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s14-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_14:
+    needs: [propose_14, train_14]
+    if: ${{ needs.propose_14.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-14
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-13
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s14-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-14
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_15:
+    needs: collect_14
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-14
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 15 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-15
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_15:
+    needs: propose_15
+    if: ${{ needs.propose_15.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-15
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-14
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s15-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_15:
+    needs: [propose_15, train_15]
+    if: ${{ needs.propose_15.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-15
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-14
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s15-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-15
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_16:
+    needs: collect_15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-15
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 16 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-16
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_16:
+    needs: propose_16
+    if: ${{ needs.propose_16.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-16
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-15
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s16-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_16:
+    needs: [propose_16, train_16]
+    if: ${{ needs.propose_16.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-16
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-15
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s16-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-16
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_17:
+    needs: collect_16
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-16
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 17 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-17
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_17:
+    needs: propose_17
+    if: ${{ needs.propose_17.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-17
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-16
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s17-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_17:
+    needs: [propose_17, train_17]
+    if: ${{ needs.propose_17.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-17
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-16
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s17-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-17
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_18:
+    needs: collect_17
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-17
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 18 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-18
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_18:
+    needs: propose_18
+    if: ${{ needs.propose_18.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-18
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-17
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s18-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_18:
+    needs: [propose_18, train_18]
+    if: ${{ needs.propose_18.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-18
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-17
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s18-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-18
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_19:
+    needs: collect_18
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-18
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 19 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-19
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_19:
+    needs: propose_19
+    if: ${{ needs.propose_19.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-19
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-18
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s19-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_19:
+    needs: [propose_19, train_19]
+    if: ${{ needs.propose_19.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-19
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-18
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s19-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-19
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_20:
+    needs: collect_19
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-19
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 20 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-20
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_20:
+    needs: propose_20
+    if: ${{ needs.propose_20.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-20
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-19
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s20-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_20:
+    needs: [propose_20, train_20]
+    if: ${{ needs.propose_20.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-20
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-19
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s20-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-20
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_21:
+    needs: collect_20
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-20
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 21 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-21
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_21:
+    needs: propose_21
+    if: ${{ needs.propose_21.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-21
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-20
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s21-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_21:
+    needs: [propose_21, train_21]
+    if: ${{ needs.propose_21.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-21
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-20
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s21-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-21
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_22:
+    needs: collect_21
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-21
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 22 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-22
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_22:
+    needs: propose_22
+    if: ${{ needs.propose_22.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-22
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-21
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s22-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_22:
+    needs: [propose_22, train_22]
+    if: ${{ needs.propose_22.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-22
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-21
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s22-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-22
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_23:
+    needs: collect_22
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-22
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 23 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-23
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_23:
+    needs: propose_23
+    if: ${{ needs.propose_23.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-23
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-22
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s23-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_23:
+    needs: [propose_23, train_23]
+    if: ${{ needs.propose_23.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-23
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-22
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s23-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-23
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_24:
+    needs: collect_23
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-23
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 24 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-24
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_24:
+    needs: propose_24
+    if: ${{ needs.propose_24.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-24
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-23
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s24-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_24:
+    needs: [propose_24, train_24]
+    if: ${{ needs.propose_24.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-24
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-23
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s24-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-24
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_25:
+    needs: collect_24
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-24
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 25 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-25
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_25:
+    needs: propose_25
+    if: ${{ needs.propose_25.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-25
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-24
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s25-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_25:
+    needs: [propose_25, train_25]
+    if: ${{ needs.propose_25.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-25
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-24
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s25-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-25
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_26:
+    needs: collect_25
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-25
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 26 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-26
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_26:
+    needs: propose_26
+    if: ${{ needs.propose_26.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-26
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-25
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s26-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_26:
+    needs: [propose_26, train_26]
+    if: ${{ needs.propose_26.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-26
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-25
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s26-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-26
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_27:
+    needs: collect_26
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-26
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 27 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-27
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_27:
+    needs: propose_27
+    if: ${{ needs.propose_27.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-27
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-26
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s27-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_27:
+    needs: [propose_27, train_27]
+    if: ${{ needs.propose_27.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-27
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-26
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s27-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-27
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_28:
+    needs: collect_27
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-27
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 28 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-28
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_28:
+    needs: propose_28
+    if: ${{ needs.propose_28.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-28
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-27
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s28-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_28:
+    needs: [propose_28, train_28]
+    if: ${{ needs.propose_28.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-28
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-27
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s28-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-28
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  propose_29:
+    needs: collect_28
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      go: ${{ steps.deadline_gate.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install HpBandSter adaptive coordinator
+        run: python -m pip install 'numpy>=1.26,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2'
+      - name: Recover previous audited Ask/Bid optimization history
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-28
+          path: prior
+      - name: KDE proposes four unseen Ask and four unseen Bid configurations
+        run: |
+          python -u -m scripts.overnight_bohb propose --stage 29 --history prior/history.json --output proposal/plan.json
+      - id: deadline_gate
+        name: Authorize only batches that start before 06:00 Berlin
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          plan=json.load(open("proposal/plan.json"))
+          print("go="+str(plan["status"]=="ready").lower())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-plan-29
+          path: proposal/plan.json
+          retention-days: 60
+          if-no-files-found: error
+
+  train_29:
+    needs: propose_29
+    if: ${{ needs.propose_29.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        market: [ask, bid]
+        slot: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU neural trainers, HpBandSter, and audit tools
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' joblib
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-29
+          path: proposal
+      - name: Recover immutable prior study for BOHB 6→216 epoch promotions
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-28
+          path: prior
+      - name: Reuse original SHA-pinned 2021 Ask training cohort
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Reuse original BGE embeddings, never re-encode per trial
+        if: ${{ matrix.market == 'ask' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Reuse original VIN-disjoint 2015 Bid training cohort
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Reuse unchanged matched Lemon XGBoost Bid baseline
+        if: ${{ matrix.market == 'bid' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Train native candidate, prune on internal TRAIN CVaR95, validate surviving model once
+        run: |
+          python -u -m scripts.overnight_bohb train \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --market "${{ matrix.market }}" \
+            --slot "${{ matrix.slot }}" \
+            --max-seconds 3000 \
+            --output training-results/adaptive
+      - name: Preserve original validation predictions and native checkpoint, if audited
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-result-s29-${{ matrix.market }}-${{ matrix.slot }}
+          path: training-results/adaptive/
+          retention-days: 7
+          compression-level: 4
+          if-no-files-found: error
+
+  collect_29:
+    needs: [propose_29, train_29]
+    if: ${{ needs.propose_29.outputs.go == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install independent metrics and CVaR95 audit dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-plan-29
+          path: proposal
+      - uses: actions/download-artifact@v4
+        with:
+          name: overnight-history-28
+          path: prior
+      - name: Retrieve eight original candidate or complete receipts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-result-s29-*
+          path: candidate-results
+          merge-multiple: false
+      - name: Audit all 8 candidates and publish next-stage BOHB training evidence
+        run: |
+          python -u -m scripts.overnight_bohb collect \
+            --plan proposal/plan.json \
+            --history prior/history.json \
+            --artifacts candidate-results \
+            --output findings/history.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-history-29
+          path: findings/history.json
+          retention-days: 90
+          if-no-files-found: error
+
+  final_report:
+    needs: [collect_0, collect_1, collect_2, collect_3, collect_4, collect_5, collect_6, collect_7, collect_8, collect_9, collect_10, collect_11, collect_12, collect_13, collect_14, collect_15, collect_16, collect_17, collect_18, collect_19, collect_20, collect_21, collect_22, collect_23, collect_24, collect_25, collect_26, collect_27, collect_28, collect_29]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Recover every audited stage; skipped batches after cutoff are expected
+        uses: actions/download-artifact@v4
+        with:
+          pattern: overnight-history-*
+          path: histories
+          merge-multiple: false
+      - name: Print exact last audited head-to-head CVaR95/MAE/RMSE results
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          files=list(Path("histories").glob("overnight-history-*/history.json"))
+          if not files:
+              raise SystemExit("No audited stage; inspect earlier job errors")
+          latest=max(files,key=lambda p:int(p.parent.name.rsplit("-",1)[1]))
+          report=json.loads(latest.read_text())
+          print("Last audited:",latest,"trials:",len(report["records"]))
+          print("Deadline:",report["deadline_utc"])
+          print("No deployment or test-set use:",report["not_for_deployment"],not report["test_evaluated"])
+          assert report["not_for_deployment"] and not report["test_evaluated"]
+          for market in ("ask","bid"):
+              print("\n",market.upper(),"budget counts",report["budget_distribution"][market])
+              incumbent=report["compared_to_deployed_verified"][market]
+              for metric,values in incumbent["metrics"].items():
+                  print(metric,"incumbent",values["incumbent"],"best full-fidelity challenger",values["challenger"],"USD saved",values["saved_usd"])
+              print("Full 216-epoch challenge beats incumbent CVaR95:",incumbent["challenger_beats_incumbent_on_CVaR95"])
+          Path("nightmare-final-comparison.json").write_text(json.dumps(report,indent=2))
+          PY
+      - name: Persist independent audit; never promote experimental models
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight-BOHB-final-comparison
+          path: nightmare-final-comparison.json
+          retention-days: 90
+          if-no-files-found: error
