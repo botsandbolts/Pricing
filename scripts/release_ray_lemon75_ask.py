@@ -36,6 +36,26 @@ HOLDOUT_SHA = "aeccb9ddbcf103d8bc603659c1aa3f62efe39d6b3d5f9f5451e3b5a313ca27ac"
 KNOWN_RETAINED_CVAR95 = 8959.618612064656
 
 
+
+
+def same_architecture(actual,expected):
+    """Strict keys/structure with float serialization tolerance only.
+
+    ConfigSpace/NumPy versions can round the last float bit differently.
+    This never permits a changed layer width, family, block count or key.
+    """
+    import math
+    if not isinstance(actual,dict) or set(actual)!=set(expected):
+        return False
+    for name,value in expected.items():
+        got=actual[name]
+        if type(value) in (int,float) and type(got) in (int,float):
+            if not math.isclose(float(got),float(value),rel_tol=1e-12,abs_tol=1e-12):
+                return False
+        elif got!=value:
+            return False
+    return True
+
 def sha_ids(values):
     return hashlib.sha256("\n".join(sorted(map(str, values))).encode()).hexdigest()
 
@@ -160,7 +180,7 @@ def audit(args):
         raise ValueError("Source artifact is not exact train-selected Ray Lemon winner")
     pack=torch.load(src/"weights.pt",map_location="cpu",weights_only=True)
     cfg=architecture_params("deepcross")
-    if not (pack.get("architecture")==cfg
+    if not (same_architecture(pack.get("architecture"),cfg)
             and pack.get("training_cohort")=="frozen-lemon-oof-retained-75"
             and pack.get("original_test_scored") is False
             and pack.get("cohort_sha256")==original["provenance"]["cohort_sha256"]
