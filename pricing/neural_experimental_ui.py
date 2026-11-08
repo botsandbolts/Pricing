@@ -428,19 +428,13 @@ def _usd(value):return "$"+f"{float(value):,.0f}"
 def render(root,*,main=False):
     """Public homepage and research fallback share exactly one Ask/Bid inference path."""
     root=Path(root)
-    hero=("""
-<section class="exp-hero" aria-label="Car Price Studio main price calculator">
-<small>CAR PRICE STUDIO · MADE IN GERMANY · OPEN-SOURCE CAR INTELLIGENCE</small>
-<h1>One car. Two prices.<br>Zero crystal balls.</h1>
-<p>Discover the seller's <strong>Ask</strong> and a comparable wholesale
-<strong>Bid</strong>—with historical pricing dates and full-model AI.
-Different markets. Real research. No auctioneer hiding under the bonnet.</p>
-<span class="exp-chip">🏷 Seller Ask</span>
-<span class="exp-chip">🔨 Wholesale Bid</span>
-<span class="exp-chip">🧠 Real neural networks</span>
-<span class="exp-chip">🛡 CVaR95 · worst 5%</span>
-<span class="exp-chip">📅 Today's or historical date</span>
-</section>""" if main else """
+    # The homepage campaign now lives in studio_design.render_hero().
+    # Keep the model lab's smaller introduction but never stack duplicate
+    # full-width banners above the public price calculator.
+    if main:
+        st.markdown(CSS,unsafe_allow_html=True)
+    else:
+        st.markdown(CSS+"""
 <section class="exp-hero" aria-label="Experimental vehicle pricing models">
 <small>CAR PRICE STUDIO · MODEL RESEARCH</small>
 <h1>Two markets. One car.<br>Fewer pricing nightmares.</h1>
@@ -449,8 +443,7 @@ models used on our main price calculator.</p>
 <span class="exp-chip">✍ BGE + ResMLP / DeepCross</span>
 <span class="exp-chip">🚘 DeepFM + Lemon XGBoost</span>
 <span class="exp-chip">🛡 CVaR95 · worst 5%</span>
-</section>""")
-    st.markdown(CSS+hero,unsafe_allow_html=True)
+</section>""",unsafe_allow_html=True)
     from pricing.studio_design import market_guide
     from pricing.description_examples import load_examples
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
@@ -476,6 +469,11 @@ panel directly under your price results. The AI explains itself
 only when you ask. No model circus required. 🎪🚗
 </div></section>
 """,unsafe_allow_html=True)
+    # Real anchor target for the homepage's gold call-to-action.
+    # Placed directly above the editable pricing form, not on a dead route.
+    if main:
+        st.markdown('<div id="studio-calculator" tabindex="-1"></div>',
+                    unsafe_allow_html=True)
     examples=load_examples()
     st.markdown("### 🚗 01 / Start with an example—or your own car")
     if examples:
