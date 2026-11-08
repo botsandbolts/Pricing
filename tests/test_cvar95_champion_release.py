@@ -87,5 +87,5 @@ def test_experimental_panel_declares_the_appropriate_fallback():
     assert "ask_champion or ask_available(root)" in ui
     assert "bid_champion or bid_available(root)" in ui
     assert "CVaR95" in ui and "ResMLP" in ui
-    assert "The Ask training labels are historical advertised prices" in ui
+    assert "Ask training labels are advertised prices" in ui
     assert "models/neural-experimental-ask-bge" not in ui
