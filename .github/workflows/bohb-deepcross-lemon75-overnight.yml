@@ -12,7 +12,7 @@ permissions:
 
 concurrency:
   group: deepcross-lemon75-bohb-overnight-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   OMP_NUM_THREADS: '2'
@@ -85,8 +85,6 @@ jobs:
             --features training-cache/neural-ask/features.npz \
             --embeddings training-cache/bge-256 \
             --phase-seconds 14400 \
-            
-            
             --output "research/bohb-lemon75/slot-$SLOT"
       - name: Preserve complete or partial honest training receipts, plus native best weights
         if: always()
@@ -148,7 +146,6 @@ jobs:
             --embeddings training-cache/bge-256 \
             --phase-seconds 14400 \
             --previous-dir prior \
-            
             --output "research/bohb-lemon75/slot-$SLOT"
       - name: Preserve complete or partial honest training receipts, plus native best weights
         if: always()
