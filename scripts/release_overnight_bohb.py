@@ -98,7 +98,7 @@ def _package(root,market,archived,receipt,out,metrics_val,metrics_test,old):
             f"{market}: BOHB CVaR95={metrics_test['CVaR95_absolute_USD']:.2f}, "
             f"current={old['CVaR95_absolute_USD']:.2f}")
     out.mkdir(parents=True,exist_ok=True)
-    shutil.copyfile(Path(root)/"winner"/"weights.pt",out/"weights.pt")
+    shutil.copyfile(Path(root)/"weights.pt",out/"weights.pt")
     manifest={
         "status":"release_candidate_verified","market":market,
         "source_study":"overnight-wild-bohb","source_workflow_run":REPORT_RUN,
@@ -179,7 +179,7 @@ def ask(args,archived,pack,receipt):
     tr=risk(z["y"][t].astype(float),tp)
     old=_production_incumbent(args.root,"ask")
     out=Path(args.output)
-    manifest=_package(Path(args.winner).parent,"ask",archived,receipt,out,vr,tr,old)
+    manifest=_package(Path(args.winner),"ask",archived,receipt,out,vr,tr,old)
     engine=BOHBAsking(args.root,_parity_test=True)
     sample=np.random.default_rng(20261108).choice(v,size=32,replace=False)
     with torch.inference_mode():
@@ -220,7 +220,7 @@ def bid(args,archived,pack,receipt):
     tr=risk(y[t],test_p)
     old=_production_incumbent(args.root,"bid")
     out=Path(args.output)
-    manifest=_package(Path(args.winner).parent,"bid",archived,receipt,out,vr,tr,old)
+    manifest=_package(Path(args.winner),"bid",archived,receipt,out,vr,tr,old)
     engine=BOHBWholesale(args.root,_parity_test=True)
     sample=np.random.default_rng(20261108).choice(v,size=40,replace=False)
     with torch.inference_mode():
