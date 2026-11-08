@@ -44,6 +44,10 @@ def quantize():
     tokenizer=Path(hf_hub_download(
         repo_id=SOURCE,revision=REVISION,filename="tokenizer.json"))
     target=PACKAGE/WEIGHTS
+    # The original float ONNX is retained only in the transient CI cache.
+    # Comparing its embeddings to native isolates a tokenizer/pooling/export
+    # mismatch from a true quantization-only numerical drift.
+    (REPORT/"reference-onnx-path.txt").write_text(str(original))
     # Dynamic QInt8 for transformer MatMul/Gemm weights only. Embedding and
     # normalization stay full precision, preserving the native price head.
     quantize_dynamic(str(original),str(target),
@@ -102,15 +106,39 @@ def vectors_and_price():
     os.environ["PRICING_BGE_BACKEND"]="native"
     native=BGEDeepCrossAsk(ROOT)
     experimental=VerifiedInt8BGE(ROOT)
+    import onnxruntime as ort
+    fp32_path=Path((REPORT/"reference-onnx-path.txt").read_text().strip())
+    if not fp32_path.is_file():
+        raise FileNotFoundError("Original floating-point ONNX diagnostic reference missing")
+    ort_opts=experimental.session.get_session_options()
+    full_precision_session=ort.InferenceSession(
+        str(fp32_path),sess_options=ort_opts,
+        providers=["CPUExecutionProvider"])
+    quant_session=experimental.session
+    native_vs_fp32=[]
+    native_vs_fp32_dollar=[]
     cosines=[]
     deviations=[]
     abs_dollars=[]
     for fields,description in examples():
         prepared=native.prepare_text(description)
         original=float(native.predict_prepared(fields,prepared)["price"])
+        experimental.session=full_precision_session
+        fp32=experimental.encode(
+            [clean(description)],batch_size=1,convert_to_numpy=True,
+            normalize_embeddings=True,show_progress_bar=False)
+        experimental.session=quant_session
         vector=experimental.encode(
             [clean(description)],batch_size=1,convert_to_numpy=True,
             normalize_embeddings=True,show_progress_bar=False)
+        # All path variants use identical tokenization, CLS pooling, L2 norm.
+        fp32=np.asarray(fp32,dtype=np.float32).astype(np.float16).astype(np.float32)
+        prepared_fp32={"raw":description,"embedding":fp32}
+        fp32_price=float(native.predict_prepared(fields,prepared_fp32)["price"])
+        cosine_fp32=float(np.dot(prepared["embedding"][0],fp32[0])/
+            max(np.linalg.norm(prepared["embedding"][0])*np.linalg.norm(fp32[0]),1e-10))
+        native_vs_fp32.append(cosine_fp32)
+        native_vs_fp32_dollar.append(abs(fp32_price-original))
         vector=np.asarray(vector,dtype=np.float32)
         vector=vector.astype(np.float16).astype(np.float32)
         substitute={"raw":description,"embedding":vector}
@@ -127,7 +155,15 @@ def vectors_and_price():
     worst=float(max(deviations))
     p95=float(np.percentile(deviations,95))
     median=float(np.median(deviations))
+    print(json.dumps({"stage":"float_onnx_reference_diagnostic",
+          "min_cosine_native_vs_float_onnx":float(min(native_vs_fp32)),
+          "median_cosine_native_vs_float_onnx":float(np.median(native_vs_fp32)),
+          "max_native_vs_float_onnx_price_drift_usd":float(max(native_vs_fp32_dollar)),
+          "mean_native_vs_float_onnx_price_drift_usd":float(np.mean(native_vs_fp32_dollar))}),
+          flush=True)
     result={
+        "reference_native_vs_float_onnx_min_cosine":float(min(native_vs_fp32)),
+        "reference_native_vs_float_onnx_max_price_drift_usd":float(max(native_vs_fp32_dollar)),
         "source":"48 deterministic price-redacted historical listing examples",
         "count":len(cosines),
         "min_embedding_cosine":minimum_cos,
