@@ -10,6 +10,8 @@ You can turn down optional tracking and still use the price tools. We use the ca
 
 This page tells you what data we use, why we use it, and how you can make a choice.
 
+Some words you may see here: **GDPR** is the EU law about personal data. **Consent** means that you said yes. An **IP address** is a number used when your device goes online.
+
 ## Who runs this site?
 
 I am **Amit Steinberg**, a private person based in **Hamburg, Germany**. I run this site and decide how its data is used. Under EU law, that makes me the *data controller*.
@@ -22,7 +24,7 @@ The tools need the car facts you enter, such as make, model, year, miles, and co
 
 We process this data to run the free tool. Our legal basis is a *legitimate interest* in providing the service (GDPR Article 6(1)(f)). We do not use the estimate to make legal or credit decisions about you.
 
-The site runs on Streamlit hosting. Like most web hosts, it may handle your IP address and basic connection logs to send the site to your device and keep it safe. This is also based on a legitimate interest in running and securing the site.
+The site runs on Streamlit hosting. Like most web hosts, it may handle your IP address and basic connection logs to send the site to your device and keep it safe. This is also based on a legitimate interest in running and securing the site. The host sets its own log rules and time limits, which are outside my own Turso clean-up.
 
 ## Your choice about tracking
 
@@ -58,7 +60,7 @@ We use **Streamlit** for hosting and **Turso** for optional data storage. With y
 
 You can read more: [Streamlit](https://streamlit.io/privacy-policy) · [Turso](https://turso.tech/privacy-policy) · [Google](https://policies.google.com/privacy) · [GeoJS](https://www.geojs.io/privacy/).
 
-If you email me, I use your email and message to reply to your request. My legal basis is a legitimate interest in answering you (GDPR Article 6(1)(f)). I do not use it to send ads.
+If you email me, I use your email and message to reply to your request. My legal basis is a legitimate interest in answering you (GDPR Article 6(1)(f)). I do not use it to send ads. I keep the message while I handle your request, and longer only if the law calls for it.
 
 ## Your rights
 
