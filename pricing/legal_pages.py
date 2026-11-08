@@ -42,7 +42,9 @@ def render_legal_page(kind: str) -> None:
                 "No computer score can prove that every child will understand this page."
             )
             st.markdown(
-                "[See the reproducible reading test on GitHub]"
+                "[See the age-12 reading checks and results]"
+                "(https://github.com/botsandbolts/Pricing/actions/workflows/legal-pages-qa.yml)"
+                " · [View the test code]"
                 "(https://github.com/botsandbolts/Pricing/blob/main/scripts/audit_legal_readability.py)"
             )
 
