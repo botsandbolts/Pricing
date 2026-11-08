@@ -1,25 +1,38 @@
 # Imprint / Legal Notice
 
-*Last updated: 8 November 2026*
+*Updated: 8 November 2026*
 
-## Site operator
+## Who runs this site?
 
-**Amit Steinberg**  
-Private individual  
-Hamburg, Germany
+My name is **Amit Steinberg**.
+I am a private person in **Hamburg, Germany**.
 
-**Email:** [amitsteinberg74@gmail.com](mailto:amitsteinberg74@gmail.com)
+You can write to me at:
+**[amitsteinberg74@gmail.com](mailto:amitsteinberg74@gmail.com)**
 
-## About Car Price Studio
+## What is this site?
 
-Car Price Studio (also called Pricing Lab) is an independent, non-commercial, open-source research project. It helps people explore estimates for used-car prices. It is not a car dealer, broker, or lender. You do not need to pay or sign up to use it.
+This site is called **Car Price Studio** or **Pricing Lab**.
+It is a free project about used-car prices.
+It is not a car shop.
+I do not sell cars, loans, or ads.
 
-The software is shared under the [MIT License](https://github.com/botsandbolts/Pricing/blob/main/LICENSE). Other data and software may have their own licenses.
+The price on this site is only a guess.
+It is not a promise or an offer to buy your car.
 
-## Law and responsibility
+You can see the site's code on
+[GitHub](https://github.com/botsandbolts/Pricing).
+The main code has an [MIT License](https://github.com/botsandbolts/Pricing/blob/main/LICENSE).
+Some other tools and data have their own rules.
 
-This site is run from Germany. German and European law apply where relevant. Its price estimates are for learning and research, not a promise of a sale price.
+## Which laws apply?
 
-**Data protection complaints:** The [Hamburg Commissioner for Data Protection and Freedom of Information](https://datenschutz-hamburg.de/) is the local supervisory authority for many private operators based in Hamburg. The authority has **not** approved, certified, or endorsed this project.
+I run the site from Germany.
+German and EU laws apply where they say they do.
 
-For details about personal data, see the [Privacy Policy](?legal=privacy).
+For help with personal data, read the [Privacy Policy](?legal=privacy).
+
+You can also contact the
+[Hamburg data protection office](https://datenschutz-hamburg.de/).
+This office can check complaints about data use.
+It has **not** checked or approved this site.
