@@ -28,14 +28,14 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _main_two_market_release_v14():
+def _main_two_market_release_v15():
     # Refresh presentation modules retained by long-lived serving workers.
     import importlib,sys
-    for name in ('pricing.accessibility','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
+    for name in ('pricing.accessibility','pricing.garage_art','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_main_two_market_release_v14()
+_main_two_market_release_v15()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
