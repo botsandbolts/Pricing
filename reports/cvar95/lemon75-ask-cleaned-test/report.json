@@ -1,0 +1,26 @@
+{
+  "status": "verified",
+  "market": "ask",
+  "test_scored_after_training_and_validation_selection": true,
+  "test_never_used_to_select_hyperparameters": true,
+  "model": "ray-lemon75-deepcross-original-fp32",
+  "release_date": "2026-11-08",
+  "source_run_id": 42485146978,
+  "model_native_sha256": "016d6ba9d36d14b89c402647e038085966452cf348d698ebe4d2b004e7f634d2",
+  "feature_cohort_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "original_test_rows": 31682,
+  "excluded_test_rows": 7921,
+  "retained_test_rows": 23761,
+  "retained_test_ids_sha256": "cd214863f0c7936e961f22e30637ace085ca81c56a7caffcea507b73295bf9f6",
+  "test_reference_uses_actual_observed_prices": true,
+  "test_filter": "exact original pre-Lemon reference top25 absolute log residual, row_id tie breaker",
+  "filtered_test": {
+    "rows": 23761,
+    "CVaR95_absolute_USD": 10219.22105424398,
+    "MAE_USD": 1977.5030332476767,
+    "RMSE_USD": 3366.47591592404
+  },
+  "interpretation": "Outcome-conditioned retrospective test subset, optimistic for unseen vehicles; not a prospectively usable filter or independent unbiased generalization accuracy.",
+  "original_validation_metric_is_separate": true,
+  "production_model_not_replaced": true
+}
