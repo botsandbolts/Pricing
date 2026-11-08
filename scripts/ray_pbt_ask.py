@@ -437,7 +437,11 @@ def run(args):
                 stop={"training_iteration":int(args.steps)},
                 checkpoint_config=tune.CheckpointConfig(
                     checkpoint_frequency=1,checkpoint_at_end=True,
-                    num_to_keep=2,checkpoint_score_attribute=
+                    # PBT exploits donor checkpoints asynchronously. Ray
+                    # must NOT prune earlier checkpoints while other actors
+                    # still hold references to them. Removing them caused
+                    # FileNotFoundError in both architecture populations.
+                    num_to_keep=None,checkpoint_score_attribute=
                     "best_inner_CVaR95_absolute_USD",checkpoint_score_order="min"),
                 verbose=1,
             ),
