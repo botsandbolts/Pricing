@@ -465,7 +465,7 @@ models used on our main price calculator.</p>
     from pricing.description_examples import load_examples
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
-    fastlane=main and st.query_params.get("focus")=="pricing"
+    fastlane=False  # Same page; hash navigation must never switch UI modes.
     if not fastlane:
         market_guide()
         from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
@@ -541,40 +541,6 @@ only when you ask. No model circus required. 🎪🚗
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
-    a,b=st.columns(2)
-    with a:
-        st.markdown("**✍ Seller asking · full neural network**")
-        if lemon75_ask:
-            st.caption("🍋 LIVE 8 NOV 2026 LEMON EDITION · the exact one-hour Ray-trained DeepCross neural price head, original FP32 PyTorch (no head quantization). Audited Lemon-filtered historical validation on 23,751 listings. Original BGE encoder reused; no fake text-price head.")
-        elif ask_bohb:
-            meta=json.loads((root/"models/neural-bohb-ask/manifest.json").read_text())
-            st.caption("LIVE BOHB WINNER #36 · pinned BGE → 64-dimensional projection → DeepCross/MoE. "
-                       "CVaR95-first, independently replayed on historical validation and test. "
-                       "No MiniLM price head.")
-            st.caption("Native PyTorch price network; shared BGE encoder automatically uses verified ONNX INT8 if installed.")
-        elif ask_champion:
-            st.caption("Earlier research champion: pinned BGE → trainable projection → ResMLP · trial 15. No Ridge or MiniLM price replacement.")
-        else:
-            st.caption("Original BGE text embeddings → complete DeepCross/AFT. No Ridge or MiniLM price replacement.")
-            if ask_ready:st.info("CVaR95 ResMLP challenger is not release-verified; original model remains active.")
-        if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
-    with b:
-        st.markdown("**🔨 Wholesale auction · full ensemble**")
-        if bid_bohb:
-            meta=json.loads((root/"models/neural-bohb-bid/manifest.json").read_text())
-            st.caption(f"LIVE BOHB WINNER #116 · {meta['neural_weight']:.0%} structured DeepFM + "
-                       f"{meta['lemon_weight']:.0%} original Lemon XGBoost. "
-                       "Uses structured auction data—not BGE or a text encoder.")
-        elif bid_champion:
-            meta=json.loads((root/"models/neural-experimental-bid-cvar95/manifest.json").read_text())
-            st.caption(f"Earlier research champion: {meta['neural_weight']:.0%} tuned DeepFM16 + {meta['lemon_weight']:.0%} original Lemon XGBoost.")
-        else:
-            st.caption("Original 75% DeepFM16 + 25% Lemon XGBoost, with historical 2014–2015 auction assumptions.")
-            if bid_ready:st.info("CVaR95 Bid challenger is not release-verified; original model remains active.")
-        if not bid_ready:st.warning("Wholesale model has not passed deployment parity; estimate disabled.")
-    st.caption("Ask is what a seller advertises. Bid is the wholesale auction "
-               "analogue. The gap is **not** dealer profit; it also spans different "
-               "types of transactions. One vehicle, two economic questions.")
     with st.expander("🔨 Historical wholesale auction reference · advanced",expanded=False):
         auction=st.date_input("Original auction date (2014–2015)",
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
@@ -602,7 +568,8 @@ only when you ask. No model circus required. 🎪🚗
             go=False
     if go:
         # Acknowledge the first tap immediately, before BGE initialization.
-        st.info("✅ Request received. Calculating your Ask and Bid…")
+        progress_notice=st.empty()
+        progress_notice.info("⏳ One click received. Calculating your Ask and Bid…")
         _valuation_probe("form_submitted")
         results={"fields":fields,"notes":notes,"date":str(valuation_date)}
         try:
@@ -682,6 +649,7 @@ only when you ask. No model circus required. 🎪🚗
                            "Check the private server log for details.")
         elif "bid_error" not in results:
             results["bid_error"]="Verified wholesale weights are not installed or have failed the parity gate."
+        progress_notice.empty()
         st.session_state["experimental_combined_receipt"]=results
         _valuation_probe("receipt_saved")
         if "ask" in results or "bid" in results:
@@ -776,6 +744,41 @@ only when you ask. No model circus required. 🎪🚗
     else:
         st.markdown("### 🧰 Other tools in Car Price Studio")
         st.caption("More comparison tools are available from the Studio panels.")
+    with st.expander("⚙️ Which engines priced this car? · verified model details",expanded=False):
+        a,b=st.columns(2)
+        with a:
+            st.markdown("**✍ Seller asking · full neural network**")
+            if lemon75_ask:
+                st.caption("🍋 LIVE 8 NOV 2026 LEMON EDITION · the exact one-hour Ray-trained DeepCross neural price head, original FP32 PyTorch (no head quantization). Audited Lemon-filtered historical validation on 23,751 listings. Original BGE encoder reused; no fake text-price head.")
+            elif ask_bohb:
+                meta=json.loads((root/"models/neural-bohb-ask/manifest.json").read_text())
+                st.caption("LIVE BOHB WINNER #36 · pinned BGE → 64-dimensional projection → DeepCross/MoE. "
+                           "CVaR95-first, independently replayed on historical validation and test. "
+                           "No MiniLM price head.")
+                st.caption("Native PyTorch price network; shared BGE encoder automatically uses verified ONNX INT8 if installed.")
+            elif ask_champion:
+                st.caption("Earlier research champion: pinned BGE → trainable projection → ResMLP · trial 15. No Ridge or MiniLM price replacement.")
+            else:
+                st.caption("Original BGE text embeddings → complete DeepCross/AFT. No Ridge or MiniLM price replacement.")
+                if ask_ready:st.info("CVaR95 ResMLP challenger is not release-verified; original model remains active.")
+            if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
+        with b:
+            st.markdown("**🔨 Wholesale auction · full ensemble**")
+            if bid_bohb:
+                meta=json.loads((root/"models/neural-bohb-bid/manifest.json").read_text())
+                st.caption(f"LIVE BOHB WINNER #116 · {meta['neural_weight']:.0%} structured DeepFM + "
+                           f"{meta['lemon_weight']:.0%} original Lemon XGBoost. "
+                           "Uses structured auction data—not BGE or a text encoder.")
+            elif bid_champion:
+                meta=json.loads((root/"models/neural-experimental-bid-cvar95/manifest.json").read_text())
+                st.caption(f"Earlier research champion: {meta['neural_weight']:.0%} tuned DeepFM16 + {meta['lemon_weight']:.0%} original Lemon XGBoost.")
+            else:
+                st.caption("Original 75% DeepFM16 + 25% Lemon XGBoost, with historical 2014–2015 auction assumptions.")
+                if bid_ready:st.info("CVaR95 Bid challenger is not release-verified; original model remains active.")
+            if not bid_ready:st.warning("Wholesale model has not passed deployment parity; estimate disabled.")
+        st.caption("Ask is what a seller advertises. Bid is the wholesale auction "
+                   "analogue. The gap is **not** dealer profit; it also spans different "
+                   "types of transactions. One vehicle, two economic questions.")
     st.markdown("### 🧪 Research notes: how it works, and where it can be wrong")
     st.caption("Ask: audited Lemon-filtered historical validation, not test. "
                "Historical outcomes define the excluded 25%, so this "
