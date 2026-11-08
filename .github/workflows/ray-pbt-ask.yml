@@ -1,4 +1,4 @@
-name: Ray Tune PBT Ask · evolving losses + BGE native ResMLP/DeepCross
+name: Ray Tune PBT Ask · 5-hour ResMLP/DeepCross evolution
 
 on:
   workflow_dispatch:
@@ -53,12 +53,16 @@ jobs:
             "torch":torch.__version__,"architectures":ARCHITECTURES,
             "mutable_losses":LOSS_FAMILIES,
             "population_per_architecture":6,"CPUs_per_architecture":2,
+            "ray_global_time_budget_s":18000,
+            "ray_checkpoint_interval_iterations":3,
             "original_test_never_scored":True,"automatic_deploy":False})
           PY
 
   tune:
     needs: preflight
     runs-on: ubuntu-24.04
+    # Five hours of Ray search plus environment setup, independent
+    # validation, artifact packaging and a bounded GitHub runner margin.
     timeout-minutes: 345
     strategy:
       fail-fast: false
@@ -88,14 +92,15 @@ jobs:
           run-id: 42270078516
           github-token: ${{ github.token }}
           path: training-cache/bge-256
-      - name: Run REAL Ray PBT · 6 members · weight+AdamW state inheritance · moving losses
+      - name: Run FIVE-HOUR Ray PBT · 6 members · optimizer inheritance · evolving CVaR losses
         run: |
           python -u -m scripts.ray_pbt_ask \
             --architecture ${{ matrix.architecture }} \
             --features training-cache/neural-ask/features.npz \
             --embeddings training-cache/bge-256 \
             --population 6 --workers 2 \
-            --steps 18 --epochs-per-step 3 --perturb-steps 3 \
+            --steps 1500 --epochs-per-step 3 --perturb-steps 3 \
+            --time-budget-seconds 18000 \
             --output reports/ray-pbt-ask/${{ matrix.architecture }}
       - name: Verify winner was selected from TRAIN only and canonical validation is complete
         run: |
