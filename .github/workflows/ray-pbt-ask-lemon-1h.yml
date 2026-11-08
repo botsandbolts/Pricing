@@ -1,0 +1,181 @@
+name: Ray Ask + frozen Lemon 75% · one-hour PBT (ResMLP / DeepCross)
+on:
+  push:
+    branches: ['experiment/ray-ask-lemon75-1h-20261108']
+    paths:
+      - .github/workflows/ray-pbt-ask-lemon-1h.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ray-lemon75-ask-1h-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+  OPENBLAS_NUM_THREADS: '1'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native PyTorch, Ray Tune and metric dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'ray[tune]>=2.44,<3' 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' pytest
+      - name: Guard against malformed Lemon split and out-of-range PBT mutations
+        run: |
+          python -m compileall -q scripts/ray_pbt_ask.py scripts/ray_pbt_ask_10m.py scripts/ray_pbt_ask_lemon_1h.py tests/test_ray_pbt_ask_lemon_1h.py
+          python -m pytest -q tests/test_ray_pbt_ask.py tests/test_ray_pbt_ask_10m.py tests/test_ray_pbt_ask_lemon_1h.py
+
+  train:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [resmlp, deepcross]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded CPU native PyTorch/Ray environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'ray[tune]>=2.44,<3' 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25'
+      - name: Load identical frozen cohort including the 75%-retained Lemon mask
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Load SHA-verified original 384D pretrained BGE embeddings
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Ray Tune full 60-minute PBT on retained Lemon rows only
+        run: |
+          python -u -m scripts.ray_pbt_ask_lemon_1h \
+            --architecture ${{ matrix.architecture }} \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --population 6 --workers 2 \
+            --steps 1800 --epochs-per-step 2 --perturb-steps 2 \
+            --time-budget-seconds 3600 \
+            --output reports/ray-ask-lemon75/${{ matrix.architecture }}
+      - name: Independently audit original validation and honest Lemon membership
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np,pandas as pd
+          from scripts.cvar95_historical import risk
+          root=Path('reports/ray-ask-lemon75/${{ matrix.architecture }}')
+          d=json.loads((root/'result.json').read_text())
+          assert d['status']=='complete' and d['original_test_scored'] is False
+          assert d['original_test_used_for_selection'] is False and d['autodeploy'] is False
+          assert d['training_cohort']=='frozen-lemon-oof-retained-75'
+          assert d['provenance']['lemon_removed_train_rows']==36945
+          assert d['provenance']['lemon_retained_train_rows']==110832
+          assert d['provenance']['train_fit_rows']==99749
+          assert d['provenance']['train_only_stopper_rows']==11083
+          assert d['provenance']['validation_test_filtered'] is False
+          v=pd.read_csv(root/'validation.csv.gz',dtype={'row_id':str})
+          assert len(v)==31668 and v.row_id.is_unique and v.split.eq('validation').all()
+          assert np.isfinite(v.predicted_price.to_numpy(float)).all()
+          actual=risk(v.observed_price.to_numpy(float),v.predicted_price.to_numpy(float))
+          for key in ('CVaR95_absolute_USD','MAE_USD','RMSE_USD'):
+              assert abs(actual[key]-d['external_original_validation'][key])<.05
+          assert (root/'weights.pt').is_file()
+          print('LEMON_75_RAY_INDEPENDENT_AUDIT',d['architecture'],actual,flush=True)
+          PY
+      - name: Upload research-only native checkpoints and held-out validation
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ray-ask-lemon75-${{ matrix.architecture }}
+          path: |
+            reports/ray-ask-lemon75/${{ matrix.architecture }}/weights.pt
+            reports/ray-ask-lemon75/${{ matrix.architecture }}/result.json
+            reports/ray-ask-lemon75/${{ matrix.architecture }}/validation.csv.gz
+          retention-days: 90
+          if-no-files-found: error
+      - name: Preserve PBT mutation audit, including on training failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ray-ask-lemon75-${{ matrix.architecture }}-policy
+          path: |
+            reports/ray-ask-lemon75/${{ matrix.architecture }}/ray-study/**/pbt_global.txt
+            reports/ray-ask-lemon75/${{ matrix.architecture }}/ray-study/**/pbt_policy_*.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+  report:
+    if: always()
+    needs: train
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ray-ask-lemon75-*
+          path: collected
+          merge-multiple: false
+      - name: Rank successful candidates by ORIGINAL validation CVaR95
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          records=[]
+          for path in Path('collected').rglob('result.json'):
+              record=json.loads(path.read_text())
+              if record.get('status')!='complete':continue
+              records.append({
+                'architecture':record['architecture'],
+                'training_cohort':record['training_cohort'],
+                'train_fit_rows':record['provenance']['train_fit_rows'],
+                'inner_train_rows':record['provenance']['train_only_stopper_rows'],
+                'internal_CVaR95_USD':record['selected_train_internal_CVaR95_USD'],
+                'original_validation_CVaR95_USD':record['external_original_validation']['CVaR95_absolute_USD'],
+                'original_validation_MAE_USD':record['external_original_validation']['MAE_USD'],
+                'original_validation_RMSE_USD':record['external_original_validation']['RMSE_USD'],
+              })
+          records.sort(key=lambda x:x['original_validation_CVaR95_USD'])
+          report={
+            'status':'complete' if len(records)==2 else 'partial',
+            'models':records,
+            'incumbent_original_validation_CVaR95_USD':18069.284887157904,
+            'original_test_scored':False,
+            'automatic_deployment':False,
+            'note':'Cleaned train-only subset; full original validation untouched; internal metric is conditional on prior OOF trim.',
+          }
+          Path('ray-ask-lemon75-comparison.json').write_text(json.dumps(report,indent=2))
+          print('LEMON_75_RAY_COMPARISON',json.dumps(report),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ray-ask-lemon75-summary
+          path: ray-ask-lemon75-comparison.json
+          retention-days: 90
+          if-no-files-found: error
