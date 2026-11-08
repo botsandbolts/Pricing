@@ -813,9 +813,10 @@ only when you ask. No model circus required. 🎪🚗
                             "CVaR95_absolute_USD","RMSE_USD","MAE_USD"))
             )
             if verified:
-                with st.expander(
-                        "✍ Seller asking · independently audited Lemon-cleaned TEST",
-                        expanded=True):
+                # Streamlit forbids nesting st.expander inside an expander.
+                # Keep separately-labelled test evidence visible in a supported container.
+                with st.container(border=True):
+                    st.markdown("#### ✍ Independently audited Lemon-cleaned TEST")
                     a,b,c=st.columns(3)
                     a.metric("TEST CVaR95 · worst 5%",
                              _usd(test_metric["CVaR95_absolute_USD"]))
