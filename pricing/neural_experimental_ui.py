@@ -499,7 +499,7 @@ only when you ask. No model circus required. 🎪🚗
     if examples:
         st.selectbox(
             f"Search {len(examples):,} real, price-redacted car adverts",
-            range(len(examples)+1),key="experimental_example",
+            range(len(examples)+1),key="experimental_example",persist_state="session",
             format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
             on_change=_apply_example)
         st.caption("Historical, price-redacted car adverts (CC BY 4.0). "
