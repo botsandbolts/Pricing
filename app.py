@@ -62,6 +62,47 @@ _RELEASE_ANNOUNCEMENT_HTML = """
          box-shadow:0 10px 26px rgba(9,32,39,.15)">
   <div style="color:#ffe59a;font-size:.78rem;font-weight:800;letter-spacing:.09em;
               margin-bottom:7px">🚀 CAR PRICE STUDIO · NEW RELEASE · 8 NOVEMBER 2026</div>
+
+  <!-- Upcoming international language support: announcement only, not a live-feature flag. -->
+  <div aria-label="Multilingual car descriptions launching 9 November 2026 at 18:00 Central European Time"
+       style="background:linear-gradient(117deg,#6929bc 0%,#bd237d 46%,#eb5c39 100%);
+              border:2px solid #ffec9b;border-radius:18px;padding:clamp(16px,3vw,26px);
+              margin:14px 0 22px;box-shadow:0 10px 30px #160a3555;color:#ffffff">
+    <div style="font-size:.86rem;font-weight:900;letter-spacing:.09em;color:#fff2ad;
+                margin-bottom:7px">🌍 INTERNATIONAL EDITION · COMING TOMORROW!</div>
+    <div style="font-size:clamp(1.55rem,4.2vw,2.3rem);font-weight:900;line-height:1.15;
+                letter-spacing:-.035em;margin:0 0 10px;color:#ffffff">
+      200+ languages. One beautiful car. Zero need to speak German. 🚗
+    </div>
+    <div style="font-size:clamp(1.3rem,3vw,1.9rem);letter-spacing:.1em;
+                line-height:1.5;margin-bottom:11px" role="img"
+         aria-label="Flags of the United Kingdom, France, Germany, Spain, Japan, Brazil, India, China and Saudi Arabia">
+      🇬🇧 🇫🇷 🇩🇪 🇪🇸 🇯🇵 🇧🇷 🇮🇳 🇨🇳 🇸🇦
+    </div>
+    <p style="font-size:1.04rem;line-height:1.6;margin:0 0 13px;color:#ffffff">
+      <strong style="color:#fff2ad">From Monday, 9 November 2026 at 18:00 CET</strong>,
+      Car Price Studio is scheduled to understand car descriptions in
+      <strong>more than 200 languages</strong>. Same vehicle. Same pricing logic.
+      No translation gymnastics required.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 13px">
+      <div style="flex:1 1 170px;min-width:0;background:#ffffff1f;border:1px solid #ffffff88;
+                  border-radius:12px;padding:11px 13px">
+        <div style="font-size:.76rem;color:#ffe9a3;font-weight:800;letter-spacing:.06em">🇬🇧 ENGLISH</div>
+        <div style="font-size:1.12rem;font-weight:850;color:#ffffff">“A beautiful car.”</div>
+      </div>
+      <div style="flex:1 1 170px;min-width:0;background:#ffffff1f;border:1px solid #ffffff88;
+                  border-radius:12px;padding:11px 13px">
+        <div style="font-size:.76rem;color:#ffe9a3;font-weight:800;letter-spacing:.06em">🇫🇷 FRANÇAIS</div>
+        <div style="font-size:1.12rem;font-weight:850;color:#ffffff">« Une belle voiture. »</div>
+      </div>
+    </div>
+    <p style="margin:0;color:#fff7ed;line-height:1.5;font-weight:650">
+      Your car doesn't need a passport. And finally, neither does its description.
+      <strong>Less translation. More valuation. Très chic, ja? 🇩🇪</strong>
+    </p>
+  </div>
+
   <div style="font-size:1.42rem;line-height:1.3;font-weight:850;margin-bottom:10px">
     The engines are purring. And this is just the aperitif. 🍸
   </div>
