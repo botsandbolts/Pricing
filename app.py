@@ -53,41 +53,51 @@ _main_two_market_release_v17()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
-# Normal routes retain the reliability advisory before the hero. A focused\n# pricing deep link moves it below the editable calculator.
-# Keep visible until the actual recovery has been verified; a date is not an auto-clear trigger.
-_RELIABILITY_NOTICE_HTML = """
-<section role="status" aria-label="Temporary pricing model reliability notice"
+# Show the release announcement above the hero on normal routes.
+# A focused pricing deep link keeps it below the editable calculator.
+_RELEASE_ANNOUNCEMENT_HTML = """
+<section role="status" aria-label="Car Price Studio model upgrade announcement"
   style="background:linear-gradient(115deg,#162735 0%,#1d3d4c 55%,#234d49 100%);
          color:#f7faf9;border:2px solid #e7c76f;border-radius:18px;
          padding:20px 24px;margin:4px 0 22px;
          box-shadow:0 10px 26px rgba(9,32,39,.15)">
   <div style="color:#ffe59a;font-size:.78rem;font-weight:800;letter-spacing:.09em;
-              margin-bottom:7px">🚧 CAR PRICE STUDIO · GARAGE SERVICE BULLETIN</div>
+              margin-bottom:7px">🚀 CAR PRICE STUDIO · NEW RELEASE · 8 NOVEMBER 2026</div>
   <div style="font-size:1.42rem;line-height:1.3;font-weight:850;margin-bottom:10px">
-    Supercharged models. A temporary bump in the road.
+    The engines are purring. And this is just the aperitif. 🍸
   </div>
   <p style="font-size:1.01rem;line-height:1.6;margin:0 0 12px">
-    We’ve made major upgrades to our Ask and Bid pricing evaluation models
-    over the past several days. While we fine-tune the new engine,
-    <strong>valuation quality, accuracy and stability may be affected</strong>.
-    Some estimates may be inconsistent or temporarily unavailable.
+    Our <strong>Ask and Bid evaluation models</strong> have received major
+    state-of-the-art upgrades. They’re running well, several pesky UI gremlins
+    have been shown the exit, and we’re celebrating
+    <strong>our most accurate models since Car Price Studio first opened its garage doors.</strong>
   </p>
   <p style="margin:0 0 12px;line-height:1.6">
-    <strong style="color:#ffe59a">Expected recovery: Monday, 9 November 2026,
-    at 00:00 CET (midnight in Germany).</strong>
-    This is our target, not a guarantee. Please double-check any estimate
-    before making a financial decision.
+    <strong style="color:#ffe59a">But we haven’t even served the main course.</strong>
+    Over the coming week, we’re planning several more ambitious model upgrades.
+    Our working hypothesis? The biggest gains could be especially valuable in
+    <strong>customs and law enforcement</strong>, where precision and costly
+    valuation errors really matter.
   </p>
-  <p style="margin:0;line-height:1.6">
-    We’re sorry for the inconvenience, and thank you for your patience.
-    Our little German garage is working on a smoother ride. 🇩🇪
+  <p style="margin:0 0 12px;line-height:1.6">
+    That’s a hypothesis we’re excited to test, <strong>not a result we’re
+    claiming in advance</strong>. Science first. Champagne later. 🥂
+    We’ll keep you posted as the next generation takes shape.
   </p>
+  <p style="margin:0 0 10px;line-height:1.6">
+    Meanwhile, enjoy today’s upgraded models. The garage is open, the technology
+    is serious, and the German engineering comes with a sense of humour.
+    <strong>Less haggle. More signal. More horsepower to come.</strong>
+  </p>
+  <div style="color:#ffe59a;font-size:.83rem;font-weight:650">
+    🇩🇪 Independently built in Germany · Open source · No ads · No registration
+  </div>
 </section>
 """
-# The banner's focused route must land on the car form, never the bulletin.
-# Keep the honest status notice below the pricing content in this route.
+# Focused pricing deep links must land on the car form, not on the announcement.
+# Keep the release message below the calculator for this route.
 if st.query_params.get("focus") != "pricing":
-    st.markdown(_RELIABILITY_NOTICE_HTML, unsafe_allow_html=True)
+    st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
@@ -103,7 +113,7 @@ if _workspace=='🚗 Price my car':
     from pricing.neural_experimental_ui import render as render_two_market_pricing
     render_two_market_pricing(Path(__file__).parent,main=True)
     if st.query_params.get("focus") == "pricing":
-        st.markdown(_RELIABILITY_NOTICE_HTML, unsafe_allow_html=True)
+        st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
     from pricing.ga_events import render_events
     render_events()
     footer()
