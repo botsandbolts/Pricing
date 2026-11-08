@@ -9,6 +9,6 @@
   "sample_validation_serving_rows": 40,
   "original_lemon_xgboost_reused": true,
   "original_test_used_for_selection": false,
-  "historical_test_CVaR95_USD": 8591.09575883286,
+  "historical_test_CVaR95_USD": 8591.09635459753,
   "historical_incumbent_CVaR95_USD": 8860.3173632581
 }
