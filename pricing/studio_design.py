@@ -24,6 +24,8 @@ def show_landing_banner():
     Historical shared-link routes and research panels still show the compact
     native brand bar; no full-size hero above every experimental panel.
     """
+    if st.query_params.get('legal') in ('imprint', 'privacy'):
+        return False
     active=st.session_state.get('landing_studio_workspace','🚗 Price my car')
     if st.query_params.get('garage') and 'landing_studio_workspace' not in st.session_state:
         return False
@@ -139,7 +141,7 @@ def footer():
     with st.expander('Accessibility & browser test report'):
         from pricing.accessibility_report import render as render_accessibility_report
         render_accessibility_report()
-    st.markdown('<footer class="garage-footer"><span><strong>Car Price Studio.</strong> Built with care. Best explored with curiosity.<br>Estimates ≠ sale guarantees. Keep your mechanic.</span>'+origin_badge()+'</footer>',unsafe_allow_html=True)
+    st.markdown('<footer class="garage-footer"><span><strong>Car Price Studio.</strong> Built with care. Best explored with curiosity.<br>Estimates ≠ sale guarantees. Keep your mechanic.</span><nav class="garage-legal-links" aria-label="Legal information"><a href="?legal=imprint">Imprint</a><span aria-hidden="true">·</span><a href="?legal=privacy">Privacy Policy</a></nav>'+origin_badge()+'</footer>',unsafe_allow_html=True)
     st.caption('© 2026 [Amit Steinberg](https://de.linkedin.com/in/amit-steinberg-504546445) · Open-source software · [MIT License](https://github.com/botsandbolts/Pricing/blob/main/LICENSE)')
     st.caption('Datasets, pretrained models and dependencies retain their respective licences.')
 
