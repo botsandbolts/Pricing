@@ -1,0 +1,180 @@
+name: Release overnight BOHB Ask36 + Bid116 · original test parity
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/release-overnight-bohb.yml
+      - scripts/release_overnight_bohb.py
+      - pricing/overnight_bohb_live.py
+      - tests/test_overnight_bohb_release.py
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-original-test-gated-bohb
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned CPU PyTorch, regression and test dependencies
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'xgboost>=3,<4' 'joblib' pytest streamlit
+      - name: Verify source, loss, model and release code compiles
+        run: |
+          python -m compileall -q scripts/release_overnight_bohb.py pricing/overnight_bohb_live.py scripts/overnight_bohb_neural.py tests/test_overnight_bohb_release.py
+          python -m pytest -q tests/test_overnight_bohb_release.py
+
+  audit_and_publish:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native PyTorch, XGBoost, BGE and original cohort audit stack
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' 'xgboost>=3,<4' 'joblib' pytest streamlit
+          python -m pip install 'sentence-transformers==6.2.0' 'transformers==5.21.0'
+      - name: Recover final independent full BOHB audit, no invented trial scores
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-BOHB-final-comparison
+          run-id: 42406868569
+          github-token: ${{ github.token }}
+          path: selected/final
+      - name: Recover EXACT original Ask champion trial 36 native checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-result-s9-ask-0
+          run-id: 42406868569
+          github-token: ${{ github.token }}
+          path: selected/ask
+      - name: Recover EXACT original Bid champion trial 116 native checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: overnight-result-s29-bid-0
+          run-id: 42406868569
+          github-token: ${{ github.token }}
+          path: selected/bid
+      - name: Recover original immutable asking cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover pinned frozen BGE training embeddings (never regenerate)
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Recover original immutable VIN-disjoint wholesale cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Recover original matched Lemon XGBoost Bid predictions
+        uses: actions/download-artifact@v4
+        with:
+          name: lemon-hierarchy-bid
+          run-id: 41605651393
+          github-token: ${{ github.token }}
+          path: benchmark-reference
+      - name: Replay ALL 31668 validation prices and score untouched 31682 Ask test rows
+        run: |
+          python -u -m scripts.release_overnight_bohb \
+            --market ask \
+            --report selected/final/nightmare-final-comparison.json \
+            --winner selected/ask \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --output models/neural-bohb-ask
+      - name: Replay ALL 82380 validation bids and score untouched 83603 Bid test rows
+        run: |
+          python -u -m scripts.release_overnight_bohb \
+            --market bid \
+            --report selected/final/nightmare-final-comparison.json \
+            --winner selected/bid \
+            --features training-cache/neural-bid/features.npz \
+            --baseline benchmark-reference/bid/predictions.csv.gz \
+            --output models/neural-bohb-bid
+      - name: Verify both release manifests and native model weights, no BGE in Bid
+        run: |
+          python - <<'PY'
+          from pricing.overnight_bohb_live import available
+          from pathlib import Path
+          import json
+          assert available('.', 'ask'), 'BOHB Ask did not pass original test gate'
+          assert available('.', 'bid'), 'BOHB Bid did not pass original test gate'
+          for market in ('ask','bid'):
+              f=Path(f'models/neural-bohb-{market}')
+              m=json.loads((f/'manifest.json').read_text())
+              v=json.loads((f/'verification.json').read_text())
+              assert v['full_original_test_scored'] and v['serving_prediction_parity']
+              assert m['native_pytorch_head'] and not m['bge_in_bid_model']
+              assert all(f.joinpath(name).is_file() for name in ('weights.pt','manifest.json','verification.json'))
+              print('RELEASE_PARITY',market,m['trial'],
+                    'historical_test_CVaR95',m['historical_test']['CVaR95_absolute_USD'],
+                    'original_test_improved',v['candidate_test_cvar95_improves_incumbent'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: overnight-bohb-both-original-test-verified-bundles
+          path: |
+            models/neural-bohb-ask/
+            models/neural-bohb-bid/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Promote only BOTH parity-verified winners together; preserve rollback bundles
+        run: |
+          cp -a models/neural-bohb-ask "$RUNNER_TEMP/bohb-ask"
+          cp -a models/neural-bohb-bid "$RUNNER_TEMP/bohb-bid"
+          source_sha=$(git rev-parse HEAD)
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin main
+            git reset --hard origin/main
+            mkdir -p models/neural-bohb-ask models/neural-bohb-bid
+            cp -a "$RUNNER_TEMP/bohb-ask/." models/neural-bohb-ask/
+            cp -a "$RUNNER_TEMP/bohb-bid/." models/neural-bohb-bid/
+            git add -f models/neural-bohb-ask/ models/neural-bohb-bid/
+            git diff --cached --quiet && exit 0
+            git commit -m 'Deploy CVaR95 BOHB Ask36 and Bid116 after original untouched test parity'
+            if git push origin HEAD:main; then
+              echo 'Published verified dual-market BOHB checkpoints.'
+              exit 0
+            fi
+          done
+          exit 1
