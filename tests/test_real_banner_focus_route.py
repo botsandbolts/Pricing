@@ -1,34 +1,34 @@
-"""Regression: the real app's focused banner route cannot land on the bulletin."""
+"""Source-level guards for a permanent, single-route pricing flow."""
 from pathlib import Path
 import ast
-
 ROOT=Path(__file__).resolve().parents[1]
-
 
 def source(path):
     return (ROOT/path).read_text()
 
-
-def test_focused_route_moves_reliability_warning_below_main_calculator():
+def test_banners_persist_across_hash_navigation_and_calculation():
     app=source("app.py")
-    ast.parse(app)
-    assert '_RELIABILITY_NOTICE_HTML = """' in app
-    assert 'if st.query_params.get("focus") != "pricing":' in app
-    calc=app.index("render_two_market_pricing(Path(__file__).parent,main=True)")
-    warning_after=app.index('st.markdown(_RELIABILITY_NOTICE_HTML, unsafe_allow_html=True)',calc)
-    assert warning_after>calc
-    assert app.count('st.markdown(_RELIABILITY_NOTICE_HTML, unsafe_allow_html=True)')==2
-
-
-def test_banner_focus_route_shows_real_vehicle_form_before_date_or_models():
+    design=source("pricing/studio_design.py")
     ui=source("pricing/neural_experimental_ui.py")
-    ast.parse(ui)
-    anchor=ui.index('fastlane=main and st.query_params.get("focus")=="pricing"')
-    initial=ui.index('    if fastlane:\n        # Direct banner navigation:',anchor)
-    first_form=ui.index('fields,notes,go=_vehicle(',initial)
-    clock=ui.index('    valuation_date,allow_analogue=clock_controls(',initial)
-    model_description=ui.index('    a,b=st.columns(2)',clock)
-    assert initial<first_form<clock<model_description
-    assert ui.count("    if not fastlane:\n        fields,notes,go=_vehicle(")==1
-    assert "Original auction date (2014–2015)" in ui
-    assert "original" in ui
+    nav=source("pricing/navigation.py")
+    for name,s in (("app.py",app),("pricing/studio_design.py",design),
+                   ("pricing/neural_experimental_ui.py",ui),("pricing/navigation.py",nav)):
+        ast.parse(s,filename=name)
+    assert app.count('st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)')==1
+    assert 'if st.query_params.get("focus") != "pricing":' not in app
+    assert 'href="#studio-calculator"' in design
+    assert 'id="studio-calculator"' in ui
+    assert 'fastlane' not in ui
+    assert 'progress_notice.empty()' in ui
+
+def test_pricing_example_selector_precedes_exactly_one_main_form():
+    ui=source("pricing/neural_experimental_ui.py")
+    start=ui.index("def render(root,*,main=False):")
+    sample=ui.index('key="experimental_example"',start)
+    form=ui.index('fields,notes,go=_vehicle(',start)
+    submit=ui.index('    if go:',form)
+    assert start<sample<form<submit
+    assert ui[start:].count('fields,notes,go=_vehicle(')==1
+    assert "on_change=_apply_example" in ui
+    assert "One click received" in ui
+    assert 'st.success("✅ Calculation complete.' in ui
