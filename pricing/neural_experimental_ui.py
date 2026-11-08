@@ -503,6 +503,23 @@ only when you ask. No model circus required. 🎪🚗
             format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
             on_change=_apply_example)
         st.caption("Real historical seller descriptions; prices and contact details redacted. Source: Tom’s Used Cars Dataset (CC BY 4.0). These are examples, not 400 fresh appraisals.")
+    # Cheap, read-only availability checks before the focused form. The
+    # default page preserves the same research/model introduction ordering.
+    lemon75_ask=lemon75_ask_available(root)
+    ask_bohb=bohb_available(root,"ask")
+    bid_bohb=bohb_available(root,"bid")
+    ask_champion=champion_ask_available(root)
+    bid_champion=champion_bid_available(root)
+    ask_ready=lemon75_ask or ask_bohb or ask_champion or ask_available(root)
+    bid_ready=bid_bohb or bid_champion or bid_available(root)
+    if fastlane:
+        # Direct banner navigation: the editable car form is ABOVE optional
+        # date assumptions, model descriptions and all research panels.
+        # The submit button still flows to a single canonical prediction path.
+        fields,notes,go=_vehicle(
+            "bge_ask",ready=ask_ready or bid_ready,compact=main)
+        st.caption("Optional valuation-date and auction settings follow "
+                   "below. The car is ready to price with one submit.")
     valuation_date,allow_analogue=clock_controls(
         prefix="main" if main else "experimental",prominent=main)
     # These historical models and their original data are never retrained by changing the date.
@@ -512,13 +529,6 @@ only when you ask. No model circus required. 🎪🚗
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
-    lemon75_ask=lemon75_ask_available(root)
-    ask_bohb=bohb_available(root,"ask")
-    bid_bohb=bohb_available(root,"bid")
-    ask_champion=champion_ask_available(root)
-    bid_champion=champion_bid_available(root)
-    ask_ready=lemon75_ask or ask_bohb or ask_champion or ask_available(root)
-    bid_ready=bid_bohb or bid_champion or bid_available(root)
     a,b=st.columns(2)
     with a:
         st.markdown("**✍ Seller asking · full neural network**")
@@ -559,7 +569,9 @@ only when you ask. No model circus required. 🎪🚗
             max_value=pd.Timestamp("2015-12-31").date(),key="experiment_joint_auction")
         grade=st.selectbox("Historical pre-sale grade",["unknown","1","2","3","4","5"],index=3,key="experiment_joint_grade")
         st.caption("2016–2021 cars can use an optional *hypothetical five-year-old auction analogue*. It is not evidence of what that vehicle generation sold for in 2015.")
-    fields,notes,go=_vehicle("bge_ask",ready=ask_ready or bid_ready,compact=main)
+    if not fastlane:
+        fields,notes,go=_vehicle(
+            "bge_ask",ready=ask_ready or bid_ready,compact=main)
     # The public date picker can predate a particular model year. Reject before
     # expensive BGE inference, and do not retain a stale previous receipt.
     if go:

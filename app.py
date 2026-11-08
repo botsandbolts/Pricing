@@ -53,7 +53,7 @@ from pricing.studio_design import install_style,render_hero,section,empty_receip
 install_style()
 # Public reliability advisory belongs above the hero and calculator on every workspace.
 # Keep visible until the actual recovery has been verified; a date is not an auto-clear trigger.
-st.markdown("""
+_RELIABILITY_NOTICE_HTML = """
 <section role="status" aria-label="Temporary pricing model reliability notice"
   style="background:linear-gradient(115deg,#162735 0%,#1d3d4c 55%,#234d49 100%);
          color:#f7faf9;border:2px solid #e7c76f;border-radius:18px;
@@ -81,7 +81,11 @@ st.markdown("""
     Our little German garage is working on a smoother ride. 🇩🇪
   </p>
 </section>
-""", unsafe_allow_html=True)
+"""
+# The banner's focused route must land on the car form, never the bulletin.
+# Keep the honest status notice below the pricing content in this route.
+if st.query_params.get("focus") != "pricing":
+    st.markdown(_RELIABILITY_NOTICE_HTML, unsafe_allow_html=True)
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
@@ -96,6 +100,8 @@ if _workspace=='🚗 Price my car':
     render_privacy()
     from pricing.neural_experimental_ui import render as render_two_market_pricing
     render_two_market_pricing(Path(__file__).parent,main=True)
+    if st.query_params.get("focus") == "pricing":
+        st.markdown(_RELIABILITY_NOTICE_HTML, unsafe_allow_html=True)
     from pricing.ga_events import render_events
     render_events()
     footer()

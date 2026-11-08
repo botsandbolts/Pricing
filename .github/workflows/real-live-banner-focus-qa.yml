@@ -1,0 +1,50 @@
+name: Real hosted Chromium · single banner tap lands on car form
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - app.py
+      - pricing/neural_experimental_ui.py
+      - pricing/navigation.py
+      - pricing/studio_design.py
+      - scripts/browser_real_live_focus_qa.py
+      - tests/test_real_banner_focus_route.py
+      - .github/workflows/real-live-banner-focus-qa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: real-live-banner-focus-qa
+  cancel-in-progress: true
+
+jobs:
+  real_hosted_browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline source QA and real browser test
+        run: |
+          python -m pip install 'pytest>=8,<10' 'playwright>=1.55,<2'
+      - name: Check actual focused app warning/form order, not just a banner fixture
+        run: |
+          python -m compileall -q app.py pricing/neural_experimental_ui.py scripts/browser_real_live_focus_qa.py
+          python -m pytest -q tests/test_real_banner_focus_route.py
+      - name: Install genuine headless Chromium
+        run: python -m playwright install --with-deps chromium
+      - name: Touch the real hosted Streamlit banner once, then real submit once
+        run: python -m scripts.browser_real_live_focus_qa
+      - name: Archive screenshots and real browser evidence regardless of outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosted-production-one-tap-chromium-evidence
+          path: reports/qa/real-live-chromium/
+          if-no-files-found: warn
+          retention-days: 30
