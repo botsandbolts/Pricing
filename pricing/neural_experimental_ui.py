@@ -88,11 +88,12 @@ def _report(root,name):
     except (OSError,ValueError,TypeError):return {}
 
 
-def _vehicle(prefix,bid=False,ready=False,compact=False):
+def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False):
     """One unified, keyboard-accessible form. Main pricing has no scan/BART step."""
     with st.form(prefix+"_vehicle",clear_on_submit=False):
-        st.markdown("### 🚗 02 / Tell us about the car" if compact
-                    else "#### 01 / Describe the vehicle")
+        st.markdown("### 🚗 01 / Tell us about the car" if focus else
+                    "### 🚗 02 / Tell us about the car" if compact else
+                    "#### 01 / Describe the vehicle")
         if compact:
             st.caption("No VIN upload, no special instructions and no degree in "
                        "automotive engineering required. The description is optional "
@@ -495,14 +496,15 @@ only when you ask. No model circus required. 🎪🚗
         st.markdown('<div id="studio-calculator" tabindex="-1"></div>',
                     unsafe_allow_html=True)
     examples=load_examples()
-    st.markdown("### 🚗 01 / Start with an example—or your own car")
-    if examples:
-        st.selectbox(
-            f"Search {len(examples):,} real, price-redacted car adverts",
-            range(len(examples)+1),key="experimental_example",
-            format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
-            on_change=_apply_example)
-        st.caption("Real historical seller descriptions; prices and contact details redacted. Source: Tom’s Used Cars Dataset (CC BY 4.0). These are examples, not 400 fresh appraisals.")
+    if not fastlane:
+        st.markdown("### 🚗 01 / Start with an example—or your own car")
+        if examples:
+            st.selectbox(
+                f"Search {len(examples):,} real, price-redacted car adverts",
+                range(len(examples)+1),key="experimental_example",
+                format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
+                on_change=_apply_example)
+            st.caption("Real historical seller descriptions; prices and contact details redacted. Source: Tom’s Used Cars Dataset (CC BY 4.0). These are examples, not 400 fresh appraisals.")
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
     lemon75_ask=lemon75_ask_available(root)
@@ -517,7 +519,17 @@ only when you ask. No model circus required. 🎪🚗
         # date assumptions, model descriptions and all research panels.
         # The submit button still flows to a single canonical prediction path.
         fields,notes,go=_vehicle(
-            "bge_ask",ready=ask_ready or bid_ready,compact=main)
+            "bge_ask",ready=ask_ready or bid_ready,compact=main,focus=True)
+        if examples:
+            with st.expander("🚙 Want a sample car instead? Pick a real advert"):
+                st.selectbox(
+                    f"Search {len(examples):,} real, price-redacted adverts",
+                    range(len(examples)+1),key="experimental_example",
+                    format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
+                    on_change=_apply_example)
+                st.caption("Historical, price-redacted examples (CC BY 4.0). "
+                           "Changing the example fills the form; it does "
+                           "not automatically submit a calculation.")
         st.caption("Optional valuation-date and auction settings follow "
                    "below. The car is ready to price with one submit.")
     valuation_date,allow_analogue=clock_controls(
