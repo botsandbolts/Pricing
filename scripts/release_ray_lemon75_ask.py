@@ -121,7 +121,7 @@ def export_quantize(net,folder):
                 "category":{0:"batch"},
                 "vector":{0:"batch"},
                 "log_heads":{0:"batch"},
-            },do_constant_folding=True)
+            },do_constant_folding=True,dynamo=False)
     quantize_dynamic(str(unquant),str(folder/"head-int8.onnx"),
                      weight_type=QuantType.QInt8,per_channel=True,
                      op_types_to_quantize=["MatMul","Gemm"])
