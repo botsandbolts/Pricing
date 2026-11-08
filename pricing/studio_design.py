@@ -18,15 +18,82 @@ def origin_badge():
     return '<span class="garage-origin"><span class="garage-flag" role="img" aria-label="German flag"></span>Made in Germany</span>'
 
 
+def show_landing_banner():
+    """Only the primary Price My Car workspace has the full welcome campaign.
+
+    Historical shared-link routes and research panels still show the compact
+    native brand bar; no full-size hero above every experimental panel.
+    """
+    active=st.session_state.get('landing_studio_workspace','🚗 Price my car')
+    if st.query_params.get('garage') and 'landing_studio_workspace' not in st.session_state:
+        return False
+    return active in ('🚗 Price my car','🧬 Experimental pricing','🧬 Experimental models')
+
+
+def landing_banner_html():
+    """Self-contained local SVG and semantic anchor. Nothing external loads."""
+    from pricing.garage_art import hero_svg
+    art=hero_svg()
+    return f"""
+<section class="garage-home-hero" aria-labelledby="garage-home-title">
+  <div class="garage-home-copy">
+    <div class="garage-home-kicker"><span class="garage-flag" role="img" aria-label="German flag"></span>
+      MADE IN GERMANY <span aria-hidden="true">✦</span> BUILT FOR AMERICA'S DRIVEWAYS</div>
+    <h1 id="garage-home-title">“I KNOW WHAT I'VE GOT.”<span>Excellent. Let's ask the data.</span></h1>
+    <p class="garage-home-lead">Texas pickup? California coupe? Craigslist classic
+      with a mysterious rattle? Meet two <strong>historical U.S. price perspectives</strong>:
+      seller <strong>Ask</strong> and wholesale <strong>Bid</strong>.
+      Zero crystal balls. Your mechanic gets the last word.</p>
+    <div class="garage-home-actions">
+      <a class="garage-home-cta" href="#studio-calculator"
+         aria-label="Go to the car pricing calculator">🚗 Price my car — let's roll <span aria-hidden="true">→</span></a>
+      <a class="garage-home-source" href="https://github.com/botsandbolts/Pricing"
+         target="_blank" rel="noopener noreferrer">Explore the open-source code ↗</a>
+    </div>
+    <div class="garage-home-assurances" aria-label="What makes Car Price Studio different">
+      <span>✓ No registration</span><span>✓ No ads or paywall</span>
+      <span>✓ Independent project</span><span>✓ Free &amp; MIT open source</span>
+    </div>
+  </div>
+  <div class="garage-home-art">
+    <div class="garage-home-art-note">THE GARAGE LAB <span aria-hidden="true">❤</span> NOT A DEALERSHIP</div>
+    {art}
+    <div class="garage-home-sticker">No sales pitch.<br><strong>Just price research.</strong></div>
+  </div>
+</section>
+<div class="garage-home-trust" role="note">
+  <span class="garage-home-trust-icon" aria-hidden="true">🛡️</span>
+  <span><strong>Privacy isn't an optional extra.</strong> No account required. Optional diagnostics and
+  Google Analytics require consent; refusing won't stop you pricing a car.
+  GDPR applies to this Hamburg-based independent project.</span>
+</div>
+<details class="garage-home-privacy">
+  <summary>Privacy in plain English · What happens to my details?</summary>
+  <div class="garage-home-privacy-body">
+    <p>Your vehicle details and optional description are processed to produce your estimate.
+    Please don't include names, addresses, phone numbers or other personal identifiers in a description.</p>
+    <p>Only if you accept optional analytics do the tools record selected vehicle characteristics,
+    estimated prices, and coarse usage/technical diagnostics in Turso (90-day retention);
+    Google Analytics also processes usage signals under its own terms.
+    No advertising tracking is enabled. Rejecting analytics doesn't disable the calculator.
+    Server hosting providers may keep their own operational logs.
+    You can change your choice in <strong>Privacy &amp; cookies</strong>.</p>
+    <p>This operator is based in Hamburg, Germany. The applicable GDPR supervisory framework
+    includes <a href="https://datenschutz-hamburg.de/" target="_blank" rel="noopener noreferrer">
+    the Hamburg Commissioner for Data Protection and Freedom of Information</a>.
+    Regulatory oversight is not an endorsement, audit, or certification of this website.</p>
+  </div>
+</details>
+"""
+
+
 def render_hero():
-    from pricing.garage_art import car_svg,hero_svg
+    from pricing.garage_art import car_svg
     st.markdown('<div class="garage-nav"><a class="garage-brand" href="#studio-workspace" aria-label="Car Price Studio · skip to workspace"><span class="garage-mark" aria-hidden="true">'+car_svg()+'</span><span class="garage-wordmark"><strong>car price studio</strong><small>A little car love. A lot of curiosity.</small></span></a>'+origin_badge()+'</div>',unsafe_allow_html=True)
     from pricing.accessibility import reading_options
     reading_options()
-    # The primary Ask/Bid screen provides the page-specific campaign hero.
-    # Other tools display compact panel headers. Avoid stacking two giant
-    # billboards above the input form, especially on narrow screens.
-    return
+    if show_landing_banner():
+        st.markdown(landing_banner_html(),unsafe_allow_html=True)
 
 
 def page_intro(kicker,title,description,icon='🚗'):
