@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - .github/workflows/bge-int8-release.yml
+      - scripts/native_pricing_runtime_smoke.py
+      - pricing/overnight_bohb_live.py
       - scripts/release_bge_int8.py
       - scripts/memory_watch_selftest.py
       - pricing/quantized_bge_runtime.py
@@ -31,7 +33,7 @@ env:
 jobs:
   quantize_validate_publish:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -68,24 +70,41 @@ jobs:
             > reports/qa/bge-int8-release/memray-int8-summary.txt
           # Native stack traces may contain code paths; collect only on
           # private workflow artifacts, not in public Streamlit memory logs.
-      - name: Promote INT8 model ONLY after parity and RSS release gates passed
+      - name: Promote INT8 encoder only after real-dollar parity and measured RSS reduction
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch origin main
-          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" || {
-            echo 'Main changed during expensive quantization; refusing stale promotion.'
-            exit 1
-          }
           test -s models/bge-small-int8-onnx/model_int8.onnx
           test -s models/bge-small-int8-onnx/tokenizer.json
           test -s models/bge-small-int8-onnx/manifest.json
-          git add models/bge-small-int8-onnx/ \
-                  reports/qa/bge-int8-release/weight-savings.json \
-                  reports/qa/bge-int8-release/price-parity.json \
-                  reports/qa/bge-int8-release/memory-parity.json
-          git commit -m 'Release measured BGE-small INT8 encoder after real-dollar parity and memory gate'
-          git push origin HEAD:main
+          cp -a models/bge-small-int8-onnx "$RUNNER_TEMP/verified-bge-int8"
+          mkdir -p "$RUNNER_TEMP/verified-bge-reports"
+          cp reports/qa/bge-int8-release/weight-savings.json "$RUNNER_TEMP/verified-bge-reports/"
+          cp reports/qa/bge-int8-release/price-parity.json "$RUNNER_TEMP/verified-bge-reports/"
+          cp reports/qa/bge-int8-release/memory-parity.json "$RUNNER_TEMP/verified-bge-reports/"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5 6; do
+            git fetch origin main
+            # Refuse stale software changes, but permit unrelated verified
+            # Ask/Bid checkpoint publication while quantization ran.
+            for file in pricing/quantized_bge_runtime.py scripts/release_bge_int8.py pricing/neural_ask_embedding_live.py; do
+              test "$(git hash-object "$file")" = "$(git rev-parse "origin/main:$file")" || {
+                echo "Release dependency changed during INT8 audit: $file"
+                exit 1
+              }
+            done
+            git reset --hard origin/main
+            mkdir -p models/bge-small-int8-onnx reports/qa/bge-int8-release
+            cp -a "$RUNNER_TEMP/verified-bge-int8/." models/bge-small-int8-onnx/
+            cp -a "$RUNNER_TEMP/verified-bge-reports/." reports/qa/bge-int8-release/
+            git add -f models/bge-small-int8-onnx/ \
+                reports/qa/bge-int8-release/weight-savings.json \
+                reports/qa/bge-int8-release/price-parity.json \
+                reports/qa/bge-int8-release/memory-parity.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Release measured BGE-small INT8 encoder after real-dollar parity and memory gate'
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
