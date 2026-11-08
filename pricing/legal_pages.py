@@ -30,15 +30,16 @@ def render_legal_page(kind: str) -> None:
             from scripts.audit_legal_readability import audit_markdown
             check = audit_markdown(_FILES["privacy"].read_text(encoding="utf-8"))
             a, b, c = st.columns(3)
-            a.metric("Flesch–Kincaid grade (approx.)", f"{check['flesch_kincaid_grade']:.1f}")
+            a.metric("Reading grade (approx.)", f"{check['flesch_kincaid_grade']:.1f}")
             b.metric("Flesch Reading Ease (approx.)", f"{check['flesch_reading_ease']:.0f} / 100")
             c.metric("Coleman–Liau grade", f"{check['coleman_liau_grade']:.1f}")
             st.caption(
                 f"Average sentence length: {check['mean_words_per_sentence']:.1f} words. "
                 f"Sentences longer than 20 words: {check['long_sentence_share']:.0%}. "
-                "Target: roughly grade 7 or below. These are computer estimates, not a "
-                "legal certification or proof that everyone will understand the text. "
-                "The independent methods use different clues about reading difficulty."
+                "Target: grade 6 or easier (about age 12). These scores are rough. "
+                "The full check also uses textstat and wordfreq to spot hard words. "
+                "They run in GitHub tests, not on the live site. "
+                "No computer score can prove that every child will understand this page."
             )
             st.markdown(
                 "[See the reproducible reading test on GitHub]"
