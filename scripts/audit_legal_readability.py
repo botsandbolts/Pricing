@@ -104,8 +104,11 @@ def advanced_audit(markdown: str) -> dict:
         "textstat_flesch_kincaid_grade": textstat.flesch_kincaid_grade(text),
         "textstat_coleman_liau_grade": textstat.coleman_liau_index(text),
         "textstat_automated_readability_grade": textstat.automated_readability_index(text),
+        # Raw legacy dictionary score, including brand names and legal terms.
+        # Report it even if it disagrees with other measures.
         "textstat_dale_chall_score": textstat.dale_chall_readability_score(text),
         "textstat_grade_consensus": textstat.text_standard(text, float_output=True),
+        "dale_chall_note": "This fixed older word list counts modern brands and legal terms as hard. Its full score is shown but is not an age-12 pass test.",
         "textstat_difficult_word_count": textstat.difficult_words(text),
         "wordfreq_uncommon_token_share": round(len(uncommon) / max(1, len(long_tokens)), 4),
         "wordfreq_uncommon_word_examples": rare_unique[:25],
@@ -119,8 +122,8 @@ def advanced_targets(result: dict) -> dict[str, bool]:
         "textstat_reading_ease_75_or_more": result["textstat_flesch_ease"] >= 75,
         "textstat_coleman_liau_7_or_less": result["textstat_coleman_liau_grade"] <= 7,
         "textstat_ari_7_or_less": result["textstat_automated_readability_grade"] <= 7,
-        "dale_chall_grade_5_6_or_easier": result["textstat_dale_chall_score"] <= 5.9,
-        "wordfreq_uncommon_share_below_15_percent": result["wordfreq_uncommon_token_share"] <= .15,
+        "textstat_grade_consensus_6_or_less": result["textstat_grade_consensus"] <= 6,
+        "wordfreq_uncommon_share_below_10_percent": result["wordfreq_uncommon_token_share"] <= .10,
     }
 
 
