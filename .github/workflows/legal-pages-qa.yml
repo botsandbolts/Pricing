@@ -1,0 +1,33 @@
+name: Legal pages · disclosure and readability QA
+
+on:
+  push:
+    paths:
+      - 'app.py'
+      - 'assets/garage.css'
+      - 'pricing/studio_design.py'
+      - 'pricing/legal_*.md'
+      - 'pricing/legal_pages.py'
+      - 'scripts/audit_legal_readability.py'
+      - 'tests/test_legal_pages.py'
+      - '.github/workflows/legal-pages-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legal-pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Legal content and footer routes
+        run: python -m unittest -v tests.test_legal_pages
+      - name: Independent English reading checks
+        run: python scripts/audit_legal_readability.py --strict
+      - name: Syntax check without importing heavy pricing code
+        run: python -m py_compile app.py pricing/studio_design.py pricing/legal_pages.py scripts/audit_legal_readability.py
