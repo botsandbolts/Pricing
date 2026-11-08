@@ -71,7 +71,12 @@ def _number(n):
 
 
 def model_kpis(root,market):
-    """Actual LIVE-model historical test CVaR95; never show older model stats."""
+    """Live matched receipt: filtered Lemon Ask validation or legacy test."""
+    from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
+    if market=="ask":
+        clean=lemon_manifest(root)
+        if clean:
+            return clean["filtered_validation"]
     from pricing.overnight_bohb_live import available as bohb_available,FOLDERS
     if bohb_available(root,market):
         m=json.loads((Path(root)/FOLDERS[market]/"manifest.json").read_text())
@@ -146,8 +151,16 @@ def render(root):
     ask=model_kpis(root,"ask")
     bid=model_kpis(root,"bid")
     with a:
-        if ask:st.metric("2021 asking · CVaR-selected BGE model",_number(ask["CVaR95_absolute_USD"]))
-        st.caption("31,682 original advertised asking prices, not confirmed sales.")
+        if ask:
+            from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
+            clean=lemon_manifest(root)
+            label="2021 asking · Lemon75 VALIDATION" if clean else "Earlier Ask TEST"
+            st.metric(label,_number(ask["CVaR95_absolute_USD"]))
+            st.caption(
+                "23,751 outcome-filtered historical validation listings; "
+                "conditional, optimistic for new vehicles."
+                if clean else
+                "Older original historical test, not a clean Lemon75 audit.")
     with b:
         if bid:st.metric("2015 wholesale · CVaR-selected DeepFM16 blend",_number(bid["CVaR95_absolute_USD"]))
         st.caption("83,603 completed historical auctions, 2015-indexed USD.")

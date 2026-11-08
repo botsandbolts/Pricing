@@ -1,0 +1,32 @@
+name: Mobile one-tap navigation and matched Lemon75 metrics QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/mobile-lemon75-ux.yml
+      - assets/garage.css
+      - pricing/studio_design.py
+      - pricing/navigation.py
+      - pricing/neural_experimental_ui.py
+      - pricing/ray_lemon75_ask_ui.py
+      - pricing/cvar95_experiment_science.py
+      - tests/test_mobile_lemon75_ux.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public_ux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deterministic offline test tools only
+        run: python -m pip install pytest
+      - name: Check single-tap routing, truthful Lemon metrics and source parsing
+        run: python -m pytest -q tests/test_mobile_lemon75_ux.py

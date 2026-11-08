@@ -9,6 +9,16 @@ def render_navigation():
         st.session_state['landing_studio_workspace']=pending
     elif 'landing_studio_workspace' not in st.session_state:
         st.session_state['landing_studio_workspace']='🕵️ Deal Detective' if st.query_params.get('garage') else PAGES[0]
+    if st.query_params.get('focus') == 'pricing':
+        # One-tap direct-to-calculator route: avoid a dynamic same-page anchor.
+        st.session_state['landing_studio_workspace']=PAGES[0]
+        st.session_state['studio_tabs']=PAGES[0]
+        st.markdown('<div id="studio-workspace" tabindex="-1"></div>'
+                    '<div class="garage-route-note">'
+                    '🚗 <strong>Price my car</strong> · Calculator ready. '
+                    '<a href="?">Explore the full garage</a>'
+                    '</div>',unsafe_allow_html=True)
+        return PAGES[0]
     st.markdown('<div id="studio-workspace" tabindex="-1"></div>',unsafe_allow_html=True)
     st.markdown('<div class="garage-nav-heading"><strong>Choose a panel</strong><span>Tap a panel to open it.</span></div>',unsafe_allow_html=True)
     page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed',persist_state='session') or PAGES[0]

@@ -184,6 +184,7 @@ def _vehicle(prefix,bid=False,ready=False,compact=False):
         submitted=st.form_submit_button(
             "🚗 Calculate seller Ask + wholesale Bid" if compact else
             "🚀 Run complete "+("wholesale" if bid else "asking-price neural")+" model",
+            key=prefix+"_calculate_single_tap",
             type="primary",disabled=not ready,use_container_width=True)
     return fields,notes,submitted
 
@@ -332,15 +333,27 @@ def _bid(root):
 
 def _explanation(root):
     st.markdown("### 🥇 The models with fewer nightmare valuation surprises")
-    st.write("**Asking:** BGE-256 word embeddings feed the WHOLE DeepCross/AFT "
-             "neural network. It is not the old MiniLM-to-Ridge standalone text price. "
-             "On the historical 2021 original test, its worst-five-percent "
-             "average absolute dollar error was about **$19,985**, against "
-             "**$21,453** for MiniLM-scalar DeepCross.")
-    st.write("**Wholesale:** DeepFM learns vehicle feature interactions and a small "
-             "neural network branch. A 75% DeepFM16 full-data / 25% Lemon XGBoost "
-             "blend recorded **$8,860 CVaR95**, versus **$11,140** for the matched "
-             "Lemon XGBoost, on historical 2015-normalized auction sales.")
+    from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
+    live=lemon_manifest(root)
+    if live:
+        k=live["filtered_validation"]
+        st.write("**Asking:** Today's original Ray Lemon75 DeepCross model "
+                 "reads the BGE description and vehicle attributes. On "+
+                 format(int(k["rows"]),",")+
+                 " retained VALIDATION listings, the model's "
+                 "**CVaR95 was "+_usd(k["CVaR95_absolute_USD"])+
+                 ", MAE "+_usd(k["MAE_USD"])+
+                 " and RMSE "+_usd(k["RMSE_USD"])+
+                 "**. Selection of the retained set uses observed prices.")
+    else:
+        st.write("**Asking:** The Lemon75 DeepCross Ask release is not "
+                 "currently verified. We do not show a different model's "
+                 "historical error as if it belonged to this checkpoint.")
+    st.write("**Wholesale:** A DeepFM network models vehicle-feature "
+             "interactions while Lemon XGBoost provides a separate "
+             "tree-based signal. The wholesale and Ask cohorts differ; "
+             "a separately audited Lemon-filtered Bid TEST report is "
+             "required before making a cleaned-cohort comparison.")
     st.info("These are historical matched research comparisons, NOT proof that either "
             "experimental model is superior to the primary calculator for a "
             "November 2026 car. The primary price pipeline uses a different "
@@ -451,10 +464,12 @@ models used on our main price calculator.</p>
     from pricing.description_examples import load_examples
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
-    market_guide()
-    from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
-    render_lemon75_launch(root)
-    if main:
+    fastlane=main and st.query_params.get("focus")=="pricing"
+    if not fastlane:
+        market_guide()
+        from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
+        render_lemon75_launch(root)
+    if main and not fastlane:
         # Visibility is intentional: Captum itself still runs ONLY on a user
         # click after pricing. A pre-price guide prevents the key feature
         # disappearing beyond the fold for mobile and first-time visitors.
@@ -562,6 +577,8 @@ only when you ask. No model circus required. 🎪🚗
             st.session_state.pop("experimental_combined_receipt",None)
             go=False
     if go:
+        # Acknowledge the first tap immediately, before BGE initialization.
+        st.info("✅ Request received. Calculating your Ask and Bid…")
         _valuation_probe("form_submitted")
         results={"fields":fields,"notes":notes,"date":str(valuation_date)}
         try:
@@ -643,6 +660,8 @@ only when you ask. No model circus required. 🎪🚗
             results["bid_error"]="Verified wholesale weights are not installed or have failed the parity gate."
         st.session_state["experimental_combined_receipt"]=results
         _valuation_probe("receipt_saved")
+        if "ask" in results or "bid" in results:
+            st.success("✅ Calculation complete. Your prices are below.")
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
         st.markdown("### 💵 Your car · estimated prices")
@@ -734,39 +753,51 @@ only when you ask. No model circus required. 🎪🚗
         st.markdown("### 🧰 Other tools in Car Price Studio")
         st.caption("More comparison tools are available from the Studio panels.")
     st.markdown("### 🧪 Research notes: how it works, and where it can be wrong")
-    st.caption("We show audited historical test errors when available, never "
-               "pretending they're tomorrow's buyer or dealer prices.")
-    st.caption("The Ask training labels are historical advertised prices; "
-               "Bid labels are completed historical auctions. "
-               "Historical test errors are not accuracy guarantees for cars "
-               "on the selected date.")
-    for side,title,new_ready,new_folder in (
-        ("ask","Seller asking",ask_champion,"neural-experimental-ask-cvar95"),
-        ("bid","Wholesale auction",bid_champion,"neural-experimental-bid-cvar95"),
-    ):
-        if new_ready:
-            d=json.loads((root/"models"/new_folder/"manifest.json").read_text())
+    st.caption("Ask: audited Lemon-filtered historical validation, not test. "
+               "Historical outcomes define the excluded 25%, so this "
+               "conditional cohort is not prospective accuracy.")
+    st.caption("Ask training labels are advertised prices; Bid labels "
+               "are completed historical auctions. Their cohorts and "
+               "targets are different. No original TEST score is "
+               "replaced with a validation score.")
+    # The old research ResMLP $19k original TEST is not the live Ask model.
+    # Show only current matched Lemon75 retrospective validation metrics.
+    if lemon75_ask:
+        from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
+        audit=lemon_manifest(root)
+        metric=audit["filtered_validation"]
+        with st.expander(
+                "✍ Seller asking · Lemon-cleaned 75% historical VALIDATION",
+                expanded=True):
+            x,y,z=st.columns(3)
+            x.metric("CVaR95 · worst 5%",_usd(metric["CVaR95_absolute_USD"]))
+            y.metric("RMSE",_usd(metric["RMSE_USD"]))
+            z.metric("MAE",_usd(metric["MAE_USD"]))
+            st.caption("This live DeepCross model was measured on "+
+                       format(int(metric["rows"]),",")+
+                       " historical VALIDATION listings after the fixed "
+                       "25% Lemon reference filter. This is NOT a TEST "
+                       "result. Because historical observed prices are used "
+                       "for filtering, it is a retrospective, conditional "
+                       "score, optimistic for unknown cars.")
+            st.caption("No matching Lemon-filtered original TEST score "
+                       "has been verified. Older-model TEST figures "
+                       "are not substituted.")
+    else:
+        st.info("The Lemon75 Ask release has not passed its availability "
+                "gate. Previous-model errors are not a valid substitute.")
+    if bid_champion:
+        d=json.loads((root/"models/neural-experimental-bid-cvar95"/
+                      "manifest.json").read_text())
+        with st.expander("🔨 Wholesale auction · original historical "
+                         "TEST (unfiltered)",expanded=False):
             k=d["historical_test"]
-            with st.expander(title+" · selected model original TEST accuracy",expanded=True):
-                x,y,z=st.columns(3)
-                x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
-                y.metric("RMSE",_usd(k["RMSE_USD"]))
-                z.metric("MAE",_usd(k["MAE_USD"]))
-                st.caption("Original untouched historical TEST after validation selection; "
-                           "not a November 2026 forecast accuracy audit.")
-                v=d["historical_validation"]
-                old=d["historical_incumbent_test"]
-                st.caption("Original validation CVaR95: "+_usd(v["CVaR95_absolute_USD"])
-                           +" · previous model TEST CVaR95: "+_usd(old["CVaR95_absolute_USD"])
-                           +" (the splits are not interchangeable).")
-        elif all_validation(root,side):
-            k=model_kpis(root,side)
-            if k:
-                with st.expander(title+" · previous historical test accuracy"):
-                    x,y,z=st.columns(3)
-                    x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
-                    y.metric("RMSE",_usd(k["RMSE_USD"]))
-                    z.metric("MAE",_usd(k["MAE_USD"]))
+            x,y,z=st.columns(3)
+            x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
+            y.metric("RMSE",_usd(k["RMSE_USD"]))
+            z.metric("MAE",_usd(k["MAE_USD"]))
+            st.caption("Original Bid TEST, not Lemon-filtered; not "
+                       "directly comparable with Ask validation.")
     with st.expander("🧠 How the new models work · tail-risk research",expanded=False):
         explain_ask,explain_bid,explain_risk=st.tabs(
             ["✍ Asking · BGE ResMLP","🔨 Wholesale · DeepFM","🛡️ Risk & limitations"])

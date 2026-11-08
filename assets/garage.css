@@ -15,7 +15,9 @@ input,textarea{color:var(--garage-ink)!important}
 [data-testid="stForm"]{background:#fffefa;border:1px solid var(--garage-line);padding:1.5rem;border-radius:var(--garage-radius);box-shadow:0 6px 24px #203e3604}
 [data-testid="stButton"] button,[data-testid="stFormSubmitButton"] button,[data-testid="stDownloadButton"] button{border-radius:12px;font-weight:700;min-height:2.9rem;transition:background .18s,transform .18s;}
 button[kind="primary"],button[kind="primaryFormSubmit"]{background:var(--garage-teal)!important;border:1px solid var(--garage-teal)!important;color:white!important;box-shadow:0 4px 0 #15533f}
+@media (hover:hover) and (pointer:fine){
 button[kind="primary"]:not(:disabled):hover,button[kind="primaryFormSubmit"]:not(:disabled):hover{background:#155c4b!important;transform:translateY(-1px)}
+}
 button:disabled{opacity:.5;box-shadow:none!important}
 button:focus-visible,a:focus-visible{outline:3px solid #e6a84b!important;outline-offset:4px}
 [data-testid="stButtonGroup"]{margin-bottom:.25rem}
@@ -158,7 +160,9 @@ button:focus-visible,a:focus-visible{outline:3px solid #e6a84b!important;outline
   text-align:center;text-decoration:none!important;
   box-shadow:0 5px 0 #c1983e;transition:background .18s,transform .18s,box-shadow .18s
 }
+@media (hover:hover) and (pointer:fine){
 .garage-home-cta:hover{background:#ffe5a7;transform:translateY(-2px);box-shadow:0 7px 0 #ae873c}
+}
 .garage-home-cta:active{transform:translateY(2px);box-shadow:0 2px 0 #ae873c}
 .garage-home-source{color:#e7f8e9!important;font-weight:650;font-size:.83rem;text-underline-offset:.3em}
 .garage-home-cta:focus-visible,.garage-home-source:focus-visible,
@@ -231,3 +235,18 @@ button:focus-visible,a:focus-visible{outline:3px solid #e6a84b!important;outline
 .garage-legal-links a{color:#176c57;text-decoration:underline;text-underline-offset:3px;}
 .garage-legal-links a:hover{color:#0d4438;}
 .garage-legal-links a:focus-visible{outline:3px solid #aa8fe5;outline-offset:3px;border-radius:3px;}
+
+/* Mobile-first single-tap: do not activate hover before a real click. */
+.garage-home-cta,.ray-lemon-link,[data-testid="stFormSubmitButton"] button{
+ touch-action:manipulation;-webkit-tap-highlight-color:rgba(38,115,92,.15)
+}
+@media (pointer:coarse), (hover:none){
+ .garage-home-cta,.ray-lemon-link,[data-testid="stFormSubmitButton"] button{
+   transition:none!important
+ }
+ .garage-home-cta:hover,.garage-home-cta:active,
+ [data-testid="stFormSubmitButton"] button:hover,
+ [data-testid="stFormSubmitButton"] button:active{
+   transform:none!important
+ }
+}
