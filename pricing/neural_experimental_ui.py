@@ -780,9 +780,50 @@ only when you ask. No model circus required. 🎪🚗
                        "result. Because historical observed prices are used "
                        "for filtering, it is a retrospective, conditional "
                        "score, optimistic for unknown cars.")
-            st.caption("No matching Lemon-filtered original TEST score "
-                       "has been verified. Older-model TEST figures "
-                       "are not substituted.")
+            # The separate one-time TEST receipt is optional and only shown
+            # after the original historical row identities, checkpoint SHA,
+            # reference residuals and 25% filter pass the CI audit.
+            testpath=(root/"reports/cvar95/lemon75-ask-cleaned-test"/
+                      "report.json")
+            report=_report(root,
+                "reports/cvar95/lemon75-ask-cleaned-test/report.json")
+            test_metric=report.get("filtered_test",{})
+            verified=(
+                testpath.is_file()
+                and report.get("status")=="verified"
+                and report.get("source_run_id")==audit["study_run_id"]
+                and report.get("model_native_sha256")==audit["native_sha256"]
+                and report.get("test_never_used_to_select_hyperparameters") is True
+                and report.get("test_reference_uses_actual_observed_prices") is True
+                and report.get("original_test_rows")==31682
+                and report.get("excluded_test_rows")==7921
+                and report.get("retained_test_rows")==23761
+                and test_metric.get("rows")==23761
+                and all(isinstance(test_metric.get(k),(int,float))
+                        and np.isfinite(test_metric[k])
+                        and test_metric[k]>0 for k in (
+                            "CVaR95_absolute_USD","RMSE_USD","MAE_USD"))
+            )
+            if verified:
+                with st.expander(
+                        "✍ Seller asking · independently audited Lemon-cleaned TEST",
+                        expanded=True):
+                    a,b,c=st.columns(3)
+                    a.metric("TEST CVaR95 · worst 5%",
+                             _usd(test_metric["CVaR95_absolute_USD"]))
+                    b.metric("TEST RMSE",_usd(test_metric["RMSE_USD"]))
+                    c.metric("TEST MAE",_usd(test_metric["MAE_USD"]))
+                    st.caption("The ORIGINAL historical TEST was scored once "
+                               "after model selection. 7,921 of 31,682 rows "
+                               "were removed using the fixed pre-Lemon "
+                               "reference model; 23,761 remain. Observed "
+                               "test prices determine this conditional "
+                               "retrospective filter, so its score is "
+                               "optimistic for future unknown cars.")
+            else:
+                st.caption("No matched Lemon-cleaned original TEST receipt "
+                           "has been independently verified yet. Older "
+                           "model's test figures are deliberately hidden.")
     else:
         st.info("The Lemon75 Ask release has not passed its availability "
                 "gate. Previous-model errors are not a valid substitute.")

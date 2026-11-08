@@ -32,8 +32,8 @@ def test_stale_ask_model_test_score_not_shown_as_current():
     assert 'z.metric("MAE",_usd(metric["MAE_USD"]))' in s
     assert "historical TEST accuracy" not in s
     assert "$19,985" not in s and "$19,092" not in s
-    assert "no matching Lemon-filtered original TEST" in s.lower() or \
-           "No matching Lemon-filtered original TEST" in s
+    assert "No matched Lemon-cleaned original TEST" in s
+    assert "source_run_id" in s and "model_native_sha256" in s
     assert "retrospective" in s.lower()
 
 

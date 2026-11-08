@@ -1,0 +1,126 @@
+name: One-time Lemon75 original Ask TEST 25%-trim audit · no model selection
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/audit-ray-lemon75-cleaned-test.yml
+      - scripts/audit_ray_lemon75_test.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: audit-lemon75-original-test-once
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '2'
+  PYTHONUNBUFFERED: '1'
+  TOKENIZERS_PARALLELISM: 'false'
+
+jobs:
+  immutable_cleaned_test_audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original CPU PyTorch, data and test replay libraries
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' streamlit pytest
+      - name: Verify original model release is pinned and audit compiles
+        run: |
+          python -m compileall -q scripts/audit_ray_lemon75_test.py
+          python - <<'PY'
+          from pricing.ray_lemon75_ask_live import manifest
+          m=manifest('.')
+          assert m is not None, 'FP32 release not installed'
+          assert m['filtered_validation_rows']==23751
+          assert m['original_test_scored'] is False
+          assert m['filtered_validation_is_conditional'] is True
+          print('ORIGINAL_LEMON75_RELEASE_PINNED',m['native_sha256'])
+          PY
+      - name: Recover immutable original Ask features
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover pinned BGE original 384D frozen features
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Recover exact PRE-Lemon reference for matched original TEST
+        uses: actions/download-artifact@v4
+        with:
+          name: matched-bayesian-redesign-data
+          run-id: 41230037897
+          github-token: ${{ github.token }}
+          path: training-cache/pre-lemon-reference
+      - name: First and only source-model original TEST replay and conditional 25%-cleaning
+        run: |
+          python -u -m scripts.audit_ray_lemon75_test \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --reference training-cache/pre-lemon-reference/ask-minilm-oof.csv.gz \
+            --output reports/cvar95/lemon75-ask-cleaned-test/report.json
+      - name: Validate output scientifically and mathematically
+        run: |
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+          from pricing.ray_lemon75_ask_live import manifest
+          m=manifest('.')
+          p=Path('reports/cvar95/lemon75-ask-cleaned-test/report.json')
+          v=json.loads(p.read_text())
+          assert v['status']=='verified'
+          assert v['source_run_id']==42485146978
+          assert v['model_native_sha256']==m['native_sha256']
+          assert v['original_test_rows']==31682
+          assert v['excluded_test_rows']==7921
+          assert v['retained_test_rows']==23761
+          assert v['test_never_used_to_select_hyperparameters'] is True
+          assert v['test_reference_uses_actual_observed_prices'] is True
+          assert v['production_model_not_replaced'] is True
+          for name in ('CVaR95_absolute_USD','MAE_USD','RMSE_USD'):
+              value=v['filtered_test'][name]
+              assert math.isfinite(value) and value>0
+          print('VERIFIED_RETROSPECTIVE_CLEAN_TEST',v['filtered_test'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ray-lemon75-ask-original-test-cleaned-25pct-report
+          path: reports/cvar95/lemon75-ask-cleaned-test/report.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Publish ONLY the independently audited metrics (never change weights)
+        run: |
+          cp reports/cvar95/lemon75-ask-cleaned-test/report.json "$RUNNER_TEMP/cleaned-test.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            test -f models/neural-ray-lemon75-ask/manifest.json
+            mkdir -p reports/cvar95/lemon75-ask-cleaned-test
+            cp "$RUNNER_TEMP/cleaned-test.json" reports/cvar95/lemon75-ask-cleaned-test/report.json
+            git add -f reports/cvar95/lemon75-ask-cleaned-test/report.json
+            git diff --cached --quiet && exit 0
+            git commit -m 'Publish original Lemon75 Ask model conditional 25%-cleaned TEST audit'
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
