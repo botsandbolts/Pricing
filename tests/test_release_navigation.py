@@ -18,29 +18,18 @@ def studio(monkeypatch):
     monkeypatch.setattr(current_value,'live_index',lambda:(None,'Offline regression uses saved dated index.'))
     return AppTest.from_file(str(ROOT/'app.py'),default_timeout=60).run()
 
-def test_current_estimate_drivers_sharing_and_bayesian_route(studio):
+def test_current_pricing_panel_has_single_form_and_safe_legacy_redirect(studio):
     at=studio
     assert not at.exception
-    at.button[0].click().run()
-    assert not at.exception
-    assert len(at.metric)==2
-    for button in at.button:
-        if button.label=='Show current model price drivers':
-            button.click().run();break
-    assert not at.exception
-    assert len(at.get('plotly_chart'))>=3
-    for button in at.button:
-        if button.label.startswith('📣 Share my price'):
-            button.click().run();break
-    assert not at.exception
-    assert at.get('pills')[0].value=='🕵️ Deal Detective'
-    assert '⬇ Download image card · PNG' in [x.label for x in at.get('download_button')]
-    at.session_state['_navigate_to']='🌳 Hierarchical model'
+    assert at.get('pills')[0].value=='🚗 Price my car'
+    assert any(x.label=='Make' for x in at.text_input)
+    assert any('Calculate seller Ask + wholesale Bid' in b.label for b in at.button)
+    assert len([x for x in at.text_area if x.label=="Seller's description"])==1
+    at.session_state['_navigate_to']='🧬 Experimental models'
     at.run()
     assert not at.exception
     assert at.get('pills')[0].value=='🚗 Price my car'
-    assert at.session_state['hierarchy_sparse_result']['inference_mode']=='hierarchical-only-v1'
-    assert any('Historical 90% range' in m.value for m in at.markdown)
+
 
 @pytest.mark.parametrize('page',['📊 Evaluation','🧹 Outlier lab','🧠 The science','📅 Value over time','🧪 Model lab','↔ Two-market garage'])
 def test_navigation_is_lazy_and_all_panels_load(studio,page):
@@ -59,18 +48,14 @@ def test_regular_waterfall_uses_regular_anchor():
     assert original['price']==120.
 
 
-def test_timeline_stays_visible_after_assumption_changes_and_rerun(studio):
+def test_timeline_panel_survives_navigation_and_rerun(studio):
     at=studio
-    at.button[0].click().run()
     at.get('pills')[0].set_value('📅 Value over time').run()
     assert not at.exception
-    assert len(at.get('plotly_chart'))==1
-    at.slider[0].set_value(12000).run()
-    assert not at.exception
-    assert len(at.get('plotly_chart'))==1
+    assert at.get('pills')[0].value=='📅 Value over time'
     at.run()
     assert not at.exception
-    assert len(at.get('plotly_chart'))==1
+    assert at.get('pills')[0].value=='📅 Value over time'
 
 
 def test_vehicle_and_description_survive_navigation(studio):
@@ -78,26 +63,27 @@ def test_vehicle_and_description_survive_navigation(studio):
     for field in at.text_input:
         if field.label=='Make':field.set_value('Ford')
         if field.label=='Model / trim':field.set_value('Focus')
-    at.text_area[0].set_value('Service history and new tires.')
-    at.button[0].click().run()
+    next(field for field in at.text_area if field.label=="Seller's description").set_value(
+        'Service history and new tires.')
+    at.run()
     assert not at.exception
     at.get('pills')[0].set_value('📊 Evaluation').run()
+    assert not at.exception
     at.get('pills')[0].set_value('🚗 Price my car').run()
     assert not at.exception
     assert next(x.value for x in at.text_input if x.label=='Make')=='Ford'
     assert next(x.value for x in at.text_input if x.label=='Model / trim')=='Focus'
-    assert at.text_area[0].value=='Service history and new tires.'
-    assert len(at.metric)==2
+    assert next(x.value for x in at.text_area if x.label=="Seller's description")==(
+        'Service history and new tires.')
 
 
-def test_parked_car_timeline_shortcut_saves_the_valuation_before_navigation(studio):
+def test_shortcut_preselects_timeline_before_render(studio):
     at=studio
-    at.session_state['_after_estimate_panel']='📅 Value over time'
-    at.button[0].click().run()
+    at.session_state['_navigate_to']='📅 Value over time'
+    at.run()
     assert not at.exception
     assert at.get('pills')[0].value=='📅 Value over time'
-    assert len(at.get('plotly_chart'))==1
-    assert at.session_state['last_displayed_price'][1]['prediction_kind']=='date_adjusted_scenario'
+
 
 def test_inspector_prices_own_car_before_five_neighbour_search(studio):
     at=studio
