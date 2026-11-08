@@ -23,6 +23,26 @@ STUDY_ARTIFACT = 13621540013
 RELEASE_DAY = "2026-11-08"
 
 
+
+
+def same_architecture(actual,expected):
+    """Strict keys/structure with float serialization tolerance only.
+
+    ConfigSpace/NumPy versions can round the last float bit differently.
+    This never permits a changed layer width, family, block count or key.
+    """
+    import math
+    if not isinstance(actual,dict) or set(actual)!=set(expected):
+        return False
+    for name,value in expected.items():
+        got=actual[name]
+        if type(value) in (int,float) and type(got) in (int,float):
+            if not math.isclose(float(got),float(value),rel_tol=1e-12,abs_tol=1e-12):
+                return False
+        elif got!=value:
+            return False
+    return True
+
 def _hash(path):
     with open(path, "rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
@@ -132,7 +152,7 @@ class RayLemonDeepCrossAsk:
             pack = torch.load(self.root / FOLDER / "weights.pt",
                               map_location="cpu", weights_only=True)
             expected = architecture_params("deepcross")
-            if (pack.get("architecture") != expected
+            if (not same_architecture(pack.get("architecture"), expected)
                     or pack.get("training_cohort") != "frozen-lemon-oof-retained-75"
                     or pack.get("original_test_scored") is not False):
                 raise ValueError("Native explanation checkpoint does not match INT8 head")
