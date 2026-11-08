@@ -30,13 +30,22 @@ def receipt_id(saved):
 
 
 def _model(root,side,ask_champion,bid_champion):
+    # Captum MUST explain exactly the same native checkpoint that priced
+    # the receipt; never a prior champion or a surrogate neuron.
+    from pricing.overnight_bohb_live import (
+        available as bohb_available, load_ask as bohb_load_ask,
+        load_bid as bohb_load_bid)
     if side=="ask":
+        if bohb_available(root,"ask"):
+            return bohb_load_ask(root)
         if ask_champion:
             from pricing.neural_champion_live import load_ask
             return load_ask(root)
         from pricing.neural_ask_embedding_live import load
         return load(root)
     if side=="bid":
+        if bohb_available(root,"bid"):
+            return bohb_load_bid(root)
         if bid_champion:
             from pricing.neural_champion_live import load_bid
             return load_bid(root)
