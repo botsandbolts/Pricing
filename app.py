@@ -41,7 +41,9 @@ if st.query_params.get('connection_check') == '1':
 
 @st.cache_resource(show_spinner=False)
 def _main_two_market_release_v16():
-    # Deployment cache bust v16: refresh the actual hosted pricing form and\n    # report modules after today's focused CTA layout release, even if\n    # Streamlit preserved v15 resource cache through hot redeployment.
+    # Deployment cache bust v16: refresh the actual hosted pricing form and
+    # report modules after today's focused CTA layout release, even if
+    # Streamlit preserved v15 resource cache through hot redeployment.
     import importlib,sys
     for name in ('pricing.accessibility','pricing.garage_art','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.ray_lemon75_ask_ui','pricing.cvar95_experiment_science','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
@@ -51,7 +53,7 @@ _main_two_market_release_v16()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
-# Public reliability advisory belongs above the hero and calculator on every workspace.
+# Normal routes retain the reliability advisory before the hero. A focused\n# pricing deep link moves it below the editable calculator.
 # Keep visible until the actual recovery has been verified; a date is not an auto-clear trigger.
 _RELIABILITY_NOTICE_HTML = """
 <section role="status" aria-label="Temporary pricing model reliability notice"
