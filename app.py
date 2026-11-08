@@ -51,6 +51,37 @@ _main_two_market_release_v15()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
+# Public reliability advisory belongs above the hero and calculator on every workspace.
+# Keep visible until the actual recovery has been verified; a date is not an auto-clear trigger.
+st.markdown("""
+<section role="status" aria-label="Temporary pricing model reliability notice"
+  style="background:linear-gradient(115deg,#162735 0%,#1d3d4c 55%,#234d49 100%);
+         color:#f7faf9;border:2px solid #e7c76f;border-radius:18px;
+         padding:20px 24px;margin:4px 0 22px;
+         box-shadow:0 10px 26px rgba(9,32,39,.15)">
+  <div style="color:#ffe59a;font-size:.78rem;font-weight:800;letter-spacing:.09em;
+              margin-bottom:7px">🚧 CAR PRICE STUDIO · GARAGE SERVICE BULLETIN</div>
+  <div style="font-size:1.42rem;line-height:1.3;font-weight:850;margin-bottom:10px">
+    Supercharged models. A temporary bump in the road.
+  </div>
+  <p style="font-size:1.01rem;line-height:1.6;margin:0 0 12px">
+    We’ve made major upgrades to our Ask and Bid pricing evaluation models
+    over the past several days. While we fine-tune the new engine,
+    <strong>valuation quality, accuracy and stability may be affected</strong>.
+    Some estimates may be inconsistent or temporarily unavailable.
+  </p>
+  <p style="margin:0 0 12px;line-height:1.6">
+    <strong style="color:#ffe59a">Expected recovery: Monday, 9 November 2026,
+    at 00:00 CET (midnight in Germany).</strong>
+    This is our target, not a guarantee. Please double-check any estimate
+    before making a financial decision.
+  </p>
+  <p style="margin:0;line-height:1.6">
+    We’re sorry for the inconvenience, and thank you for your patience.
+    Our little German garage is working on a smoother ride. 🇩🇪
+  </p>
+</section>
+""", unsafe_allow_html=True)
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
