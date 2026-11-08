@@ -37,18 +37,20 @@ def test_stale_ask_model_test_score_not_shown_as_current():
     assert "retrospective" in s.lower()
 
 
-def test_mobile_banner_has_one_tap_query_route():
+def test_one_click_same_page_cta_keeps_banner_examples_and_form():
     design=src("pricing/studio_design.py")
     lemon=src("pricing/ray_lemon75_ask_ui.py")
     navigation=src("pricing/navigation.py")
     ui=src("pricing/neural_experimental_ui.py")
-    assert 'class="garage-home-cta" href="?focus=pricing"' in design
-    assert 'class="ray-lemon-link" href="?focus=pricing"' in lemon
-    assert "if st.query_params.get('focus') == 'pricing':" in design
-    assert "if st.query_params.get('focus') == 'pricing':" in navigation
-    assert "return PAGES[0]" in navigation
-    assert 'fastlane=main and st.query_params.get("focus")=="pricing"' in ui
-    assert "if not fastlane:" in ui
+    app=src("app.py")
+    assert 'class="garage-home-cta" href="#studio-calculator"' in design
+    assert 'class="ray-lemon-link" href="#studio-calculator"' in lemon
+    assert 'id="studio-calculator" tabindex="-1"' in ui
+    assert 'on_change=_apply_example' in ui
+    assert "fastlane" not in ui
+    assert "st.query_params.pop('focus',None)" in navigation
+    assert app.count('st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)')==1
+    assert 'progress_notice.empty()' in ui
 
 
 def test_touch_only_never_waits_for_hover():
@@ -58,7 +60,7 @@ def test_touch_only_never_waits_for_hover():
     assert "(pointer:coarse), (hover:none)" in css
     ui=src("pricing/neural_experimental_ui.py")
     assert 'key=prefix+"_calculate_single_tap"' in ui
-    assert "Request received" in ui
+    assert "One click received" in ui
     assert "Calculation complete" in ui
 
 
