@@ -16,6 +16,7 @@ if page=="🚗 Price my car":
     st.markdown('<div id="studio-calculator" tabindex="-1"></div>',
                 unsafe_allow_html=True)
     st.header("🚗 Your pricing calculator")
+    st.selectbox("Pick a sample car",["Write my own listing","2015 Toyota Corolla · example"])
     with st.form("test_car"):
         st.text_input("Make",value="Ford")
         st.number_input("Mileage (miles)",min_value=0,value=75000)
