@@ -214,3 +214,14 @@ button:focus-visible,a:focus-visible{outline:3px solid #e6a84b!important;outline
   .garage-home-cta{transition:none!important}
   .garage-home-cta:hover,.garage-home-cta:active{transform:none!important}
 }
+
+/* Mobile conversion: lead with the primary action, not a long paragraph.
+   Preserve the descriptive body and privacy assurances below the CTA. */
+@media(max-width:680px){
+  .garage-home-copy{display:flex;flex-direction:column}
+  .garage-home-kicker{order:0}
+  .garage-home-copy h1{order:1;font-size:clamp(1.95rem,7.8vw,2.8rem);line-height:1.08;margin-bottom:.65rem}
+  .garage-home-copy .garage-home-actions{order:2;margin:.4rem 0 1.15rem}
+  .garage-home-copy .garage-home-lead{order:3;margin:0 0 1rem}
+  .garage-home-copy .garage-home-assurances{order:4}
+}
