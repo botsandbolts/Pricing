@@ -465,12 +465,11 @@ models used on our main price calculator.</p>
     from pricing.description_examples import load_examples
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
-    fastlane=False  # Same page; hash navigation must never switch UI modes.
-    if not fastlane:
-        market_guide()
-        from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
-        render_lemon75_launch(root)
-    if main and not fastlane:
+    # One canonical pricing page; the homepage CTA changes only the hash.
+    market_guide()
+    from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
+    render_lemon75_launch(root)
+    if main:
         # Visibility is intentional: Captum itself still runs ONLY on a user
         # click after pricing. A pre-price guide prevents the key feature
         # disappearing beyond the fold for mobile and first-time visitors.
@@ -496,15 +495,16 @@ only when you ask. No model circus required. 🎪🚗
         st.markdown('<div id="studio-calculator" tabindex="-1"></div>',
                     unsafe_allow_html=True)
     examples=load_examples()
-    if not fastlane:
-        st.markdown("### 🚗 01 / Start with an example—or your own car")
-        if examples:
-            st.selectbox(
-                f"Search {len(examples):,} real, price-redacted car adverts",
-                range(len(examples)+1),key="experimental_example",
-                format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
-                on_change=_apply_example)
-            st.caption("Real historical seller descriptions; prices and contact details redacted. Source: Tom’s Used Cars Dataset (CC BY 4.0). These are examples, not 400 fresh appraisals.")
+    st.markdown("### 🚗 01 / Start with an example—or your own car")
+    if examples:
+        st.selectbox(
+            f"Search {len(examples):,} real, price-redacted car adverts",
+            range(len(examples)+1),key="experimental_example",
+            format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
+            on_change=_apply_example)
+        st.caption("Historical, price-redacted car adverts (CC BY 4.0). "
+                   "Choose an example to populate the form, or enter your own car. "
+                   "Picking a car does not automatically submit a valuation.")
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
     lemon75_ask=lemon75_ask_available(root)
@@ -514,24 +514,6 @@ only when you ask. No model circus required. 🎪🚗
     bid_champion=champion_bid_available(root)
     ask_ready=lemon75_ask or ask_bohb or ask_champion or ask_available(root)
     bid_ready=bid_bohb or bid_champion or bid_available(root)
-    if fastlane:
-        # Direct banner navigation: the editable car form is ABOVE optional
-        # date assumptions, model descriptions and all research panels.
-        # The submit button still flows to a single canonical prediction path.
-        fields,notes,go=_vehicle(
-            "bge_ask",ready=ask_ready or bid_ready,compact=main,focus=True)
-        if examples:
-            with st.expander("🚙 Want a sample car instead? Pick a real advert"):
-                st.selectbox(
-                    f"Search {len(examples):,} real, price-redacted adverts",
-                    range(len(examples)+1),key="experimental_example",
-                    format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
-                    on_change=_apply_example)
-                st.caption("Historical, price-redacted examples (CC BY 4.0). "
-                           "Changing the example fills the form; it does "
-                           "not automatically submit a calculation.")
-        st.caption("Optional valuation-date and auction settings follow "
-                   "below. The car is ready to price with one submit.")
     valuation_date,allow_analogue=clock_controls(
         prefix="main" if main else "experimental",prominent=main)
     # These historical models and their original data are never retrained by changing the date.
@@ -547,9 +529,8 @@ only when you ask. No model circus required. 🎪🚗
             max_value=pd.Timestamp("2015-12-31").date(),key="experiment_joint_auction")
         grade=st.selectbox("Historical pre-sale grade",["unknown","1","2","3","4","5"],index=3,key="experiment_joint_grade")
         st.caption("2016–2021 cars can use an optional *hypothetical five-year-old auction analogue*. It is not evidence of what that vehicle generation sold for in 2015.")
-    if not fastlane:
-        fields,notes,go=_vehicle(
-            "bge_ask",ready=ask_ready or bid_ready,compact=main)
+    fields,notes,go=_vehicle(
+        "bge_ask",ready=ask_ready or bid_ready,compact=main)
     # The public date picker can predate a particular model year. Reject before
     # expensive BGE inference, and do not retain a stale previous receipt.
     if go:
