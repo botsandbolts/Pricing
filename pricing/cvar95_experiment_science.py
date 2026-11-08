@@ -71,7 +71,11 @@ def _number(n):
 
 
 def model_kpis(root,market):
-    """Safe panel top-line primary CVaR95 with secondary RMSE and MAE."""
+    """Actual LIVE-model historical test CVaR95; never show older model stats."""
+    from pricing.overnight_bohb_live import available as bohb_available,FOLDERS
+    if bohb_available(root,market):
+        m=json.loads((Path(root)/FOLDERS[market]/"manifest.json").read_text())
+        return m["historical_test"]
     selected=all_validation(root,market)
     if market=="bid" and selected:
         choice=selected.get("chosen_blend",{})
