@@ -40,7 +40,7 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _main_two_market_release_v17():
+def _main_two_market_release_v18():
     # Deployment cache bust v17: refresh the actual hosted pricing form and
     # report modules after today's focused CTA layout release, even if
     # Streamlit preserved v16 resource cache through hot redeployment.
@@ -49,7 +49,7 @@ def _main_two_market_release_v17():
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_main_two_market_release_v17()
+_main_two_market_release_v18()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
@@ -96,8 +96,7 @@ _RELEASE_ANNOUNCEMENT_HTML = """
 """
 # Focused pricing deep links must land on the car form, not on the announcement.
 # Keep the release message below the calculator for this route.
-if st.query_params.get("focus") != "pricing":
-    st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
+st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
 render_hero()
 from pricing.navigation import render_navigation
 _workspace=render_navigation()
@@ -112,8 +111,6 @@ if _workspace=='🚗 Price my car':
     render_privacy()
     from pricing.neural_experimental_ui import render as render_two_market_pricing
     render_two_market_pricing(Path(__file__).parent,main=True)
-    if st.query_params.get("focus") == "pricing":
-        st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
     from pricing.ga_events import render_events
     render_events()
     footer()
