@@ -168,6 +168,15 @@ def audit(args):
                 original["provenance"]["embedding_file_sha256"]):
         raise ValueError("Native Ray checkpoint does not match audited frozen source")
     z,vec,source,encoder=frozen_source(args.features,args.embeddings,"bge-256")
+    # frozen_source intentionally exports only predictive features; Lemon is
+    # a separate provenance mask stored in the original immutable NPZ.
+    with np.load(args.features,allow_pickle=False) as original_store:
+        if "lemon" not in original_store.files:
+            raise ValueError("Original frozen Lemon mask missing")
+        lemon=original_store["lemon"]
+    if lemon.dtype!=np.bool_ or lemon.shape!=(len(z["phase"]),):
+        raise ValueError("Frozen Lemon membership geometry differs")
+    z["lemon"]=lemon
     if (source["cohort_sha256"]!=pack["cohort_sha256"]
             or encoder["embedding_file_sha256"]!=pack["frozen_bge_sha256"]
             or source["holdout_row_sha256"]!=pack["holdout_row_sha256"]):
