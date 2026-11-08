@@ -415,6 +415,14 @@ def run(args):
     ray.init(num_cpus=int(args.workers),include_dashboard=False,
              log_to_driver=True)
     try:
+        print("RAY_PBT_WALL_CLOCK_BUDGET",json.dumps({
+            "architecture":args.architecture,
+            "seconds":int(args.time_budget_seconds),
+            "maximum_training_iterations_per_member":int(args.steps),
+            "epochs_per_iteration":int(args.epochs_per_step),
+            "checkpoint_interval":int(args.perturb_steps),
+            "production_models_unchanged":True,
+        }),flush=True)
         scheduler=PopulationBasedTraining(
             time_attr="training_iteration",metric="inner_CVaR95_absolute_USD",
             mode="min",perturbation_interval=int(args.perturb_steps),
@@ -428,7 +436,10 @@ def run(args):
             param_space=_pbt_space(tune,args.architecture,args),
             tune_config=tune.TuneConfig(
                 scheduler=scheduler,num_samples=int(args.population),
-                max_concurrent_trials=int(args.workers)),
+                max_concurrent_trials=int(args.workers),
+                # Global wall-clock ceiling is enforced by Ray, not a fixed
+                # epoch count. Final checkpoint+validation follow the budget.
+                time_budget_s=int(args.time_budget_seconds)),
             # Tune's Class Trainable supports checkpoint frequency;
             # ray.train.v2.CheckpointConfig explicitly rejects this option.
             run_config=tune.RunConfig(
@@ -436,7 +447,11 @@ def run(args):
                 storage_path=str((folder/"ray-study").resolve()),
                 stop={"training_iteration":int(args.steps)},
                 checkpoint_config=tune.CheckpointConfig(
-                    checkpoint_frequency=1,checkpoint_at_end=True,
+                    # Snapshot on the same 3-step cadence as exploitation.
+                    # Retain ALL donor checkpoints until Ray finishes PBT:
+                    # premature pruning previously broke donor restoration.
+                    checkpoint_frequency=int(args.perturb_steps),
+                    checkpoint_at_end=True,
                     # PBT exploits donor checkpoints asynchronously. Ray
                     # must NOT prune earlier checkpoints while other actors
                     # still hold references to them. Removing them caused
@@ -468,8 +483,10 @@ def validate_run_settings(args):
         raise ValueError("Invalid population or CPU cap")
     if not 1<=args.epochs_per_step<=6 or not 1<=args.perturb_steps<=args.steps:
         raise ValueError("Invalid PBT scheduling cadence")
-    if not 4<=args.steps<=50 or args.population<2*args.workers:
+    if not 4<=args.steps<=2000 or args.population<2*args.workers:
         raise ValueError("PBT needs a population large enough to evolve")
+    if not 300 <= int(args.time_budget_seconds) <= 18000:
+        raise ValueError("PBT research budget must be 5 minutes to 5 hours")
 
 
 def main():
@@ -483,6 +500,8 @@ def main():
     p.add_argument("--steps",type=int,default=18)
     p.add_argument("--epochs-per-step",type=int,default=3)
     p.add_argument("--perturb-steps",type=int,default=3)
+    p.add_argument("--time-budget-seconds",type=int,default=3600,
+                   help="Global Ray Tune wall-clock budget, up to five hours")
     a=p.parse_args()
     run(a)
 
