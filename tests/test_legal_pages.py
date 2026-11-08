@@ -11,14 +11,21 @@ class LegalPagesTests(unittest.TestCase):
     def test_plain_english_reading_targets(self):
         notice = (ROOT / "pricing" / "legal_privacy.md").read_text(encoding="utf-8")
         score = audit_markdown(notice)
-        self.assertGreater(score["word_count"], 700)
+        self.assertGreater(score["word_count"], 750)
         self.assertTrue(all(young_reader_targets(score).values()), score)
+
+    def test_age_twelve_grade_target(self):
+        notice = (ROOT / "pricing" / "legal_privacy.md").read_text(encoding="utf-8")
+        score = audit_markdown(notice)
+        self.assertLessEqual(score["flesch_kincaid_grade"], 6)
+        self.assertGreaterEqual(score["flesch_reading_ease"], 75)
+        self.assertLessEqual(score["mean_words_per_sentence"], 12)
 
     def test_material_disclosures(self):
         notice = (ROOT / "pricing" / "legal_privacy.md").read_text(encoding="utf-8")
         for term in ("Amit Steinberg", "amitsteinberg74@gmail.com", "Hamburg",
                      "Streamlit", "Turso", "GeoJS", "Google Analytics",
-                     "90 days", "consent", "GDPR", "outside the European",
+                     "90 days", "consent", "GDPR", "outside the EU",
                      "complain", "delete", "sale report"):
             self.assertIn(term, notice)
 
