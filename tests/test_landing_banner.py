@@ -13,7 +13,7 @@ def test_hero_is_present_with_real_calculator_anchor_and_honest_marketing():
     html=studio_design.landing_banner_html()
     assert '<section class="garage-home-hero"' in html
     assert 'id="garage-home-title"' in html
-    assert 'href="#studio-calculator"' in html
+    assert 'href="?focus=pricing"' in html
     assert 'aria-label="Go to the car pricing calculator"' in html
     assert "MADE IN GERMANY" in html
     assert "I KNOW WHAT I'VE GOT" in html
@@ -52,6 +52,9 @@ def test_homepage_defaults_to_banner_except_shared_garage_link(monkeypatch):
     assert studio_design.show_landing_banner()
     monkeypatch.setattr(studio_design,"st",SimpleNamespace(
         session_state={},query_params={"garage":"1"}))
+    assert not studio_design.show_landing_banner()
+    monkeypatch.setattr(studio_design,"st",SimpleNamespace(
+        session_state={},query_params={"focus":"pricing"}))
     assert not studio_design.show_landing_banner()
 
 
