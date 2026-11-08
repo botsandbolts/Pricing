@@ -19,6 +19,8 @@ if page=="🚗 Price my car":
     with st.form("test_car"):
         st.text_input("Make",value="Ford")
         st.number_input("Mileage (miles)",min_value=0,value=75000)
-        st.form_submit_button("Calculate seller Ask + wholesale Bid")
+        submitted=st.form_submit_button("Calculate seller Ask + wholesale Bid")
+    if submitted:
+        st.success("One-tap calculation received")
 else:
     st.header("Other studio workspace")
