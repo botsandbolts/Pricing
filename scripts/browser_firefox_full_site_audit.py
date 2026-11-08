@@ -198,7 +198,7 @@ def run():
                         radio=app.get_by_role("button",name=label,exact=True)
                     radio.wait_for(state="visible",timeout=60000)
                     radio.click(timeout=30000)
-                    page.wait_for_function(
+                    app.wait_for_function(
                         """name => [...document.querySelectorAll('[role="radio"]')]
                           .some(x=>x.getAttribute('aria-checked')==='true' &&
                                  (x.getAttribute('aria-label')||x.textContent||'').includes(name))""",
