@@ -1,18 +1,10 @@
 name: Neural Lab experimental model deployment
 
+# Retired automatic experimental repackaging. Normal UI changes MUST NOT
+# retrain or overwrite frozen, release-verified production Ask/Bid checkpoints.
+# The historical workflow is still available for an explicit research run.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - pricing/neural_experimental_*.py
-      - scripts/package_neural_experimental.py
-      - scripts/rebuild_neural_encoders.py
-      - tests/test_neural_lab.py
-      - .github/workflows/neural-lab-deploy.yml
-      - app.py
-      - pricing/navigation.py
-      - NEURAL_LAB_MODEL_CARD.md
 
 permissions:
   contents: write
