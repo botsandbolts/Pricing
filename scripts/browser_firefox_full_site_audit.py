@@ -27,6 +27,23 @@ def safe_shot(page,name):
         return str(exc)[:250]
     return None
 
+def actual_streamlit_frame(page,report):
+    """Streamlit Community Cloud wraps the app in an iframe; always descend."""
+    for _ in range(50):
+        for frame in page.frames:
+            try:
+                if (frame.locator('[aria-label="Car Price Studio model upgrade announcement"]').count()
+                        or frame.locator(".garage-home-hero").count()
+                        or frame.locator('[data-testid="stApp"]').count()):
+                    report["app_frame_url"]=frame.url
+                    report["frame_count"]=len(page.frames)
+                    return frame
+            except Exception:
+                continue
+        page.wait_for_timeout(1000)
+    report["frame_urls"]=[f.url for f in page.frames]
+    raise AssertionError("Streamlit application iframe did not attach")
+
 def dismiss_consent(page,report):
     # Streamlit custom components may render in frames. Find controls by accessible name.
     for frame in page.frames:
@@ -42,14 +59,14 @@ def dismiss_consent(page,report):
                 continue
     report["consent_action"]="No visible accessible rejection button"
 
-def axe_scan(page,label,report):
+def axe_scan(frame,label,report):
     path=Path("node_modules/axe-core/axe.min.js")
     if not path.is_file():
         report.setdefault("notes",[]).append("axe-core missing; scan not executed")
         return
     try:
-        page.add_script_tag(path=str(path.resolve()))
-        findings=page.evaluate("""async () => {
+        frame.add_script_tag(path=str(path.resolve()))
+        findings=frame.evaluate("""async () => {
             const root=document.querySelector('[data-testid="stMain"]')||document.body;
             const out=await axe.run(root,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21aa']}});
             return out.violations.map(v=>({id:v.id,impact:v.impact,
@@ -59,10 +76,10 @@ def axe_scan(page,label,report):
     except Exception as exc:
         report.setdefault("axe",{})[label]={"scan_error":str(exc)[:250]}
 
-def viewport_check(page,width,height,report):
+def viewport_check(page,frame,width,height,report):
     page.set_viewport_size({"width":width,"height":height})
     page.wait_for_timeout(800)
-    result=page.evaluate("""() => ({
+    result=frame.evaluate("""() => ({
         innerWidth:innerWidth,
         scrollWidth:document.documentElement.scrollWidth,
         interactiveOverflow:[...document.querySelectorAll('input,textarea,button,[role="radio"]')]
@@ -94,6 +111,7 @@ def run():
             # Consent is a true modal: dismiss before asserting visual layout.
             # No blind coordinate clicks; use its accessible button in every frame.
             page.wait_for_timeout(2500)
+            app=actual_streamlit_frame(page,report)
             for _ in range(8):
                 dismiss_consent(page,report)
                 if report.get("consent_action")!="No visible accessible rejection button":
@@ -105,16 +123,16 @@ def run():
             # Some sections are virtualized until scrolled into view.
             for region in ('[data-testid="stAppViewContainer"]', '[data-testid="stMain"]'):
                 try:
-                    page.locator(region).first.evaluate('el=>{el.scrollTop=0}')
+                    app.locator(region).first.evaluate('el=>{el.scrollTop=0}')
                 except Exception:
                     pass
-            hero=page.locator(".garage-home-hero")
+            hero=app.locator(".garage-home-hero")
             try:
                 hero.wait_for(state="visible",timeout=55000)
             except Exception:
                 report["hero_count"]=hero.count()
-                report["initial_body_text"]=page.locator("body").inner_text()[:3500]
-                report["dom_summary"]=page.evaluate("""() => ({
+                report["initial_body_text"]=app.locator("body").inner_text()[:3500]
+                report["dom_summary"]=app.evaluate("""() => ({
                   title:document.title,
                   url:location.href,
                   bodyChildren:document.body.children.length,
@@ -124,27 +142,27 @@ def run():
                   appViewScrollHeight:document.querySelector('[data-testid="stAppViewContainer"]')?.scrollHeight,
                   appViewClientHeight:document.querySelector('[data-testid="stAppViewContainer"]')?.clientHeight
                 })""")
-                report["streamlit_exception_cards"]=page.locator('[data-testid="stException"]').count()
+                report["streamlit_exception_cards"]=app.locator('[data-testid="stException"]').count()
                 raise
-            release=page.locator('[aria-label="Car Price Studio model upgrade announcement"]')
+            release=app.locator('[aria-label="Car Price Studio model upgrade announcement"]')
             release.wait_for(state="attached",timeout=60000)
             report["pricing"]["hero_initial"]=hero.count()
             report["pricing"]["release_initial"]=release.count()
             safe_shot(page,"before-cta.png")
-            cta=page.get_by_role("link",name="Go to the car pricing calculator")
+            cta=app.get_by_role("link",name="Go to the car pricing calculator")
             assert cta.get_attribute("href")=="#studio-calculator", "CTA still changes URL/routes"
             cta.click(timeout=30000)
-            page.wait_for_function("location.hash === '#studio-calculator'",timeout=30000)
-            sample=page.get_by_label(re.compile("Search .*real, price-redacted car adverts"))
+            app.wait_for_function("location.hash === '#studio-calculator'",timeout=30000)
+            sample=app.get_by_label(re.compile("Search .*real, price-redacted car adverts"))
             sample.wait_for(state="visible",timeout=90000)
             assert hero.count()==1 and release.count()==1, "A banner disappeared after one CTA click"
-            top=page.locator("#studio-calculator").evaluate(
+            top=app.locator("#studio-calculator").evaluate(
                 "el=>Math.round(el.getBoundingClientRect().top)")
             report["pricing"].update({"single_cta_click":True,"sample_visible":True,
                  "both_banners_preserved":True,"anchor_viewport_top":top})
             assert top<844, "One click did not bring the pricing section into view"
             safe_shot(page,"after-one-cta.png")
-            submit=page.get_by_role("button",name=re.compile("Calculate seller Ask.*wholesale Bid"))
+            submit=app.get_by_role("button",name=re.compile("Calculate seller Ask.*wholesale Bid"))
             submit.wait_for(state="visible",timeout=90000)
             if submit.is_disabled():
                 raise AssertionError("Public pricing submit is disabled")
@@ -152,7 +170,7 @@ def run():
             submit.click(timeout=30000)
             report["pricing"]["submit_clicks"]=1
             # The visible acknowledgement or completed result must follow ONE event.
-            messages=page.get_by_text(re.compile(
+            messages=app.get_by_text(re.compile(
                 r"One click received|Calculation complete|Your car . estimated prices|"
                 r"Ask engine failed|Seller Ask couldn't finish|Wholesale Bid couldn't finish|"
                 r"Pricing runtime is unavailable",re.I))
@@ -161,21 +179,23 @@ def run():
             report["pricing"]["first_response"]=messages.first.inner_text()[:240]
             safe_shot(page,"after-one-submit.png")
             page.wait_for_timeout(1000)
-            body=page.locator("body").inner_text(timeout=10000)
+            body=app.locator("body").inner_text(timeout=10000)
             if "Calculation complete." in body and "One click received." in body:
                 failures.append("Finished calculation still shows the processing notice")
             for width,height in ((390,844),(820,1100),(1440,900),(320,800)):
-                if not viewport_check(page,width,height,report):
+                if not viewport_check(page,app,width,height,report):
                     failures.append("Responsive overflow at %spx"%width)
-            axe_scan(page,"pricing-mobile",report)
+            axe_scan(app,"pricing-mobile",report)
             page.set_viewport_size({"width":1440,"height":900})
-            axe_scan(page,"pricing-desktop",report)
+            axe_scan(app,"pricing-desktop",report)
             # The same long-lived session must navigate every other panel without
             # dropping into a hidden no-navigation route or raising a Streamlit error.
             for label in PANELS:
                 item={"panel":label}
                 try:
-                    radio=page.get_by_role("radio",name=label,exact=True)
+                    radio=app.get_by_role("radio",name=label,exact=True)
+                    if not radio.count():
+                        radio=app.get_by_role("button",name=label,exact=True)
                     radio.wait_for(state="visible",timeout=60000)
                     radio.click(timeout=30000)
                     page.wait_for_function(
@@ -185,10 +205,10 @@ def run():
                         arg=label,timeout=45000)
                     page.wait_for_timeout(1300)
                     item["selected"]=True
-                    item["exception_cards"]=page.locator('[data-testid="stException"]').count()
+                    item["exception_cards"]=app.locator('[data-testid="stException"]').count()
                     if item["exception_cards"]:
                         failures.append("Streamlit exception on panel "+label)
-                    item["horizontal_overflow"]=page.evaluate(
+                    item["horizontal_overflow"]=app.evaluate(
                         "document.documentElement.scrollWidth > innerWidth+2")
                     safe_shot(page,"panel-%02d.png"%(PANELS.index(label)+1))
                 except Exception as exc:
@@ -201,7 +221,7 @@ def run():
             failures.append("Pricing priority flow failed: "+str(exc)[:240])
             safe_shot(page,"fatal-state.png")
         finally:
-            report["final_url"]=page.url
+            report["final_url"]=app.url if "app" in locals() else page.url
             report["failures"]=failures
             (OUT/"report.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
             context.close()
