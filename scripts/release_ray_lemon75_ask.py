@@ -1,10 +1,10 @@
-"""Release the exact frozen Ray Lemon75 DeepCross winner with INT8 ONNX.
+"""Release the original frozen Ray Lemon75 DeepCross Ask checkpoint, in FP32.
 
-No retraining or test peeking. The 75%-retained validation is a fixed
+No retraining or test peeking. The 75%-retained validation is a fixed,
 outcome-dependent retrospective cohort and MUST be labeled accordingly.
-Nothing gets pushed to production if checkpoint, SHA, original feature,
-full original validation replay, filtered subset, ONNX parity or quantization
-gates fail. Separate verified BGE encoder is reused without duplication.
+Release fails if original checkpoint provenance, frozen features, full
+validation replay or exact retained-subset validation fails.
+The native weights are deployed unchanged. No neural-head quantization.
 """
 from __future__ import annotations
 
@@ -104,64 +104,6 @@ def reference_retained_mask(z,frame):
     return subset
 
 
-def export_quantize(net,folder):
-    from onnxruntime.quantization import quantize_dynamic, QuantType
-    folder.mkdir(parents=True,exist_ok=True)
-    unquant=folder/"head-fp32-temporary.onnx"
-    with torch.inference_mode():
-        torch.onnx.export(
-            net,(torch.zeros((3,7),dtype=torch.float32),
-                 torch.ones((3,11),dtype=torch.int64),
-                 torch.zeros((3,384),dtype=torch.float32)),
-            str(unquant),opset_version=17,
-            input_names=["numeric","category","vector"],
-            output_names=["log_heads"],
-            dynamic_axes={
-                "numeric":{0:"batch"},
-                "category":{0:"batch"},
-                "vector":{0:"batch"},
-                "log_heads":{0:"batch"},
-            },do_constant_folding=True,dynamo=False)
-    quantize_dynamic(str(unquant),str(folder/"head-int8.onnx"),
-                     weight_type=QuantType.QInt8,per_channel=True,
-                     op_types_to_quantize=["MatMul","Gemm"])
-    import onnxruntime as ort
-    opts=ort.SessionOptions()
-    opts.intra_op_num_threads=2
-    opts.inter_op_num_threads=1
-    opts.enable_mem_pattern=False
-    opts.enable_cpu_mem_arena=False
-    fp=ort.InferenceSession(str(unquant),sess_options=opts,
-                            providers=["CPUExecutionProvider"])
-    q=ort.InferenceSession(str(folder/"head-int8.onnx"),
-                           sess_options=opts,
-                           providers=["CPUExecutionProvider"])
-    if {x.name for x in q.get_inputs()}!={"numeric","category","vector"}:
-        raise ValueError("Quantized ONNX input contract changed")
-    saved_bytes=unquant.stat().st_size
-    quant_bytes=(folder/"head-int8.onnx").stat().st_size
-    if quant_bytes>=saved_bytes:
-        raise ValueError("INT8 ONNX model is not smaller than original")
-    return fp,q,saved_bytes,quant_bytes,unquant
-
-
-def infer_onnx(session,z,vec,indices,batch_size=512):
-    result=[]
-    for sub in np.array_split(indices,math.ceil(len(indices)/batch_size)):
-        output=session.run(None,{
-            "numeric":z["num"][sub].astype(np.float32),
-            "category":z["cat"][sub].astype(np.int64),
-            "vector":vec[sub].astype(np.float32)})[0]
-        log=np.asarray(output,dtype=np.float64)
-        if log.ndim!=2 or log.shape!=(len(sub),2):
-            raise ValueError("ONNX native AFT head output geometry changed")
-        prices=np.exp(np.clip(log[:,0],math.log(100.),math.log(1_000_000.)))
-        if not np.isfinite(prices).all() or (prices<=0).any():
-            raise ValueError("Nonfinite ONNX price output")
-        result.append(prices)
-    return np.concatenate(result)
-
-
 def audit(args):
     src=Path(args.source)
     out=Path(args.output)
@@ -235,33 +177,13 @@ def audit(args):
     subset=metrics(z["y"][valid][keep],native[keep])
     if abs(subset["CVaR95_absolute_USD"]-KNOWN_RETAINED_CVAR95)>.2:
         raise ValueError("Lemon-filtered CVaR95 differs from fixed source study")
-    fp,q,fp_bytes,q_bytes,temporary=export_quantize(net,out)
-    pred32=infer_onnx(fp,z,vec,valid)
-    pred8=infer_onnx(q,z,vec,valid)
-    if not np.allclose(pred32,native,rtol=.00006,atol=.75):
-        raise ValueError("Float ONNX export already drifts from native checkpoint")
-    diff=np.abs(pred8-native)
-    rel=diff/np.maximum(100.,native)
-    q_filter=metrics(z["y"][valid][keep],pred8[keep])
-    delta=float(abs(q_filter["CVaR95_absolute_USD"]-
-                    subset["CVaR95_absolute_USD"]))
-    drift={
-        "native_vs_int8_median_relative":float(np.median(rel)),
-        "native_vs_int8_p95_relative":float(np.quantile(rel,.95)),
-        "native_vs_int8_max_relative":float(np.max(rel)),
-        "native_vs_int8_max_dollar":float(np.max(diff)),
-        "filtered_CVaR95_drift_USD":delta,
-        "fp32_bytes":int(fp_bytes),"int8_bytes":int(q_bytes),
-        "weight_shrink_pct":round(100*(1-q_bytes/fp_bytes),2),
-    }
-    if not (drift["native_vs_int8_median_relative"]<=.0025
-            and drift["native_vs_int8_p95_relative"]<=.012
-            and drift["native_vs_int8_max_relative"]<=.06
-            and delta<=.035*subset["CVaR95_absolute_USD"]):
-        raise ValueError("INT8 neural Ask price drift exceeds historical parity gate: "+
-                         json.dumps(drift))
-    # Save the exact original native weights for optional on-click Captum.
+    # The original FP32 checkpoint already reproduced all archived
+    # validation predictions and the fixed Lemon75 risk metric above.
+    # Do not convert, quantize, export or retrain its prediction head.
+    out.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(src/"weights.pt",out/"weights.pt")
+    if _hash(out/"weights.pt") != _hash(src/"weights.pt"):
+        raise ValueError("Unmodified native source checkpoint was not preserved")
     manifest={
         "status":"passed","release_date":"2026-11-08","market":"ask",
         "study_run_id":STUDY_RUN,"artifact_id":STUDY_ARTIFACT,
@@ -273,17 +195,17 @@ def audit(args):
         "original_validation_rows":VALIDATION_ROWS,
         "filtered_validation_is_conditional":True,
         "filtered_validation_uses_observed_reference_residuals":True,
-        "filtered_validation":q_filter,
+        "filtered_validation":subset,
         "original_test_scored":False,
         "native_head_for_explanations":True,
-        "quantization":"onnxruntime-dynamic-int8-matmul-gemm",
+        "native_checkpoint_for_predictions":True,
+        "quantization":"none-native-fp32",
+        "inference_backend":"pytorch-native-fp32",
         "shared_encoder":"original frozen BGE; separately pinned INT8 if verified",
-        "onnx_sha256":_hash(out/"head-int8.onnx"),
         "native_sha256":_hash(out/"weights.pt"),
         "cohort_sha256":source["cohort_sha256"],
         "holdout_row_sha256":source["holdout_row_sha256"],
         "retained_validation_ids_sha256":HOLDOUT_SHA,
-        "native_vs_int8_parity":drift,
         "source_selected_best_epoch":original["selected_best_epoch"],
         "legacy_production_unchanged_until_release_verified":True,
         "current_november_2026_accuracy_verified":False,
@@ -291,29 +213,29 @@ def audit(args):
             "Filtered 75% selected retrospectively using observed prices "
             "and independent baseline residuals, not prospective accuracy."),
     }
-    (out/"manifest.json").write_text(json.dumps(manifest,indent=2,allow_nan=False))
     verification={
         "status":"passed","verified":True,
         "complete_original_validation_replay":True,
         "filtered_validation_replay":True,
-        "native_vs_int8_parity":True,
+        "native_checkpoint_replay":True,
+        "unmodified_checkpoint_sha256":manifest["native_sha256"],
         "production_source_unchanged":True,
         "test_evaluated":False,
         "full_reference_mask_sha256":HOLDOUT_SHA,
         "samples_verified":VALIDATION_ROWS,
         "retained_validation_rows":RETAINED_VALIDATION,
         "native_sha256":manifest["native_sha256"],
-        "onnx_sha256":manifest["onnx_sha256"],
-        "quantization":drift,
+        "quantization":"none",
     }
+    (out/"manifest.json").write_text(json.dumps(
+        manifest,indent=2,allow_nan=False))
     (out/"verification.json").write_text(json.dumps(
         verification,indent=2,allow_nan=False))
-    temporary.unlink()
-    # The public release only exposes filtered 75% score and its caveat.
-    print("LEMON75_RELEASE_VERIFIED",json.dumps({
-        "filtered_validation":q_filter,
+    print("LEMON75_NATIVE_FP32_RELEASE_VERIFIED",json.dumps({
+        "filtered_validation":subset,
+        "original_validation":full,
         "retained_validation_rows":RETAINED_VALIDATION,
-        "native_vs_int8":drift,
+        "native_sha256":manifest["native_sha256"],
         "test_scored":False,"automatic_deployment":False}),flush=True)
 
 

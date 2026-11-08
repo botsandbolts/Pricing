@@ -508,7 +508,7 @@ only when you ask. No model circus required. 🎪🚗
     with a:
         st.markdown("**✍ Seller asking · full neural network**")
         if lemon75_ask:
-            st.caption("🍋 LIVE 8 NOV 2026 LEMON EDITION · the exact one-hour Ray-trained DeepCross neural price head, ONNX INT8. Audited Lemon-filtered historical validation on 23,751 listings. Original BGE encoder reused; no fake text-price head.")
+            st.caption("🍋 LIVE 8 NOV 2026 LEMON EDITION · the exact one-hour Ray-trained DeepCross neural price head, original FP32 PyTorch (no head quantization). Audited Lemon-filtered historical validation on 23,751 listings. Original BGE encoder reused; no fake text-price head.")
         elif ask_bohb:
             meta=json.loads((root/"models/neural-bohb-ask/manifest.json").read_text())
             st.caption("LIVE BOHB WINNER #36 · pinned BGE → 64-dimensional projection → DeepCross/MoE. "

@@ -1,4 +1,4 @@
-name: Release 08 Nov Lemon75 DeepCross Ask · INT8 ONNX full validation parity
+name: Release 08 Nov Lemon75 DeepCross Ask · original FP32 checkpoint
 on:
   push:
     branches: [main]
@@ -17,7 +17,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: release-ray-lemon75-ask-int8
+  group: release-ray-lemon75-ask-native
   cancel-in-progress: false
 
 env:
@@ -29,7 +29,7 @@ env:
   PYTHONUNBUFFERED: '1'
 
 jobs:
-  audit_quantize_publish:
+  audit_native_publish:
     runs-on: ubuntu-24.04
     timeout-minutes: 105
     steps:
@@ -39,11 +39,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install CPU PyTorch, independent ONNX runtime and validation stack
+      - name: Install CPU PyTorch and original-model validation stack
         run: |
           python -m pip install --upgrade pip
           python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' 'onnx>=1.16,<2' 'onnxscript>=0.3,<1' 'onnxruntime>=1.20,<2' 'streamlit>=1.40,<2' pytest
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' 'streamlit>=1.40,<2' pytest
       - name: Compile exact deployment and check candidate is gated until verified
         run: |
           python -m compileall -q pricing/ray_lemon75_ask_live.py pricing/ray_lemon75_ask_ui.py pricing/neural_experimental_ui.py pricing/captum_price_lite.py scripts/release_ray_lemon75_ask.py tests/test_ray_lemon75_release.py
@@ -76,7 +76,7 @@ jobs:
           run-id: 41230037897
           github-token: ${{ github.token }}
           path: training-cache/original-lemon-reference
-      - name: Full native checkpoint replay, frozen Lemon membership, FP32 and INT8 parity
+      - name: Full original checkpoint replay and frozen Lemon75 validation
         run: |
           test -s training-cache/ray-lemon75-source/weights.pt
           test -s training-cache/ray-lemon75-source/result.json
@@ -88,31 +88,32 @@ jobs:
             --embeddings training-cache/bge-256 \
             --reference training-cache/original-lemon-reference/ask-minilm-oof.csv.gz \
             --output models/neural-ray-lemon75-ask
-      - name: Verify the exact gated production manifest and quantized files
+      - name: Verify native FP32 production manifest and unchanged weights
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           from pricing.ray_lemon75_ask_live import manifest
           d=manifest('.')
-          assert d is not None,'INT8 ONNX release did not pass its serving contract'
+          assert d is not None,'Native FP32 release did not pass its serving contract'
           assert d['market']=='ask'
           assert d['original_test_scored'] is False
           assert d['filtered_validation_rows']==23751
           assert d['filtered_validation_is_conditional'] is True
-          assert d['quantization']=='onnxruntime-dynamic-int8-matmul-gemm'
+          assert d['quantization']=='none-native-fp32'
+          assert d['inference_backend']=='pytorch-native-fp32'
           assert all(Path('models/neural-ray-lemon75-ask',name).is_file()
-                     for name in ('weights.pt','head-int8.onnx','manifest.json','verification.json'))
+                     for name in ('weights.pt','manifest.json','verification.json'))
           print('LEMON75_PRODUCTION_CONTRACT', d['filtered_validation'],flush=True)
           PY
       - name: Preserve verified release artifacts for rollback
         uses: actions/upload-artifact@v4
         with:
-          name: ray-lemon75-deepcross-int8-verified-production
+          name: ray-lemon75-deepcross-fp32-verified-production
           path: models/neural-ray-lemon75-ask/
           retention-days: 90
           if-no-files-found: error
-      - name: Promote only verified original model and INT8 weights to main
+      - name: Promote only fully verified original FP32 checkpoint to main
         run: |
           cp -a models/neural-ray-lemon75-ask "$RUNNER_TEMP/verified-ray-lemon75-ask"
           git config user.name 'github-actions[bot]'
@@ -130,7 +131,7 @@ jobs:
             cp -a "$RUNNER_TEMP/verified-ray-lemon75-ask/." models/neural-ray-lemon75-ask/
             git add -f models/neural-ray-lemon75-ask/
             git diff --cached --quiet && exit 0
-            git commit -m 'Publish original Lemon75 DeepCross with independently parity-audited INT8 ONNX'
+            git commit -m 'Publish unchanged Lemon75 DeepCross FP32 with full replay audit'
             if git push origin HEAD:main; then
               echo 'Verified November Lemon75 Ask is now published to main.'
               exit 0

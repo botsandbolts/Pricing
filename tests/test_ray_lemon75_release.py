@@ -19,7 +19,8 @@ def test_source_identity_and_75_percent_partition():
     assert RETAINED_VALIDATION == 23751
     assert VALIDATION_ROWS - RETAINED_VALIDATION == 7917
     assert len(HOLDOUT_SHA)==64
-    assert len(REQUIRED)==4
+    assert len(REQUIRED)==3
+    assert REQUIRED == ("weights.pt", "manifest.json", "verification.json")
     assert FOLDER == "models/neural-ray-lemon75-ask"
 
 

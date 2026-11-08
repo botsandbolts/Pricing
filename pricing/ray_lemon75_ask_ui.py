@@ -32,11 +32,11 @@ def render(root):
     <small>🇩🇪 Car Price Studio · Hamburg · 8 November 2026 · Lemon Edition</small>
     <h2>We squeezed the lemons.<br>Not the numbers. 🍋</h2>
     <p>Meet today's new Ray-tuned DeepCross asking-price challenger:
-    it reads the advert, learns car details, and uses a compact ONNX INT8
-    neural pricing engine. Independent. Open-source. No registration.
+    it reads the advert, learns car details, and runs the original FP32
+    PyTorch pricing network without quantization. Independent. Open-source. No registration.
     No ads. Actual comparisons, not magic beans.</p>
     <div class="ray-lemon-pills">
-      <span>✅ Parity-checked INT8 neural head</span>
+      <span>✅ Original Ray checkpoint · no head quantization</span>
       <span>🍋 75% retained-cohort validation</span>
       <span>🛡 CVaR95: costly-miss focus</span>
       <span>🔬 See the evidence</span>
@@ -74,21 +74,16 @@ def render(root):
             "are **optimistic for that selected cohort** and are not an "
             "unbiased estimate of future unknown-car accuracy. The full "
             "original holdout is still verified in the release audit.")
-    with st.expander("⚙️ What exactly is ONNX INT8?"):
+    with st.expander("⚙️ Why the original FP32 neural network?"):
         st.markdown(
-            "The whole DeepCross **pricing network** runs via ONNX Runtime "
-            "with 8-bit dynamic quantization for matrix operations. "
-            "The exact original checkpoint is preserved for optional "
-            "gradient explanations. The shared BGE text encoder runs "
-            "as INT8 only if its **separate** tokenization/price/memory "
-            "parity gate has passed. Compression does not prove a model "
-            "predicts more accurately.")
-        q=m["native_vs_int8_parity"]
-        st.caption(
-            "Neural price-head file size reduced by "
-            +format(q["weight_shrink_pct"],".1f")+"%; "
-            "95th-percentile relative prediction drift "
-            +format(q["native_vs_int8_p95_relative"]*100,".2f")+"%.")
+            "This Ask price network runs from the **exact original Ray-trained "
+            "PyTorch FP32 checkpoint**. No INT8 conversion, retraining or "
+            "replacement prediction head. Quantizing the neural head changed "
+            "some historical estimates too much, so we preserved its native "
+            "weights. The **shared BGE text encoder** is separate and may "
+            "use an independently verified INT8 release; that does not "
+            "quantize the neural price network. The same original network "
+            "is available for optional Captum gradient explanations.")
     with st.expander("🔎 Evidence, open source and historical limits"):
         st.markdown(
             "This model predicts **2021 US advertised asking prices**. "
