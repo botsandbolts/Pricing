@@ -9,6 +9,6 @@
   "sample_validation_serving_rows": 32,
   "training_encoder_reused": true,
   "original_test_used_for_selection": false,
-  "historical_test_CVaR95_USD": 19091.612647448077,
+  "historical_test_CVaR95_USD": 19091.612633698667,
   "historical_incumbent_CVaR95_USD": 19985.05294033147
 }

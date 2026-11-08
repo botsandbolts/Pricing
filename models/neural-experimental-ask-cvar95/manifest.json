@@ -39,20 +39,20 @@
   "historical_validation": {
     "rows": 31668,
     "worst_five_pct_rows": 1584,
-    "CVaR95_absolute_USD": 18069.284887157904,
-    "VaR95_absolute_USD": 9265.463168584389,
-    "MAE_USD": 2836.436124483788,
-    "RMSE_USD": 5718.302652885087,
-    "worst_one_pct_USD": 37466.454765761744
+    "CVaR95_absolute_USD": 18069.284627607394,
+    "VaR95_absolute_USD": 9265.457319635501,
+    "MAE_USD": 2836.438486842208,
+    "RMSE_USD": 5718.303661905986,
+    "worst_one_pct_USD": 37466.45105663009
   },
   "historical_test": {
     "rows": 31682,
     "worst_five_pct_rows": 1585,
-    "CVaR95_absolute_USD": 19091.612647448077,
-    "VaR95_absolute_USD": 9841.666197146767,
-    "MAE_USD": 2993.921140796266,
-    "RMSE_USD": 6058.340484345518,
-    "worst_one_pct_USD": 39830.99062849152
+    "CVaR95_absolute_USD": 19091.612633698667,
+    "VaR95_absolute_USD": 9841.70305606651,
+    "MAE_USD": 2993.9234968809087,
+    "RMSE_USD": 6058.341313032934,
+    "worst_one_pct_USD": 39830.986634662215
   },
   "historical_incumbent_test": {
     "rows": 31682,
