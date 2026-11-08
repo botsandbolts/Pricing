@@ -15,6 +15,11 @@ import pandas as pd
 import streamlit as st
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.neural_bid_blend_live import available as bid_available
+from pricing.overnight_bohb_live import (
+    available as bohb_available,
+    load_ask as load_bohb_ask,
+    load_bid as load_bohb_bid,
+)
 from pricing.neural_champion_live import (
     ask_available as champion_ask_available,
     bid_available as champion_bid_available,
@@ -489,24 +494,37 @@ only when you ask. No model circus required. 🎪🚗
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
+    ask_bohb=bohb_available(root,"ask")
+    bid_bohb=bohb_available(root,"bid")
     ask_champion=champion_ask_available(root)
     bid_champion=champion_bid_available(root)
-    ask_ready=ask_champion or ask_available(root)
-    bid_ready=bid_champion or bid_available(root)
+    ask_ready=ask_bohb or ask_champion or ask_available(root)
+    bid_ready=bid_bohb or bid_champion or bid_available(root)
     a,b=st.columns(2)
     with a:
         st.markdown("**✍ Seller asking · full neural network**")
-        if ask_champion:
-            st.caption("NEW research winner: pinned BGE → trainable projection → ResMLP · trial 15. No Ridge or MiniLM price replacement.")
+        if ask_bohb:
+            meta=json.loads((root/"models/neural-bohb-ask/manifest.json").read_text())
+            st.caption("LIVE BOHB WINNER #36 · pinned BGE → 64-dimensional projection → DeepCross/MoE. "
+                       "CVaR95-first, independently replayed on historical validation and test. "
+                       "No MiniLM price head.")
+            st.caption("Native PyTorch price network; shared BGE encoder automatically uses verified ONNX INT8 if installed.")
+        elif ask_champion:
+            st.caption("Earlier research champion: pinned BGE → trainable projection → ResMLP · trial 15. No Ridge or MiniLM price replacement.")
         else:
             st.caption("Original BGE text embeddings → complete DeepCross/AFT. No Ridge or MiniLM price replacement.")
             if ask_ready:st.info("CVaR95 ResMLP challenger is not release-verified; original model remains active.")
         if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
     with b:
         st.markdown("**🔨 Wholesale auction · full ensemble**")
-        if bid_champion:
+        if bid_bohb:
+            meta=json.loads((root/"models/neural-bohb-bid/manifest.json").read_text())
+            st.caption(f"LIVE BOHB WINNER #116 · {meta['neural_weight']:.0%} structured DeepFM + "
+                       f"{meta['lemon_weight']:.0%} original Lemon XGBoost. "
+                       "Uses structured auction data—not BGE or a text encoder.")
+        elif bid_champion:
             meta=json.loads((root/"models/neural-experimental-bid-cvar95/manifest.json").read_text())
-            st.caption(f"NEW research winner: {meta['neural_weight']:.0%} tuned DeepFM16 + {meta['lemon_weight']:.0%} original Lemon XGBoost.")
+            st.caption(f"Earlier research champion: {meta['neural_weight']:.0%} tuned DeepFM16 + {meta['lemon_weight']:.0%} original Lemon XGBoost.")
         else:
             st.caption("Original 75% DeepFM16 + 25% Lemon XGBoost, with historical 2014–2015 auction assumptions.")
             if bid_ready:st.info("CVaR95 Bid challenger is not release-verified; original model remains active.")
@@ -558,7 +576,8 @@ only when you ask. No model circus required. 🎪🚗
             try:
                 from pricing.neural_ask_embedding_live import load as ask_load
                 with st.spinner("🧠 Loading native Ask model and checking its weights…"):
-                    model=load_champion_ask(root) if ask_champion else ask_load(root)
+                    model=(load_bohb_ask(root) if ask_bohb else
+                           load_champion_ask(root) if ask_champion else ask_load(root))
                     _valuation_probe("ask_checkpoint_complete",started)
                     phase="encode_description"
                     started=time.monotonic()
@@ -595,7 +614,8 @@ only when you ask. No model circus required. 🎪🚗
                 started=time.monotonic()
                 _valuation_probe("bid_checkpoint_start")
                 with st.spinner("🔨 Running the native DeepFM + Lemon XGBoost Bid model…"):
-                    model=load_champion_bid(root) if bid_champion else bid_load(root)
+                    model=(load_bohb_bid(root) if bid_bohb else
+                           load_champion_bid(root) if bid_champion else bid_load(root))
                     _valuation_probe("bid_checkpoint_complete",started)
                     phase="price_head"
                     started=time.monotonic()
@@ -662,7 +682,8 @@ only when you ask. No model circus required. 🎪🚗
                 if st.button("Recalculate complete neural asking model",key="experimental_reword_go"):
                     try:
                         from pricing.neural_ask_embedding_live import load
-                        revised=(load_champion_ask(root) if ask_champion
+                        revised=(load_bohb_ask(root) if ask_bohb
+                                 else load_champion_ask(root) if ask_champion
                                  else load(root)).predict(alt,saved["fields"])["price"]
                         new=_adjust_price(transport,revised,saved["fields"],"ask",valuation_date,allow_analogue) if transport else None
                         st.metric("Rewritten historical asking",_usd(revised),delta=_usd(revised-saved["ask"]["price"]))
