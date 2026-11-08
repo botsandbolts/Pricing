@@ -401,7 +401,7 @@ def publish_inner_selected(args,checkpoint_dir,result):
 
 
 def run(args):
-    from ray import tune,train
+    from ray import tune
     import ray
     from ray.tune.schedulers import PopulationBasedTraining
     validate_run_settings(args)
@@ -429,12 +429,13 @@ def run(args):
             tune_config=tune.TuneConfig(
                 scheduler=scheduler,num_samples=int(args.population),
                 max_concurrent_trials=int(args.workers)),
-            run_config=train.RunConfig(
+            # Tune's Class Trainable supports checkpoint frequency;
+            # ray.train.v2.CheckpointConfig explicitly rejects this option.
+            run_config=tune.RunConfig(
                 name="ray-pbt-ask-"+args.architecture,
                 storage_path=str((folder/"ray-study").resolve()),
                 stop={"training_iteration":int(args.steps)},
-                failure_config=train.FailureConfig(max_failures=0),
-                checkpoint_config=train.CheckpointConfig(
+                checkpoint_config=tune.CheckpointConfig(
                     checkpoint_frequency=1,checkpoint_at_end=True,
                     num_to_keep=2,checkpoint_score_attribute=
                     "best_inner_CVaR95_absolute_USD",checkpoint_score_order="min"),
