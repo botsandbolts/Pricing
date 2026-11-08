@@ -4,6 +4,9 @@ on:
     branches: ['experiment/bohb-granite97m-int8-20261108']
     paths:
       - .github/workflows/bohb-granite97m-int8-overnight.yml
+      - scripts/granite_lemon75_encode.py
+      - scripts/granite_lemon75_features.py
+      - scripts/bohb_granite_lemon75_overnight.py
   workflow_dispatch:
 
 permissions:
