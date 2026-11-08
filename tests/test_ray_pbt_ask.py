@@ -69,10 +69,15 @@ def test_invalid_config_and_wild_memory_budget_rejected():
     with pytest.raises(ValueError):
         validate_config({**c,"architecture":"unverified-transformer"})
     args=SimpleNamespace(architecture="resmlp",population=6,workers=2,
-                         epochs_per_step=3,perturb_steps=3,steps=18)
+                         epochs_per_step=3,perturb_steps=3,steps=1500,
+                         time_budget_seconds=18000)
     validate_run_settings(args)
     with pytest.raises(ValueError):
         validate_run_settings(SimpleNamespace(**{**vars(args),"population":2}))
+    with pytest.raises(ValueError):
+        validate_run_settings(SimpleNamespace(**{**vars(args),"time_budget_seconds":18001}))
+    with pytest.raises(ValueError):
+        validate_run_settings(SimpleNamespace(**{**vars(args),"steps":2001}))
 
 
 def test_pbt_backend_uses_real_ray_checkpointed_trainable():
