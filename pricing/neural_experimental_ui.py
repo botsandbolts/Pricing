@@ -14,6 +14,9 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from pricing.neural_ask_embedding_live import available as ask_available
+from pricing.ray_lemon75_ask_live import (
+    available as lemon75_ask_available, load as load_lemon75_ask,
+)
 from pricing.neural_bid_blend_live import available as bid_available
 from pricing.overnight_bohb_live import (
     available as bohb_available,
@@ -449,6 +452,8 @@ models used on our main price calculator.</p>
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
     market_guide()
+    from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
+    render_lemon75_launch(root)
     if main:
         # Visibility is intentional: Captum itself still runs ONLY on a user
         # click after pricing. A pre-price guide prevents the key feature
@@ -492,16 +497,19 @@ only when you ask. No model circus required. 🎪🚗
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
+    lemon75_ask=lemon75_ask_available(root)
     ask_bohb=bohb_available(root,"ask")
     bid_bohb=bohb_available(root,"bid")
     ask_champion=champion_ask_available(root)
     bid_champion=champion_bid_available(root)
-    ask_ready=ask_bohb or ask_champion or ask_available(root)
+    ask_ready=lemon75_ask or ask_bohb or ask_champion or ask_available(root)
     bid_ready=bid_bohb or bid_champion or bid_available(root)
     a,b=st.columns(2)
     with a:
         st.markdown("**✍ Seller asking · full neural network**")
-        if ask_bohb:
+        if lemon75_ask:
+            st.caption("🍋 LIVE 8 NOV 2026 LEMON EDITION · the exact one-hour Ray-trained DeepCross neural price head, ONNX INT8. Audited Lemon-filtered historical validation on 23,751 listings. Original BGE encoder reused; no fake text-price head.")
+        elif ask_bohb:
             meta=json.loads((root/"models/neural-bohb-ask/manifest.json").read_text())
             st.caption("LIVE BOHB WINNER #36 · pinned BGE → 64-dimensional projection → DeepCross/MoE. "
                        "CVaR95-first, independently replayed on historical validation and test. "
@@ -574,7 +582,8 @@ only when you ask. No model circus required. 🎪🚗
             try:
                 from pricing.neural_ask_embedding_live import load as ask_load
                 with st.spinner("🧠 Loading native Ask model and checking its weights…"):
-                    model=(load_bohb_ask(root) if ask_bohb else
+                    model=(load_lemon75_ask(root) if lemon75_ask else
+                           load_bohb_ask(root) if ask_bohb else
                            load_champion_ask(root) if ask_champion else ask_load(root))
                     _valuation_probe("ask_checkpoint_complete",started)
                     phase="encode_description"
@@ -680,7 +689,8 @@ only when you ask. No model circus required. 🎪🚗
                 if st.button("Recalculate complete neural asking model",key="experimental_reword_go"):
                     try:
                         from pricing.neural_ask_embedding_live import load
-                        revised=(load_bohb_ask(root) if ask_bohb
+                        revised=(load_lemon75_ask(root) if lemon75_ask
+                                 else load_bohb_ask(root) if ask_bohb
                                  else load_champion_ask(root) if ask_champion
                                  else load(root)).predict(alt,saved["fields"])["price"]
                         new=_adjust_price(transport,revised,saved["fields"],"ask",valuation_date,allow_analogue) if transport else None
