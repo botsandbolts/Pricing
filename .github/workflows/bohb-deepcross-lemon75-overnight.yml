@@ -1,0 +1,283 @@
+name: Overnight Lemon75 DeepCross Ask · BOHB 10-way · max 250 epochs · until 06 CET
+on:
+  push:
+    branches: ['experiment/bohb-deepcross-lemon75-overnight-20261108']
+    paths:
+      - .github/workflows/bohb-deepcross-lemon75-overnight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: deepcross-lemon75-bohb-overnight-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install research engine, genuine HpBandSter and test requirements
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2' 'pyarrow>=15,<25' pytest
+      - name: Verify existing BOHB, Lemon split, independent scorer and time cutoff
+        run: |
+          python -m compileall -q scripts/bohb_deepcross_lemon75_overnight.py scripts/bohb_aft_ask_30m.py scripts/ray_pbt_ask_lemon_1h.py
+          python -m pytest -q tests/test_bohb_aft_ask_30m.py tests/test_ray_pbt_ask_lemon_1h.py
+          python -m scripts.bohb_deepcross_lemon75_overnight --slot 0 --stage 1 --output /tmp/bohb-check --check
+
+  stage_1:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 275
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        slot: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install genuine HpBandSter BOHB + frozen CPU PyTorch model stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2' 'pyarrow>=15,<25'
+      - name: Recover immutable Ask features and frozen OOF Lemon membership
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover SHA-verified original 384D BGE features, no re-encoding
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Real BOHB · 3/9/27/81/250 epochs · stop at 06:00 CET
+        env:
+          SLOT: ${{ matrix.slot }}
+        run: |
+          python -u -m scripts.bohb_deepcross_lemon75_overnight \
+            --stage 1 --slot "$SLOT" \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --phase-seconds 14400 \
+            
+            
+            --output "research/bohb-lemon75/slot-$SLOT"
+      - name: Preserve complete or partial honest training receipts, plus native best weights
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohb-lemon75-s1-${{ matrix.slot }}
+          path: research/bohb-lemon75/slot-${{ matrix.slot }}/
+          retention-days: 90
+          if-no-files-found: warn
+          compression-level: 4
+
+  stage_2:
+    needs: stage_1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 275
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        slot: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install genuine HpBandSter BOHB + frozen CPU PyTorch model stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2' 'pyarrow>=15,<25'
+      - name: Recover immutable Ask features and frozen OOF Lemon membership
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover SHA-verified original 384D BGE features, no re-encoding
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Continue this same worker's exact prior BOHB history and champion
+        uses: actions/download-artifact@v4
+        with:
+          name: bohb-lemon75-s1-${{ matrix.slot }}
+          path: prior
+      - name: Real BOHB · 3/9/27/81/250 epochs · stop at 06:00 CET
+        env:
+          SLOT: ${{ matrix.slot }}
+        run: |
+          python -u -m scripts.bohb_deepcross_lemon75_overnight \
+            --stage 2 --slot "$SLOT" \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --phase-seconds 14400 \
+            --previous-dir prior \
+            
+            --output "research/bohb-lemon75/slot-$SLOT"
+      - name: Preserve complete or partial honest training receipts, plus native best weights
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohb-lemon75-s2-${{ matrix.slot }}
+          path: research/bohb-lemon75/slot-${{ matrix.slot }}/
+          retention-days: 90
+          if-no-files-found: warn
+          compression-level: 4
+
+  stage_3:
+    needs: stage_2
+    runs-on: ubuntu-24.04
+    timeout-minutes: 275
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        slot: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install genuine HpBandSter BOHB + frozen CPU PyTorch model stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2' 'pyarrow>=15,<25'
+      - name: Recover immutable Ask features and frozen OOF Lemon membership
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover SHA-verified original 384D BGE features, no re-encoding
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Continue this same worker's exact prior BOHB history and champion
+        uses: actions/download-artifact@v4
+        with:
+          name: bohb-lemon75-s2-${{ matrix.slot }}
+          path: prior
+      - name: Recover independent PRE-Lemon residual reference for fixed cleaned validation
+        uses: actions/download-artifact@v4
+        with:
+          name: matched-bayesian-redesign-data
+          run-id: 41230037897
+          github-token: ${{ github.token }}
+          path: training-cache/original-lemon-reference
+      - name: Real BOHB · 3/9/27/81/250 epochs · stop at 06:00 CET
+        env:
+          SLOT: ${{ matrix.slot }}
+        run: |
+          python -u -m scripts.bohb_deepcross_lemon75_overnight \
+            --stage 3 --slot "$SLOT" \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --phase-seconds 14400 \
+            --previous-dir prior \
+            --reference training-cache/original-lemon-reference/ask-minilm-oof.csv.gz \
+            --output "research/bohb-lemon75/slot-$SLOT"
+      - name: Preserve complete or partial honest training receipts, plus native best weights
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohb-lemon75-s3-${{ matrix.slot }}
+          path: research/bohb-lemon75/slot-${{ matrix.slot }}/
+          retention-days: 90
+          if-no-files-found: warn
+          compression-level: 4
+
+  final_report:
+    if: always()
+    needs: [preflight, stage_3]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Download all available 10-shard final winner and validation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bohb-lemon75-s3-*
+          path: finished
+          merge-multiple: false
+      - name: Rank by TRAIN-only CVaR95 and show clean/full validation side-by-side
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for path in sorted(Path("finished").rglob("result.json")):
+              r=json.loads(path.read_text())
+              if r.get("status")!="completed":continue
+              rows.append({
+                  "worker":r["slot"],
+                  "internal_train_CVaR95_USD":r["winning_train_selected_trial"]["inner_metrics"]["CVaR95_absolute_USD"],
+                  "full_validation":r["full_original_validation"],
+                  "cleaned_retrospective_validation":r["cleaned_conditional_validation"],
+                  "highest_epoch_budget_fully_completed":r["highest_epoch_budget_fully_completed"],
+                  "trials":r["total_trials"]
+              })
+          rows.sort(key=lambda z:z["internal_train_CVaR95_USD"])
+          result={
+              "status":"complete" if len(rows)==10 else "partial",
+              "workers_expected":10, "workers_validated":len(rows),
+              "selected_using":"TRAIN-internal CVaR95 only",
+              "training":"Lemon 75% retained original Ask training / fixed DeepCross",
+              "max_candidate_epochs":250,
+              "hard_deadline":"2026-11-09 06:00 CET",
+              "cleaned_validation_is_outcome_dependent_retrospective":True,
+              "original_test_used":False, "auto_deploy":False,
+              "ranking":rows
+          }
+          Path("bohb-lemon75-overnight-final.json").write_text(json.dumps(result,indent=2,allow_nan=False))
+          print("BOHB_LEMON75_OVERNIGHT_FINAL",json.dumps(result),flush=True)
+          if len(rows)!=10:raise SystemExit("Not all ten workers produced audited validation reports")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bohb-lemon75-overnight-10-way-final-report
+          path: bohb-lemon75-overnight-final.json
+          retention-days: 90
+          if-no-files-found: warn
