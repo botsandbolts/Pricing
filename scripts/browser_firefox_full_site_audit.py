@@ -101,12 +101,29 @@ def run():
                 page.wait_for_timeout(1200)
             page.wait_for_timeout(700)
             safe_shot(page,"after-consent-before-hero.png")
+            # Streamlit uses a scrollable app container, not always window.
+            # Some sections are virtualized until scrolled into view.
+            for region in ('[data-testid="stAppViewContainer"]', '[data-testid="stMain"]'):
+                try:
+                    page.locator(region).first.evaluate('el=>{el.scrollTop=0}')
+                except Exception:
+                    pass
             hero=page.locator(".garage-home-hero")
             try:
-                hero.wait_for(state="visible",timeout=65000)
+                hero.wait_for(state="visible",timeout=55000)
             except Exception:
                 report["hero_count"]=hero.count()
                 report["initial_body_text"]=page.locator("body").inner_text()[:3500]
+                report["dom_summary"]=page.evaluate("""() => ({
+                  title:document.title,
+                  url:location.href,
+                  bodyChildren:document.body.children.length,
+                  mainCount:document.querySelectorAll('main').length,
+                  links:[...document.querySelectorAll('a')].slice(0,30).map(a=>a.textContent.trim().slice(0,80)),
+                  scrollHeight:document.documentElement.scrollHeight,
+                  appViewScrollHeight:document.querySelector('[data-testid="stAppViewContainer"]')?.scrollHeight,
+                  appViewClientHeight:document.querySelector('[data-testid="stAppViewContainer"]')?.clientHeight
+                })""")
                 report["streamlit_exception_cards"]=page.locator('[data-testid="stException"]').count()
                 raise
             release=page.locator('[aria-label="Car Price Studio model upgrade announcement"]')
