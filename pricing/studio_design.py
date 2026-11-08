@@ -79,7 +79,8 @@ def landing_banner_html():
     Google Analytics also processes usage signals under its own terms.
     No advertising tracking is enabled. Rejecting analytics doesn't disable the calculator.
     Server hosting providers may keep their own operational logs.
-    You can change your choice in <strong>Privacy &amp; cookies</strong>.</p>
+    You can change your choice in <strong>Privacy &amp; cookies</strong>, or read
+    <a href="?legal=privacy">the full Privacy Policy</a>.</p>
     <p>This operator is based in Hamburg, Germany. The applicable GDPR supervisory framework
     includes <a href="https://datenschutz-hamburg.de/" target="_blank" rel="noopener noreferrer">
     the Hamburg Commissioner for Data Protection and Freedom of Information</a>.
