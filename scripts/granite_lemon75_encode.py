@@ -73,10 +73,24 @@ def load_encoder():
                    "encoder_runtime": "onnxruntime-cpu-prequantized-quint8-avx2"}
 
 
-def encode(model, texts, batch=16):
-    v = np.asarray(model.encode(
-        texts, batch_size=batch, normalize_embeddings=True, convert_to_numpy=True,
-        show_progress_bar=False), dtype=np.float32)
+def encode(model, texts, batch=1):
+    """Use consistent per-description inference for batch-sensitive INT8 ONNX.
+
+    We measured max absolute delta .0418 and min cosine .9783 when switching
+    batch=1 versus batch=4. Do not weaken tolerance or train on inconsistent
+    embeddings. Serving and training use batch_size=1.
+    """
+    if batch != 1:
+        raise ValueError("Granite INT8 ONNX requires deterministic per-row inference")
+    vectors = []
+    for text in texts:
+        item = np.asarray(model.encode(
+            [text], batch_size=1, normalize_embeddings=True,
+            convert_to_numpy=True, show_progress_bar=False), dtype=np.float32)
+        if item.shape != (1,DIM):
+            raise ValueError("Granite ONNX vector shape changed")
+        vectors.append(item[0])
+    v = np.asarray(vectors, dtype=np.float32)
     if v.shape != (len(texts), DIM) or not np.isfinite(v).all():
         raise ValueError("Wrong Granite embedding shape or nonfinite result")
     if not np.allclose(np.linalg.norm(v, axis=1), 1., atol=.006):
@@ -92,15 +106,17 @@ def smoke():
         "Un coche usado en buenas condiciones.",
         "Продается автомобиль с небольшим пробегом."
     ]
-    a = encode(model, inputs, batch=4)
+    a = encode(model, inputs, batch=1)
     b = np.concatenate([encode(model, [t], batch=1) for t in inputs], 0)
     cos = np.sum(a*b, axis=1)
     delta = float(np.max(np.abs(a-b)))
-    if delta > .025 or float(cos.min()) < .992:
-        raise ValueError(f"ONNX INT8 batch-1 parity failed {delta} / {cos.min()}")
+    if delta > .005 or float(cos.min()) < .999:
+        raise ValueError(f"Repeated single-row INT8 ONNX inference differs {delta} / {cos.min()}")
     print("GRANITE_INT8_ONNX_SMOKE_OK", json.dumps({**meta,
           "dimensions": DIM, "comparison_max_tokens": MAX_TOKENS,
-          "max_abs_batch_delta": delta, "min_batch_cosine": float(cos.min())}),
+          "inference_batch_size": 1, "max_repeat_absolute_difference": delta,
+          "min_repeat_cosine_similarity": float(cos.min()),
+          "previous_unacceptable_batch4_cosine": 0.9782596826553345}),
           flush=True)
 
 
@@ -113,18 +129,18 @@ def chunk(args):
     text = frame.text.iloc[start:end].fillna("").astype(str).tolist()
     check_text = [clean(text[i]) for i in np.linspace(
         0, len(text)-1, min(4, len(text)), dtype=int)]
-    b1 = np.concatenate([encode(model, [t], batch=1) for t in check_text], 0)
-    b4 = encode(model, check_text, batch=4)
-    delta = float(np.max(np.abs(b1-b4)))
-    cos = float(np.min((b1*b4).sum(axis=1)))
-    if delta > .025 or cos < .992:
-        raise ValueError("Single vehicle vs batch Granite INT8 ONNX mismatch")
+    b1 = encode(model, check_text, batch=1)
+    b2 = np.concatenate([encode(model, [t], batch=1) for t in check_text], 0)
+    delta = float(np.max(np.abs(b1-b2)))
+    cos = float(np.min((b1*b2).sum(axis=1)))
+    if delta > .005 or cos < .999:
+        raise ValueError("Repeated individual Granite INT8 ONNX inference mismatch")
     whole = np.lib.format.open_memmap(
         folder/"embeddings.npy", mode="w+", dtype=np.float16,
         shape=(end-start, DIM))
     for i in range(0, len(text), 256):
         clean_text = [clean(x) for x in text[i:i+256]]
-        whole[i:i+len(clean_text)] = encode(model, clean_text, batch=16).astype(np.float16)
+        whole[i:i+len(clean_text)] = encode(model, clean_text, batch=1).astype(np.float16)
         if i % 2048 == 0:
             print("GRANITE_INT8_ENCODE_PROGRESS", json.dumps({
                 "chunk": args.chunk, "rows_done": min(i+256, len(text)),
@@ -136,13 +152,15 @@ def chunk(args):
         "rows": end-start, "total_rows": N, "dimensionality": DIM,
         "max_tokens": MAX_TOKENS, "normalization": "L2",
         "embedding_precision": "float16", "encoder_inference": "INT8 ONNX",
+        "inference_batch_size": 1,
         "price_labels_used_to_encode": False,
         "text_price_heads": 0, "fine_tuned_on_price": False,
         "input_text_cleaner": "scripts.common.clean (same as BGE)",
         "source_row_sha256": id_hash(ids[start:end]),
         "canonical_cohort_sha256": source["cohort_sha256"],
         "holdout_row_sha256": source["holdout_row_sha256"],
-        "max_batch_absolute_difference": delta, "min_batch_cosine": cos,
+        "inference_batch_size": 1, "max_repeat_absolute_difference": delta,
+        "min_repeat_cosine_similarity": cos,
         "embedding_file_sha256": fingerprint(folder/"embeddings.npy")}
     (folder/"chunk.json").write_text(json.dumps(manifest, indent=2))
     print("GRANITE_INT8_CHUNK_COMPLETE", json.dumps(manifest), flush=True)
