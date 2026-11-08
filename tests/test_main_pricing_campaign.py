@@ -58,9 +58,9 @@ def test_separate_experimental_page_removed_but_legacy_links_redirect():
 def test_main_branding_science_business_and_no_synthetic_price():
     src=read("pricing/neural_experimental_ui.py")
     assert "def render(root,*,main=False)" in src
-    assert "Zero crystal balls" in src
-    assert "Car Price Studio main price calculator" in src
-    assert "MADE IN GERMANY" in src
+    assert "Zero crystal balls" in read("pricing/studio_design.py")
+    assert "render_two_market_pricing(Path(__file__).parent,main=True)" in read("app.py")
+    assert "MADE IN GERMANY" in read("pricing/studio_design.py")
     assert "Ask" in src and "Bid" in src
     assert "CVaR95" in src and "RMSE" in src and "MAE" in src
     assert "Date-adjusted scenario, not an observed transaction" in src
