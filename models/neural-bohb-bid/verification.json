@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "verified": true,
+  "complete_validation_parity": true,
+  "full_original_test_scored": true,
+  "original_test_rows_scored": 83603,
+  "serving_prediction_parity": true,
+  "serving_validation_sample_rows": 40,
+  "candidate_test_cvar95_improves_incumbent": true,
+  "weight_sha256": "eec3ba1685db33b9b56d8251beb34df77cb8403df006fb22c036906745df4067",
+  "native_original_dataset_fingerprint_validated": true,
+  "original_test_not_used_in_hyperparameter_search": true,
+  "shared_original_preprocessing_reused": true,
+  "no_new_training_or_encoder_heads": true
+}
