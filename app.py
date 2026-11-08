@@ -40,7 +40,7 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _main_two_market_release_v18():
+def _main_two_market_release_v19():
     # Deployment cache bust v17: refresh the actual hosted pricing form and
     # report modules after today's focused CTA layout release, even if
     # Streamlit preserved v16 resource cache through hot redeployment.
@@ -49,7 +49,7 @@ def _main_two_market_release_v18():
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_main_two_market_release_v18()
+_main_two_market_release_v19()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
@@ -97,8 +97,10 @@ _RELEASE_ANNOUNCEMENT_HTML = """
 # Focused pricing deep links must land on the car form, not on the announcement.
 # Keep the release message below the calculator for this route.
 st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
+from pricing.navigation import prepare_navigation_state,render_navigation
+# Resolve destinations before displaying the banner, avoiding one-rerun lag.
+prepare_navigation_state()
 render_hero()
-from pricing.navigation import render_navigation
 _workspace=render_navigation()
 # Mount consent and first-party telemetry on early-return workspaces as well.
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):

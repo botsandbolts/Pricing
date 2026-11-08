@@ -91,13 +91,28 @@ def run():
         page.on("pageerror",lambda exc:report["errors"].append(str(exc)[:400]))
         try:
             page.goto(URL,wait_until="domcontentloaded",timeout=90000)
+            # Consent is a true modal: dismiss before asserting visual layout.
+            # No blind coordinate clicks; use its accessible button in every frame.
+            page.wait_for_timeout(2500)
+            for _ in range(8):
+                dismiss_consent(page,report)
+                if report.get("consent_action")!="No visible accessible rejection button":
+                    break
+                page.wait_for_timeout(1200)
+            page.wait_for_timeout(700)
+            safe_shot(page,"after-consent-before-hero.png")
             hero=page.locator(".garage-home-hero")
-            hero.wait_for(state="visible",timeout=180000)
+            try:
+                hero.wait_for(state="visible",timeout=65000)
+            except Exception:
+                report["hero_count"]=hero.count()
+                report["initial_body_text"]=page.locator("body").inner_text()[:3500]
+                report["streamlit_exception_cards"]=page.locator('[data-testid="stException"]').count()
+                raise
             release=page.locator('[aria-label="Car Price Studio model upgrade announcement"]')
             release.wait_for(state="attached",timeout=60000)
             report["pricing"]["hero_initial"]=hero.count()
             report["pricing"]["release_initial"]=release.count()
-            dismiss_consent(page,report)
             safe_shot(page,"before-cta.png")
             cta=page.get_by_role("link",name="Go to the car pricing calculator")
             assert cta.get_attribute("href")=="#studio-calculator", "CTA still changes URL/routes"

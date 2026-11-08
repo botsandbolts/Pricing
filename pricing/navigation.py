@@ -1,7 +1,7 @@
 """Single landing-page navigation, including callback and shared-link routing."""
 import streamlit as st
 PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
-def render_navigation():
+def prepare_navigation_state():
     pending=st.session_state.pop('_navigate_to',None)
     if pending in ('🌳 Hierarchical model','🧬 Experimental models','🧬 Experimental pricing'):pending=PAGES[0]
     if st.session_state.get('landing_studio_workspace') in ('🌳 Hierarchical model','🧬 Experimental pricing','🧬 Experimental models'):st.session_state['landing_studio_workspace']=PAGES[0]
@@ -14,6 +14,11 @@ def render_navigation():
     if st.query_params.get('focus') == 'pricing':
         st.session_state['landing_studio_workspace']=PAGES[0]
         st.query_params.pop('focus',None)
+    return st.session_state['landing_studio_workspace']
+
+
+def render_navigation():
+    prepare_navigation_state()
     st.markdown('<div id="studio-workspace" tabindex="-1"></div>',unsafe_allow_html=True)
     st.markdown('<div class="garage-nav-heading"><strong>Choose a panel</strong><span>Tap a panel to open it.</span></div>',unsafe_allow_html=True)
     page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed',persist_state='session') or PAGES[0]
