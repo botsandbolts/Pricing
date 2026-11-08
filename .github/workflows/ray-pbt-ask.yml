@@ -1,0 +1,186 @@
+name: Ray Tune PBT Ask · evolving losses + BGE native ResMLP/DeepCross
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ray-pbt-ask.yml
+      - scripts/ray_pbt_ask.py
+      - tests/test_ray_pbt_ask.py
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: ray-pbt-ask-native-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+  OPENBLAS_NUM_THREADS: '1'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded CPU model training + genuine Ray Tune
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'ray[tune]>=2.44,<3' 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' pytest
+      - name: Verify both native architectures, losses, mutation boundaries, real Trainable API
+        run: |
+          python -m compileall -q scripts/ray_pbt_ask.py tests/test_ray_pbt_ask.py
+          python -m pytest -q tests/test_ray_pbt_ask.py
+      - name: Print Ray Tune + runtime versions and training contract
+        run: |
+          python - <<'PY'
+          import ray,torch,sys
+          from scripts.ray_pbt_ask import ARCHITECTURES,LOSS_FAMILIES
+          print("RAY_PBT_PREFLIGHT",{
+            "python":sys.version.split()[0],"ray":ray.__version__,
+            "torch":torch.__version__,"architectures":ARCHITECTURES,
+            "mutable_losses":LOSS_FAMILIES,
+            "population_per_architecture":6,"CPUs_per_architecture":2,
+            "original_test_never_scored":True,"automatic_deploy":False})
+          PY
+
+  tune:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 345
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [resmlp, deepcross]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install the identical CPU Ray/PyTorch environment
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'ray[tune]>=2.44,<3' 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<25' pytest
+      - name: Recover original immutable 2021 asking training/validation/test partitions
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover original SHA-verified 384D BGE vectors; never reload a transformer for training
+        uses: actions/download-artifact@v4
+        with:
+          name: raw-ask-embeddings-bge-256
+          run-id: 42270078516
+          github-token: ${{ github.token }}
+          path: training-cache/bge-256
+      - name: Run REAL Ray PBT · 6 members · weight+AdamW state inheritance · moving losses
+        run: |
+          python -u -m scripts.ray_pbt_ask \
+            --architecture ${{ matrix.architecture }} \
+            --features training-cache/neural-ask/features.npz \
+            --embeddings training-cache/bge-256 \
+            --population 6 --workers 2 \
+            --steps 18 --epochs-per-step 3 --perturb-steps 3 \
+            --output reports/ray-pbt-ask/${{ matrix.architecture }}
+      - name: Verify winner was selected from TRAIN only and canonical validation is complete
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          from scripts.cvar95_historical import risk
+          root=Path('reports/ray-pbt-ask/${{ matrix.architecture }}')
+          d=json.loads((root/'result.json').read_text())
+          assert d['status']=='complete' and d['original_test_scored'] is False
+          assert d['original_test_used_for_selection'] is False and d['autodeploy'] is False
+          assert d['provenance']['train_fit_rows']==133000
+          assert d['provenance']['train_only_stopper_rows']==14777
+          v=pd.read_csv(root/'validation.csv.gz',dtype={'row_id':str})
+          assert len(v)==31668 and v.row_id.is_unique and v.split.eq('validation').all()
+          assert np.isfinite(v.predicted_price.to_numpy(float)).all()
+          observed=risk(v.observed_price.to_numpy(float),v.predicted_price.to_numpy(float))
+          for k in ('CVaR95_absolute_USD','MAE_USD','RMSE_USD'):
+              assert abs(observed[k]-d['external_original_validation'][k])<.05
+          assert (root/'weights.pt').is_file()
+          print('RAY_PBT_ASK_INDEPENDENT_AUDIT',d['architecture'],
+                'internal_CVaR95',d['selected_train_internal_CVaR95_USD'],
+                'validation',observed,flush=True)
+          PY
+      - name: Upload ONLY original test-free training reports and finalist checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: ray-pbt-ask-${{ matrix.architecture }}
+          path: |
+            reports/ray-pbt-ask/${{ matrix.architecture }}/weights.pt
+            reports/ray-pbt-ask/${{ matrix.architecture }}/result.json
+            reports/ray-pbt-ask/${{ matrix.architecture }}/validation.csv.gz
+          retention-days: 90
+          if-no-files-found: error
+      - name: Upload Ray PBT policy log showing genuine donor exploitation/mutations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ray-pbt-ask-${{ matrix.architecture }}-policy
+          path: |
+            reports/ray-pbt-ask/${{ matrix.architecture }}/ray-study/**/pbt_global.txt
+            reports/ray-pbt-ask/${{ matrix.architecture }}/ray-study/**/pbt_policy_*.txt
+          retention-days: 30
+          if-no-files-found: warn
+
+  report:
+    if: always()
+    needs: tune
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ray-pbt-ask-*
+          path: collected
+          merge-multiple: false
+      - name: Compare available validated architecture islands, never publish models
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          cases=[]
+          for f in Path('collected').rglob('result.json'):
+              v=json.loads(f.read_text())
+              cases.append({
+                 'architecture':v['architecture'],
+                 'train_internal_CVaR95':v['selected_train_internal_CVaR95_USD'],
+                 'external_original_validation_CVaR95':v['external_original_validation']['CVaR95_absolute_USD'],
+                 'external_original_validation_MAE':v['external_original_validation']['MAE_USD'],
+                 'auto_deployed':False,
+              })
+          cases.sort(key=lambda v:v['external_original_validation_CVaR95'])
+          Path('ray-pbt-ask-comparison.json').write_text(json.dumps({
+              'status':'complete' if len(cases)==2 else 'partial',
+              'models':cases,
+              'note':'Original TEST never accessed; no automatic model promotion',
+              'candidate_requires_new independent test before release':True,
+          },indent=2))
+          print('RAY_PBT_ASK_COMPARISON',json.dumps(cases),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ray-pbt-ask-summary
+          path: ray-pbt-ask-comparison.json
+          if-no-files-found: error
+          retention-days: 90
