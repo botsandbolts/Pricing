@@ -156,8 +156,93 @@ jobs:
           compression-level: 4
           if-no-files-found: error
 
-  stage_1:
+  training_preflight:
+    # Always evaluate the explicit upstream status. A deliberately skipped
+    # encoding matrix must not implicitly skip valid downstream training.
     needs: assemble
+    if: ${{ always() && needs.assemble.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact BOHB training prerequisites, not only encoder prerequisites
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'hpbandster==0.7.4' 'ConfigSpace>=0.7,<2' 'pyarrow>=15,<25'
+      - name: Recover exact original structured Ask features and train-only Lemon selection
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          github-token: ${{ github.token }}
+          path: training-cache/neural-ask
+      - name: Recover SHA-verified completed Granite INT8 ONNX embeddings
+        uses: actions/download-artifact@v4
+        with:
+          name: granite-97m-r2-int8-onnx-ask-embeddings
+          path: training-cache/granite
+      - name: Recover independent Lemon reference used only for eventual final audit
+        uses: actions/download-artifact@v4
+        with:
+          name: matched-bayesian-redesign-data
+          run-id: 41230037897
+          github-token: ${{ github.token }}
+          path: training-cache/original-lemon-reference
+      - name: Verify full-source ID, SHA, train/validation membership, reference and actual two-epoch BOHB training
+        run: |
+          python -u - <<'PY'
+          import json
+          import time
+          import numpy as np
+          from scripts import bohb_aft_ask_30m as bohb
+          from scripts.bohb_granite_lemon75_overnight import (
+              BUDGETS, _validate_contract, _retained_validation_mask)
+          from scripts.granite_lemon75_features import frozen_source
+          from scripts.granite_lemon75_encode import VARIANT
+          base = 'training-cache/neural-ask/features.npz'
+          vectors = 'training-cache/granite'
+          reference = 'training-cache/original-lemon-reference/ask-minilm-oof.csv.gz'
+          values, meta = _validate_contract(base, vectors)
+          z, vec, source, encoder = frozen_source(base, vectors, VARIANT)
+          rows, mask = _retained_validation_mask(z, reference)
+          assert len(rows) == 31668 and int(mask.sum()) == 23751
+          assert len(values['fit']['truth']) == 99749
+          assert len(values['inner']['truth']) == 11083
+          assert meta['embedding_sha256'] == encoder['embedding_file_sha256']
+          bohb.BUDGETS = BUDGETS
+          generator = bohb.bohb_generator([], seed=20261108)
+          hyperparams = bohb._unique_config(generator, [])
+          arch = bohb.architecture_params('deepcross')
+          sample = {
+              name: {key: tensor[:count] for key, tensor in values[name].items()}
+              for name, count in [('fit', 1024), ('inner', 512)]
+          }
+          trial = bohb._trial(sample, meta['cardinalities'], arch, hyperparams,
+                              3, 20261108, time.monotonic() + 240, max_single=180)
+          metrics = trial['inner_metrics']
+          assert trial['epochs_trained'] >= 2
+          assert all(np.isfinite(metrics[k]) and metrics[k] >= 0
+                     for k in ('CVaR95_absolute_USD', 'MAE_USD', 'RMSE_USD'))
+          print('GRANITE_ACTUAL_TRAINING_SMOKE_OK', json.dumps({
+              'fit_rows': len(values['fit']['truth']),
+              'inner_rows': len(values['inner']['truth']),
+              'granite_sha': meta['embedding_sha256'],
+              'validation_rows_audited_without_training': len(rows),
+              'smoke_epochs': trial['epochs_trained'],
+              'smoke_train_only_cvar95': metrics['CVaR95_absolute_USD'],
+              'full_training_max_epochs': max(BUDGETS),
+              'model': 'granite-97m-r2-int8-onnx-384D',
+          }), flush=True)
+          PY
+
+  stage_1:
+    needs: training_preflight
+    if: ${{ always() && needs.training_preflight.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 275
     strategy:
@@ -211,6 +296,7 @@ jobs:
 
   stage_2:
     needs: stage_1
+    if: ${{ always() && needs.stage_1.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 275
     strategy:
@@ -270,6 +356,7 @@ jobs:
 
   stage_3:
     needs: stage_2
+    if: ${{ always() && needs.stage_2.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 275
     strategy:
@@ -336,8 +423,8 @@ jobs:
           compression-level: 4
 
   final_report:
-    if: always()
     needs: [preflight, stage_3]
+    if: ${{ always() && needs.stage_3.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
