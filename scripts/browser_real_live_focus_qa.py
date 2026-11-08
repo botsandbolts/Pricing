@@ -32,9 +32,22 @@ def run():
         page.on("pageerror",lambda e:evidence["errors"].append(str(e)[:350]))
         try:
             page.goto(TARGET,wait_until="domcontentloaded",timeout=90000)
+            # A fresh real-app session opens the opt-in GDPR dialog.
+            # Exercise explicit rejection in this isolated browser context
+            # before interacting with the banner; otherwise the consent
+            # overlay blocks the browser tap and makes the test misleading.
+            reject=page.get_by_role("button",name="Reject analytics",exact=True)
+            reject.wait_for(state="visible",timeout=90000)
+            evidence["privacy_choice"]="rejected_optional_analytics_in_test_context"
+            page.screenshot(path=str(OUT/"real-live-before-consent.png"),
+                            full_page=True)
+            reject.click(timeout=30000)
+            reject.wait_for(state="hidden",timeout=45000)
             cta=page.get_by_role(
                 "link",name="Go to the car pricing calculator")
-            cta.wait_for(state="visible",timeout=150000)
+            cta.wait_for(state="attached",timeout=120000)
+            cta.scroll_into_view_if_needed(timeout=30000)
+            cta.wait_for(state="visible",timeout=30000)
             assert page.locator(
                 '[aria-label="Temporary pricing model reliability notice"]'
             ).count()==1, "Real warning bulletin was not present on landing"
