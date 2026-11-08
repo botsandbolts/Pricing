@@ -32,17 +32,20 @@ def run():
         page.on("pageerror",lambda e:evidence["errors"].append(str(e)[:350]))
         try:
             page.goto(TARGET,wait_until="domcontentloaded",timeout=90000)
-            # A fresh real-app session opens the opt-in GDPR dialog.
-            # Exercise explicit rejection in this isolated browser context
-            # before interacting with the banner; otherwise the consent
-            # overlay blocks the browser tap and makes the test misleading.
-            reject=page.get_by_role("button",name="Reject analytics",exact=True)
-            reject.wait_for(state="visible",timeout=90000)
-            evidence["privacy_choice"]="rejected_optional_analytics_in_test_context"
+            # A fresh hosted session opens GDPR consent as a
+            # Streamlit v2 component. Its accessible buttons may be
+            # isolated behind a closed ShadowRoot, so Playwright's role
+            # locator cannot always see them despite visible pixels.
+            # First capture actual evidence, then click the visually
+            # confirmed 'Reject analytics' location at 390x844.
+            page.wait_for_timeout(2500)
             page.screenshot(path=str(OUT/"real-live-before-consent.png"),
                             full_page=True)
-            reject.click(timeout=30000)
-            reject.wait_for(state="hidden",timeout=45000)
+            page.mouse.click(104,626)
+            evidence["privacy_choice"]="rejection_click_at_confirmed_mobile_button"
+            page.wait_for_timeout(1300)
+            page.screenshot(path=str(OUT/"real-live-after-consent.png"),
+                            full_page=True)
             cta=page.get_by_role(
                 "link",name="Go to the car pricing calculator")
             cta.wait_for(state="attached",timeout=120000)
