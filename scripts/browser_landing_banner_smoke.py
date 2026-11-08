@@ -70,10 +70,9 @@ def run():
                     if mobile:
                         cta.tap(timeout=15000)
                     else:
-                        cta.focus()
-                        assert cta.evaluate(
-                            "(el)=>document.activeElement===el")
-                        page.keyboard.press("Enter")
+                        # The user reports a double click; exercise one
+                        # actual pointer click, not a keyboard-only path.
+                        cta.click(timeout=15000)
                     page.wait_for_function(
                         "new URLSearchParams(location.search).get('focus') === 'pricing'",
                         timeout=15000)

@@ -42,7 +42,7 @@ def render(root):
       <span>🔬 See the evidence</span>
       <span>🚗 Two distinct prices: Ask and Bid</span>
     </div>
-    <a class="ray-lemon-link" href="?focus=pricing">Try my car</a>
+    <a class="ray-lemon-link" href="?focus=pricing" target="_self">Try my car</a>
     </section>
     """,unsafe_allow_html=True)
     a,b,c=st.columns(3)
