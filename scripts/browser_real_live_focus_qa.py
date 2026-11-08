@@ -46,6 +46,29 @@ def run():
             page.wait_for_timeout(1300)
             page.screenshot(path=str(OUT/"real-live-after-consent.png"),
                             full_page=True)
+            # Independent direct-route check against the REAL hosted app.
+            # This gives a useful verdict even if fresh-session consent
+            # or mobile tap interception later blocks the banner itself.
+            direct=context.new_page()
+            direct.goto(TARGET.rstrip("/")+"/?focus=pricing",
+                        wait_until="domcontentloaded",timeout=90000)
+            direct_form=direct.locator('[data-testid="stForm"]').first
+            direct_form.wait_for(state="visible",timeout=120000)
+            direct_notice=direct.locator(
+                '[aria-label="Temporary pricing model reliability notice"]')
+            direct_notice.wait_for(state="attached",timeout=30000)
+            direct_form_box=direct_form.bounding_box()
+            direct_notice_box=direct_notice.bounding_box()
+            assert direct_form_box and direct_notice_box
+            evidence["direct_focus_form_y"]=round(direct_form_box["y"],1)
+            evidence["direct_focus_warning_y"]=round(direct_notice_box["y"],1)
+            evidence["direct_focus_order_passed"]=(
+                direct_form_box["y"]<direct_notice_box["y"])
+            direct.screenshot(path=str(OUT/"real-live-direct-focus.png"),
+                              full_page=True)
+            direct.close()
+            assert evidence["direct_focus_order_passed"], (
+                "Real hosted calculator still follows the warning bulletin")
             cta=page.get_by_role(
                 "link",name="Go to the car pricing calculator")
             cta.wait_for(state="attached",timeout=120000)
