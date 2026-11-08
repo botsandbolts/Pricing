@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "verified": true,
+  "complete_original_validation_replay": true,
+  "filtered_validation_replay": true,
+  "native_checkpoint_replay": true,
+  "unmodified_checkpoint_sha256": "016d6ba9d36d14b89c402647e038085966452cf348d698ebe4d2b004e7f634d2",
+  "production_source_unchanged": true,
+  "test_evaluated": false,
+  "full_reference_mask_sha256": "aeccb9ddbcf103d8bc603659c1aa3f62efe39d6b3d5f9f5451e3b5a313ca27ac",
+  "samples_verified": 31668,
+  "retained_validation_rows": 23751,
+  "native_sha256": "016d6ba9d36d14b89c402647e038085966452cf348d698ebe4d2b004e7f634d2",
+  "quantization": "none"
+}
