@@ -230,17 +230,10 @@ def render(root,saved,*,ask_champion=False,bid_champion=False,adjusted=None):
     sides=[s for s in ("ask","bid") if s in saved and
            (s!="bid" or "bid_fields" in saved) and
            (adjusted is None or s in adjusted)]
-    # An INT8 head can differ slightly from native Captum pricing, so
-    # do not falsely reconcile a reference-weight attribution to a
-    # differently quantized user quote. Bid Captum remains available.
-    from pricing.ray_lemon75_ask_live import available as lemon_available
-    if "ask" in sides and lemon_available(root):
-        sides.remove("ask")
-        st.caption("🔬 Lemon75 Ask uses audited INT8 ONNX inference. "
-                   "Exact-price Captum is temporarily limited to native "
-                   "models; we do not present native gradients as if they "
-                   "exactly explained a quantized quote. "
-                   "See the Lemon science panel for its methodology.")
+    # Lemon75 uses its original FP32 PyTorch Ask head; do not disable Captum.
+    # The shared encoder may use verified INT8 ONNX, but the saved embedding is
+    # reused unchanged and explain() proves exact native-price parity before
+    # any feature effects are displayed. On mismatch it fails closed.
     if not sides:
         if adjusted is not None:
             st.info("The selected-date price must be available before it can be explained.")
