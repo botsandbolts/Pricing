@@ -40,7 +40,7 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _main_two_market_release_v19():
+def _main_two_market_release_v20():
     # Deployment cache bust v17: refresh the actual hosted pricing form and
     # report modules after today's focused CTA layout release, even if
     # Streamlit preserved v16 resource cache through hot redeployment.
@@ -49,12 +49,11 @@ def _main_two_market_release_v19():
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_main_two_market_release_v19()
+_main_two_market_release_v20()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
-# Show the release announcement above the hero on normal routes.
-# A focused pricing deep link keeps it below the editable calculator.
+# Keep the release bulletin in the document while prioritizing the useful CTA above it.
 _RELEASE_ANNOUNCEMENT_HTML = """
 <section role="status" aria-label="Car Price Studio model upgrade announcement"
   style="background:linear-gradient(115deg,#162735 0%,#1d3d4c 55%,#234d49 100%);
@@ -94,13 +93,13 @@ _RELEASE_ANNOUNCEMENT_HTML = """
   </div>
 </section>
 """
-# Focused pricing deep links must land on the car form, not on the announcement.
-# Keep the release message below the calculator for this route.
-st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
+# In-page hash navigation never removes this bulletin or changes workspaces.
 from pricing.navigation import prepare_navigation_state,render_navigation
-# Resolve destinations before displaying the banner, avoiding one-rerun lag.
+# Put the customer's first action ahead of the long release bulletin on mobile.
+# Both branded banners remain mounted; the gold CTA scrolls to the same form.
 prepare_navigation_state()
 render_hero()
+st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
 _workspace=render_navigation()
 # Mount consent and first-party telemetry on early-return workspaces as well.
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
