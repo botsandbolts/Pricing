@@ -65,7 +65,9 @@ def test_vehicle_and_description_survive_navigation(studio):
         if field.label=='Model / trim':field.set_value('Focus')
     next(field for field in at.text_area if field.label=="Seller's description").set_value(
         'Service history and new tires.')
-    at.run()
+    # Streamlit forms send pending input values only with the submit action.
+    # This simultaneously verifies one-click submission and session persistence.
+    next(b for b in at.button if 'Calculate seller Ask + wholesale Bid' in b.label).click().run(timeout=90)
     assert not at.exception
     at.get('pills')[0].set_value('📊 Evaluation').run()
     assert not at.exception
