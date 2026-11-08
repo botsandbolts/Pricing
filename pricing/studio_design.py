@@ -26,8 +26,6 @@ def show_landing_banner():
     """
     if st.query_params.get('legal') in ('imprint', 'privacy'):
         return False
-    if st.query_params.get('focus') == 'pricing':
-        return False
     active=st.session_state.get('landing_studio_workspace','🚗 Price my car')
     if st.query_params.get('garage') and 'landing_studio_workspace' not in st.session_state:
         return False
@@ -49,7 +47,7 @@ def landing_banner_html():
       seller <strong>Ask</strong> and wholesale <strong>Bid</strong>.
       Zero crystal balls. Your mechanic gets the last word.</p>
     <div class="garage-home-actions">
-      <a class="garage-home-cta" href="?focus=pricing" target="_self"
+      <a class="garage-home-cta" href="#studio-calculator" target="_self"
          aria-label="Go to the car pricing calculator">🚗 Price my car — let's roll <span aria-hidden="true">→</span></a>
       <a class="garage-home-source" href="https://github.com/botsandbolts/Pricing"
          target="_blank" rel="noopener noreferrer">Explore the open-source code ↗</a>
