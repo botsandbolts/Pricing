@@ -38,7 +38,7 @@ def run():
             # locator cannot always see them despite visible pixels.
             # First capture actual evidence, then click the visually
             # confirmed 'Reject analytics' location at 390x844.
-            page.wait_for_timeout(2500)
+            page.wait_for_timeout(8500)
             page.screenshot(path=str(OUT/"real-live-before-consent.png"),
                             full_page=True)
             page.mouse.click(104,626)
@@ -52,6 +52,12 @@ def run():
             direct=context.new_page()
             direct.goto(TARGET.rstrip("/")+"/?focus=pricing",
                         wait_until="domcontentloaded",timeout=90000)
+            direct.wait_for_timeout(10000)
+            direct.screenshot(path=str(OUT/"real-live-focused-first-render.png"),
+                              full_page=True)
+            evidence["direct_focus_url"]=direct.url
+            evidence["direct_focus_text"]=direct.locator("body").inner_text(
+                timeout=10000)[-2500:]
             direct_form=direct.locator('[data-testid="stForm"]').first
             direct_form.wait_for(state="visible",timeout=120000)
             direct_notice=direct.locator(
