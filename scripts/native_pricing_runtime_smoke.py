@@ -40,9 +40,29 @@ def main():
     import torch
     torch.set_num_threads(2)
     from pricing.neural_champion_live import (
-        ask_available,bid_available,load_ask,load_bid)
-    assert ask_available(ROOT), "Original-test verified ResMLP Ask weights unavailable"
-    assert bid_available(ROOT), "Original-test verified DeepFM Bid weights unavailable"
+        ask_available as old_ask_available,
+        bid_available as old_bid_available,
+        load_ask as old_load_ask,
+        load_bid as old_load_bid)
+    from pricing.overnight_bohb_live import (
+        available as bohb_available,
+        load_ask as bohb_load_ask,
+        load_bid as bohb_load_bid)
+    if bohb_available(ROOT,"ask") and bohb_available(ROOT,"bid"):
+        ask_available=lambda _root:bohb_available(_root,"ask")
+        bid_available=lambda _root:bohb_available(_root,"bid")
+        load_ask=bohb_load_ask
+        load_bid=bohb_load_bid
+        release="overnight-BOHB-ask36-bid116"
+    else:
+        ask_available=old_ask_available
+        bid_available=old_bid_available
+        load_ask=old_load_ask
+        load_bid=old_load_bid
+        release="original-CVaR95-research-champions"
+    assert ask_available(ROOT), "Original-test verified Ask weights unavailable"
+    assert bid_available(ROOT), "Original-test verified Bid weights unavailable"
+    print(json.dumps({"stage":"active_release","model":release}),flush=True)
     phase("start")
     started=time.monotonic()
     ask=load_ask(ROOT)
