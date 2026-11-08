@@ -225,3 +225,9 @@ button:focus-visible,a:focus-visible{outline:3px solid #e6a84b!important;outline
   .garage-home-copy .garage-home-lead{order:3;margin:0 0 1rem}
   .garage-home-copy .garage-home-assurances{order:4}
 }
+
+/* Two always-visible footer destinations for legal and data protection details. */
+.garage-legal-links{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap;font-size:.86rem;font-weight:700;}
+.garage-legal-links a{color:#176c57;text-decoration:underline;text-underline-offset:3px;}
+.garage-legal-links a:hover{color:#0d4438;}
+.garage-legal-links a:focus-visible{outline:3px solid #aa8fe5;outline-offset:3px;border-radius:3px;}
