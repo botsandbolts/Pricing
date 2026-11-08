@@ -171,10 +171,13 @@ def _ray_trainable():
             install_dynamic_hparams(self.model,self.optimizer,self.config)
 
         def reset_config(self,new_config):
-            if (new_config["architecture"]!=self.architecture
-                or int(new_config["seed"])!=int(self.config["seed"])):
+            # PBT exploitation copies the donor's full configuration, seed
+            # included. Incompatible architecture is the ONLY reason to
+            # reject reset; donor RNG progression must also be inherited.
+            if new_config["architecture"]!=self.architecture:
                 return False
             self.config=dict(new_config)
+            self.seed=SEED+int(new_config["seed"])
             install_dynamic_hparams(self.model,self.optimizer,self.config)
             return True
 
