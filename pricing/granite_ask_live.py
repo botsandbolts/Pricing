@@ -61,54 +61,37 @@ def available(root):
 
 
 class _GraniteInt8Encoder:
-    """Direct ORT adapter; byte-pinned AVX2 QINT8 with CLS+L2 as IBM specifies."""
+    """Use precisely the published SentenceTransformer ONNX encoder used at training."""
 
     def __init__(self):
-        import onnxruntime as ort
         from huggingface_hub import hf_hub_download
-        from tokenizers import Tokenizer
-
+        from sentence_transformers import SentenceTransformer
         graph = Path(hf_hub_download(repo_id=MODEL, filename=ONNX_FILE,
                                      revision=REVISION))
         if _sha(graph) != ONNX_SHA256:
-            raise ValueError("The Granite INT8 ONNX model hash differs from training")
-        tokenizer_file = Path(hf_hub_download(
-            repo_id=MODEL, filename="tokenizer.json", revision=REVISION))
-        self.tokenizer = Tokenizer.from_file(str(tokenizer_file))
-        self.tokenizer.enable_truncation(max_length=256)
-        options = ort.SessionOptions()
-        options.intra_op_num_threads = 2
-        options.inter_op_num_threads = 1
-        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
-        options.enable_cpu_mem_arena = False
-        options.enable_mem_pattern = False
-        self.session = ort.InferenceSession(str(graph), sess_options=options,
-                                            providers=["CPUExecutionProvider"])
-        self.inputs = {item.name for item in self.session.get_inputs()}
-        supported = {"input_ids", "attention_mask", "token_type_ids"}
-        if not {"input_ids", "attention_mask"} <= self.inputs or not self.inputs <= supported:
-            raise ValueError("Unexpected IBM ONNX input signature")
+            raise ValueError("The IBM Granite INT8 ONNX file changed from training")
+        self.model = SentenceTransformer(
+            MODEL, revision=REVISION, trust_remote_code=False,
+            device="cpu", backend="onnx",
+            model_kwargs={"file_name": ONNX_FILE})
+        self.model.max_seq_length = 256
+        if self.model.get_sentence_embedding_dimension() != 384:
+            raise ValueError("Granite R2 must produce exactly 384 coordinates")
+        encoder = self.model[0]
+        if not (getattr(encoder, "backend", None) == "onnx"
+                or "ORT" in str(type(getattr(encoder, "auto_model", None)))):
+            raise ValueError("Granite fell back to a non-ONNX encoder")
 
     def encode(self, clean_text):
-        tokens = self.tokenizer.encode(clean_text)
-        values = {
-            "input_ids": np.asarray([tokens.ids], dtype=np.int64),
-            "attention_mask": np.asarray([tokens.attention_mask], dtype=np.int64),
-            "token_type_ids": np.asarray([tokens.type_ids], dtype=np.int64),
-        }
-        outputs = self.session.run(None, {key: values[key] for key in self.inputs})
-        hidden = next((np.asarray(item) for item in outputs if
-                       getattr(item, "ndim", 0) == 3 and
-                       item.shape[0] == 1 and item.shape[-1] == 384), None)
-        if hidden is None:
-            raise ValueError("Granite INT8 did not produce 384D token embeddings")
-        # IBM's official sentence-transformers config: CLS pool then L2.
-        cls = np.asarray(hidden[0, 0], dtype=np.float32)
-        length = float(np.linalg.norm(cls))
-        if not np.isfinite(length) or length < 1e-9:
-            raise ValueError("Invalid multilingual embedding")
-        value = (cls / length).astype(np.float16).astype(np.float32)
-        return value.reshape(1, 384)
+        vector = np.asarray(self.model.encode(
+            [clean_text], batch_size=1, normalize_embeddings=True,
+            convert_to_numpy=True, show_progress_bar=False), dtype=np.float32)
+        if vector.shape != (1, 384) or not np.isfinite(vector).all():
+            raise ValueError("Granite ONNX output shape/finite check failed")
+        if not np.allclose(np.linalg.norm(vector, axis=1), 1, atol=.006):
+            raise ValueError("Granite embedding normalization changed")
+        # The training shards stored 384D float16 embeddings, then restored FP32.
+        return vector.astype(np.float16).astype(np.float32)
 
 
 class GraniteBOHBAsking:
