@@ -491,7 +491,14 @@ models used on our main price calculator.</p>
     # One canonical pricing page; the homepage CTA changes only the hash.
     market_guide()
     from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
-    render_lemon75_launch(root)
+    if not (granite_available(root) and bge_overnight_available(root)):
+        render_lemon75_launch(root)
+    else:
+        st.markdown("### 🏁 9 NOV INTERNATIONAL EDITION · Two verified AI engines")
+        st.caption("🇬🇧 English accuracy champion · BGE DeepCross BOHB  |  "
+                   "🌍 200+ language reach · IBM Granite R2 97M INT8 ONNX. "
+                   "Two buttons, one honest pricing laboratory. Both are retrospective "
+                   "historical estimates, not evidence of any specific vehicle's actual sale.")
     if main:
         # Visibility is intentional: Captum itself still runs ONLY on a user
         # click after pricing. A pre-price guide prevents the key feature
@@ -869,7 +876,33 @@ only when you ask. No model circus required. 🎪🚗
                "replaced with a validation score.")
     # The old research ResMLP $19k original TEST is not the live Ask model.
     # Show only current matched Lemon75 retrospective validation metrics.
-    if lemon75_ask:
+    if saved and saved.get("ask_choice")=="granite" and international_ready:
+        from pricing.granite_ask_live import manifest as granite_manifest
+        meta=granite_manifest(root)
+        with st.expander("🌍 Granite R2 · multilingual cleaned historical VALIDATION",
+                         expanded=True):
+            m=meta["cleaned_validation"]
+            x,y,z=st.columns(3)
+            x.metric("CVaR95 · worst 5%",_usd(m["CVaR95_absolute_USD"]))
+            y.metric("RMSE",_usd(m["RMSE_USD"]))
+            z.metric("MAE",_usd(m["MAE_USD"]))
+            st.caption("23,751 retrospectively Lemon-filtered historical cars. "
+                       "The 25% filter uses observed outcomes, so this score "
+                       "is optimistic for unknown vehicles; multilingual price "
+                       "accuracy has not been validated language by language.")
+    elif saved and saved.get("ask_backend")=="overnight" and bge_overnight:
+        from pricing.bge_overnight_ask_live import manifest as bge_manifest
+        meta=bge_manifest(root)
+        with st.expander("🇬🇧 BGE BOHB · cleaned historical VALIDATION", expanded=True):
+            m=meta["cleaned_validation"]
+            x,y,z=st.columns(3)
+            x.metric("CVaR95 · worst 5%",_usd(m["CVaR95_absolute_USD"]))
+            y.metric("RMSE",_usd(m["RMSE_USD"]))
+            z.metric("MAE",_usd(m["MAE_USD"]))
+            st.caption("23,751 retrospectively Lemon-filtered historical cars. "
+                       "The filter uses observed outcomes, not prospective labels. "
+                       "No original TEST price scores were used to pick this checkpoint.")
+    elif lemon75_ask:
         from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
         audit=lemon_manifest(root)
         metric=audit["filtered_validation"]
