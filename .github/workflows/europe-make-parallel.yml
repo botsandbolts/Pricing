@@ -1,4 +1,4 @@
-name: European deduplication — parallel by make (12 shards)
+name: European deduplication — 50 parallel make-year shards
 
 on:
   push:
@@ -15,11 +15,28 @@ on:
 permissions:
   contents: read
 
+# Same repository-level group as the old 12-shard workflow. A new push
+# cancels the old 12-way run before scheduling the replacement.
 concurrency:
   group: europe-make-parallel-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  cancel_previous:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Explicitly request cancellation of superseded 12-shard run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST "repos/${{ github.repository }}/actions/runs/42649951405/cancel" \
+            && echo "Previous 12-way run cancellation requested" \
+            || echo "Previous run already stopped or cancellation refused; concurrency cancellation also applies"
+
   tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -28,23 +45,23 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install test dependencies
+      - name: Install sharding and audit test dependencies
         run: python -m pip install -r requirements-europe-dedupe.txt
-      - name: Test make-pure sharding and pruning
+      - name: Validate same-make-and-year restrictions and global mapping
         run: python -m pytest -q tests/test_europe_dedupe.py tests/test_europe_make_shards.py
 
   prepare:
-    needs: tests
+    needs: [cancel_previous, tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install data preparation requirements
+      - name: Install data tools
         run: python -m pip install -r requirements-europe-dedupe.txt huggingface_hub
-      - name: Download European listings once
+      - name: Download the original European Parquet dataset once
         id: dataset
         run: |
           python - <<'PY'
@@ -57,126 +74,355 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as f:
               f.write('path='+path+'\n')
           PY
-      - name: Balance entire makes across twelve partitions
+      - name: Partition by normalized make and production/model year
         run: |
           python -m pricing.europe_make_shards partition \
             --input "${{ steps.dataset.outputs.path }}" \
             --output "$RUNNER_TEMP/make-parts" \
-            --shards 12
-      - name: Upload aggregate manifest (no listing rows)
+            --shards 50
+      - name: Publish 50-way balancing and year-provenance manifest
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-manifest
           path: ${{ runner.temp }}/make-parts/manifest.json
           retention-days: 7
-      - name: Upload input for shard 00
+      - name: Upload segment shard 00
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-00
           path: ${{ runner.temp }}/make-parts/shard-00.parquet
           retention-days: 1
-      - name: Upload input for shard 01
+      - name: Upload segment shard 01
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-01
           path: ${{ runner.temp }}/make-parts/shard-01.parquet
           retention-days: 1
-      - name: Upload input for shard 02
+      - name: Upload segment shard 02
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-02
           path: ${{ runner.temp }}/make-parts/shard-02.parquet
           retention-days: 1
-      - name: Upload input for shard 03
+      - name: Upload segment shard 03
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-03
           path: ${{ runner.temp }}/make-parts/shard-03.parquet
           retention-days: 1
-      - name: Upload input for shard 04
+      - name: Upload segment shard 04
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-04
           path: ${{ runner.temp }}/make-parts/shard-04.parquet
           retention-days: 1
-      - name: Upload input for shard 05
+      - name: Upload segment shard 05
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-05
           path: ${{ runner.temp }}/make-parts/shard-05.parquet
           retention-days: 1
-      - name: Upload input for shard 06
+      - name: Upload segment shard 06
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-06
           path: ${{ runner.temp }}/make-parts/shard-06.parquet
           retention-days: 1
-      - name: Upload input for shard 07
+      - name: Upload segment shard 07
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-07
           path: ${{ runner.temp }}/make-parts/shard-07.parquet
           retention-days: 1
-      - name: Upload input for shard 08
+      - name: Upload segment shard 08
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-08
           path: ${{ runner.temp }}/make-parts/shard-08.parquet
           retention-days: 1
-      - name: Upload input for shard 09
+      - name: Upload segment shard 09
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-09
           path: ${{ runner.temp }}/make-parts/shard-09.parquet
           retention-days: 1
-      - name: Upload input for shard 10
+      - name: Upload segment shard 10
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-10
           path: ${{ runner.temp }}/make-parts/shard-10.parquet
           retention-days: 1
-      - name: Upload input for shard 11
+      - name: Upload segment shard 11
         uses: actions/upload-artifact@v4
         with:
           name: eu-make-shard-11
           path: ${{ runner.temp }}/make-parts/shard-11.parquet
           retention-days: 1
-  per-make-linkage:
+      - name: Upload segment shard 12
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-12
+          path: ${{ runner.temp }}/make-parts/shard-12.parquet
+          retention-days: 1
+      - name: Upload segment shard 13
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-13
+          path: ${{ runner.temp }}/make-parts/shard-13.parquet
+          retention-days: 1
+      - name: Upload segment shard 14
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-14
+          path: ${{ runner.temp }}/make-parts/shard-14.parquet
+          retention-days: 1
+      - name: Upload segment shard 15
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-15
+          path: ${{ runner.temp }}/make-parts/shard-15.parquet
+          retention-days: 1
+      - name: Upload segment shard 16
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-16
+          path: ${{ runner.temp }}/make-parts/shard-16.parquet
+          retention-days: 1
+      - name: Upload segment shard 17
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-17
+          path: ${{ runner.temp }}/make-parts/shard-17.parquet
+          retention-days: 1
+      - name: Upload segment shard 18
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-18
+          path: ${{ runner.temp }}/make-parts/shard-18.parquet
+          retention-days: 1
+      - name: Upload segment shard 19
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-19
+          path: ${{ runner.temp }}/make-parts/shard-19.parquet
+          retention-days: 1
+      - name: Upload segment shard 20
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-20
+          path: ${{ runner.temp }}/make-parts/shard-20.parquet
+          retention-days: 1
+      - name: Upload segment shard 21
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-21
+          path: ${{ runner.temp }}/make-parts/shard-21.parquet
+          retention-days: 1
+      - name: Upload segment shard 22
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-22
+          path: ${{ runner.temp }}/make-parts/shard-22.parquet
+          retention-days: 1
+      - name: Upload segment shard 23
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-23
+          path: ${{ runner.temp }}/make-parts/shard-23.parquet
+          retention-days: 1
+      - name: Upload segment shard 24
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-24
+          path: ${{ runner.temp }}/make-parts/shard-24.parquet
+          retention-days: 1
+      - name: Upload segment shard 25
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-25
+          path: ${{ runner.temp }}/make-parts/shard-25.parquet
+          retention-days: 1
+      - name: Upload segment shard 26
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-26
+          path: ${{ runner.temp }}/make-parts/shard-26.parquet
+          retention-days: 1
+      - name: Upload segment shard 27
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-27
+          path: ${{ runner.temp }}/make-parts/shard-27.parquet
+          retention-days: 1
+      - name: Upload segment shard 28
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-28
+          path: ${{ runner.temp }}/make-parts/shard-28.parquet
+          retention-days: 1
+      - name: Upload segment shard 29
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-29
+          path: ${{ runner.temp }}/make-parts/shard-29.parquet
+          retention-days: 1
+      - name: Upload segment shard 30
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-30
+          path: ${{ runner.temp }}/make-parts/shard-30.parquet
+          retention-days: 1
+      - name: Upload segment shard 31
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-31
+          path: ${{ runner.temp }}/make-parts/shard-31.parquet
+          retention-days: 1
+      - name: Upload segment shard 32
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-32
+          path: ${{ runner.temp }}/make-parts/shard-32.parquet
+          retention-days: 1
+      - name: Upload segment shard 33
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-33
+          path: ${{ runner.temp }}/make-parts/shard-33.parquet
+          retention-days: 1
+      - name: Upload segment shard 34
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-34
+          path: ${{ runner.temp }}/make-parts/shard-34.parquet
+          retention-days: 1
+      - name: Upload segment shard 35
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-35
+          path: ${{ runner.temp }}/make-parts/shard-35.parquet
+          retention-days: 1
+      - name: Upload segment shard 36
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-36
+          path: ${{ runner.temp }}/make-parts/shard-36.parquet
+          retention-days: 1
+      - name: Upload segment shard 37
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-37
+          path: ${{ runner.temp }}/make-parts/shard-37.parquet
+          retention-days: 1
+      - name: Upload segment shard 38
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-38
+          path: ${{ runner.temp }}/make-parts/shard-38.parquet
+          retention-days: 1
+      - name: Upload segment shard 39
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-39
+          path: ${{ runner.temp }}/make-parts/shard-39.parquet
+          retention-days: 1
+      - name: Upload segment shard 40
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-40
+          path: ${{ runner.temp }}/make-parts/shard-40.parquet
+          retention-days: 1
+      - name: Upload segment shard 41
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-41
+          path: ${{ runner.temp }}/make-parts/shard-41.parquet
+          retention-days: 1
+      - name: Upload segment shard 42
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-42
+          path: ${{ runner.temp }}/make-parts/shard-42.parquet
+          retention-days: 1
+      - name: Upload segment shard 43
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-43
+          path: ${{ runner.temp }}/make-parts/shard-43.parquet
+          retention-days: 1
+      - name: Upload segment shard 44
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-44
+          path: ${{ runner.temp }}/make-parts/shard-44.parquet
+          retention-days: 1
+      - name: Upload segment shard 45
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-45
+          path: ${{ runner.temp }}/make-parts/shard-45.parquet
+          retention-days: 1
+      - name: Upload segment shard 46
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-46
+          path: ${{ runner.temp }}/make-parts/shard-46.parquet
+          retention-days: 1
+      - name: Upload segment shard 47
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-47
+          path: ${{ runner.temp }}/make-parts/shard-47.parquet
+          retention-days: 1
+      - name: Upload segment shard 48
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-48
+          path: ${{ runner.temp }}/make-parts/shard-48.parquet
+          retention-days: 1
+      - name: Upload segment shard 49
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-49
+          path: ${{ runner.temp }}/make-parts/shard-49.parquet
+          retention-days: 1
+
+  per_segment_linkage:
     needs: prepare
     runs-on: ubuntu-latest
-    timeout-minutes: 165
+    timeout-minutes: 150
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 50
       matrix:
-        shard: ['00','01','02','03','04','05','06','07','08','09','10','11']
+        shard: ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install private offline dedupe dependencies
+      - name: Install IBM Granite/FAISS dependencies
         run: |
           python -m pip install -r requirements-europe-dedupe.txt
           python -m pip install sentence-transformers faiss-cpu
-      - name: Download only this make-pure partition
+      - name: Download only assigned make-and-year blocks
         uses: actions/download-artifact@v4
         with:
           name: eu-make-shard-${{ matrix.shard }}
           path: ${{ runner.temp }}/input
-      - name: Run Granite/FAISS and deterministic information thinning
+      - name: Compare only within the same make + year block
         run: |
           python -m pricing.europe_dedupe \
             --input "$RUNNER_TEMP/input/shard-${{ matrix.shard }}.parquet" \
             --output "$RUNNER_TEMP/eu-audit" \
-            --max-pairs 8000000 \
+            --max-pairs 2500000 \
             --granite --thin-review-candidates --no-canonical-export
-      - name: Restore global source-row identifiers
+      - name: Restore global source-row IDs for every decision
         run: |
           python -m pricing.europe_make_shards map \
             --input "$RUNNER_TEMP/input/shard-${{ matrix.shard }}.parquet" \
             --audit "$RUNNER_TEMP/eu-audit"
-      - name: Publish metadata for this make-pure shard
+      - name: Upload per-shard audit and reversible mappings
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -189,7 +435,7 @@ jobs:
           retention-days: 7
 
   aggregate:
-    needs: [prepare, per-make-linkage]
+    needs: [prepare, per_segment_linkage]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -198,27 +444,27 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install -r requirements-europe-dedupe.txt
-      - name: Download shard manifest
+      - name: Download the global segment manifest
         uses: actions/download-artifact@v4
         with:
           name: eu-make-manifest
           path: ${{ runner.temp }}/manifest
-      - name: Download twelve auditable shard summaries
+      - name: Download all 50 shard audits
         uses: actions/download-artifact@v4
         with:
           pattern: eu-make-audit-*
           merge-multiple: false
           path: ${{ runner.temp }}/reports
-      - name: Verify complete original-row coverage and aggregate
+      - name: Verify all source rows and combine the 50 results
         run: |
           python -m pricing.europe_make_shards collect \
             --manifest "$RUNNER_TEMP/manifest/manifest.json" \
             --root "$RUNNER_TEMP/reports" \
             --output "$RUNNER_TEMP/combined"
-      - name: Publish full European deduplication audit and global thinning map
+      - name: Publish global audit and reversible row decision mapping
         uses: actions/upload-artifact@v4
         with:
-          name: europe-make-parallel-combined
+          name: europe-make-year-50way-combined
           path: |
             ${{ runner.temp }}/combined/combined_audit.json
             ${{ runner.temp }}/combined/global_training_mapping.csv

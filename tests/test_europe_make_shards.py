@@ -9,7 +9,8 @@ import pyarrow.parquet as pq
 
 from pricing.europe_dedupe import main as dedupe
 from pricing.europe_make_shards import (
-    GLOBAL_ID, balance_makes, canonical_make, collect, make_global_mapping, partition,
+    GLOBAL_ID, SEGMENT, balance_makes, canonical_make, canonical_year, segment,
+    collect, make_global_mapping, partition,
 )
 
 
@@ -52,7 +53,7 @@ def test_partition_link_recombine_global_rows(tmp_path):
     assert report["source_rows"]==len(rows)
     assert sum(report["shard_rows"])==len(rows)
     assert report["unique_makes"]==4
-    assert report["make_to_shard"]["volkswagen"]==report["make_to_shard"][canonical_make("VW")]
+    assert report["segment_to_shard"][segment("Volkswagen","2021")]==report["segment_to_shard"][segment("VW","2021")]
     recovered=[]
     root=tmp_path/"reports"
     for i in range(3):
@@ -61,7 +62,7 @@ def test_partition_link_recombine_global_rows(tmp_path):
         ids=values.column(GLOBAL_ID).to_pylist()
         recovered.extend(ids)
         for make in values.column("make").to_pylist():
-            assert report["make_to_shard"][canonical_make(make)]==i
+            assert report["segment_to_shard"][segment(make,"2021")]==i
         out=root/("eu-make-audit-%02d"%i)
         dedupe(["--input",str(f),"--output",str(out),
                 "--no-canonical-export","--thin-review-candidates"])
@@ -86,3 +87,49 @@ def test_imbalanced_brand_is_never_divided(tmp_path):
     summary=partition(path,tmp_path/"chunks",4,batch_size=7)
     assert 25 in summary["shard_rows"]
     assert sum(summary["shard_rows"])==28
+
+
+def test_make_year_blocking_does_not_compare_different_production_years(tmp_path):
+    # Registration can be equal although actual production/model years differ.
+    # Same marketplace and listing-ID, alike model, same year-of-registration:
+    # no merge is allowed across the explicit year-block boundary.
+    x=listing(0,"VW",id="same",production_year=2020,reg_year=2022)
+    y=listing(1,"Volkswagen",id="same",production_year=2021,reg_year=2022,
+              mileage_km=x["mileage_km"])
+    z=listing(2,"VW",id="different",production_year=None,reg_year=2018)
+    data=tmp_path/"years.parquet"
+    pq.write_table(pa.Table.from_pandas(pd.DataFrame([x,y,z]),preserve_index=False),data)
+    chunks=tmp_path/"chunks"
+    report=partition(data,chunks,2,batch_size=2)
+    assert report["unique_makes"]==1
+    assert report["unique_make_year_segments"]==3
+    assert report["year_sources"]["production_year"]==2
+    assert report["year_sources"]["reg_year"]==1
+    assert canonical_year("2022-11-03")=="2022"
+    assert canonical_year("nan")=="unknown"
+    for i in range(2):
+        f=chunks/("shard-%02d.parquet"%i)
+        table=pq.read_table(f)
+        for mk, yr, key in zip(table.column("make").to_pylist(),
+                               table.column("production_year").to_pylist(),
+                               table.column(SEGMENT).to_pylist()):
+            expected=str(yr) if yr is not None else "2018"
+            assert key==segment(mk,canonical_year(expected))
+        out=tmp_path/("audit-%02d"%i)
+        dedupe(["--input",str(f),"--output",str(out),
+                "--thin-review-candidates","--no-canonical-export"])
+        summary=json.loads((out/"audit.json").read_text())
+        assert summary["automatic_rows_removed"]==0
+        assert summary["review_pairs"]==0
+
+
+def test_same_make_different_years_can_use_distinct_shards(tmp_path):
+    rows=[listing(i,"BMW",reg_year=2020,production_year=2020) for i in range(15)]
+    rows+=[listing(15+i,"BMW",reg_year=2022,production_year=2022) for i in range(15)]
+    p=tmp_path/"input.parquet"
+    pq.write_table(pa.Table.from_pandas(pd.DataFrame(rows),preserve_index=False),p)
+    manifest=partition(p,tmp_path/"shards",2,batch_size=7)
+    assert manifest["unique_makes"]==1
+    assert manifest["unique_make_year_segments"]==2
+    assert manifest["segment_to_shard"][segment("BMW","2020")] != manifest["segment_to_shard"][segment("BMW","2022")]
+    assert sorted(manifest["shard_rows"])==[15,15]

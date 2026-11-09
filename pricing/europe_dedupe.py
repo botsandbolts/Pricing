@@ -22,8 +22,8 @@ DATASET = "KTHESAT/european-used-car-market-2m-listings"
 MODEL = "ibm-granite/granite-embedding-97m-multilingual-r2"
 FIELDS = ("rid", "site", "extid", "country", "make", "model", "version",
           "label_id", "reg_date", "reg_year", "km", "power", "city", "color",
-          "fuel", "gear", "price")
-SQL_ROW = "rid,site,extid,country,make,model,version,label_id,reg_date,reg_year,km,power,city,color,fuel,gear,price"
+          "fuel", "gear", "price", "seg")
+SQL_ROW = "rid,site,extid,country,make,model,version,label_id,reg_date,reg_year,km,power,city,color,fuel,gear,price,seg"
 REQUIRED = {"id", "source_site", "seller_country", "make", "model",
             "version", "mileage_km", "first_registration", "reg_year",
             "power_hp", "seller_city", "price_eur"}
@@ -81,7 +81,7 @@ def create_db(path):
         make TEXT, model TEXT, version TEXT, label_id INTEGER,
         reg_date TEXT, reg_year INTEGER, km INTEGER, km_bin INTEGER,
         power INTEGER, city TEXT, color TEXT, fuel TEXT, gear TEXT,
-        price REAL, first_seen TEXT)""")
+        price REAL, first_seen TEXT, seg TEXT)""")
     db.execute("""CREATE TABLE labels(
         label_id INTEGER PRIMARY KEY, make TEXT, model TEXT, label TEXT)""")
     db.execute("""CREATE TABLE pairs(
@@ -128,13 +128,15 @@ def ingest(db, path, sample=0):
                          lid, registration, year, km, km // 1000 if km is not None else None,
                          power, city, norm(item.get("color")), norm(item.get("fuel")),
                          norm(item.get("transmission")), floating(item.get("price_eur")),
-                         str(item.get("first_seen_at") or "")))
+                         str(item.get("first_seen_at") or ""),
+                         str(item.get("__eu_segment_key") or "")))
             count += 1
-        db.executemany("INSERT INTO rows VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+        db.executemany("INSERT INTO rows VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
         db.executemany("INSERT OR IGNORE INTO labels VALUES (?,?,?,?)", labels)
         db.commit()
     db.executescript("""
-        CREATE INDEX idx_src ON rows(site,extid);
+        CREATE INDEX idx_src ON rows(site,extid,seg);
+        CREATE INDEX idx_segment ON rows(seg);
         CREATE INDEX idx_block ON rows(country,make,model,reg_year,city,km_bin);
         CREATE INDEX idx_date ON rows(country,make,model,city,reg_date);
         CREATE INDEX idx_label ON rows(label_id,country,city,reg_year,km_bin);
@@ -151,10 +153,10 @@ def insert_candidates(db, max_pairs):
     """Finite, independently useful blocking rules. No O(N^2) search."""
     queries = [
         ("""SELECT a.rid,b.rid,'source-id',NULL FROM rows a JOIN rows b
-              ON a.site=b.site AND a.extid=b.extid AND a.rid<b.rid
+              ON a.site=b.site AND a.extid=b.extid AND a.seg=b.seg AND a.rid<b.rid
               WHERE a.site<>'' AND a.extid<>'' AND a.make=b.make AND a.model=b.model""", "source-id"),
         ("""SELECT a.rid,b.rid,'structured',NULL FROM rows a JOIN rows b
-              ON a.country=b.country AND a.make=b.make AND a.model=b.model
+              ON a.seg=b.seg AND a.country=b.country AND a.make=b.make AND a.model=b.model
               AND a.reg_year=b.reg_year AND a.city=b.city
               AND b.km_bin BETWEEN a.km_bin-1 AND a.km_bin+1 AND a.rid<b.rid
               WHERE a.country<>'' AND a.make<>'' AND a.model<>''
@@ -163,7 +165,7 @@ def insert_candidates(db, max_pairs):
               AND ABS(a.km-b.km)<=1300
               AND (a.power IS NULL OR b.power IS NULL OR ABS(a.power-b.power)<=5)""", "structured"),
         ("""SELECT a.rid,b.rid,'registration',NULL FROM rows a JOIN rows b
-              ON a.country=b.country AND a.make=b.make AND a.model=b.model
+              ON a.seg=b.seg AND a.country=b.country AND a.make=b.make AND a.model=b.model
               AND a.city=b.city AND a.reg_date=b.reg_date AND a.rid<b.rid
               WHERE a.country<>'' AND a.make<>'' AND a.model<>'' AND a.city<>''
               AND a.reg_date<>'' AND a.km IS NOT NULL AND b.km IS NOT NULL
@@ -237,7 +239,7 @@ def add_granite_faiss(db, max_pairs, cache, top_k=10, min_sim=0.88):
                  FROM label_neighbors n
                  JOIN rows a ON a.label_id=n.l
                  JOIN rows b ON b.label_id=n.r
-                 WHERE a.rid<b.rid AND a.country=b.country AND a.city=b.city
+                 WHERE a.rid<b.rid AND a.seg=b.seg AND a.country=b.country AND a.city=b.city
                  AND a.make=b.make AND a.model=b.model
                  AND a.reg_year=b.reg_year AND a.country<>'' AND a.city<>''
                  AND a.km IS NOT NULL AND b.km IS NOT NULL
@@ -256,6 +258,8 @@ def source_identity(a,b):
 
 def compatible(a,b):
     """Hard contradiction filter. Unknown means unknown, not disagreement."""
+    if (a.get("seg") or b.get("seg")) and a.get("seg") != b.get("seg"):
+        return False
     if not a["make"] or not a["model"] or a["make"] != b["make"] or a["model"] != b["model"]:
         return False
     if a["reg_year"] and b["reg_year"] and a["reg_year"] != b["reg_year"]:

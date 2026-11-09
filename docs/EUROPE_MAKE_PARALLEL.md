@@ -1,30 +1,45 @@
-# European deduplication: 12 parallel make-pure workers
+# European listing deduplication: 50 concurrent make-and-year workers
 
-Workflow file: .github/workflows/europe-make-parallel.yml
+The superseded 12-way make-only workflow has been replaced by a 50-way
+make-and-year workflow. GitHub Actions uses a shared concurrency group
+to request cancellation of the old run, and also explicitly calls GitHub's
+run-cancel API for the old run ID.
 
-Partition the European asking-price snapshot by **normalized vehicle make**, not by arbitrary row number. This ensures all listings of the same make, including across countries and marketplaces, belong to exactly one partition.
+## Strict block key
 
-The GitHub Actions workflow:
+Each original listing is assigned to one **normalized make + year** block.
+The year is read, in descending precedence, from production_year,
+manufacturing_year, manufacture_year, production_date, model_year, year,
+reg_year or first_registration. Missing/unparseable years enter a distinct
+unknown-year group. The manifest exposes counts by year source; if the
+dataset has only reg_year, that is explicitly a **first-registration proxy,
+not a verified production year**.
 
-1. Runs synthetic unit/integration tests for shard balancing and global-source-ID restoration.
-2. Downloads the original Parquet data **once**, counts by normalized make, and greedily balances complete makes across 12 bins.
-3. Uploads twelve independent temporary Parquet artifacts containing original rows plus their immutable global row indices. Source artifacts have 1-day retention.
-4. Runs **12 concurrent matrix jobs**, each downloading **only its own shard**. Each performs Granite 97M R2 embeddings, FAISS HNSW retrieval, conservative vehicle-identity linkage, and optional high-information thinning. Runtime parallelism depends on the GitHub account's available runner slots.
-5. Uploads audit metadata and reversible global-row mappings, not raw vehicle listing files.
-6. Aggregates all reports, verifying exactly-once global row coverage and reporting total identity merges, similarity thinning, review pairs and per-country results.
+All rows with the same normalized make and chosen year stay together in
+exactly one balanced shard. The SQLite identity and semantic matching joins
+explicitly enforce that their segment keys match. Thus no pair may cross
+the make/year block, even where one shard contains many different blocks.
+Brand aliases (e.g. VW and Volkswagen) share the same normalized key.
 
-The full aggregate artifact contains combined_audit.json and global_training_mapping.csv. Every input has a zero-based global row ID, a canonical identity representative, a training representative and a Boolean keep decision.
+The first preparation job downloads the Parquet snapshot once and uses
+two streaming passes to count make/year groups and generate 50 partition
+Parquet artifacts. Each has its original zero-based row position and block
+key. Fifty independent GitHub matrix workers process their assigned
+partition using Granite 97M multilingual embeddings, FAISS HNSW and the
+reversible information-completeness thinning rule (max-parallel=50).
+Available GitHub runner concurrency limits may reduce actual simultaneity.
 
-**Similarity-thinned records are NOT proven duplicate vehicles.** The extra training subset is an experimental sampling approach, reversible and distinct from confirmed same-listing ID merges. Compare it with the conservative dataset on an identical held-out split with MAE, CVaR95, calibration and per-country checks.
+The final aggregation job verifies that every source row appears once,
+no candidate cap was reached and all 50 shard counts match the manifest.
+It emits combined_audit.json and global_training_mapping.csv.
 
-Source snapshot licensing and underlying marketplace permissions need review before redistribution or commercial deployment. This workflow does not change the live American ASK/BID models, application dependencies or production UI.
+### Interpretation
 
-## Local CLI
+Identity-canonical deduplication and optional high-information training
+thinning are kept separate. Similar looking listings removed by thinning
+are **not** verified instances of the same physical vehicle. No permanent
+listing data is committed to the repository; temporary input artifacts
+have one-day retention. Raw and canonical input datasets are unchanged.
 
-Partition: python -m pricing.europe_make_shards partition --input /data/europe.parquet --output /data/parts --shards 12
-
-Link one shard: python -m pricing.europe_dedupe --input /data/parts/shard-00.parquet --output /data/audit-00 --granite --thin-review-candidates --no-canonical-export
-
-Map original IDs: python -m pricing.europe_make_shards map --input /data/parts/shard-00.parquet --audit /data/audit-00
-
-The workflow runs the preceding operations for all 12 makes-balanced partitions, then collects them in one global report. Cross-brand typos or brand reclassification cannot be matched by per-make blocking; a separate cross-brand integrity pass would be needed.
+Only the research branch and GitHub Actions workflow change. Existing
+American production app and ASK/BID models are untouched.

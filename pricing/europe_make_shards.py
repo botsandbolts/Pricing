@@ -1,14 +1,14 @@
-"""Make-pure balanced shards and global audit reconstruction for EU listings.
+"""Balanced 50-way make + production/model-year shards for European listings.
 
-Every normalized make is assigned to EXACTLY ONE shard. Full source row
-indices survive sorting, partitioning, local linkage and global collection.
-This module never writes training data back to the repository or to Streamlit.
+Candidate comparisons MUST stay inside exactly the same normalized make and
+manufacturing/model year (falling back to registration year when necessary).
+Every global source ID is tracked for reversible final aggregation.
 """
 from __future__ import annotations
-
 import argparse
 import csv
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -17,6 +17,7 @@ import pyarrow.parquet as pq
 from pricing.europe_dedupe import norm
 
 GLOBAL_ID = "__eu_global_row_id"
+SEGMENT = "__eu_segment_key"
 ALIASES = {
     "vw": "volkswagen",
     "mercedes": "mercedes benz",
@@ -24,6 +25,11 @@ ALIASES = {
     "mercedes benz cars": "mercedes benz",
     "mercedesbenz": "mercedes benz",
 }
+YEAR_COLUMNS = (
+    "production_year", "manufacturing_year", "manufacture_year",
+    "production_date", "model_year", "year", "reg_year",
+    "first_registration",
+)
 
 
 def canonical_make(value):
@@ -31,70 +37,120 @@ def canonical_make(value):
     return ALIASES.get(name, name) or "__unknown__"
 
 
+def canonical_year(value):
+    """Four-digit production/model-year normalization, avoiding false years."""
+    if value is None:
+        return "unknown"
+    match = re.match(r"^\s*(19\d\d|20\d\d)(?:\D|$)", str(value))
+    if not match:
+        return "unknown"
+    year=int(match.group(1))
+    return str(year) if 1950 <= year <= 2027 else "unknown"
+
+
+def segment(make, year):
+    return canonical_make(make) + "::year::" + str(year)
+
+
 def balance_makes(counts, n_shards):
-    """Deterministic largest-first assignment; never split a make."""
+    """Largest-first group assignment; groups, not brands, are indivisible."""
     if n_shards < 1:
         raise ValueError("shards must be >= 1")
     loads = [0] * n_shards
     allocations = {}
-    for make, n in sorted(counts.items(), key=lambda t: (-t[1], t[0])):
+    for group, n in sorted(counts.items(), key=lambda t: (-t[1], t[0])):
         target = min(range(n_shards), key=lambda i: (loads[i], i))
-        allocations[make] = target
+        allocations[group] = target
         loads[target] += n
     return allocations, loads
 
 
-def partition(input_file: Path, directory: Path, n_shards=12, batch_size=25000):
+def _groups(batch, year_columns):
+    make_values=batch.column("make").to_pylist()
+    years={c:batch.column(c).to_pylist() for c in year_columns}
+    selected=[]
+    for i,make in enumerate(make_values):
+        year="unknown"
+        origin="missing"
+        for field in year_columns:
+            result=canonical_year(years[field][i])
+            if result!="unknown":
+                year=result
+                origin=field
+                break
+        selected.append((segment(make,year),origin))
+    return selected
+
+
+def partition(input_file: Path, directory: Path, n_shards=50, batch_size=25000):
+    """Two streaming passes: count groups, then write 50 balanced data shards."""
     if directory.exists() and any(directory.iterdir()):
         raise ValueError("Shard directory already exists and is nonempty")
     directory.mkdir(parents=True, exist_ok=True)
     source = pq.ParquetFile(str(input_file))
-    if "make" not in source.schema_arrow.names:
+    columns=source.schema_arrow.names
+    if "make" not in columns:
         raise ValueError("Missing make column")
-    if GLOBAL_ID in source.schema_arrow.names:
-        raise ValueError("Input already contains reserved global ID column")
-    counts = Counter()
-    for batch in source.iter_batches(columns=["make"], batch_size=batch_size):
-        counts.update(canonical_make(x) for x in batch.column(0).to_pylist())
-    allocation, target_loads = balance_makes(counts, n_shards)
-    schema = source.schema_arrow.append(pa.field(GLOBAL_ID,pa.int64()))
-    writers = []
-    for i in range(n_shards):
-        writers.append(pq.ParquetWriter(
-            str(directory / ("shard-%02d.parquet" % i)), schema,
-            compression="zstd"))
-    actual = [0]*n_shards
+    if GLOBAL_ID in columns or SEGMENT in columns:
+        raise ValueError("Input already contains a reserved partition column")
+    year_columns=[x for x in YEAR_COLUMNS if x in columns]
+    if not year_columns:
+        raise ValueError("Missing production/model/registration year columns")
+    counts=Counter()
+    provenance=Counter()
+    for batch in source.iter_batches(columns=["make"]+year_columns,batch_size=batch_size):
+        for group,origin in _groups(pa.Table.from_batches([batch]),year_columns):
+            counts[group]+=1
+            provenance[origin]+=1
+    allocation,loads=balance_makes(counts,n_shards)
+    schema=source.schema_arrow.append(pa.field(GLOBAL_ID,pa.int64()))
+    schema=schema.append(pa.field(SEGMENT,pa.string()))
+    writers=[
+        pq.ParquetWriter(str(directory/("shard-%02d.parquet"%i)),
+                         schema,compression="zstd")
+        for i in range(n_shards)
+    ]
+    actual=[0]*n_shards
     offset=0
     try:
         for record_batch in source.iter_batches(batch_size=batch_size):
-            batch = pa.Table.from_batches([record_batch])
-            which = [[] for _ in range(n_shards)]
-            for i, make in enumerate(batch.column("make").to_pylist()):
-                which[allocation[canonical_make(make)]].append(i)
-            for shard, positions in enumerate(which):
+            batch=pa.Table.from_batches([record_batch])
+            groups=[v[0] for v in _groups(batch,year_columns)]
+            which=[[] for _ in range(n_shards)]
+            for i,key in enumerate(groups):
+                which[allocation[key]].append(i)
+            for shard,positions in enumerate(which):
                 if not positions:
                     continue
-                data = batch.take(pa.array(positions, type=pa.int32()))
-                global_ids = pa.array([offset+i for i in positions], type=pa.int64())
-                data = data.append_column(GLOBAL_ID, global_ids)
-                writers[shard].write_table(data)
-                actual[shard] += len(positions)
-            offset += batch.num_rows
+                part=batch.take(pa.array(positions,type=pa.int32()))
+                ids=pa.array([offset+i for i in positions],type=pa.int64())
+                keys=pa.array([groups[i] for i in positions],type=pa.string())
+                part=part.append_column(GLOBAL_ID,ids).append_column(SEGMENT,keys)
+                writers[shard].write_table(part)
+                actual[shard]+=len(positions)
+            offset+=batch.num_rows
     finally:
         for writer in writers:
             writer.close()
-    if offset != sum(counts.values()) or actual != target_loads:
-        raise AssertionError("Sharding lost or duplicated rows")
-    report = {
+    if sum(counts.values())!=offset or actual!=loads:
+        raise AssertionError("Partition lost rows or misassigned make-year groups")
+    unique_makes={k.split("::year::",1)[0] for k in counts}
+    year_sources={field:int(provenance[field]) for field in sorted(provenance)}
+    report={
         "source_rows":offset,
         "shard_count":n_shards,
-        "unique_makes":len(counts),
+        "unique_makes":len(unique_makes),
+        "unique_make_year_segments":len(counts),
         "shard_rows":actual,
-        "makes_per_shard":[sum(s==i for s in allocation.values()) for i in range(n_shards)],
-        "make_to_shard":allocation,
-        "make_counts":dict(sorted(counts.items())),
-        "balanced_by":"largest-first make frequency; never split normalized make",
+        "segments_per_shard":[sum(v==i for v in allocation.values()) for i in range(n_shards)],
+        "segment_to_shard":dict(sorted(allocation.items())),
+        "segment_counts":dict(sorted(counts.items())),
+        "year_sources":year_sources,
+        "year_precedence":year_columns,
+        "year_definition":"production/model year if available, registration year as clearly labelled fallback",
+        "balanced_by":"largest-first normalized make + year group",
         "global_id_column":GLOBAL_ID,
+        "segment_column":SEGMENT,
     }
     (directory/"manifest.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
     return report
@@ -136,7 +192,7 @@ def make_global_mapping(shard_file: Path, audit_dir: Path):
 
 
 def collect(manifest_file: Path, root: Path, output: Path):
-    """Validate each original global index appears once, then aggregate 12 jobs."""
+    """Validate exactly-once coverage across all 50 make/year shard audits."""
     manifest=json.loads(manifest_file.read_text(encoding="utf-8"))
     n=int(manifest["source_rows"])
     seen=bytearray(n)
@@ -144,7 +200,6 @@ def collect(manifest_file: Path, root: Path, output: Path):
     agg=Counter()
     countries=Counter()
     by_shard=[]
-    by_brand=Counter()
     output.mkdir(parents=True,exist_ok=True)
     with (output/"global_training_mapping.csv").open("w",newline="",encoding="utf-8") as dest:
         wr=csv.writer(dest)
@@ -193,6 +248,8 @@ def collect(manifest_file: Path, root: Path, output: Path):
     summary={
         "source_rows":n,
         "unique_makes":manifest["unique_makes"],
+        "unique_make_year_segments":manifest["unique_make_year_segments"],
+        "year_sources":manifest["year_sources"],
         "parallel_shards":manifest["shard_count"],
         "automatic_identity_rows_removed":agg["automatic_rows_removed"],
         "additional_similarity_thinned_rows":agg["additional_rows_excluded"],
@@ -205,7 +262,7 @@ def collect(manifest_file: Path, root: Path, output: Path):
         "similarity_thinned_by_country":dict(sorted(countries.items())),
         "shards":by_shard,
         "physical_identity_verified":False,
-        "split_rule":"all normalized make values belong to exactly one shard",
+        "split_rule":"matching restricted to exactly equal normalized make and production/model/registration year segments",
         "audit_complete":True,
         "safe_to_train":False,
         "reason":"Training ablation, licence validation and leakage checks are still required.",
@@ -215,12 +272,12 @@ def collect(manifest_file: Path, root: Path, output: Path):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser(description="Partition and recombine European make-pure dedupe shards")
+    p=argparse.ArgumentParser(description="Partition and recombine European make-year-blocked dedupe shards")
     subs=p.add_subparsers(dest="action",required=True)
     q=subs.add_parser("partition")
     q.add_argument("--input",required=True,type=Path)
     q.add_argument("--output",required=True,type=Path)
-    q.add_argument("--shards",type=int,default=12)
+    q.add_argument("--shards",type=int,default=50)
     q=subs.add_parser("map")
     q.add_argument("--input",required=True,type=Path)
     q.add_argument("--audit",required=True,type=Path)
