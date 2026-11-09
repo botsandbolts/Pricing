@@ -72,7 +72,7 @@ def _parody_banner():
     with st.container(key="eu_parody_banner",border=True):
         st.image(artwork,width="stretch",alt=(
             "Car Price Studio Europa: auffällige eigenständige blau-orange Werbeparodie "
-            "mit einer gezeichneten weißen Autokontur und dem Spruch "
+            "mit großer kontrastierender NICHT-Typografie und dem Spruch "
             "'wir kaufen dein Auto NICHT. Wir schätzen es.' "
             "Wortspiel zu Autokauf-Werbung (wirksufendeinaito, "
             "wirkaufendeinauto/WKDA, Autohero, AUTO1), ohne geschäftliche Verbindung."
