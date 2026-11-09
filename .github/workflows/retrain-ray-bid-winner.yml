@@ -1,0 +1,131 @@
+name: Retrain + deploy Ray internal-CVaR95 Bid winner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/retrain-ray-bid-winner.yml
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: ray-bid-internal-winner-release
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMEXPR_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  train-verify-promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install reproducible CPU training and lightweight Streamlit runtime stack
+        run: |
+          python -m pip install 'torch==2.15.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'joblib>=1.3,<2' 'streamlit>=1.43'
+      - name: Compile retraining, model and current production pricing integration
+        run: |
+          python -m compileall -q scripts/ray_bid_9am.py scripts/retrain_ray_bid_winner.py
+          python -m compileall -q pricing/ray_bid_winner_live.py pricing/neural_experimental_ui.py
+          python - <<'PY'
+          from pathlib import Path
+          ui=Path('pricing/neural_experimental_ui.py').read_text()
+          assert 'ray_bid_ready=ray_bid_available(root)' in ui
+          assert 'load_ray_bid(root) if ray_bid_ready else' in ui
+          assert 'bid_ready=ray_bid_ready or bid_bohb' in ui
+          print('Main calculator will fail closed to existing verified Bid weights.')
+          PY
+      - name: Recover frozen ORIGINAL full non-Lemon VIN-disjoint auction features
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Recover exact Ray worker-2 winning hyperparameters and independent validation receipt
+        uses: actions/download-artifact@v4
+        with:
+          name: ray-bid-9am-shard-2
+          run-id: 42570947698
+          github-token: ${{ github.token }}
+          path: training-cache/ray-worker2
+      - name: Verify experiment identity and frozen evidence before fitting
+        run: |
+          test -s training-cache/neural-bid/features.npz
+          test -s training-cache/neural-bid/features.json
+          test -s training-cache/ray-worker2/winner-cvar95_weighted_huber/result.json
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          path=Path('training-cache/ray-worker2/winner-cvar95_weighted_huber/result.json')
+          r=json.loads(path.read_text())
+          c=r['configuration']
+          assert c['loss']=='cvar95_weighted_huber' and c['family']=='deepfm'
+          assert int(c['rank'])==16 and int(r['best_epoch'])>=1
+          assert 6400 < r['inner_CVaR95_USD'] < 6600
+          print('Retraining exact archived winner',json.dumps(c,sort_keys=True))
+          PY
+      - name: Retrain exact DeepFM rank-16 Huber-CVaR95 winner from original data
+        run: |
+          python -u -m scripts.retrain_ray_bid_winner \
+            --features training-cache/neural-bid/features.npz \
+            --reference training-cache/ray-worker2/winner-cvar95_weighted_huber/result.json \
+            --output models/ray-bid-9am-winner
+      - name: Verify installed checkpoint, provenance, original holdout and serving
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from pricing.ray_bid_winner_live import available, RayWinnerWholesale
+          assert available(Path('.'))
+          m=json.loads(Path('models/ray-bid-9am-winner/manifest.json').read_text())
+          assert m['original_training_no_lemon'] and m['no_blending']
+          assert not m['original_test_scored']
+          assert m['original_validation']['rows']==82380
+          assert m['retrained_internal_CVaR95_USD'] <= m['reference_internal_CVaR95_USD']*1.03
+          app=RayWinnerWholesale(Path('.'))
+          args={'auction_date':'2015-03-12','year':2012,'odometer':105000,'manufacturer':'ford',
+                'model':'focus','type':'sedan','transmission':'automatic','state':'ca',
+                'fuel':'gas','drive':'fwd','title_status':'clean','cylinders':'4 cylinders',
+                'paint_color':'silver','auction_grade':3.5}
+          result=app.predict(args)
+          assert result['verified'] is True and 100 <= result['price'] <= 1e6
+          assert result['neural_weight']==1.0
+          print('Deployment smoke passed:',result['model'],result['price'])
+          PY
+      - name: Archive retrained model checkpoint and reproducibility receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ray-bid-non-lemon-retrained-and-verified
+          path: models/ray-bid-9am-winner/
+          retention-days: 90
+          if-no-files-found: error
+      - name: Deploy only verified retrained model files to production main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- models/ray-bid-9am-winner/weights.pt \
+            models/ray-bid-9am-winner/manifest.json \
+            models/ray-bid-9am-winner/verification.json \
+            models/ray-bid-9am-winner/retrain_history.json
+          git diff --cached --exit-code && { echo "No newly retrained model to deploy"; exit 1; } || test "$?" -eq 1
+          git commit -m "Deploy verified full-non-Lemon Ray DeepFM Huber-CVaR95 Bid winner"
+          git push origin HEAD:main
+          echo "DEPLOYED_RAY_BID_WINNER $(git rev-parse HEAD)"
