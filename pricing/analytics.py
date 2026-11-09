@@ -45,6 +45,8 @@ from pricing.hierarchical_store import SCHEMA as HIERARCHICAL_SCHEMA
 SCHEMA += HIERARCHICAL_SCHEMA
 from pricing.feature_telemetry import SCHEMA as FEATURE_SCHEMA
 SCHEMA += FEATURE_SCHEMA
+from pricing.valuation_feedback import SCHEMA as VALUATION_FEEDBACK_SCHEMA
+SCHEMA += VALUATION_FEEDBACK_SCHEMA
 
 VEHICLE_FIELDS = {'year', 'manufacturer', 'model', 'odometer', 'type', 'fuel',
                   'transmission', 'drive', 'condition', 'title_status', 'cylinders',
@@ -252,6 +254,7 @@ class TursoStore:
         self.execute('DELETE FROM feature_errors WHERE recorded_at < ?', [cutoff])
         self.execute('DELETE FROM hierarchical_estimations WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM valuation_feedback WHERE submitted_at < ?', [cutoff])
+        self.execute('DELETE FROM valuation_feedback WHERE recorded_at < ?', [cutoff])
         self.execute('DELETE FROM pricing_queries WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM analytics_sessions WHERE last_seen < ? AND NOT EXISTS '
                      '(SELECT 1 FROM feature_events e WHERE e.session_id=analytics_sessions.session_id) AND NOT EXISTS '
