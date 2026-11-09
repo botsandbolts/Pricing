@@ -48,23 +48,48 @@ def pack(raw_path,model_path,comparison_path,fit_dir,output):
         ids_sha(original_id[phases=="test"])!=manifest["sha256_by_phase"]["test"]):
         raise AssertionError("Dataset/split SHA drift. Refusing to publish model.")
     train=phases=="train"
-    vocabulary={}
-    for key in CATEGORICAL:
-        raw=frame[key].fillna("__missing__").astype(str).str.strip().str.lower()
-        raw=raw.replace("","__missing__")
-        vals=raw[train].value_counts().index[:CAT_CAPS.get(key,4000)].tolist()
-        vocabulary[key]={value:i for i,value in enumerate(vals)}
-        if len(vals)!=manifest["categorical_cardinalities"][key]:
-            raise AssertionError("Training-only category count disagrees for "+key)
-    X,cats=encode(frame,phases)
+    trainpos=np.flatnonzero(train)
+    # Recover the EXACT categorical integer identifiers used during training
+    # from its immutable saved feature tensor. Rebuilding value_counts() is
+    # unsafe: ties can change ordering across processes/pandas versions.
     with np.load(Path(fit_dir)/"train.npz",allow_pickle=False) as stored:
-        xs=stored["x"][:256]
-        ids=stored["row_id"][:256]
-        yy=stored["y"][:256]
-    trainpos=np.flatnonzero(train)[:256]
-    np.testing.assert_array_equal(ids,original_id[trainpos])
-    np.testing.assert_allclose(X[trainpos],xs,rtol=0.,atol=0.,equal_nan=True)
-    np.testing.assert_allclose(price[original_id[trainpos]],yy,rtol=0.,atol=0.)
+        train_x=np.asarray(stored["x"],dtype=np.float32)
+        train_ids=np.asarray(stored["row_id"],dtype=np.int64)
+        train_y=np.asarray(stored["y"],dtype=np.float64)
+    np.testing.assert_array_equal(train_ids,original_id[trainpos])
+    np.testing.assert_allclose(train_y,price[original_id[trainpos]],
+                               rtol=0.,atol=0.)
+    if train_x.shape!=(len(trainpos),len(FEATURES)):
+        raise AssertionError("Saved training tensor has unexpected feature shape")
+    X,_=encode(frame,phases)
+    np.testing.assert_allclose(
+        X[trainpos[:256],:len(FEATURES)-len(CATEGORICAL)],
+        train_x[:256,:len(FEATURES)-len(CATEGORICAL)],
+        rtol=0.,atol=0.,equal_nan=True)
+    vocabulary={}
+    n_num=len(FEATURES)-len(CATEGORICAL)
+    for j,key in enumerate(CATEGORICAL):
+        raw=frame.loc[train,key].fillna("__missing__").astype(str).str.strip().str.lower()
+        raw=raw.replace("","__missing__")
+        codes=train_x[:,n_num+j]
+        valid=np.isfinite(codes)
+        ids_int=codes[valid].astype(np.int32)
+        if np.any(ids_int.astype(np.float32)!=codes[valid]):
+            raise AssertionError("Non-integral saved category ID in "+key)
+        pairs=pd.DataFrame({"value":raw.to_numpy()[valid],
+                            "category_id":ids_int}).drop_duplicates()
+        if pairs["value"].duplicated().any() or pairs["category_id"].duplicated().any():
+            raise AssertionError("Inconsistent mapping in frozen train tensor for "+key)
+        vocab=dict(zip(pairs["value"].tolist(),
+                       pairs["category_id"].astype(int).tolist()))
+        count=manifest["categorical_cardinalities"][key]
+        if len(vocab)!=count or sorted(vocab.values())!=list(range(count)):
+            raise AssertionError("Incomplete trained vocabulary recovered for "+key)
+        restored=raw.map(vocab).to_numpy(dtype=np.float32,na_value=np.nan)
+        np.testing.assert_allclose(restored,codes,rtol=0.,atol=0.,equal_nan=True)
+        vocabulary[key]=vocab
+    print("Recovered exact train-frozen category IDs for all",
+          len(CATEGORICAL),"features; checked",len(trainpos),"rows",flush=True)
     parsed=pd.to_datetime(frame["first_seen_at"],errors="coerce",utc=True,
                           format="mixed")
     if not parsed.notna().any():
@@ -100,7 +125,7 @@ def pack(raw_path,model_path,comparison_path,fit_dir,output):
     checked=0
     # Check 20 representative rows in the original heldout training
     # representation, excluding only rows with genuinely absent required data.
-    for p in np.flatnonzero(train)[:1200]:
+    for relative,p in enumerate(trainpos[:1200]):
         record=frame.iloc[p].to_dict()
         if any(pd.isna(record.get(key)) for key in
                ("seller_country","make","model","reg_year","mileage_km","first_seen_at")):
@@ -118,8 +143,9 @@ def pack(raw_path,model_path,comparison_path,fit_dir,output):
             continue
         record["first_seen_at"]=str(seen.date())
         row=encode_vehicle(record,schema)
-        np.testing.assert_allclose(row,X[p:p+1],rtol=1e-6,atol=1e-6,equal_nan=True)
-        native=xgb.DMatrix(X[p:p+1],feature_names=FEATURES,
+        np.testing.assert_allclose(row,train_x[relative:relative+1],
+                                   rtol=1e-6,atol=1e-6,equal_nan=True)
+        native=xgb.DMatrix(train_x[relative:relative+1],feature_names=FEATURES,
                           feature_types=FEATURE_TYPES,enable_categorical=True)
         expected=float(booster.predict(native)[0])
         actual=estimate(record,bundle=(booster,schema,comp))
@@ -147,6 +173,8 @@ def pack(raw_path,model_path,comparison_path,fit_dir,output):
       "dataset":"original, unchanged",
       "source_rows":raw_count,"eligible_rows":len(frame),
       "train_only_vocab_parity_rows":len(trainpos),
+      "vocabulary_source":"frozen training input tensor",
+      "categorical_features_verified":len(CATEGORICAL),
       "production_inference_parity_rows":checked,
       "train_sha":manifest["sha256_by_phase"]["train"],
       "snapshot_date":snapshot_date,
