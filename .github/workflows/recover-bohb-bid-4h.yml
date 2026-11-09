@@ -1,0 +1,61 @@
+name: Recover archived four-hour Bid BOHB leaderboard
+
+# Recovery only: never repeats training. The push trigger runs once when
+# this recovery workflow is first added; later recoveries can be dispatched.
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Completed BOHB training run whose five shards should be recovered'
+        required: true
+        type: string
+        default: '42596255582'
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/recover-bohb-bid-4h.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: recover-bohb-bid-4h
+  cancel-in-progress: false
+
+jobs:
+  aggregate-saved-shards:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out dependency-free aggregation script
+        uses: actions/checkout@v4
+      - name: Prepare Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download all five previously completed training shards
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.source_run_id || '42596255582' }}
+          github-token: ${{ github.token }}
+          pattern: bohb-bid-4h-shard-*
+          path: collected
+          merge-multiple: false
+      - name: Validate shard receipts and rank inner TRAIN CVaR95 winners
+        run: |
+          python -m compileall -q scripts/aggregate_bohb_bid_4h.py
+          python -m scripts.aggregate_bohb_bid_4h \
+            --aggregate collected \
+            --aggregate-output reports/bohb-bid-4h/leaderboard.json \
+            --source-run-id "${{ inputs.source_run_id || '42596255582' }}"
+          test -s reports/bohb-bid-4h/leaderboard.json
+          test -s reports/bohb-bid-4h/README.md
+      - name: Upload recovered final leaderboard (no model deployment)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohb-deployed-bid-4h-final-leaderboard
+          path: reports/bohb-bid-4h/
+          retention-days: 90
+          if-no-files-found: warn
