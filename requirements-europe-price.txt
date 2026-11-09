@@ -1,0 +1,9 @@
+# Research-only European ASK price model selection; never imported by Streamlit.
+numpy>=1.26,<2
+pandas>=2.1,<3
+pyarrow>=17,<23
+xgboost>=2.1.3,<2.2
+ray[tune]>=2.40,<2.50
+huggingface_hub>=0.26,<2
+pytest>=8,<10
+joblib>=1.4,<2
