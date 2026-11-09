@@ -82,7 +82,10 @@ jobs:
           from scripts.ray_pbt_ask import architecture_params
           from scripts.ask25_joint_search import ResearchAskingNetwork
           prep=json.loads(Path('models/neural-experimental-ask-bge/preprocessing.json').read_text())
-          if ckpt.get('architecture')!=architecture_params('deepcross'):
+          arch=architecture_params('deepcross')
+          shape_keys=('family','project_dim','project_layers','project_dropout',
+              'cross_layers','rank','experts','width','blocks','dropout','activation')
+          if any(ckpt.get('architecture',{}).get(k)!=arch.get(k) for k in shape_keys):
               raise SystemExit('Unexpected DeepCross head architecture')
           if ckpt.get('cohort_sha256')!=COHORT_SHA256 or ckpt.get('embedding_sha256')!=EMBEDDING_SHA256:
               raise SystemExit('Head provenance mismatch')
@@ -137,7 +140,10 @@ jobs:
           pack=torch.load(weights,map_location='cpu',weights_only=True)
           arch=architecture_params('deepcross')
           prep=json.loads(Path('models/neural-experimental-ask-bge/preprocessing.json').read_text())
-          if pack.get('architecture')!=arch or pack.get('cohort_sha256')!=COHORT_SHA or pack.get('embedding_sha256')!=EMBEDDING_SHA:
+          shape_keys=('family','project_dim','project_layers','project_dropout',
+              'cross_layers','rank','experts','width','blocks','dropout','activation')
+          if (any(pack.get('architecture',{}).get(k)!=arch.get(k) for k in shape_keys)
+              or pack.get('cohort_sha256')!=COHORT_SHA or pack.get('embedding_sha256')!=EMBEDDING_SHA):
               raise SystemExit('BGE checkpoint architecture or frozen embedding provenance mismatch')
           net=ResearchAskingNetwork(prep['cardinalities'],384,arch)
           net.load_state_dict(pack['state_dict'],strict=True)
