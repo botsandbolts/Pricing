@@ -256,8 +256,12 @@ def run_shard(args):
                       float(manifest["original_validation"]["CVaR95_absolute_USD"])},
     }
     (report_dir/"status.json").write_text(json.dumps(state,indent=2)+"\n")
+    # Ray's AF_UNIX sockets have a 107-byte Linux path limit; checkout paths
+    # on GitHub Actions are long. Use a short /tmp root for Ray internals.
+    short_ray_tmp=Path("/tmp")/("rb4h"+str(args.shard))
+    short_ray_tmp.mkdir(parents=True,exist_ok=True)
     ray.init(num_cpus=2,include_dashboard=False,log_to_driver=True,
-             _temp_dir=str((report_dir/"ray-tmp").resolve()))
+             _temp_dir=str(short_ray_tmp))
     try:
         scheduler=HyperBandForBOHB(
             time_attr="training_iteration",metric=METRIC,mode="min",
