@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+<title id="title">Wir kaufen dein Auto NICHT — Car Price Studio</title>
+<desc id="desc">Satirischer Vergleich von Autokaufwerbung und unabhängiger Preisbewertung, ohne Verbindung zu anderen Marken.</desc>
+<defs>
+ <linearGradient id="left" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#185b83"/><stop offset="1" stop-color="#0a3150"/></linearGradient>
+ <linearGradient id="right" x1="0" x2="1"><stop stop-color="#142f38"/><stop offset="1" stop-color="#09191f"/></linearGradient>
+ <filter id="shadow"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#020c14" flood-opacity=".35"/></filter>
+</defs>
+<rect width="1200" height="560" fill="url(#left)"/>
+<path d="M716 0H1200V560H675L750 0Z" fill="url(#right)"/>
+<path d="M725 0L650 560" stroke="#ff8b31" stroke-width="11"/>
+<g font-family="DejaVu Sans,Arial,Helvetica,sans-serif">
+ <text x="43" y="63" font-size="25" font-weight="800" letter-spacing="2" fill="#d3e9f4">WERBE-PARODIE  /  EIN WORT MACHT DEN UNTERSCHIED</text>
+ <text x="35" y="176" font-size="83" font-weight="900" letter-spacing="-5" fill="#fff">wir<tspan fill="#ff8b31">kaufen</tspan></text>
+ <text x="35" y="276" font-size="83" font-weight="900" letter-spacing="-5" fill="#fff">dein<tspan fill="#ff8b31">auto</tspan></text>
+ <g filter="url(#shadow)">
+  <rect x="33" y="317" width="612" height="164" rx="25" fill="#ff8b31" transform="rotate(-2 339 399)"/>
+  <text x="66" y="434" font-size="112" font-weight="900" letter-spacing="-5" fill="#0b2c42" transform="rotate(-2 339 399)">NICHT.</text>
+ </g>
+ <text x="40" y="526" fill="#fff" font-size="27" font-weight="700">Keine Kaufabsicht. Nur Wertschätzung.</text>
+ <g fill="#fff">
+  <text x="785" y="164" font-size="62" font-weight="900" letter-spacing="-3">CAR PRICE</text>
+  <text x="785" y="235" font-size="73" font-weight="900" letter-spacing="-3">STUDIO</text>
+ </g>
+ <path d="M788 104Q860 55 933 97T1090 99" fill="none" stroke="#ff8b31" stroke-width="8" stroke-linecap="round"/>
+ <text x="788" y="322" font-size="43" font-weight="900" letter-spacing="-1" fill="#ffb05d">Wir schätzen es.</text>
+ <text x="788" y="372" font-size="28" font-weight="600" fill="#e7f0f2">Daten statt Deals.</text>
+ <rect x="783" y="414" width="382" height="82" rx="19" fill="#ff8b31"/>
+ <text x="810" y="464" font-size="27" font-weight="900" fill="#0b2534">UNABHÄNGIG · KEIN KAUF</text>
+ <text x="790" y="527" font-size="19" font-weight="600" fill="#b7d4df">Eigenständige Satire · Keine Markenverbindung</text>
+</g>
+</svg>
