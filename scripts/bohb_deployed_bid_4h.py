@@ -235,6 +235,10 @@ def smoke(features, root):
     from ray.tune.search import ConcurrencyLimiter
     class _SmallBOHB(tune.Trainable):
         def setup(self, config):
+            if not os.environ.get("BOHB_FULL_FEATURES"):
+                raise RuntimeError("Ray worker did not inherit frozen feature path")
+            if any(x in config for x in ("features","seed","family","loss","tau","sigma_floor")):
+                raise RuntimeError("Fixed fields leaked into BOHB searcher config")
             self._tiny_epoch = 0
         def step(self):
             self._tiny_epoch += 1
@@ -246,6 +250,7 @@ def smoke(features, root):
             return str(p)
         def load_checkpoint(self, checkpoint_dir):
             self._tiny_epoch=int((Path(checkpoint_dir)/"step.txt").read_text())
+    os.environ["BOHB_FULL_FEATURES"]=str(Path(features).resolve())
     temp=Path("/tmp/rb4h-test")
     temp.mkdir(parents=True,exist_ok=True)
     ray.init(num_cpus=2,include_dashboard=False,
