@@ -39,6 +39,23 @@ def test_device(browser,device,width,height):
     expect(international).to_be_visible(timeout=120000)
     expect(international).to_have_text("Two continents. One garage. Zero crystal balls.")
     assert '<section class="cps-globe"' not in page.locator("body").inner_text()
+    # Production banner must be visible ABOVE the European market hero, never on US.
+    banner=page.locator(".st-key-eu_parody_banner")
+    expect(banner).to_be_visible(timeout=120000)
+    artwork=banner.locator("img").first
+    expect(artwork).to_be_visible(timeout=30000)
+    alt=artwork.get_attribute("alt") or ""
+    for term in ("NICHT", "wirksufendeinaito", "WKDA", "Autohero", "AUTO1"):
+        assert term in alt, f"Missing requested accessible text: {term}"
+    page.wait_for_function("""() => {
+        const img=document.querySelector(".st-key-eu_parody_banner img");
+        return img && img.complete;
+    }""",timeout=30000)
+    loaded=artwork.evaluate("(img) => ({w:img.naturalWidth,h:img.naturalHeight,src:img.currentSrc})")
+    assert loaded["w"]>500 and loaded["h"]>100, f"Banner asset did not render: {loaded}"
+    banner_y=banner.bounding_box()["y"]
+    hero_y=page.locator(".eu-hero").bounding_box()["y"]
+    assert banner_y<hero_y, "European satire must be above European hero"
     expect(page.get_by_text("From Hamburg to Rome.",exact=False)).to_be_visible(timeout=120000)
     expect(page.get_by_text("European Asking Price Lab",exact=False)).to_be_visible(timeout=90000)
     assert page.get_by_role("button",name=re.compile("Calculate European asking price")).count()==1
@@ -66,6 +83,7 @@ def main():
             page=browser.new_page(viewport={"width":1280,"height":850})
             page.goto(HOST+"/?market=us",wait_until="domcontentloaded",timeout=90000)
             expect(page.get_by_text("United States",exact=False).first).to_be_visible(timeout=120000)
+            assert page.locator(".st-key-eu_parody_banner").count()==0, "European banner leaked into US pricing"
             expect(page.get_by_text("European Studio",exact=False).first).to_be_visible(timeout=120000)
             diagnose(page,"us-still-available")
             page.close()
