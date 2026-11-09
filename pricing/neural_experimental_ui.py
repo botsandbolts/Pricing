@@ -730,15 +730,16 @@ only when you ask. No model circus required. 🎪🚗
                         "No seller story, IP address, VIN or contact details.",
                         key="feedback_permission_"+key)
                     submitted=st.form_submit_button(
-                        "📮 Send accuracy feedback",disabled=score is None,
-                        type="primary")
+                        "📮 Send accuracy feedback",type="primary")
                 if submitted:
                     from pricing.analytics import record_accuracy_feedback
-                    if not permission:
+                    if score is None:
+                        st.warning("Please choose one rating from 1 to 4.")
+                    elif not permission:
                         st.warning("Please agree to saving this feedback first.")
                     elif record_accuracy_feedback(
                         key,saved.get("ask_choice","bge"),int(score),
-                        saved["fields"],prices,valuation_date,explicit_consent=True):
+                        saved["fields"],prices,saved["date"],explicit_consent=True):
                         st.session_state["_feedback_saved_"+key]=True
                         st.success("✅ Thank you! Feedback saved to our private database.")
                     else:
