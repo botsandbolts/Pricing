@@ -856,11 +856,11 @@ only when you ask. No model circus required. 🎪🚗
             st.markdown("**🔨 Wholesale auction · verified production model**")
             if ray_bid_ready:
                 meta=json.loads((root/"models/ray-bid-9am-winner/manifest.json").read_text())
-                st.caption("🚀 LIVE 9 NOV 2026 · non-Lemon DeepFM16, CVaR95-weighted Huber. "
+                st.caption(("🚀 LIVE 9 NOV 2026 · non-Lemon DeepFM16, CVaR95-weighted Huber. "
                            "Original full wholesale TRAIN cohort; NO Lemon exclusions, "
                            "NO XGBoost blend and NO text encoder. Internal TRAIN CVaR95 "
                            "USD {:,.2f}; independent original-validation CVaR95 USD {:,.2f}. "
-                           "Internal performance does not establish independent accuracy."
+                           "Internal performance does not establish independent accuracy.")
                            .format(meta["retrained_internal_CVaR95_USD"],
                                    meta["original_validation"]["CVaR95_absolute_USD"]))
             elif bid_bohb:
