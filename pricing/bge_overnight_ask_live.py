@@ -64,7 +64,9 @@ class BGEOvernightAsking:
         self.original=original_load(root)
         pack=torch.load(root/FOLDER/"weights.pt",map_location="cpu",weights_only=True)
         expected=architecture_params("deepcross")
-        if (pack.get("architecture")!=expected
+        shape_keys=("family","project_dim","project_layers","project_dropout",
+                    "cross_layers","rank","experts","width","blocks","dropout","activation")
+        if (any(pack.get("architecture",{}).get(k)!=expected.get(k) for k in shape_keys)
                 or pack.get("cohort_sha256")!=COHORT_SHA
                 or pack.get("embedding_sha256")!=EMBEDDING_SHA
                 or pack.get("training_cohort")!="frozen-lemon-oof-retained-75"
