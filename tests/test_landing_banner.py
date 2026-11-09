@@ -86,26 +86,36 @@ def test_no_remote_image_dependency_in_hero():
     assert "onclick=" not in html
 
 
-def test_upcoming_bid_banner_is_accessible_and_candid_about_science():
+def test_bid_banner_matches_verified_release_and_keeps_claims_candid():
     from pricing.bid_launch_announcement import banner_html
     html = banner_html()
     assert '<section role="region"' in html
     assert 'id="bid-breakthrough-title"' in html
-    assert 'next few hours' in html
-    assert 'only if' in html
-    assert 'AFT likelihood' in html
-    assert 'Robust Huber loss' in html
     assert 'CVaR95' in html
-    assert 'customs value' in html
-    assert 'proof of' in html
-    assert 'Truncation and selection bias are separate data problems' in html
-    assert 'verified row-level interval-censoring bounds have not been established' in html
-    assert 'Any claim of superior accuracy' in html
-    assert 'Follow the public model research' in html
+    assert 'customs' in html.lower()
     assert 'github.com/botsandbolts/Pricing/actions/runs/' in html
     assert '<script' not in html
     assert 'onclick=' not in html
     assert 'onerror=' not in html
+    if 'LIVE BID ENGINE' in html:
+        assert 'non-Lemon' in html
+        assert 'CVaR95-weighted Huber' in html
+        assert 'not AFT' in html
+        assert 'TRAIN-internal' in html
+        assert 'Untouched original validation' in html
+        assert 'higher' in html
+        assert 'proof of wrongdoing' in html
+        assert 'No Lemon exclusions' in html
+        assert 'not used to choose' in html
+        assert 'next few hours' not in html
+    else:
+        assert 'next few hours' in html
+        assert 'only if' in html
+        assert 'AFT likelihood' in html
+        assert 'Robust Huber loss' in html
+        assert 'Truncation and selection bias are separate data problems' in html
+        assert 'verified row-level interval-censoring bounds have not been established' in html
+        assert 'Any claim of superior accuracy' in html
 
 
 def test_bid_banner_only_on_pricing_and_before_older_bulletin():
