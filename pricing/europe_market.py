@@ -56,11 +56,11 @@ def _css():
     .eu-result strong{display:block;color:white!important;
       font-size:clamp(2.3rem,5vw,4rem);letter-spacing:-.05em}
     .eu-result p{color:#e6edf0;margin:2px 0}
-    .st-key-eu_parody_banner{background:#0d1117!important;border:4px solid #ffdf25!important;
+    .st-key-eu_parody_banner{background:#0d1117!important;border:4px solid #ff991f!important;
       border-radius:21px!important;box-shadow:0 16px 40px #00000040!important;
       padding:clamp(8px,1.5vw,15px)!important;margin:0 0 16px!important}
     .st-key-eu_parody_banner [data-testid="stImage"]{border-radius:12px;overflow:hidden}
-    .eu-parody-tagline{color:#ffdf25!important;text-align:left;font-size:clamp(.85rem,1.7vw,1.2rem);
+    .eu-parody-tagline{color:#ff991f!important;text-align:left;font-size:clamp(.85rem,1.7vw,1.2rem);
       font-weight:950;letter-spacing:.055em;margin:8px 3px 2px}
     </style>""",unsafe_allow_html=True)
 
@@ -71,10 +71,11 @@ def _parody_banner():
         return  # Missing decorative art must never block the valuation calculator.
     with st.container(key="eu_parody_banner",border=True):
         st.image(artwork,width="stretch",alt=(
-            "Satirische Car Price Studio Werbung: Mann mit Autoschlüssel, Van und "
-            "dem Schriftzug 'wir kaufen dein Auto nicht. Wir schätzen es.' "
-            "Werbeparodie mit Bezug auf wirkaufendeinauto, wirksufendeinaito, "
-            "WKDA, Autohero und AUTO1; keine Zugehörigkeit zu diesen Marken."
+            "Car Price Studio Europa: eigenständige blau-orange Werbeparodie "
+            "mit einer gezeichneten weißen Autokontur und dem Spruch "
+            "'wir kaufen dein Auto NICHT. Wir schätzen es.' "
+            "Wortspiel zu Autokauf-Werbung (wirksufendeinaito, "
+            "wirkaufendeinauto/WKDA, Autohero, AUTO1), ohne geschäftliche Verbindung."
         ))
         st.markdown('<div class="eu-parody-tagline">🏁 NULL KAUFINTERESSE. '
                     '100 % WERTSCHÄTZUNG. 🇪🇺</div>',unsafe_allow_html=True)
