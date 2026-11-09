@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "inner_train_partition_verified": true,
+  "original_validation_rows": 82380,
+  "original_test_scored": false,
+  "model_not_blended_with_lemon": true,
+  "checkpoint_forward_finite": true,
+  "reference_inner_CVaR95_USD": 6478.476673418131,
+  "retrained_inner_CVaR95_USD": 6483.730550786842,
+  "reference_validation_CVaR95_USD": 8946.723953473043,
+  "retrained_validation_CVaR95_USD": 8879.261722491534,
+  "model_seed": 546303,
+  "no_price_derived_inputs": true
+}

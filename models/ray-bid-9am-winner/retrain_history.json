@@ -1,0 +1,251 @@
+{
+  "source": "TRAIN internal only",
+  "best_epoch": 61,
+  "best_internal_CVaR95_USD": 6483.730550786842,
+  "history": [
+    {
+      "epoch": 1,
+      "inner_CVaR95_absolute_USD": 8224.120367841508
+    },
+    {
+      "epoch": 2,
+      "inner_CVaR95_absolute_USD": 7627.62131396586
+    },
+    {
+      "epoch": 3,
+      "inner_CVaR95_absolute_USD": 7343.698450266229
+    },
+    {
+      "epoch": 4,
+      "inner_CVaR95_absolute_USD": 7163.587683308813
+    },
+    {
+      "epoch": 5,
+      "inner_CVaR95_absolute_USD": 7299.616941866063
+    },
+    {
+      "epoch": 6,
+      "inner_CVaR95_absolute_USD": 7434.591006436365
+    },
+    {
+      "epoch": 7,
+      "inner_CVaR95_absolute_USD": 7158.266502082503
+    },
+    {
+      "epoch": 8,
+      "inner_CVaR95_absolute_USD": 6861.035683262044
+    },
+    {
+      "epoch": 9,
+      "inner_CVaR95_absolute_USD": 6877.4392362134895
+    },
+    {
+      "epoch": 10,
+      "inner_CVaR95_absolute_USD": 6981.073692786452
+    },
+    {
+      "epoch": 11,
+      "inner_CVaR95_absolute_USD": 6841.1099657160985
+    },
+    {
+      "epoch": 12,
+      "inner_CVaR95_absolute_USD": 6815.5935025867975
+    },
+    {
+      "epoch": 13,
+      "inner_CVaR95_absolute_USD": 6952.506686320347
+    },
+    {
+      "epoch": 14,
+      "inner_CVaR95_absolute_USD": 6857.50460299125
+    },
+    {
+      "epoch": 15,
+      "inner_CVaR95_absolute_USD": 6855.694763310684
+    },
+    {
+      "epoch": 16,
+      "inner_CVaR95_absolute_USD": 6859.569459342261
+    },
+    {
+      "epoch": 17,
+      "inner_CVaR95_absolute_USD": 6848.194398720149
+    },
+    {
+      "epoch": 18,
+      "inner_CVaR95_absolute_USD": 6682.635624342943
+    },
+    {
+      "epoch": 19,
+      "inner_CVaR95_absolute_USD": 6895.196593221558
+    },
+    {
+      "epoch": 20,
+      "inner_CVaR95_absolute_USD": 6653.439171397395
+    },
+    {
+      "epoch": 21,
+      "inner_CVaR95_absolute_USD": 6653.692859623843
+    },
+    {
+      "epoch": 22,
+      "inner_CVaR95_absolute_USD": 6796.290761412462
+    },
+    {
+      "epoch": 23,
+      "inner_CVaR95_absolute_USD": 6822.002367916236
+    },
+    {
+      "epoch": 24,
+      "inner_CVaR95_absolute_USD": 6737.478229989365
+    },
+    {
+      "epoch": 25,
+      "inner_CVaR95_absolute_USD": 6594.859856577233
+    },
+    {
+      "epoch": 26,
+      "inner_CVaR95_absolute_USD": 6647.405535624959
+    },
+    {
+      "epoch": 27,
+      "inner_CVaR95_absolute_USD": 6664.84988516113
+    },
+    {
+      "epoch": 28,
+      "inner_CVaR95_absolute_USD": 6749.451779112848
+    },
+    {
+      "epoch": 29,
+      "inner_CVaR95_absolute_USD": 6676.9791400518225
+    },
+    {
+      "epoch": 30,
+      "inner_CVaR95_absolute_USD": 6765.913634523136
+    },
+    {
+      "epoch": 31,
+      "inner_CVaR95_absolute_USD": 6822.859214040031
+    },
+    {
+      "epoch": 32,
+      "inner_CVaR95_absolute_USD": 6773.654106080563
+    },
+    {
+      "epoch": 33,
+      "inner_CVaR95_absolute_USD": 6568.7518584744375
+    },
+    {
+      "epoch": 34,
+      "inner_CVaR95_absolute_USD": 6641.417362147604
+    },
+    {
+      "epoch": 35,
+      "inner_CVaR95_absolute_USD": 6582.305041414943
+    },
+    {
+      "epoch": 36,
+      "inner_CVaR95_absolute_USD": 6694.326378682825
+    },
+    {
+      "epoch": 37,
+      "inner_CVaR95_absolute_USD": 6612.98382098125
+    },
+    {
+      "epoch": 38,
+      "inner_CVaR95_absolute_USD": 6583.114792386422
+    },
+    {
+      "epoch": 39,
+      "inner_CVaR95_absolute_USD": 6622.910224370445
+    },
+    {
+      "epoch": 40,
+      "inner_CVaR95_absolute_USD": 6636.3386185351665
+    },
+    {
+      "epoch": 41,
+      "inner_CVaR95_absolute_USD": 6690.76555754678
+    },
+    {
+      "epoch": 42,
+      "inner_CVaR95_absolute_USD": 6662.473108818853
+    },
+    {
+      "epoch": 43,
+      "inner_CVaR95_absolute_USD": 6543.609072461344
+    },
+    {
+      "epoch": 44,
+      "inner_CVaR95_absolute_USD": 6704.017857310798
+    },
+    {
+      "epoch": 45,
+      "inner_CVaR95_absolute_USD": 6689.556491452663
+    },
+    {
+      "epoch": 46,
+      "inner_CVaR95_absolute_USD": 6805.852091609036
+    },
+    {
+      "epoch": 47,
+      "inner_CVaR95_absolute_USD": 6640.3058994974335
+    },
+    {
+      "epoch": 48,
+      "inner_CVaR95_absolute_USD": 6503.566772079666
+    },
+    {
+      "epoch": 49,
+      "inner_CVaR95_absolute_USD": 6623.607936209778
+    },
+    {
+      "epoch": 50,
+      "inner_CVaR95_absolute_USD": 6490.612847172798
+    },
+    {
+      "epoch": 51,
+      "inner_CVaR95_absolute_USD": 6628.635885227725
+    },
+    {
+      "epoch": 52,
+      "inner_CVaR95_absolute_USD": 6651.995852310046
+    },
+    {
+      "epoch": 53,
+      "inner_CVaR95_absolute_USD": 6603.794350540185
+    },
+    {
+      "epoch": 54,
+      "inner_CVaR95_absolute_USD": 6671.877256775697
+    },
+    {
+      "epoch": 55,
+      "inner_CVaR95_absolute_USD": 6658.90152239663
+    },
+    {
+      "epoch": 56,
+      "inner_CVaR95_absolute_USD": 6668.066664815384
+    },
+    {
+      "epoch": 57,
+      "inner_CVaR95_absolute_USD": 6752.168752484617
+    },
+    {
+      "epoch": 58,
+      "inner_CVaR95_absolute_USD": 6743.876253460671
+    },
+    {
+      "epoch": 59,
+      "inner_CVaR95_absolute_USD": 6577.606246956186
+    },
+    {
+      "epoch": 60,
+      "inner_CVaR95_absolute_USD": 6523.89501940416
+    },
+    {
+      "epoch": 61,
+      "inner_CVaR95_absolute_USD": 6483.730550786842
+    }
+  ]
+}

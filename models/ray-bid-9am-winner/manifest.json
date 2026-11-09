@@ -1,0 +1,82 @@
+{
+  "status": "release_candidate_verified",
+  "market": "bid",
+  "source_workflow_run": 42570947698,
+  "source_shard": 2,
+  "source_trial_loss": "cvar95_weighted_huber",
+  "retrained_from_winner_hyperparameters": true,
+  "training_split": {
+    "fit": 345779,
+    "inner": 38419,
+    "full_train": 384198
+  },
+  "original_training_no_lemon": true,
+  "selection_metric": "TRAIN internal CVaR95_absolute_USD",
+  "reference_internal_CVaR95_USD": 6478.476673418131,
+  "retrained_internal_CVaR95_USD": 6483.730550786842,
+  "retrained_best_epoch": 61,
+  "original_validation": {
+    "rows": 82380,
+    "worst_five_pct_rows": 4119,
+    "CVaR95_absolute_USD": 8879.261722491534,
+    "VaR95_absolute_USD": 5415.4422119140645,
+    "MAE_USD": 1892.1517120799383,
+    "RMSE_USD": 3009.129768197785,
+    "worst_one_pct_USD": 16529.560017854266,
+    "median_abs_error_USD": 1280.3255615234375,
+    "bias_USD": 834.8873429403284
+  },
+  "reference_original_validation": {
+    "rows": 82380,
+    "worst_five_pct_rows": 4119,
+    "CVaR95_absolute_USD": 8946.723953473043,
+    "VaR95_absolute_USD": 5446.646582031251,
+    "MAE_USD": 1892.4369030323849,
+    "RMSE_USD": 3014.104078289872,
+    "worst_one_pct_USD": 16503.638038079716,
+    "median_abs_error_USD": 1270.82568359375,
+    "bias_USD": 866.557779221096
+  },
+  "original_test_scored": false,
+  "no_blending": true,
+  "cohort_sha256": "16290e5e7b7a2913edb47d2b7e34ffa6d4922bdd4269b729f705a53a4c135045",
+  "original_holdout_row_sha256": {
+    "validation": "319f0b1bfeeec3b1692092cbb88841282e6a116e8483a4466fed0a3d02896fa8",
+    "test": "0556fef8c28bd2043951036b378614ba79eeaadd3bb70cf3c5f09ea3a714eebb"
+  },
+  "censoring_audit": {
+    "source": "observed exact wholesale transaction prices",
+    "explicit_intervals": 0,
+    "left_censored": 0,
+    "right_censored": 0,
+    "exact": 550181,
+    "bounds_verified": false
+  },
+  "configuration": {
+    "features": "/home/runner/work/Pricing/Pricing/training-cache/neural-bid/features.npz",
+    "seed": 546303,
+    "loss": "cvar95_weighted_huber",
+    "family": "deepfm",
+    "rank": 16,
+    "shape": "192x96x2",
+    "activation": "gelu",
+    "dropout": 0.18,
+    "lr": 0.0004770154826714449,
+    "wd": 1.4334711900307183e-05,
+    "batch": 1024,
+    "noise": 0.005,
+    "optimizer": "radam",
+    "schedule": "cosine",
+    "clip": 2.0,
+    "beta": 0.4,
+    "tau": 0.2,
+    "tail_frac": 0.05,
+    "tail_weight": 0.35,
+    "sigma_floor": 0.15,
+    "usd_scale": 30000.0
+  },
+  "checkpoint_sha256": "0526c178da90f737b6a204a039c65796432c7b29848b46e463d5bbe85db7037e",
+  "preprocessing_sha256": "0525bec9b2b197b62568385671727b3c4904d5e8a731768a6c0a39f30927ba46",
+  "price_basis": "2015-index-normalized wholesale historical USD",
+  "not_current_2026_accuracy": true
+}
