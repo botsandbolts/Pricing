@@ -194,7 +194,15 @@ def smoke(features, root):
     from ray import tune
     manifest, meta = preflight(features, root)
     config = incumbent_point(manifest, features)
-    _ = space(tune,config,features)
+    search_space = space(tune,config,features)
+    # Actual conversion to ConfigSpace is necessary: older Ray BOHB supplies
+    # keyword q= when building ConfigSpace hyperparameters. This explicitly
+    # rejects an incompatible ConfigSpace 1.x before a four-hour matrix runs.
+    conversion_probe=TuneBOHB(metric=METRIC,mode="min",seed=20261109,
+        points_to_evaluate=[config])
+    if not conversion_probe.set_search_properties(METRIC,"min",search_space):
+        raise RuntimeError("TuneBOHB could not register the complete search space")
+    print("BID_BOHB_CONFIGSPACE_CONVERSION_OK",flush=True)
     # Actual import and construction gates for true Bayesian BOHB.
     scheduler = HyperBandForBOHB(time_attr="training_iteration",
         metric=METRIC,mode="min",max_t=MAX_EPOCHS,reduction_factor=3,
