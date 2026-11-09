@@ -223,6 +223,57 @@ def smoke(features, root):
         p.grad is None or torch.isfinite(p.grad).all() for p in net.parameters()
     ):
         raise ValueError("Nonfinite BOHB training objective or gradients")
+    # End-to-end smoke with a tiny synthetic Trainable. Construction alone
+    # does not catch Ray Tune scheduler/metric compatibility errors.
+    import ray
+    from ray.tune.search import ConcurrencyLimiter
+    class _SmallBOHB(tune.Trainable):
+        def setup(self, config):
+            self.iteration = 0
+        def step(self):
+            self.iteration += 1
+            return {METRIC:1.0/float(self.iteration)+float(self.config["x"])}
+        def save_checkpoint(self, checkpoint_dir):
+            p=Path(checkpoint_dir)
+            p.mkdir(parents=True,exist_ok=True)
+            (p/"step.txt").write_text(str(self.iteration))
+            return str(p)
+        def load_checkpoint(self, checkpoint_dir):
+            self.iteration=int((Path(checkpoint_dir)/"step.txt").read_text())
+    temp=Path("/tmp/rb4h-test")
+    temp.mkdir(parents=True,exist_ok=True)
+    ray.init(num_cpus=2,include_dashboard=False,
+             log_to_driver=False,_temp_dir=str(temp))
+    try:
+        tiny_sched=HyperBandForBOHB(
+            time_attr="training_iteration",max_t=3,
+            reduction_factor=2,stop_last_trials=False)
+        tiny_search=ConcurrencyLimiter(
+            TuneBOHB(metric=METRIC,mode="min",
+                     points_to_evaluate=[{"x":0.3}],seed=20261109),
+            max_concurrent=2)
+        dummy=tune.Tuner(
+            tune.with_resources(_SmallBOHB,{"cpu":1}),
+            param_space={"x":tune.uniform(0.0,1.0)},
+            tune_config=tune.TuneConfig(
+                metric=METRIC,mode="min",search_alg=tiny_search,
+                scheduler=tiny_sched,num_samples=5,time_budget_s=75),
+            run_config=tune.RunConfig(
+                name="tiny-bohb-preflight",
+                storage_path=str((Path("/tmp")/"rb4h-test-logs").resolve()),
+                stop={"training_iteration":3},
+                checkpoint_config=tune.CheckpointConfig(
+                    checkpoint_frequency=1,checkpoint_at_end=True),
+                verbose=0))
+        results=dummy.fit()
+        ok=[t for t in results if not t.error and
+            t.metrics and METRIC in t.metrics]
+        if not ok:
+            raise RuntimeError("Tiny BOHB tuner launched but finished no usable trials")
+        print("BID_BOHB_FULL_TUNER_PREFLIGHT_OK",
+              json.dumps({"successful_trials":len(ok),"max_epochs":3}),flush=True)
+    finally:
+        ray.shutdown()
     print("BID_BOHB_PREFLIGHT_OK",json.dumps({
         "train":meta["full_train"],"validation":meta["validation"],
         "test":meta["test"],"workers":SHARDS*SLOTS_PER_SHARD,
