@@ -1,0 +1,6 @@
+# Overnight European neural-only research. CPU torch is separately installed.
+# Keep GPU/CUDA wheels and unnecessary XGBoost off neural worker runners.
+numpy>=1.26,<2
+pandas>=2.1,<3
+ray[tune]>=2.40,<2.50
+pytest>=8,<10
