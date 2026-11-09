@@ -756,7 +756,8 @@ only when you ask. No model circus required. 🎪🚗
                 if st.button("Recalculate complete neural asking model",key="experimental_reword_go"):
                     try:
                         from pricing.neural_ask_embedding_live import load
-                        revised=(load_lemon75_ask(root) if lemon75_ask
+                        revised=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
+                                  else load_lemon75_ask(root) if lemon75_ask
                                  else load_bohb_ask(root) if ask_bohb
                                  else load_champion_ask(root) if ask_champion
                                  else load(root)).predict(alt,saved["fields"])["price"]
@@ -772,7 +773,10 @@ only when you ask. No model circus required. 🎪🚗
                 if st.button("Draw mileage sensitivity",key="experimental_mileage_go"):
                     try:
                         from pricing.neural_ask_embedding_live import load
-                        model=load_champion_ask(root) if ask_champion else load(root)
+                        model=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
+                                else load_lemon75_ask(root) if lemon75_ask
+                                else load_bohb_ask(root) if ask_bohb
+                                else load_champion_ask(root) if ask_champion else load(root))
                         prepared=({"embedding":saved["ask_embedding"],"raw":saved["notes"]}
                                   if "ask_embedding" in saved else model.prepare_text(saved["notes"]))
                         rows=[]
