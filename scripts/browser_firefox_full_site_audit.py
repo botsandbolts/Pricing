@@ -162,13 +162,19 @@ def run():
                  "both_banners_preserved":True,"anchor_viewport_top":top})
             assert top<844, "One click did not bring the pricing section into view"
             safe_shot(page,"after-one-cta.png")
-            submit=app.get_by_role("button",name=re.compile("Calculate seller Ask.*wholesale Bid"))
-            submit.wait_for(state="visible",timeout=90000)
-            if submit.is_disabled():
-                raise AssertionError("Public pricing submit is disabled")
-            submit.scroll_into_view_if_needed()
-            submit.click(timeout=30000)
+            # Two independently verified Ask engines share the same form and Bid.
+            english=app.get_by_role("button",name="🇬🇧 Evaluate in English")
+            multilingual=app.get_by_role("button",name="🌍 Evaluate in my language")
+            english.wait_for(state="visible",timeout=90000)
+            multilingual.wait_for(state="visible",timeout=90000)
+            report["pricing"]["two_model_buttons_visible"]=True
+            assert not english.is_disabled(), "BGE winner has not passed release gate"
+            assert not multilingual.is_disabled(), "Granite INT8 winner has not passed release gate"
+            assert "06:00 CET" in release.inner_text(), "Launch timetable was not updated"
+            english.scroll_into_view_if_needed()
+            english.click(timeout=30000)
             report["pricing"]["submit_clicks"]=1
+            report["pricing"]["selected_engine"]="BGE English"
             # The visible acknowledgement or completed result must follow ONE event.
             messages=app.get_by_text(re.compile(
                 r"One click received|Calculation complete|Your car . estimated prices|"
