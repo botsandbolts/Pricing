@@ -1,0 +1,93 @@
+name: Promote verified retrained Ray Bid checkpoint
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/promote-ray-bid-winner.yml
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: ray-bid-winner-safe-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Download independently retrained and smoke-verified release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ray-bid-non-lemon-retrained-and-verified
+          run-id: 42584931682
+          github-token: ${{ github.token }}
+          path: staged/ray-bid-9am-winner
+      - name: Validate checkpoint and original dataset/holdout provenance without re-training
+        run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          p=Path('staged/ray-bid-9am-winner')
+          req={'manifest.json','verification.json','weights.pt','retrain_history.json'}
+          assert req.issubset(set(x.name for x in p.iterdir())), 'Incomplete release artifact'
+          m=json.loads((p/'manifest.json').read_text())
+          v=json.loads((p/'verification.json').read_text())
+          digest=hashlib.sha256((p/'weights.pt').read_bytes()).hexdigest()
+          prep=hashlib.sha256(Path('models/neural-experimental-bid/preprocessing.json').read_bytes()).hexdigest()
+          assert digest==m['checkpoint_sha256']
+          assert prep==m['preprocessing_sha256']
+          assert m['status']=='release_candidate_verified' and v['status']=='passed'
+          assert m['market']=='bid' and m['source_workflow_run']==42570947698
+          assert m['configuration']['family']=='deepfm'
+          assert m['configuration']['loss']=='cvar95_weighted_huber'
+          assert m['original_training_no_lemon'] and m['no_blending']
+          assert m['selection_metric']=='TRAIN internal CVaR95_absolute_USD'
+          assert v['original_validation_rows']==82380 and not v['original_test_scored']
+          assert m['retrained_internal_CVaR95_USD']<m['reference_internal_CVaR95_USD']*1.03
+          assert v['checkpoint_forward_finite'] and v['model_not_blended_with_lemon']
+          print('PROMOTION_SAFETY_GATE_PASSED', json.dumps({
+            'retrained_internal_CVaR95_USD':m['retrained_internal_CVaR95_USD'],
+            'original_validation_CVaR95_USD':m['original_validation']['CVaR95_absolute_USD'],
+            'checkpoint_sha256':digest, 'test_used_for_selection':False}))
+          PY
+      - name: Promote on the freshest main, retrying only non-fast-forward races
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for n in 1 2 3 4 5; do
+            echo "Safe promotion attempt $n"
+            git fetch origin main
+            git reset --hard origin/main
+            test -f pricing/ray_bid_winner_live.py
+            test -f scripts/retrain_ray_bid_winner.py
+            mkdir -p models/ray-bid-9am-winner
+            cp staged/ray-bid-9am-winner/{weights.pt,manifest.json,verification.json,retrain_history.json} models/ray-bid-9am-winner/
+            git add models/ray-bid-9am-winner/
+            if git diff --cached --quiet; then
+              echo "Same verified model already installed on main"
+              exit 0
+            fi
+            git commit -m "Deploy verified non-Lemon Ray CVaR95-Huber Bid weights" 
+            if git push origin HEAD:main; then
+              echo "PROMOTED_COMMIT $(git rev-parse HEAD)"
+              exit 0
+            fi
+            echo "Concurrent main update detected; rebase by replaying the same verified artifact."
+            sleep 2
+          done
+          echo "Could not safely fast-forward release after five attempts" >&2
+          exit 1
