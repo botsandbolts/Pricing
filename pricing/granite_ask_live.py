@@ -61,37 +61,77 @@ def available(root):
 
 
 class _GraniteInt8Encoder:
-    """Use precisely the published SentenceTransformer ONNX encoder used at training."""
+    """Exact pinned IBM QInt8 graph, native ONNX Runtime, no Optimum dependency.
+
+    The published SentenceTransformer model has CLS-only pooling. We call
+    the identical tokenizer and ONNX graph directly, then reproduce the
+    normalize_embeddings=True and float16 storage rounding used in training.
+    CI compares output to the official SentenceTransformer ONNX reference.
+    """
 
     def __init__(self):
+        import onnxruntime as ort
         from huggingface_hub import hf_hub_download
-        from sentence_transformers import SentenceTransformer
-        graph = Path(hf_hub_download(repo_id=MODEL, filename=ONNX_FILE,
-                                     revision=REVISION))
+        from transformers import AutoTokenizer
+
+        graph = Path(hf_hub_download(
+            repo_id=MODEL, filename=ONNX_FILE, revision=REVISION))
         if _sha(graph) != ONNX_SHA256:
-            raise ValueError("The IBM Granite INT8 ONNX file changed from training")
-        self.model = SentenceTransformer(
+            raise ValueError("IBM Granite QInt8 graph checksum mismatch")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
             MODEL, revision=REVISION, trust_remote_code=False,
-            device="cpu", backend="onnx",
-            model_kwargs={"file_name": ONNX_FILE})
-        self.model.max_seq_length = 256
-        if self.model.get_sentence_embedding_dimension() != 384:
-            raise ValueError("Granite R2 must produce exactly 384 coordinates")
-        encoder = self.model[0]
-        if not (getattr(encoder, "backend", None) == "onnx"
-                or "ORT" in str(type(getattr(encoder, "auto_model", None)))):
-            raise ValueError("Granite fell back to a non-ONNX encoder")
+            use_fast=True)
+        config = json.loads(Path(hf_hub_download(
+            repo_id=MODEL, filename="1_Pooling/config.json",
+            revision=REVISION)).read_text())
+        if not (config.get("word_embedding_dimension") == 384
+                and config.get("pooling_mode_cls_token") is True
+                and config.get("pooling_mode_mean_tokens") is False
+                and config.get("pooling_mode_lasttoken") is False):
+            raise ValueError("Granite's official CLS pooling definition changed")
+        opts = ort.SessionOptions()
+        opts.intra_op_num_threads = 2
+        opts.inter_op_num_threads = 1
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        self.session = ort.InferenceSession(
+            str(graph), sess_options=opts, providers=["CPUExecutionProvider"])
+        if self.session.get_providers() != ["CPUExecutionProvider"]:
+            raise ValueError("Granite must run on CPU ONNX Runtime")
+        self.input_names = tuple(item.name for item in self.session.get_inputs())
+        if not {"input_ids", "attention_mask"}.issubset(self.input_names):
+            raise ValueError("Unexpected IBM Granite ONNX input contract")
+        self.output_names = tuple(item.name for item in self.session.get_outputs())
 
     def encode(self, clean_text):
-        vector = np.asarray(self.model.encode(
-            [clean_text], batch_size=1, normalize_embeddings=True,
-            convert_to_numpy=True, show_progress_bar=False), dtype=np.float32)
-        if vector.shape != (1, 384) or not np.isfinite(vector).all():
-            raise ValueError("Granite ONNX output shape/finite check failed")
-        if not np.allclose(np.linalg.norm(vector, axis=1), 1, atol=.006):
-            raise ValueError("Granite embedding normalization changed")
-        # The training shards stored 384D float16 embeddings, then restored FP32.
-        return vector.astype(np.float16).astype(np.float32)
+        tokens = self.tokenizer(
+            [str(clean_text)], max_length=256, truncation=True,
+            padding=True, return_tensors="np")
+        inputs = {}
+        for name in self.input_names:
+            if name in tokens:
+                inputs[name] = np.asarray(tokens[name], dtype=np.int64)
+            elif name == "token_type_ids":
+                inputs[name] = np.zeros_like(
+                    np.asarray(tokens["input_ids"], dtype=np.int64))
+            else:
+                raise ValueError("Unrecognized required ONNX input: " + name)
+
+        values = self.session.run(None, inputs)
+        hidden = np.asarray(values[0], dtype=np.float32)
+        if hidden.ndim != 3 or hidden.shape[0] != 1 or hidden.shape[-1] != 384:
+            raise ValueError("Granite QInt8 did not return token embeddings")
+        # 1_Pooling/config.json: CLS token, no mean/last-token pooling.
+        vec = hidden[:, 0, :]
+        norm = np.linalg.norm(vec, axis=1, keepdims=True)
+        if not np.isfinite(norm).all() or (norm < 1e-10).any():
+            raise ValueError("Granite QInt8 returned an invalid embedding")
+        normalized = vec / norm
+        # Research shards store float16 vectors restored to FP32 at inference.
+        output = normalized.astype(np.float16).astype(np.float32)
+        if output.shape != (1, 384) or not np.isfinite(output).all():
+            raise ValueError("Granite QInt8 output failed shape / finite check")
+        return output
 
 
 class GraniteBOHBAsking:
