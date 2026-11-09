@@ -40,7 +40,7 @@ jobs:
       - run: python -m pytest -q tests/test_europe_dedupe.py
 
   research-snapshot:
-    if: github.event_name == 'workflow_dispatch' && inputs.run_dataset
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.run_dataset)
     needs: synthetic-tests
     runs-on: ubuntu-latest
     timeout-minutes: 330
@@ -52,7 +52,7 @@ jobs:
       - name: Install offline requirements
         run: |
           python -m pip install -r requirements-europe-dedupe.txt huggingface_hub
-          if [ '${{ inputs.granite }}' = 'true' ]; then
+          if [ '${{ github.event_name == 'push' || inputs.granite }}' = 'true' ]; then
             python -m pip install sentence-transformers faiss-cpu
           fi
       - name: Download public research snapshot
@@ -72,11 +72,11 @@ jobs:
         shell: bash
         run: |
           FLAGS=""
-          if [ '${{ inputs.granite }}' = 'true' ]; then FLAGS="--granite"; fi
+          if [ '${{ github.event_name == 'push' || inputs.granite }}' = 'true' ]; then FLAGS="--granite"; fi
           python -m pricing.europe_dedupe \
             --input "${{ steps.source.outputs.file }}" \
             --output "$RUNNER_TEMP/europe-linkage" \
-            --sample "${{ inputs.rows }}" \
+            --sample "${{ github.event_name == 'push' && '30000' || inputs.rows }}" \
             --max-pairs 5000000 $FLAGS
       - name: Upload audit-only files (no raw/canonical listings)
         if: always()
