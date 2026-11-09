@@ -271,8 +271,10 @@ def run_shard(args):
     ray.init(num_cpus=2,include_dashboard=False,log_to_driver=True,
              _temp_dir=str(short_ray_tmp))
     try:
+        # Ray Tune already receives metric/mode via TuneConfig. Giving them
+        # again to HyperBandForBOHB raises a duplicate-metric ValueError.
         scheduler=HyperBandForBOHB(
-            time_attr="training_iteration",metric=METRIC,mode="min",
+            time_attr="training_iteration",
             max_t=MAX_EPOCHS,reduction_factor=3,stop_last_trials=False)
         bohb=TuneBOHB(metric=METRIC,mode="min",seed=20261109+args.shard*1009,
                       points_to_evaluate=[fixed])
