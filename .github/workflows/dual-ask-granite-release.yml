@@ -1,0 +1,151 @@
+name: Audit and stage Granite R2 INT8 multilingual Ask
+on:
+  push:
+    branches: ['feature/dual-ask-granite-20261109']
+    paths:
+      - .github/workflows/dual-ask-granite-release.yml
+      - pricing/granite_ask_live.py
+      - pricing/neural_experimental_ui.py
+      - pricing/analytics.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: dual-granite-model-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage_verified_checkpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify Python syntax and run security smoke
+        run: |
+          python -m compileall -q pricing/granite_ask_live.py pricing/neural_experimental_ui.py pricing/analytics.py app.py
+          python -m pip install 'numpy>=1.26,<2' 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'pandas>=2.1,<3' 'requests>=2.31,<3' 'onnxruntime>=1.20,<2' 'tokenizers>=0.23.1,<0.24' 'huggingface_hub>=0.30,<2' 'sentence-transformers[onnx]==5.5.0' 'transformers==4.57.6' 'optimum-onnx[onnxruntime]==0.1.0'
+      - name: Fetch audited stage-3 Granite winner, never choose by validation
+        uses: actions/download-artifact@v4
+        with:
+          repository: botsandbolts/Pricing
+          run-id: 42518049406
+          name: granite-bohb-s3-8
+          github-token: ${{ github.token }}
+          path: candidate
+      - name: Fail-closed identity gate and package exact native head
+        run: |
+          python - <<'PY'
+          import json,hashlib,shutil
+          from pathlib import Path
+          import torch
+          from pricing.granite_ask_live import (
+              MODEL,REVISION,ONNX_SHA256,COHORT_SHA256,EMBEDDING_SHA256,
+              CHECKPOINT_SHA256,CLEANED_CVAR95)
+          result=json.loads(Path('candidate/result.json').read_text())
+          weights=Path('candidate/weights.pt')
+          with weights.open('rb') as f:
+              digest=hashlib.file_digest(f,'sha256').hexdigest()
+          if digest!=CHECKPOINT_SHA256:
+              raise SystemExit('Wrong exact Granite stage3-8 checkpoint SHA256')
+          if (result.get('status')!='completed' or result.get('stage')!=3
+              or result.get('slot')!=8
+              or result.get('cohort_sha256')!=COHORT_SHA256
+              or result.get('embedding_sha256')!=EMBEDDING_SHA256
+              or result.get('text_encoder_model')!=MODEL
+              or result.get('text_encoder_revision')!=REVISION
+              or result.get('text_encoder_quantized_sha256')!=ONNX_SHA256
+              or result.get('test_scored') is not False
+              or result.get('selection_uses_validation') is not False
+              or result.get('cleaned_validation_rows')!=23751
+              or result.get('cleaned_conditional_validation',{}).get('CVaR95_absolute_USD')!=CLEANED_CVAR95
+              or result.get('winning_train_selected_trial',{}).get('inner_metrics',{}).get('CVaR95_absolute_USD')!=8638.459999648085):
+              raise SystemExit('Winner metrics, cohort, or holdout contract mismatch')
+          ckpt=torch.load(weights,map_location='cpu',weights_only=True)
+          from scripts.ray_pbt_ask import architecture_params
+          from scripts.ask25_joint_search import ResearchAskingNetwork
+          prep=json.loads(Path('models/neural-experimental-ask-bge/preprocessing.json').read_text())
+          if ckpt.get('architecture')!=architecture_params('deepcross'):
+              raise SystemExit('Unexpected DeepCross head architecture')
+          if ckpt.get('cohort_sha256')!=COHORT_SHA256 or ckpt.get('embedding_sha256')!=EMBEDDING_SHA256:
+              raise SystemExit('Head provenance mismatch')
+          net=ResearchAskingNetwork(prep['cardinalities'],384,ckpt['architecture'])
+          net.load_state_dict(ckpt['state_dict'],strict=True)
+          folder=Path('models/neural-granite-bohb-ask')
+          folder.mkdir(parents=True,exist_ok=True)
+          shutil.copyfile(weights,folder/'weights.pt')
+          meta={
+            'status':'passed','source_run_id':42518049406,
+            'source_artifact_id':13649875732,'source_slot':8,
+            'encoder':MODEL,'encoder_revision':REVISION,
+            'encoder_sha256':ONNX_SHA256,'cohort_sha256':COHORT_SHA256,
+            'embedding_sha256':EMBEDDING_SHA256,
+            'checkpoint_sha256':digest,
+            'training_internal_cvar95':8638.459999648085,
+            'cleaned_validation':result['cleaned_conditional_validation'],
+            'full_validation':result['full_original_validation'],
+            'original_test_scored':False,
+            'cleaned_validation_rows':23751,
+            'cleaned_cohort_is_retrospective_outcome_dependent':True,
+            'price_head_precision':'native FP32',
+            'text_encoder_runtime':'IBM verified QUInt8 ONNX CPU',
+          }
+          (folder/'manifest.json').write_text(json.dumps(meta,indent=2))
+          print('CHECKPOINT_IDENTITY_AND_HEAD_SHAPE_PASSED',digest,flush=True)
+          PY
+      - name: Assert IBM ONNX tokenizer, CLS pooling, float16-rounding and live full-network parity
+        run: |
+          python - <<'PY'
+          import numpy as np
+          from pathlib import Path
+          from sentence_transformers import SentenceTransformer
+          from pricing.granite_ask_live import (
+              MODEL,REVISION,ONNX_FILE,_GraniteInt8Encoder,GraniteBOHBAsking,available)
+          from scripts.common import clean
+          text=['Clean title 2018 Ford Fusion and 120,000 miles.',
+                '2018 Volkswagen Golf, gepflegt, Klima und neue Reifen.',
+                'Une voiture en très bon état, kilométrage faible.',
+                'Toyota 2015, revisión reciente y título limpio.',
+                'Продам автомобиль в хорошем состоянии.']
+          official=SentenceTransformer(MODEL,revision=REVISION,trust_remote_code=False,
+              device='cpu',backend='onnx',model_kwargs={'file_name':ONNX_FILE})
+          official.max_seq_length=256
+          ours=_GraniteInt8Encoder()
+          for sentence in text:
+              expected=np.asarray(official.encode([clean(sentence)],batch_size=1,
+                  normalize_embeddings=True,convert_to_numpy=True),dtype=np.float32)
+              actual=ours.encode(clean(sentence))
+              cosine=float(np.sum(expected[0]*actual[0])/
+                (np.linalg.norm(expected[0])*np.linalg.norm(actual[0])))
+              if expected.shape!=(1,384) or actual.shape!=(1,384) or cosine < .999:
+                  raise SystemExit('Granite tokenizer or ONNX pooling deviates from trained encoder: '+str(cosine))
+          if not available(Path('.')):
+              raise SystemExit('Serving manifest was not accepted')
+          model=GraniteBOHBAsking(Path('.'))
+          fields={'year':2015,'manufacturer':'Toyota','model':'Corolla',
+             'odometer':95000.,'state':'ca','type':'sedan','condition':'good',
+             'fuel':'gas','transmission':'automatic','drive':'fwd',
+             'title_status':'clean','cylinders':'4 cylinders','paint_color':'silver'}
+          prices=[model.predict(sentence,fields)['price'] for sentence in text]
+          if not all(np.isfinite(prices)) or not all(100<=p<=1000000 for p in prices):
+              raise SystemExit('Invalid multilingual complete neural price output')
+          print('FIVE_LANGUAGES_INT8_ONNX_PRICE_PARITY_PASS',prices,flush=True)
+          PY
+      - name: Commit tested compact checkpoint and audit manifest to release branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f models/neural-granite-bohb-ask/weights.pt
+          git add models/neural-granite-bohb-ask/manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Release audited Granite R2 97M INT8 Ask head and validation evidence"
+            git push origin HEAD:feature/dual-ask-granite-20261109
+          fi
