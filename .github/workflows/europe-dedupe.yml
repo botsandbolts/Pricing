@@ -89,3 +89,52 @@ jobs:
             ${{ runner.temp }}/europe-linkage/review_pairs.csv
           if-no-files-found: warn
           retention-days: 7
+
+  full-research-audit:
+    # Only the dedicated branch push can start the expensive 2M-row analysis.
+    # The synthetic and real-data Granite smoke checks must pass first.
+    if: github.event_name == 'push'
+    needs: [synthetic-tests, research-snapshot]
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline linkage and IBM Granite dependencies
+        run: |
+          python -m pip install -r requirements-europe-dedupe.txt huggingface_hub
+          python -m pip install sentence-transformers faiss-cpu
+      - name: Download research dataset
+        id: source
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          p=hf_hub_download(repo_id="KTHESAT/european-used-car-market-2m-listings",
+                            repo_type="dataset",
+                            filename="data/train-00000-of-00001.parquet")
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8") as f:
+              f.write("path="+p+"\n")
+          PY
+      - name: Run full-country candidate audit with Granite and FAISS
+        shell: bash
+        run: |
+          python -m pricing.europe_dedupe \
+            --input "${{ steps.source.outputs.path }}" \
+            --output "$RUNNER_TEMP/europe-linkage-full" \
+            --max-pairs 8000000 \
+            --granite --no-canonical-export
+      - name: Upload limited audit reports (no raw dataset)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: europe-full-granite-dedupe-audit
+          path: |
+            ${{ runner.temp }}/europe-linkage-full/audit.json
+            ${{ runner.temp }}/europe-linkage-full/automatic_pairs.csv
+            ${{ runner.temp }}/europe-linkage-full/review_pairs.csv
+          if-no-files-found: warn
+          retention-days: 7
