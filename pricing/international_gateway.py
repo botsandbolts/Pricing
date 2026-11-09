@@ -40,8 +40,10 @@ def render_market_gateway():
        min-height:89px}
     .cps-market-card b{font-size:1.08rem}
     .cps-market-card small{display:block;color:#61727b;line-height:1.4;margin-top:5px}
-    </style>
-    <section class="cps-globe" aria-label="Choose a vehicle pricing market">
+    </style>""",unsafe_allow_html=True)
+    # The top-level HTML block must START at column zero. When indented
+    # beneath a CSS block, Markdown treats <section> as a literal code block.
+    st.markdown("""<section class="cps-globe" aria-label="Choose a vehicle pricing market">
     <div class="pre">CAR PRICE STUDIO · INTERNATIONAL EDITION</div>
     <h1>Two continents. One garage. Zero crystal balls.</h1>
     <p>Independent automotive price research. Select your market;
