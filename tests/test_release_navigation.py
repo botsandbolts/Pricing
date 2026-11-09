@@ -23,7 +23,7 @@ def test_current_pricing_panel_has_single_form_and_safe_legacy_redirect(studio):
     assert not at.exception
     assert at.get('pills')[0].value=='🚗 Price my car'
     assert any(x.label=='Make' for x in at.text_input)
-    assert any('Calculate seller Ask + wholesale Bid' in b.label for b in at.button)
+    assert any('Estimate asking price' in b.label for b in at.button)
     assert len([x for x in at.text_area if x.label=="Seller's description"])==1
     at.session_state['_navigate_to']='🧬 Experimental models'
     at.run()
@@ -67,7 +67,7 @@ def test_vehicle_and_description_survive_navigation(studio):
         'Service history and new tires.')
     # Streamlit forms send pending input values only with the submit action.
     # This simultaneously verifies one-click submission and session persistence.
-    next(b for b in at.button if 'Calculate seller Ask + wholesale Bid' in b.label).click().run(timeout=90)
+    next(b for b in at.button if 'Estimate asking price' in b.label).click().run(timeout=90)
     assert not at.exception
     at.get('pills')[0].set_value('📊 Evaluation').run()
     assert not at.exception
