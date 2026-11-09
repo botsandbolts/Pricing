@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/package_europe_release.py'
       - 'pricing/europe_model.py'
+      - 'tests/test_europe_market.py'
       - '.github/workflows/europe-ask-release.yml'
   workflow_dispatch:
 
@@ -28,6 +29,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Check Python syntax before downloading 2 million listings
+        run: |
+          python -m compileall -q scripts/package_europe_release.py \
+            scripts/europe_price_ray.py pricing/europe_model.py \
+            pricing/europe_market.py pricing/international_gateway.py \
+            tests/test_europe_market.py
       - name: Reproducible CPU pricing dependencies
         run: |
           python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=17,<23' \
