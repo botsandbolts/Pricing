@@ -1,0 +1,102 @@
+name: European rank-1 release · frozen vocabulary, provenance & Firefox QA
+
+on:
+  push:
+    branches: [feature/europe-us-studio-20261109]
+    paths:
+      - 'scripts/package_europe_release.py'
+      - 'pricing/europe_model.py'
+      - 'tests/test_europe_market.py'
+      - '.github/workflows/europe-ask-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: european-ask-rank1-packaging
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check Python syntax before downloading 2 million listings
+        run: |
+          python -m compileall -q scripts/package_europe_release.py \
+            scripts/europe_price_ray.py pricing/europe_model.py \
+            pricing/europe_market.py pricing/international_gateway.py \
+            tests/test_europe_market.py
+      - name: Reproducible CPU pricing dependencies
+        run: |
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=17,<23' \
+            'xgboost>=3.0,<4' 'huggingface_hub>=0.26,<2' 'pytest>=8,<10'
+      - name: Download only verified rank-1 XGBoost artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: european-ask-ray-1h-10way-aft-huber-comparison
+          repository: ${{ github.repository }}
+          run-id: 42675550131
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/winner
+      - name: Download immutable train/validation split and audit
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-ask-fit-data
+          repository: ${{ github.repository }}
+          run-id: 42675550131
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/frozen
+      - name: Download original European source dataset (NOT a deduped copy)
+        id: raw
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          f=hf_hub_download(repo_id='KTHESAT/european-used-car-market-2m-listings',
+                            repo_type='dataset',
+                            filename='data/train-00000-of-00001.parquet')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:
+              output.write("file="+f+"\n")
+          PY
+      - name: Recreate training vocabulary and prove feature/price parity
+        run: |
+          python -u -m scripts.package_europe_release \
+            --raw "${{ steps.raw.outputs.file }}" \
+            --fit "$RUNNER_TEMP/frozen" \
+            --model "$RUNNER_TEMP/winner/winner.ubj" \
+            --comparison "$RUNNER_TEMP/winner/comparison.json" \
+            --output "models/europe-ask"
+      - name: Run European release logic tests with real packed model
+        run: python -m pytest -q tests/test_europe_market.py
+      - name: Publish verified model weights, vocabulary and aggregated statistics
+        run: |
+          git config user.name "car-price-studio-release-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add models/europe-ask
+          git diff --cached --quiet && exit 0
+          git commit -m "Package verified European rank-1 Gaussian AFT Ask model and train-only vocabulary"
+          # Other CI and UI fixes may have landed while the large dataset
+          # was being verified. Integrate them without force pushing.
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase "origin/$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+      - name: Preserve audit even when GitHub commit is restricted
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: european-ask-packaging-evidence
+          path: |
+            models/europe-ask/release_audit.json
+            models/europe-ask/schema.json
+          if-no-files-found: warn
+          retention-days: 30
+

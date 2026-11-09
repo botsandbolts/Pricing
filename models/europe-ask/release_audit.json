@@ -1,0 +1,15 @@
+{
+  "dataset": "original, unchanged",
+  "source_rows": 2003645,
+  "eligible_rows": 2003371,
+  "train_only_vocab_parity_rows": 1602247,
+  "vocabulary_source": "frozen training input tensor",
+  "categorical_features_verified": 12,
+  "production_inference_parity_rows": 20,
+  "train_sha": "b9b099c94c04cf276cb0cddceedb745ceb57fe02b0980e55d363b196ef398822",
+  "snapshot_date": "2026-10-10",
+  "market_aggregates": 26296,
+  "sealed_test_cvAR95_eur": 22684.940236463124,
+  "model_sha256": "c2ad027b8c9e21afc7616b7160b4ff8b80b227ec54f1b2b7ba0b4cf73d3f6718",
+  "verified": true
+}
