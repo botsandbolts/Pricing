@@ -1,0 +1,91 @@
+name: European listing deduplication audit
+
+on:
+  push:
+    branches: [feature/europe-dedupe-granite-20261109]
+  pull_request:
+    paths:
+      - 'pricing/europe_dedupe.py'
+      - 'tests/test_europe_dedupe.py'
+      - 'requirements-europe-dedupe.txt'
+      - '.github/workflows/europe-dedupe.yml'
+  workflow_dispatch:
+    inputs:
+      run_dataset:
+        description: "Download research snapshot for linkage (no raw dataset artifact)"
+        type: boolean
+        default: false
+      rows:
+        description: "Rows to process; 0 means all 2M listings"
+        type: string
+        default: '0'
+      granite:
+        description: "Run IBM Granite R2 and FAISS HNSW"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-europe-dedupe.txt
+      - run: python -m pytest -q tests/test_europe_dedupe.py
+
+  research-snapshot:
+    if: github.event_name == 'workflow_dispatch' && inputs.run_dataset
+    needs: synthetic-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install offline requirements
+        run: |
+          python -m pip install -r requirements-europe-dedupe.txt huggingface_hub
+          if [ '${{ inputs.granite }}' = 'true' ]; then
+            python -m pip install sentence-transformers faiss-cpu
+          fi
+      - name: Download public research snapshot
+        id: source
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          path=hf_hub_download(repo_id="KTHESAT/european-used-car-market-2m-listings",
+                               repo_type="dataset",
+                               filename="data/train-00000-of-00001.parquet")
+          with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf-8") as f:
+              f.write("file="+path+"\n")
+          PY
+      - name: Run lossless conservative linkage
+        shell: bash
+        run: |
+          FLAGS=""
+          if [ '${{ inputs.granite }}' = 'true' ]; then FLAGS="--granite"; fi
+          python -m pricing.europe_dedupe \
+            --input "${{ steps.source.outputs.file }}" \
+            --output "$RUNNER_TEMP/europe-linkage" \
+            --sample "${{ inputs.rows }}" \
+            --max-pairs 5000000 $FLAGS
+      - name: Upload audit-only files (no raw/canonical listings)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: european-linkage-audit
+          path: |
+            ${{ runner.temp }}/europe-linkage/audit.json
+            ${{ runner.temp }}/europe-linkage/automatic_pairs.csv
+            ${{ runner.temp }}/europe-linkage/review_pairs.csv
+          if-no-files-found: warn
+          retention-days: 7
