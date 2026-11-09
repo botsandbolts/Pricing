@@ -254,7 +254,7 @@ class TursoStore:
         self.execute('DELETE FROM feature_errors WHERE recorded_at < ?', [cutoff])
         self.execute('DELETE FROM hierarchical_estimations WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM valuation_feedback WHERE submitted_at < ?', [cutoff])
-        self.execute('DELETE FROM valuation_feedback WHERE recorded_at < ?', [cutoff])
+        self.execute('DELETE FROM valuation_feedback WHERE submitted_at < ?', [cutoff])
         self.execute('DELETE FROM pricing_queries WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM analytics_sessions WHERE last_seen < ? AND NOT EXISTS '
                      '(SELECT 1 FROM feature_events e WHERE e.session_id=analytics_sessions.session_id) AND NOT EXISTS '
