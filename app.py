@@ -12,6 +12,18 @@ MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
+# Two continents, one garage. European Ask is an isolated early route.
+# The existing American Ask/Bid path below remains unchanged.
+if (st.query_params.get("legal") not in ("imprint","privacy")
+        and st.query_params.get("connection_check") != "1"
+        and st.query_params.get("accessibility_report") != "1"):
+    from pricing.international_gateway import render_market_gateway
+    _cps_selected_market=render_market_gateway()
+    if _cps_selected_market=="eu":
+        from pricing.europe_market import render as render_europe
+        render_europe()
+        st.stop()
+
 # Legal pages are independent of inference, memory monitors and model loading.
 if st.query_params.get('legal') in ('imprint', 'privacy'):
     from pricing.studio_design import install_style, render_hero, footer

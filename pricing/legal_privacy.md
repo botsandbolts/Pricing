@@ -216,3 +216,18 @@ We use short words and short steps on this page.
 We check the text with reading tools.
 No computer test can prove that every 12-year-old will understand each word.
 If a part is hard to read, email me and I will explain it.
+
+
+## European asking-price feedback
+
+Europe offers an optional rating from 1 to 4. If you tick the consent box,
+we try to save your rating, the estimate in euros, and broad car details
+(country, make, model, registration year, mileage, power, fuel and transmission).
+We do not save the full vehicle story, seller city, VIN, IP address or your
+contact details with this rating.
+
+You may refuse and still use every pricing feature. European euro feedback is
+stored separately from American dollar feedback. We try to remove European
+feedback older than 90 days when new ratings arrive. This is not an automatic
+continuous deletion guarantee. You can request deletion by emailing
+amitsteinberg74@gmail.com.
