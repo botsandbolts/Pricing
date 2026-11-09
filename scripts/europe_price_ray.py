@@ -397,8 +397,7 @@ def run_ray(features,output,shard,seconds=3600):
         "seed":SEED + 1000*int(shard),
     }
     # ASHA expects one incremental report per 50 trees; it can prune weak trials.
-    scheduler=ASHAScheduler(metric="best_cvar95",mode="min",max_t=13,
-                            grace_period=2,reduction_factor=3)
+    scheduler=ASHAScheduler(max_t=13,grace_period=2,reduction_factor=3)
     try:
         result=tune.run(trainable,config=search,num_samples=500,
                         scheduler=scheduler,resources_per_trial={"cpu":2},
@@ -480,6 +479,35 @@ def aggregate(root, split_dir, output):
     return out
 
 
+def ray_startup_smoke():
+    """Exercise actual Ray Tune + ASHA metric/mode resolution before fan-out."""
+    import tempfile
+    import ray
+    from ray import tune, train
+    from ray.tune.schedulers import ASHAScheduler
+
+    def trial(config):
+        for step in range(2):
+            train.report({"best_cvar95": float(50 - step),
+                          "training_iteration": step+1})
+
+    with tempfile.TemporaryDirectory(prefix="eu-ray-smoke-") as temp:
+        ray.init(num_cpus=2, include_dashboard=False, log_to_driver=False)
+        try:
+            result=tune.run(
+                trial, config={"fixed":1}, num_samples=1,
+                scheduler=ASHAScheduler(max_t=2, grace_period=1),
+                metric="best_cvar95", mode="min",
+                resources_per_trial={"cpu":1},
+                storage_path=temp, name="preflight",
+                raise_on_failed_trial=True, verbose=0)
+            if len(result.trials)!=1 or result.trials[0].status!="TERMINATED":
+                raise AssertionError("Ray smoke did not finish cleanly")
+        finally:
+            ray.shutdown()
+    print("RAY_ASHA_STARTUP_SMOKE_OK",flush=True)
+
+
 def smoke():
     x=np.array([[0.,1.],[1.,0.],[2.,1.]],dtype=np.float32)
     y=np.array([3000.,8000.,11000.])
@@ -521,6 +549,7 @@ def main():
     a.add_argument("--splits",required=True,type=Path)
     a.add_argument("--output",required=True,type=Path)
     sub.add_parser("smoke")
+    sub.add_parser("ray-smoke")
     args=p.parse_args()
     if args.action=="prepare":
         prepare(args.input,args.output)
@@ -532,6 +561,8 @@ def main():
         aggregate(args.root,args.splits,args.output)
     elif args.action=="smoke":
         smoke()
+    elif args.action=="ray-smoke":
+        ray_startup_smoke()
 
 
 if __name__=="__main__":
