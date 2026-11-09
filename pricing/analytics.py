@@ -27,11 +27,26 @@ SCHEMA = [
        vehicle_json TEXT NOT NULL)''',
     'CREATE INDEX IF NOT EXISTS queries_visitor ON pricing_queries(visitor_id)',
     'CREATE INDEX IF NOT EXISTS queries_timestamp ON pricing_queries(timestamp)',
+    '''CREATE TABLE IF NOT EXISTS valuation_feedback (
+       feedback_id TEXT PRIMARY KEY,
+       request_id TEXT NOT NULL,
+       submitted_at TEXT NOT NULL,
+       model_key TEXT NOT NULL CHECK(model_key IN ('bge','granite')),
+       score INTEGER NOT NULL CHECK(score BETWEEN 1 AND 4),
+       ask_price_usd REAL,
+       bid_price_usd REAL,
+       valuation_date TEXT,
+       vehicle_json TEXT NOT NULL,
+       explicit_consent INTEGER NOT NULL CHECK(explicit_consent=1))''',
+    'CREATE UNIQUE INDEX IF NOT EXISTS feedback_request_model ON valuation_feedback(request_id, model_key)',
+    'CREATE INDEX IF NOT EXISTS feedback_submitted_at ON valuation_feedback(submitted_at)',
 ]
 from pricing.hierarchical_store import SCHEMA as HIERARCHICAL_SCHEMA
 SCHEMA += HIERARCHICAL_SCHEMA
 from pricing.feature_telemetry import SCHEMA as FEATURE_SCHEMA
 SCHEMA += FEATURE_SCHEMA
+from pricing.valuation_feedback import SCHEMA as VALUATION_FEEDBACK_SCHEMA
+SCHEMA += VALUATION_FEEDBACK_SCHEMA
 
 VEHICLE_FIELDS = {'year', 'manufacturer', 'model', 'odometer', 'type', 'fuel',
                   'transmission', 'drive', 'condition', 'title_status', 'cylinders',
@@ -238,6 +253,8 @@ class TursoStore:
         self.execute('DELETE FROM feature_runs WHERE recorded_at < ?', [cutoff])
         self.execute('DELETE FROM feature_errors WHERE recorded_at < ?', [cutoff])
         self.execute('DELETE FROM hierarchical_estimations WHERE timestamp < ?', [cutoff])
+        self.execute('DELETE FROM valuation_feedback WHERE submitted_at < ?', [cutoff])
+        self.execute('DELETE FROM valuation_feedback WHERE submitted_at < ?', [cutoff])
         self.execute('DELETE FROM pricing_queries WHERE timestamp < ?', [cutoff])
         self.execute('DELETE FROM analytics_sessions WHERE last_seen < ? AND NOT EXISTS '
                      '(SELECT 1 FROM feature_events e WHERE e.session_id=analytics_sessions.session_id) AND NOT EXISTS '
@@ -368,6 +385,51 @@ def record_price(side, price, fields, model, source, valuation_date=None, event_
         _failure('price_write', error)
         if 'store' in locals():
             store.retry_after = time.monotonic() + 60
+        return False
+
+
+def record_accuracy_feedback(request_id, model_key, score, fields, prices, valuation_date,
+                             *, explicit_consent=False):
+    """User-submitted opt-in evaluation, detached from tracking identifiers.
+
+    Store structured car facts and both displayed price estimates only. Never
+    store the advert, IP, browser fingerprint, contacts, VIN, or precise place.
+    Reject analytics/privacy consent substitution; the user must explicitly
+    consent to saving this particular feedback response.
+    """
+    if not explicit_consent or not configured():
+        return False
+    if model_key not in ('bge','granite') or type(score) is not int or score not in (1,2,3,4):
+        return False
+    if not valid_id(request_id):
+        return False
+    safe_prices={}
+    try:
+        for key in ('ask','bid'):
+            value=prices.get(key)
+            if value is not None:
+                value=float(value)
+                if not math.isfinite(value) or value<=0:
+                    return False
+            safe_prices[key]=value
+        if safe_prices['ask'] is None:
+            return False
+    except (ValueError,TypeError,AttributeError):
+        return False
+    try:
+        store=_store()
+        store.initialize()
+        feedback_id=str(uuid.uuid5(uuid.NAMESPACE_URL,'car-price-studio-feedback:'+request_id+':'+model_key))
+        store.execute('''INSERT OR IGNORE INTO valuation_feedback
+            (feedback_id,request_id,submitted_at,model_key,score,ask_price_usd,
+             bid_price_usd,valuation_date,vehicle_json,explicit_consent)
+             VALUES (?,?,?,?,?,?,?,?,?,1)''',
+            [feedback_id,request_id,utcnow(),model_key,score,
+             safe_prices['ask'],safe_prices['bid'],str(valuation_date)[:10],
+             json.dumps(safe_vehicle(fields),ensure_ascii=False)])
+        return True
+    except Exception as error:
+        _failure('feedback_write',error)
         return False
 
 

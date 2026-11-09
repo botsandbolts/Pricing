@@ -61,15 +61,15 @@ _RELEASE_ANNOUNCEMENT_HTML = """
          padding:20px 24px;margin:4px 0 22px;
          box-shadow:0 10px 26px rgba(9,32,39,.15)">
   <div style="color:#ffe59a;font-size:.78rem;font-weight:800;letter-spacing:.09em;
-              margin-bottom:7px">🚀 CAR PRICE STUDIO · NEW RELEASE · 8 NOVEMBER 2026</div>
+              margin-bottom:7px">🚀 CAR PRICE STUDIO · INTERNATIONAL EDITION · 9 NOVEMBER 2026</div>
 
-  <!-- Upcoming international language support: announcement only, not a live-feature flag. -->
-  <div aria-label="Multilingual car descriptions launching 9 November 2026 at 18:00 Central European Time"
+  <!-- Rollout timetable bulletin; only enabled inference choices may be submitted. -->
+  <div aria-label="Multilingual car descriptions target 9 November 2026 at 06:00 Central European Time"
        style="background:linear-gradient(117deg,#6929bc 0%,#bd237d 46%,#eb5c39 100%);
               border:2px solid #ffec9b;border-radius:18px;padding:clamp(16px,3vw,26px);
               margin:14px 0 22px;box-shadow:0 10px 30px #160a3555;color:#ffffff">
     <div style="font-size:.86rem;font-weight:900;letter-spacing:.09em;color:#fff2ad;
-                margin-bottom:7px">🌍 INTERNATIONAL EDITION · COMING TOMORROW!</div>
+                margin-bottom:7px">🌍 INTERNATIONAL EDITION · 06:00 CET LAUNCH PLAN</div>
     <div style="font-size:clamp(1.55rem,4.2vw,2.3rem);font-weight:900;line-height:1.15;
                 letter-spacing:-.035em;margin:0 0 10px;color:#ffffff">
       200+ languages. One beautiful car. Zero need to speak German. 🚗
@@ -80,9 +80,12 @@ _RELEASE_ANNOUNCEMENT_HTML = """
       🇬🇧 🇫🇷 🇩🇪 🇪🇸 🇯🇵 🇧🇷 🇮🇳 🇨🇳 🇸🇦
     </div>
     <p style="font-size:1.04rem;line-height:1.6;margin:0 0 13px;color:#ffffff">
-      <strong style="color:#fff2ad">From Monday, 9 November 2026 at 18:00 CET</strong>,
-      Car Price Studio is scheduled to understand car descriptions in
-      <strong>more than 200 languages</strong>. Same vehicle. Same pricing logic.
+      <strong style="color:#fff2ad">Updated launch target: Monday, 9 November 2026 at 06:00 CET</strong>,
+      We've moved our planned release up from 18:00 to <strong>06:00 CET</strong>.
+      That's <strong>12:00 AM EST (New York, 9 Nov)</strong>,
+      <strong>11:00 PM CST (Chicago, 8 Nov)</strong>, and
+      <strong>9:00 PM PST (Los Angeles, 8 Nov)</strong>.
+      Two evaluation engines: English accuracy and 200+ language reach.
       No translation gymnastics required.
     </p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 13px">
@@ -98,8 +101,10 @@ _RELEASE_ANNOUNCEMENT_HTML = """
       </div>
     </div>
     <p style="margin:0;color:#fff7ed;line-height:1.5;font-weight:650">
-      Your car doesn't need a passport. And finally, neither does its description.
-      <strong>Less translation. More valuation. Très chic, ja? 🇩🇪</strong>
+      Your car doesn't need a passport. And neither does its description.
+      <strong>The buttons only enable when their model passes its release checks.</strong>
+      Please try a valuation and rate it from 1 (catastrophic) to 4 (excellent).
+      <strong>We're waiting for your verdict. Très chic, ja? 🇩🇪</strong>
     </p>
   </div>
 

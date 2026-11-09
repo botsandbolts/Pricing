@@ -47,6 +47,29 @@ The host may also keep logs to keep the site safe.
 We do not control how long the host keeps these logs.
 We rely on legitimate interest to run and protect the site.
 
+## What if I rate the price guess?
+
+After we show a price, you can rate it from **1 to 4**.
+
+- **1** means the guess was very wrong.
+- **2** means poor.
+- **3** means good.
+- **4** means excellent.
+
+You can choose not to rate it. The price tool still works.
+
+To send your rating, you must tick a box that says we may save it.
+We save the rating, basic car facts, the two price guesses, the date,
+and which AI model you chose in our private Turso database.
+We do **not** save your full car story, name, phone number, VIN,
+or IP address with the rating.
+
+We use ratings to find mistakes and make the AI better.
+Your choice to send a rating is a separate **consent** under GDPR
+Article 6(1)(a). We delete saved ratings after **90 days**.
+You can ask me to delete your rating by email. You can use the tool
+without giving this permission.
+
 ## Can I say no to tracking?
 
 **Yes.** Open **Privacy & cookies**.

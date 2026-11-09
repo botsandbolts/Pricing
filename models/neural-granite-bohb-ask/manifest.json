@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "source_run_id": 42518049406,
+  "source_artifact_id": 13649875732,
+  "source_slot": 8,
+  "encoder": "ibm-granite/granite-embedding-97m-multilingual-r2",
+  "encoder_revision": "c61e626a6255c490879d0af885078b61929d51f6",
+  "encoder_sha256": "a6022dd8220ea6f6595562a1328ee216f4a94faa55362f2f4747c80f1e78772e",
+  "cohort_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "embedding_sha256": "7f2be5c0e2199ca8ca23c480140b6f8b6707b119594efb9f3278c415e7b8e5f2",
+  "checkpoint_sha256": "bc26b6ae67a5e43558248c9780f1667cdae8c609f5f24e1e07902db5ba2ca094",
+  "training_internal_cvar95": 8638.459999648085,
+  "cleaned_validation": {
+    "CVaR95_absolute_USD": 9392.757506502196,
+    "MAE_USD": 1865.9613738817084,
+    "RMSE_USD": 3005.4205860243737
+  },
+  "full_validation": {
+    "CVaR95_absolute_USD": 20639.43496966121,
+    "MAE_USD": 2976.534574276663,
+    "RMSE_USD": 6501.2892632342
+  },
+  "original_test_scored": false,
+  "cleaned_validation_rows": 23751,
+  "cleaned_cohort_is_retrospective_outcome_dependent": true,
+  "price_head_precision": "native FP32",
+  "text_encoder_runtime": "IBM verified QUInt8 ONNX CPU"
+}
