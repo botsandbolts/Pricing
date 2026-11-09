@@ -84,6 +84,10 @@ jobs:
           git add models/europe-ask
           git diff --cached --quiet && exit 0
           git commit -m "Package verified European rank-1 Gaussian AFT Ask model and train-only vocabulary"
+          # Other CI and UI fixes may have landed while the large dataset
+          # was being verified. Integrate them without force pushing.
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase "origin/$GITHUB_REF_NAME"
           git push origin "HEAD:$GITHUB_REF_NAME"
       - name: Preserve audit even when GitHub commit is restricted
         if: always()
