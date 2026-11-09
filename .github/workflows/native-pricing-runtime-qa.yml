@@ -10,6 +10,8 @@ on:
       - pricing/neural_experimental_ui.py
       - pricing/neural_champion_live.py
       - pricing/neural_ask_embedding_live.py
+      - pricing/granite_ask_live.py
+      - pricing/bge_overnight_ask_live.py
       - pricing/neural_bid_blend_live.py
       - scripts/native_pricing_runtime_smoke.py
       - scripts/browser_native_valuation_smoke.py
