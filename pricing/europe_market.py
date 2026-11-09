@@ -66,12 +66,12 @@ def _css():
 
 def _parody_banner():
     """European-only independent satire, safely outside US pricing routes."""
-    artwork=Path(__file__).resolve().parent.parent/"assets"/"europe_parody_wir_kaufen_nicht.webp"
+    artwork=Path(__file__).resolve().parent.parent/"assets"/"europe_parody_split_blue_orange.svg"
     if not artwork.is_file():
         return  # Missing decorative art must never block the valuation calculator.
     with st.container(key="eu_parody_banner",border=True):
         st.image(artwork,width="stretch",alt=(
-            "Car Price Studio Europa: eigenständige blau-orange Werbeparodie "
+            "Car Price Studio Europa: auffällige eigenständige blau-orange Werbeparodie "
             "mit einer gezeichneten weißen Autokontur und dem Spruch "
             "'wir kaufen dein Auto NICHT. Wir schätzen es.' "
             "Wortspiel zu Autokauf-Werbung (wirksufendeinaito, "
