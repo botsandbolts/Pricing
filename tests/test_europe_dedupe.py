@@ -84,3 +84,38 @@ def test_schema_failure_is_explicit(tmp_path):
     pd.DataFrame([{"id":"x"}]).to_csv(path,index=False)
     with pytest.raises(ValueError,match="Missing expected dataset fields"):
         main(["--input",str(path),"--output",str(tmp_path/"out")])
+
+
+def test_training_thinning_prefers_more_informative_record_without_claiming_duplicate(tmp_path):
+    original=listing()
+    sparse=listing(id="new-id",source_site="other-market",mileage_km=65500,
+                   power_hp=None,first_registration=None,color=None,price_eur=14200)
+    report,_,out=run(tmp_path,[original,sparse],"--thin-review-candidates")
+    assert report["automatic_rows_removed"]==0
+    assert report["review_pairs"]==1
+    assert report["training_thinning"]["additional_rows_excluded"]==1
+    assert report["training_thinning"]["verified_duplicates"] is False
+    assert len(pd.read_csv(out/"canonical_listings.csv"))==2
+    assert len(pd.read_csv(out/"training_thinned_listings.csv"))==1
+    with (out/"training_thinning_decisions.csv").open(newline="") as f:
+        decisions=list(csv.DictReader(f))
+    assert decisions[0]["excluded_canonical_row"]=="1"
+    assert decisions[0]["preferred_canonical_row"]=="0"
+    assert (out/"training_thinning_mapping.csv").exists()
+
+
+def test_high_price_does_not_make_a_listing_more_informative():
+    from pricing.europe_prune import information_score
+    x={"reg_date":"2020-01-01","km":50000,"power":150,"city":"berlin",
+       "version":"1.5 TSI Sport","fuel":"petrol","gear":"automatic",
+       "color":"red","extid":"a","price":3000}
+    assert information_score(x)==information_score({**x,"price":900000})
+
+
+def test_training_thinning_retains_different_engine_versions(tmp_path):
+    a=listing()
+    b=listing(id="two",source_site="market_b",version="Golf 1.5 TSI Style",
+              fuel="Petrol",power_hp=130,mileage_km=65010)
+    report,_,out=run(tmp_path,[a,b],"--thin-review-candidates")
+    assert report["training_thinning"]["additional_rows_excluded"]==0
+    assert len(pd.read_csv(out/"training_thinned_listings.csv"))==2
