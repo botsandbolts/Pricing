@@ -163,8 +163,15 @@ def run():
             assert top<844, "One click did not bring the pricing section into view"
             safe_shot(page,"after-one-cta.png")
             # Two independently verified Ask engines share the same form and Bid.
-            english=app.get_by_role("button",name="🇬🇧 Evaluate in English")
-            multilingual=app.get_by_role("button",name="🌍 Evaluate in my language")
+            english=app.get_by_role("button",name=re.compile("Evaluate in English",re.I))
+            multilingual=app.get_by_role("button",name=re.compile("Evaluate in my language",re.I))
+            # Record real accessible button labels before waiting; this helps
+            # distinguish a stale Streamlit build from a slow or broken page.
+            report["pricing"]["visible_buttons_before_submit"]=[
+                label[:120] for label in app.get_by_role("button").all_inner_texts()[:80]]
+            report["pricing"]["form_count"]=app.locator("form").count()
+            report["pricing"]["exception_cards_before_submit"]=app.locator(
+                '[data-testid="stException"]').count()
             english.wait_for(state="visible",timeout=90000)
             multilingual.wait_for(state="visible",timeout=90000)
             report["pricing"]["two_model_buttons_visible"]=True
