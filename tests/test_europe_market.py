@@ -56,7 +56,7 @@ def test_invalid_vehicle_has_no_estimate():
 def test_core_repo_us_routes_remain_unchanged():
     app=(ROOT/"app.py").read_text()
     assert "render_market_gateway()" in app
-    assert 'if _workspace==\\'🚗 Price my car\\':' in app
+    assert "if _workspace=='🚗 Price my car':" in app
     assert "pricing.neural_experimental_ui" in app
     assert "render_europe" in app
     assert "Euro" not in app.split("if _workspace=='🚗 Price my car':")[1][:500]
