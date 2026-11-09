@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "source_run_id": 42504289617,
+  "source_artifact_id": 13650299818,
+  "source_slot": 5,
+  "cohort_sha256": "746bc9f8e02e1e708ea5e1d9479408effb131eb6b1d1ea7710380701e62dcf12",
+  "embedding_sha256": "d619d6b8b4bb17475b500dbfb7835aeb125609c3ed54dbd6113264a2a7569a33",
+  "checkpoint_sha256": "d5e669d33fb34a379ca02837989beca757d43a1586cc99fa86e5c58d64a45c39",
+  "training_internal_cvar95": 7941.740520305461,
+  "cleaned_validation": {
+    "CVaR95_absolute_USD": 8740.063663572575,
+    "MAE_USD": 1802.1954797112983,
+    "RMSE_USD": 2841.5666992116116
+  },
+  "full_validation": {
+    "CVaR95_absolute_USD": 19810.937045010654,
+    "MAE_USD": 2881.350186356514,
+    "RMSE_USD": 6291.788486368036
+  },
+  "original_test_scored": false,
+  "cleaned_validation_rows": 23751,
+  "cleaned_cohort_is_retrospective_outcome_dependent": true,
+  "price_head_precision": "native FP32",
+  "bge_encoder_runtime": "separate release-gated INT8 if verified, otherwise native"
+}
