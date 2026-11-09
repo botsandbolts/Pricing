@@ -21,6 +21,7 @@ from pricing.ray_lemon75_ask_live import (
     available as lemon75_ask_available, load as load_lemon75_ask,
 )
 from pricing.neural_bid_blend_live import available as bid_available
+from pricing.ray_bid_winner_live import available as ray_bid_available, load as load_ray_bid
 from pricing.overnight_bohb_live import (
     available as bohb_available,
     load_ask as load_bohb_ask,
@@ -540,13 +541,14 @@ only when you ask. No model circus required. 🎪🚗
     lemon75_ask=lemon75_ask_available(root)
     ask_bohb=bohb_available(root,"ask")
     bid_bohb=bohb_available(root,"bid")
+    ray_bid_ready=ray_bid_available(root)
     ask_champion=champion_ask_available(root)
     bid_champion=champion_bid_available(root)
     bge_overnight=bge_overnight_available(root)
     english_ready=bge_overnight or lemon75_ask or ask_bohb or ask_champion or ask_available(root)
     international_ready=granite_available(root)
     ask_ready=english_ready or international_ready
-    bid_ready=bid_bohb or bid_champion or bid_available(root)
+    bid_ready=ray_bid_ready or bid_bohb or bid_champion or bid_available(root)
     valuation_date,allow_analogue=clock_controls(
         prefix="main" if main else "experimental",prominent=main)
     # These historical models and their original data are never retrained by changing the date.
@@ -653,8 +655,9 @@ only when you ask. No model circus required. 🎪🚗
                 phase="load_checkpoint"
                 started=time.monotonic()
                 _valuation_probe("bid_checkpoint_start")
-                with st.spinner("🔨 Running the native DeepFM + Lemon XGBoost Bid model…"):
-                    model=(load_bohb_bid(root) if bid_bohb else
+                with st.spinner("🔨 Running the verified "+("non-Lemon Ray DeepFM" if ray_bid_ready else "DeepFM + Lemon XGBoost")+" Bid model…"):
+                    model=(load_ray_bid(root) if ray_bid_ready else
+                           load_bohb_bid(root) if bid_bohb else
                            load_champion_bid(root) if bid_champion else bid_load(root))
                     _valuation_probe("bid_checkpoint_complete",started)
                     phase="price_head"
@@ -850,8 +853,17 @@ only when you ask. No model circus required. 🎪🚗
                 if ask_ready:st.info("CVaR95 ResMLP challenger is not release-verified; original model remains active.")
             if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
         with b:
-            st.markdown("**🔨 Wholesale auction · full ensemble**")
-            if bid_bohb:
+            st.markdown("**🔨 Wholesale auction · verified production model**")
+            if ray_bid_ready:
+                meta=json.loads((root/"models/ray-bid-9am-winner/manifest.json").read_text())
+                st.caption("🚀 LIVE 9 NOV 2026 · non-Lemon DeepFM16, CVaR95-weighted Huber. "
+                           "Original full wholesale TRAIN cohort; NO Lemon exclusions, "
+                           "NO XGBoost blend and NO text encoder. Internal TRAIN CVaR95 "
+                           "USD {:,.2f}; independent original-validation CVaR95 USD {:,.2f}. "
+                           "Internal performance does not establish independent accuracy."
+                           .format(meta["retrained_internal_CVaR95_USD"],
+                                   meta["original_validation"]["CVaR95_absolute_USD"]))
+            elif bid_bohb:
                 meta=json.loads((root/"models/neural-bohb-bid/manifest.json").read_text())
                 st.caption(f"LIVE BOHB WINNER #116 · {meta['neural_weight']:.0%} structured DeepFM + "
                            f"{meta['lemon_weight']:.0%} original Lemon XGBoost. "
