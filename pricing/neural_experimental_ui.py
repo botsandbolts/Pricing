@@ -687,15 +687,55 @@ only when you ask. No model circus required. 🎪🚗
                     receipt=_adjust_price(transport,historical,saved["fields"],
                                           side,valuation_date,allow_analogue)
                     adjusted[side]=receipt;prices[side]=receipt["price"]
-                    _price(label+" · "+str(valuation_date)+" scenario",receipt["price"],
+                    flavour=("🌍 Granite multilingual" if side=="ask" and saved.get("ask_choice")=="granite"
+                             else "🇬🇧 BGE English" if side=="ask" else "auction")
+                    _price(label+" · "+flavour+" · "+str(valuation_date)+" scenario",
+                        receipt["price"],
                         "Date-adjusted scenario, not an observed transaction or a guaranteed bid.")
                     render_adjustment(receipt)
+                    from pricing.analytics import record_price
+                    record_price(side,receipt["price"],saved["fields"],
+                        model=result.get("model","unknown"),
+                        source="two-engine-"+saved.get("ask_choice","bge"),
+                        valuation_date=valuation_date,event_key=saved.get("request_id"))
                 except (OSError,ValueError,KeyError,TypeError) as exc:
                     st.warning("Cannot adjust "+label.lower()+" to this month: "+str(exc))
         if len(prices)==2:
             st.metric("Asking minus wholesale · indicative market gap",
                       _usd(prices["ask"]-prices["bid"]))
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
+        if main and prices.get("ask") and saved.get("request_id"):
+            st.markdown("### ⭐ Your verdict: was our AI valuation accurate?")
+            st.caption("The price detective needs human witnesses too. "
+                       "Please compare the estimate with what you know about your car.")
+            key=str(saved["request_id"])
+            if st.session_state.get("_feedback_saved_"+key):
+                st.success("🙏 Your feedback is saved. Thank you for helping us improve!")
+            else:
+                with st.form("accuracy_feedback_"+key):
+                    score=st.radio("Rate this quote", [1,2,3,4],
+                        index=None,horizontal=True,
+                        format_func=lambda n:{1:"1 · Catastrophic 💥",2:"2 · Poor 😬",
+                            3:"3 · Good 👍",4:"4 · Excellent 🏆"}[n],
+                        key="rating_"+key)
+                    permission=st.checkbox("I agree to save my rating, "
+                        "basic car details and both price estimates. "
+                        "No seller story, IP address, VIN or contact details.",
+                        key="feedback_permission_"+key)
+                    submitted=st.form_submit_button(
+                        "📮 Send accuracy feedback",disabled=score is None,
+                        type="primary")
+                if submitted:
+                    from pricing.analytics import record_accuracy_feedback
+                    if not permission:
+                        st.warning("Please agree to saving this feedback first.")
+                    elif record_accuracy_feedback(
+                        key,saved.get("ask_choice","bge"),int(score),
+                        saved["fields"],prices,valuation_date,explicit_consent=True):
+                        st.session_state["_feedback_saved_"+key]=True
+                        st.success("✅ Thank you! Feedback saved to our private database.")
+                    else:
+                        st.error("Feedback was not saved; your car valuation is unaffected.")
         if main:
             # High-visibility explanation directly after prices. Preserve
             # lazy Captum imports and unchanged native cached checkpoints.
