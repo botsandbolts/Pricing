@@ -84,3 +84,38 @@ def test_no_remote_image_dependency_in_hero():
     assert "<script" not in html
     assert "onerror=" not in html
     assert "onclick=" not in html
+
+
+def test_upcoming_bid_banner_is_accessible_and_candid_about_science():
+    from pricing.bid_launch_announcement import banner_html
+    html = banner_html()
+    assert '<section role="region"' in html
+    assert 'id="bid-breakthrough-title"' in html
+    assert 'next few hours' in html
+    assert 'only if' in html
+    assert 'AFT likelihood' in html
+    assert 'Robust Huber loss' in html
+    assert 'CVaR95' in html
+    assert 'customs value' in html
+    assert 'proof of' in html
+    assert 'Truncation and selection bias are separate data problems' in html
+    assert 'verified row-level interval-censoring bounds have not been established' in html
+    assert 'Any claim of superior accuracy' in html
+    assert 'Follow the public model research' in html
+    assert 'github.com/botsandbolts/Pricing/actions/runs/' in html
+    assert '<script' not in html
+    assert 'onclick=' not in html
+    assert 'onerror=' not in html
+
+
+def test_bid_banner_only_on_pricing_and_before_older_bulletin():
+    source=(ROOT/'app.py').read_text()
+    launch='from pricing.bid_launch_announcement import banner_html as _bid_launch_banner'
+    assert "if st.session_state.get('landing_studio_workspace') == '🚗 Price my car':" in source
+    assert source.count(launch) == 1
+    render=source.index('st.markdown(_bid_launch_banner(), unsafe_allow_html=True)')
+    hero=source.index('render_hero()',source.index('prepare_navigation_state()'))
+    legacy=source.index('st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)')
+    navigation=source.index('_workspace=render_navigation()')
+    assert hero < render < legacy < navigation
+    assert 'href="#studio-calculator"' in studio_design.landing_banner_html()
