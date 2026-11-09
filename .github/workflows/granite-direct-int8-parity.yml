@@ -1,0 +1,68 @@
+name: Granite direct QInt8 ONNX · official sentence-transformers parity
+on:
+  push:
+    branches: [main]
+    paths:
+      - pricing/granite_ask_live.py
+      - .github/workflows/granite-direct-int8-parity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: granite-direct-onnx-parity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compare_frozen_encoder:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+      HF_HUB_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned training-time ONNX reference stack
+        run: |
+          python -m pip install --no-cache-dir 'numpy>=1.26,<2' 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --no-cache-dir 'onnxruntime>=1.20,<2' 'huggingface_hub>=0.30,<2' 'sentence-transformers[onnx]==5.5.0' 'transformers==4.57.6' 'optimum-onnx[onnxruntime]==0.1.0' 'scikit-learn>=1.4,<2'
+      - name: Compare QInt8 file identity and embeddings in five languages
+        run: |
+          python - <<'PY'
+          import numpy as np
+          from sentence_transformers import SentenceTransformer
+          from pricing.granite_ask_live import (
+              MODEL,REVISION,ONNX_FILE,_GraniteInt8Encoder)
+          from scripts.common import clean
+          ref=SentenceTransformer(MODEL,revision=REVISION,trust_remote_code=False,
+              device="cpu",backend="onnx",model_kwargs={"file_name":ONNX_FILE})
+          ref.max_seq_length=256
+          ours=_GraniteInt8Encoder()
+          assert not hasattr(ours,"model"), "Direct runtime must never load a second neural model"
+          sentences=[
+              "Clean title 2018 Ford Fusion and 120,000 miles.",
+              "2018 Volkswagen Golf, gepflegt, Klima und neue Reifen.",
+              "Une voiture en très bon état, kilométrage faible.",
+              "Toyota 2015, revisión reciente y título limpio.",
+              "Продам автомобиль в хорошем состоянии."]
+          for sentence in sentences:
+              t=clean(sentence)
+              a=np.asarray(ref.encode([t],batch_size=1,
+                  normalize_embeddings=True,convert_to_numpy=True),dtype=np.float32)
+              b=ours.encode(t)
+              expected=a.astype(np.float16).astype(np.float32)
+              cosine=float(np.sum(expected*b)/(np.linalg.norm(expected)*np.linalg.norm(b)))
+              drift=float(np.max(np.abs(expected-b)))
+              print("DIRECT_GRANITE_INT8_PARITY",repr(sentence[:20]),
+                    "cosine",cosine,"max_coordinate_drift",drift,flush=True)
+              assert a.shape==b.shape==(1,384)
+              assert cosine>=.999995
+              assert drift<=0.001, "Direct ORT differs from official reference"
+          print("FIVE_LANGUAGE_DIRECT_INT8_PARITY_PASSED",flush=True)
+          PY
