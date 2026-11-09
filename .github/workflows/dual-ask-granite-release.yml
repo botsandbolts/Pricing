@@ -32,7 +32,7 @@ jobs:
         run: |
           python -m compileall -q pricing/granite_ask_live.py pricing/neural_experimental_ui.py pricing/analytics.py app.py
           python -m pip install 'numpy>=1.26,<2' 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install 'pandas>=2.1,<3' 'requests>=2.31,<3' 'onnxruntime>=1.20,<2' 'tokenizers>=0.23.1,<0.24' 'huggingface_hub>=0.30,<2' 'sentence-transformers[onnx]==5.5.0' 'transformers==4.57.6' 'optimum-onnx[onnxruntime]==0.1.0'
+          python -m pip install 'pandas>=2.1,<3' 'requests>=2.31,<3' 'onnxruntime>=1.20,<2' 'tokenizers>=0.22,<0.24' 'huggingface_hub>=0.30,<2' 'sentence-transformers[onnx]==5.5.0' 'transformers==4.57.6' 'optimum-onnx[onnxruntime]==0.1.0'
       - name: Fetch audited stage-3 Granite winner, never choose by validation
         uses: actions/download-artifact@v4
         with:
@@ -147,5 +147,7 @@ jobs:
           git add models/neural-granite-bohb-ask/manifest.json
           if ! git diff --cached --quiet; then
             git commit -m "Release audited Granite R2 97M INT8 Ask head and validation evidence"
+            git fetch origin feature/dual-ask-granite-20261109
+            git rebase origin/feature/dual-ask-granite-20261109
             git push origin HEAD:feature/dual-ask-granite-20261109
           fi
