@@ -1,6 +1,9 @@
 # Overnight European neural-only research. CPU torch is separately installed.
 # Keep GPU/CUDA wheels and unnecessary XGBoost off neural worker runners.
 numpy>=1.26,<2
+# Ray Tune depends on pyarrow; current 26.x wheels require NumPy 2.
+# Keep the successful older NumPy 1.26 ABI across every runner.
+pyarrow>=17,<23
 pandas>=2.1,<3
 ray[tune]>=2.40,<2.50
 pytest>=8,<10
