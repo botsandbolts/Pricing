@@ -1,0 +1,123 @@
+name: Ray Tune · full non-Lemon Bid · 14 losses · 09:00 CET
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/ray_bid_9am.py
+      - .github/workflows/ray-bid-full-9am.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ray-bid-full-9am-20261109
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMEXPR_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install original full Bid training CPU dependencies
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22'
+      - name: Compile and exercise all 14 objective gradients and 4 model structures
+        run: |
+          python -m compileall -q scripts/ray_bid_9am.py
+          python -u -m scripts.ray_bid_9am --smoke
+
+  train:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 145
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native CPU training stack with bounded Ray Tune/ASHA
+        run: |
+          python -m pip install 'torch>=2.4,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'ray[tune]>=2.40,<2.50'
+      - name: Recover ORIGINAL frozen 2014–15 VIN-disjoint auction training cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Research full-cohort Bid with independent Ray Tune shard until 09:00 CET
+        shell: bash
+        run: |
+          python -u -m scripts.ray_bid_9am \
+            --shard "${{ matrix.shard }}" \
+            --features training-cache/neural-bid/features.npz \
+            --output "training-results/ray-bid-9am/shard-${{ matrix.shard }}"
+      - name: Preserve checked original-validation receipts and native model checkpoints
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ray-bid-9am-shard-${{ matrix.shard }}
+          path: |
+            training-results/ray-bid-9am/shard-${{ matrix.shard }}/summary.json
+            training-results/ray-bid-9am/shard-${{ matrix.shard }}/winner-*/result.json
+            training-results/ray-bid-9am/shard-${{ matrix.shard }}/winner-*/validation.csv.gz
+            training-results/ray-bid-9am/shard-${{ matrix.shard }}/winner-*/weights.pt
+          retention-days: 60
+          compression-level: 3
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [preflight,train]
+    if: ${{ always() && needs.preflight.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - name: Retrieve available independently trained Ray shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ray-bid-9am-shard-*
+          path: collected
+          merge-multiple: false
+      - name: Summarize validation CVaR95, MAE, RMSE and every tested loss
+        run: |
+          python -u -m scripts.ray_bid_9am --aggregate collected \
+            --output reports/ray-bid-9am-full/leaderboard.json
+      - name: Publish research leaderboard (NO deployment)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ray-bid-9am-full-non-lemon-leaderboard
+          path: reports/ray-bid-9am-full/
+          retention-days: 90
+          if-no-files-found: error
