@@ -33,6 +33,12 @@ def test_device(browser,device,width,height):
     problems=[]
     page.on("pageerror",lambda err:problems.append(str(err)))
     page.goto(HOST+"/?market=eu",wait_until="domcontentloaded",timeout=120000)
+    # Visual regression: the previous release accidentally displayed the
+    # HTML hero as literal source text / an empty code block.
+    international=page.locator(".cps-globe h1")
+    expect(international).to_be_visible(timeout=120000)
+    expect(international).to_have_text("Two continents. One garage. Zero crystal balls.")
+    assert "<section class=\\"cps-globe\\"" not in page.locator("body").inner_text()
     expect(page.get_by_text("From Hamburg to Rome.",exact=False)).to_be_visible(timeout=120000)
     expect(page.get_by_text("European Asking Price Lab",exact=False)).to_be_visible(timeout=90000)
     assert page.get_by_role("button",name=re.compile("Calculate European asking price")).count()==1
