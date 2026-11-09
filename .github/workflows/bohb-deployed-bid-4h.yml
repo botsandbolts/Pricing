@@ -1,0 +1,137 @@
+name: Four-hour BOHB · deployed DeepFM Bid · 10 parallel slots · 250 epochs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/bohb-deployed-bid-4h.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: bohb-deployed-bid-4h-20261109
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+  OPENBLAS_NUM_THREADS: '1'
+  NUMEXPR_NUM_THREADS: '1'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+  TOKENIZERS_PARALLELISM: 'false'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU PyTorch, BOHB and frozen-data prerequisites
+        run: |
+          python -m pip install 'torch==2.15.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'joblib>=1.4,<2' 'ray[tune]>=2.40,<2.50' 'ConfigSpace>=1,<2' 'hpbandster==0.7.4'
+      - name: Recover frozen original full non-Lemon auction features
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Confirm genuine BOHB imports, deployed data and safe loss gradients
+        run: |
+          python -m compileall -q scripts/bohb_deployed_bid_4h.py scripts/ray_bid_9am.py
+          python -u -m scripts.bohb_deployed_bid_4h --smoke
+      - name: Confirm production Bid checkpoint is never replaced
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('scripts/bohb_deployed_bid_4h.py').read_text()
+          assert 'TuneBOHB' in s and 'HyperBandForBOHB' in s
+          assert 'MAX_EPOCHS = 250' in s and 'SLOTS_PER_SHARD = 2' in s
+          assert 'models/ray-bid-9am-winner/manifest.json' in s
+          print('True BOHB experimental research; no production write.')
+          PY
+
+  train:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 260
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        shard: [0,1,2,3,4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native CPU torch, Ray BOHB and ConfigSpace
+        run: |
+          python -m pip install 'torch==2.15.0+cpu' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'joblib>=1.4,<2' 'ray[tune]>=2.40,<2.50' 'ConfigSpace>=1,<2' 'hpbandster==0.7.4'
+      - name: Restore identical deployed non-Lemon VIN-disjoint wholesale cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          github-token: ${{ github.token }}
+          path: training-cache/neural-bid
+      - name: Run four-hour BOHB with two trial slots per shard, 250 epochs maximum
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u -m scripts.bohb_deployed_bid_4h \
+            --features training-cache/neural-bid/features.npz \
+            --shard "${{ matrix.shard }}" \
+            --budget-seconds 14400 \
+            --output "training-results/bohb-bid-4h/shard-${{ matrix.shard }}"
+      - name: Save shard leaderboard, original-validation receipt and winner model
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohb-bid-4h-shard-${{ matrix.shard }}
+          path: |
+            training-results/bohb-bid-4h/shard-${{ matrix.shard }}/status.json
+            training-results/bohb-bid-4h/shard-${{ matrix.shard }}/selected/winner.json
+            training-results/bohb-bid-4h/shard-${{ matrix.shard }}/selected/weights.pt
+          retention-days: 90
+          compression-level: 3
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [preflight,train]
+    if: ${{ always() && needs.preflight.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Retrieve completed BOHB research shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bohb-bid-4h-shard-*
+          path: collected
+          merge-multiple: false
+      - name: Rank internally selected winners without using TEST data
+        run: |
+          python -m scripts.bohb_deployed_bid_4h \
+            --aggregate collected \
+            --aggregate-output reports/bohb-bid-4h/leaderboard.json
+      - name: Preserve four-hour BOHB leaderboard (research only; no release)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bohb-deployed-bid-4h-final-leaderboard
+          path: reports/bohb-bid-4h/
+          retention-days: 90
+          if-no-files-found: warn
