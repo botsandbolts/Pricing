@@ -52,7 +52,7 @@ def main():
 
             # A second genuinely distinct model, same form; French is not
             # translated to English, and both models may remain cached.
-            description = page.get_by_label("Seller's description")
+            description = page.get_by_role("textbox", name="Seller's description")
             description.fill("Une belle voiture en bon état, titre propre, pneus neufs.")
             multilingual.first.scroll_into_view_if_needed()
             multilingual.first.click(timeout=30000)
