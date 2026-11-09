@@ -48,6 +48,17 @@ jobs:
         run: |
           python -m compileall -q scripts/bohb_deployed_bid_4h.py scripts/ray_bid_9am.py
           python -u -m scripts.bohb_deployed_bid_4h --smoke
+          python - <<'PY'
+          import ray
+          from pathlib import Path
+          path=Path('/tmp/rb4h-smoke')
+          path.mkdir(parents=True,exist_ok=True)
+          ray.init(num_cpus=2,include_dashboard=False,
+                   log_to_driver=False,_temp_dir=str(path))
+          assert ray.cluster_resources().get('CPU',0)>=2
+          ray.shutdown()
+          print('Ray startup passed with safe short Linux socket paths.')
+          PY
       - name: Confirm production Bid checkpoint is never replaced
         run: |
           python - <<'PY'
