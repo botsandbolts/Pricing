@@ -1,0 +1,225 @@
+name: European deduplication — parallel by make (12 shards)
+
+on:
+  push:
+    branches:
+      - feature/europe-dedupe-granite-20261109
+    paths:
+      - 'pricing/europe_make_shards.py'
+      - 'pricing/europe_dedupe.py'
+      - 'pricing/europe_prune.py'
+      - 'tests/test_europe_make_shards.py'
+      - '.github/workflows/europe-make-parallel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: europe-make-parallel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-europe-dedupe.txt
+      - name: Test make-pure sharding and pruning
+        run: python -m pytest -q tests/test_europe_dedupe.py tests/test_europe_make_shards.py
+
+  prepare:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install data preparation requirements
+        run: python -m pip install -r requirements-europe-dedupe.txt huggingface_hub
+      - name: Download European listings once
+        id: dataset
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          path=hf_hub_download(
+              repo_id='KTHESAT/european-used-car-market-2m-listings',
+              repo_type='dataset',
+              filename='data/train-00000-of-00001.parquet')
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as f:
+              f.write('path='+path+'\n')
+          PY
+      - name: Balance entire makes across twelve partitions
+        run: |
+          python -m pricing.europe_make_shards partition \
+            --input "${{ steps.dataset.outputs.path }}" \
+            --output "$RUNNER_TEMP/make-parts" \
+            --shards 12
+      - name: Upload aggregate manifest (no listing rows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-manifest
+          path: ${{ runner.temp }}/make-parts/manifest.json
+          retention-days: 7
+      - name: Upload input for shard 00
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-00
+          path: ${{ runner.temp }}/make-parts/shard-00.parquet
+          retention-days: 1
+      - name: Upload input for shard 01
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-01
+          path: ${{ runner.temp }}/make-parts/shard-01.parquet
+          retention-days: 1
+      - name: Upload input for shard 02
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-02
+          path: ${{ runner.temp }}/make-parts/shard-02.parquet
+          retention-days: 1
+      - name: Upload input for shard 03
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-03
+          path: ${{ runner.temp }}/make-parts/shard-03.parquet
+          retention-days: 1
+      - name: Upload input for shard 04
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-04
+          path: ${{ runner.temp }}/make-parts/shard-04.parquet
+          retention-days: 1
+      - name: Upload input for shard 05
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-05
+          path: ${{ runner.temp }}/make-parts/shard-05.parquet
+          retention-days: 1
+      - name: Upload input for shard 06
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-06
+          path: ${{ runner.temp }}/make-parts/shard-06.parquet
+          retention-days: 1
+      - name: Upload input for shard 07
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-07
+          path: ${{ runner.temp }}/make-parts/shard-07.parquet
+          retention-days: 1
+      - name: Upload input for shard 08
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-08
+          path: ${{ runner.temp }}/make-parts/shard-08.parquet
+          retention-days: 1
+      - name: Upload input for shard 09
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-09
+          path: ${{ runner.temp }}/make-parts/shard-09.parquet
+          retention-days: 1
+      - name: Upload input for shard 10
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-10
+          path: ${{ runner.temp }}/make-parts/shard-10.parquet
+          retention-days: 1
+      - name: Upload input for shard 11
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-shard-11
+          path: ${{ runner.temp }}/make-parts/shard-11.parquet
+          retention-days: 1
+  per-make-linkage:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 165
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        shard: ['00','01','02','03','04','05','06','07','08','09','10','11']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install private offline dedupe dependencies
+        run: |
+          python -m pip install -r requirements-europe-dedupe.txt
+          python -m pip install sentence-transformers faiss-cpu
+      - name: Download only this make-pure partition
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-make-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/input
+      - name: Run Granite/FAISS and deterministic information thinning
+        run: |
+          python -m pricing.europe_dedupe \
+            --input "$RUNNER_TEMP/input/shard-${{ matrix.shard }}.parquet" \
+            --output "$RUNNER_TEMP/eu-audit" \
+            --max-pairs 8000000 \
+            --granite --thin-review-candidates --no-canonical-export
+      - name: Restore global source-row identifiers
+        run: |
+          python -m pricing.europe_make_shards map \
+            --input "$RUNNER_TEMP/input/shard-${{ matrix.shard }}.parquet" \
+            --audit "$RUNNER_TEMP/eu-audit"
+      - name: Publish metadata for this make-pure shard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-make-audit-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/eu-audit/audit.json
+            ${{ runner.temp }}/eu-audit/global_mapping.csv
+            ${{ runner.temp }}/eu-audit/training_thinning_decisions.csv
+          if-no-files-found: warn
+          retention-days: 7
+
+  aggregate:
+    needs: [prepare, per-make-linkage]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-europe-dedupe.txt
+      - name: Download shard manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-make-manifest
+          path: ${{ runner.temp }}/manifest
+      - name: Download twelve auditable shard summaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: eu-make-audit-*
+          merge-multiple: false
+          path: ${{ runner.temp }}/reports
+      - name: Verify complete original-row coverage and aggregate
+        run: |
+          python -m pricing.europe_make_shards collect \
+            --manifest "$RUNNER_TEMP/manifest/manifest.json" \
+            --root "$RUNNER_TEMP/reports" \
+            --output "$RUNNER_TEMP/combined"
+      - name: Publish full European deduplication audit and global thinning map
+        uses: actions/upload-artifact@v4
+        with:
+          name: europe-make-parallel-combined
+          path: |
+            ${{ runner.temp }}/combined/combined_audit.json
+            ${{ runner.temp }}/combined/global_training_mapping.csv
+          retention-days: 7
