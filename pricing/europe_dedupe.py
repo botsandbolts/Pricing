@@ -380,7 +380,7 @@ def audit(db, output, rows_total, max_pairs, method):
     return keep,summary
 
 
-def export_canonical(path, output, keep):
+def export_canonical(path, output, keep, stem="canonical_listings"):
     """Keep all original columns; never edit raw listings."""
     if path.suffix.lower()==".parquet":
         import pyarrow as pa
@@ -392,7 +392,7 @@ def export_canonical(path, output, keep):
                 mask=pa.array([i in keep for i in range(offset,offset+len(batch))])
                 sub=pa.Table.from_batches([batch]).filter(mask)
                 if writer is None:
-                    writer=pq.ParquetWriter(str(output/"canonical_listings.parquet"),sub.schema,
+                    writer=pq.ParquetWriter(str(output/(stem+".parquet")),sub.schema,
                                             compression="zstd")
                 writer.write_table(sub)
                 offset+=len(batch)
@@ -402,7 +402,7 @@ def export_canonical(path, output, keep):
         first=True;offset=0
         for frame in batches(path):
             select=[i in keep for i in range(offset,offset+len(frame))]
-            frame.loc[select].to_csv(output/"canonical_listings.csv", mode="w" if first else "a",
+            frame.loc[select].to_csv(output/(stem+".csv"), mode="w" if first else "a",
                                      header=first,index=False)
             first=False;offset+=len(frame)
 
@@ -416,6 +416,8 @@ def main(argv=None):
     parser.add_argument("--granite",action="store_true",help="Use IBM Granite R2 + FAISS HNSW")
     parser.add_argument("--embedding-cache",type=Path)
     parser.add_argument("--no-canonical-export",action="store_true")
+    parser.add_argument("--thin-review-candidates",action="store_true",
+                        help="Also create a distinct high-information training subsample")
     args=parser.parse_args(argv)
     if args.sample < 0 or args.max_pairs < 1:
         parser.error("Invalid sample/max-pairs")
@@ -434,8 +436,14 @@ def main(argv=None):
             method["granite"]=add_granite_faiss(db,args.max_pairs,
                 args.embedding_cache or (args.output/"granite_labels.npz"))
         keep,report=audit(db,args.output,count,args.max_pairs,method)
+        thin_keep=None
+        if args.thin_review_candidates:
+            from pricing.europe_prune import thin_review_graph
+            thin_keep=thin_review_graph(db,args.output,keep,count,report)
         if not args.no_canonical_export and not args.sample:
             export_canonical(args.input,args.output,keep)
+            if thin_keep is not None:
+                export_canonical(args.input,args.output,thin_keep,stem="training_thinned_listings")
         print(json.dumps(report,indent=2))
     finally:
         db.close()
