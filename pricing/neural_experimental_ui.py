@@ -16,6 +16,7 @@ import pandas as pd
 import streamlit as st
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.granite_ask_live import available as granite_available, load as load_granite_ask
+from pricing.bge_overnight_ask_live import available as bge_overnight_available, load as load_bge_overnight
 from pricing.ray_lemon75_ask_live import (
     available as lemon75_ask_available, load as load_lemon75_ask,
 )
@@ -91,7 +92,8 @@ def _report(root,name):
 
 
 def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
-             two_models=False,english_ready=False,international_ready=False):
+             two_models=False,english_ready=False,international_ready=False,
+             english_cvar=8959.62):
     """One unified, keyboard-accessible form. Main pricing has no scan/BART step."""
     with st.form(prefix+"_vehicle",clear_on_submit=False):
         st.markdown("### 🚗 01 / Tell us about the car" if focus else
@@ -190,7 +192,7 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             left,right=st.columns(2)
             with left:
                 st.markdown("**🇬🇧 English precision · BGE DeepCross**")
-                st.caption("Our accuracy-first English model. Cleaned historical-validation CVaR95 $8,959.62.")
+                st.caption("Our accuracy-first English model. Cleaned historical-validation CVaR95 $"+f"{english_cvar:,.2f}"+".")
                 english_go=st.form_submit_button("🇬🇧 Evaluate in English",
                     key=prefix+"_calculate_english",type="primary",
                     disabled=not english_ready,use_container_width=True)
@@ -533,7 +535,8 @@ only when you ask. No model circus required. 🎪🚗
     bid_bohb=bohb_available(root,"bid")
     ask_champion=champion_ask_available(root)
     bid_champion=champion_bid_available(root)
-    english_ready=lemon75_ask or ask_bohb or ask_champion or ask_available(root)
+    bge_overnight=bge_overnight_available(root)
+    english_ready=bge_overnight or lemon75_ask or ask_bohb or ask_champion or ask_available(root)
     international_ready=granite_available(root)
     ask_ready=english_ready or international_ready
     bid_ready=bid_bohb or bid_champion or bid_available(root)
@@ -555,7 +558,8 @@ only when you ask. No model circus required. 🎪🚗
     fields,notes,go=_vehicle(
         "bge_ask",ready=ask_ready or bid_ready,compact=main,
         two_models=main,english_ready=english_ready,
-        international_ready=international_ready)
+        international_ready=international_ready,
+        english_cvar=8740.063663572575 if bge_overnight else 8959.618399982903)
     choice=go if go in ("bge","granite") else "bge"
     chosen_ready=international_ready if choice=="granite" else english_ready
     # The public date picker can predate a particular model year. Reject before
@@ -580,7 +584,9 @@ only when you ask. No model circus required. 🎪🚗
         progress_notice.info("⏳ One click received. Calculating your Ask and Bid…")
         _valuation_probe("form_submitted")
         results={"fields":fields,"notes":notes,"date":str(valuation_date),
-                 "ask_choice":choice,"request_id":str(uuid.uuid4())}
+                 "ask_choice":choice,
+                 "ask_backend":"overnight" if choice=="bge" and bge_overnight else "legacy",
+                 "request_id":str(uuid.uuid4())}
         try:
             _bound_native_cpu_threads()
             _valuation_probe("torch_cpu_threads_bounded")
@@ -600,6 +606,7 @@ only when you ask. No model circus required. 🎪🚗
                 from pricing.neural_ask_embedding_live import load as ask_load
                 with st.spinner("🧠 Loading verified "+("Granite INT8 multilingual" if choice=="granite" else "BGE English")+" Ask model…"):
                     model=(load_granite_ask(root) if choice=="granite" else
+                           load_bge_overnight(root) if bge_overnight else
                            load_lemon75_ask(root) if lemon75_ask else
                            load_bohb_ask(root) if ask_bohb else
                            load_champion_ask(root) if ask_champion else ask_load(root))
@@ -742,8 +749,8 @@ only when you ask. No model circus required. 🎪🚗
             st.markdown("### 🔍 04 / Why THAT price? · Your AI price detective")
             st.caption("Right here under your quote. Choose Ask or Bid and "
                        "click Explain; the first quote has zero Captum overhead.")
-            if saved.get("ask_choice")=="granite":
-                st.info("🌍 Granite's multilingual network is serving this quote. "
+            if saved.get("ask_choice")=="granite" or saved.get("ask_backend")=="overnight":
+                st.info("🧠 The new BOHB neural price head is serving this quote. "
                         "Per-feature Captum attribution has not yet passed "
                         "the release parity gate, so we won't invent an explanation.")
             else:
@@ -757,6 +764,7 @@ only when you ask. No model circus required. 🎪🚗
                     try:
                         from pricing.neural_ask_embedding_live import load
                         revised=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
+                                  else load_bge_overnight(root) if saved.get("ask_backend")=="overnight"
                                   else load_lemon75_ask(root) if lemon75_ask
                                  else load_bohb_ask(root) if ask_bohb
                                  else load_champion_ask(root) if ask_champion
@@ -774,6 +782,7 @@ only when you ask. No model circus required. 🎪🚗
                     try:
                         from pricing.neural_ask_embedding_live import load
                         model=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
+                                else load_bge_overnight(root) if saved.get("ask_backend")=="overnight"
                                 else load_lemon75_ask(root) if lemon75_ask
                                 else load_bohb_ask(root) if ask_bohb
                                 else load_champion_ask(root) if ask_champion else load(root))
@@ -813,6 +822,11 @@ only when you ask. No model circus required. 🎪🚗
                            "encoder with native DeepCross head, stage-3 worker 8. "
                            "Cleaned historical-validation CVaR95 $9,392.76 on 23,751 cars; "
                            "cross-language price accuracy requires further testing.")
+            elif saved and saved.get("ask_backend")=="overnight" and bge_overnight:
+                st.caption("🇬🇧 LIVE 9 NOV 2026 BGE DEEPCROSS BOHB · Stage-3 worker 5. "
+                           "Cleaned historical-validation CVaR95 $8,740.06 on "
+                           "23,751 cars. Frozen BGE encoder: validated INT8 ONNX "
+                           "if its separate backend manifest passes; otherwise native.")
             elif lemon75_ask:
                 st.caption("🍋 LIVE 8 NOV 2026 LEMON EDITION · the exact one-hour Ray-trained DeepCross neural price head, original FP32 PyTorch (no head quantization). Audited Lemon-filtered historical validation on 23,751 listings. Original BGE encoder reused; no fake text-price head.")
             elif ask_bohb:
