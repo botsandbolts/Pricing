@@ -238,7 +238,7 @@ def smoke(features, root):
             self._tiny_epoch = 0
         def step(self):
             self._tiny_epoch += 1
-            return {METRIC:1.0/float(self._tiny_epoch)+float(self.config["x"])}
+            return {METRIC:1.0/float(self._tiny_epoch)+float(self.config["lr"])}
         def save_checkpoint(self, checkpoint_dir):
             p=Path(checkpoint_dir)
             p.mkdir(parents=True,exist_ok=True)
@@ -256,11 +256,11 @@ def smoke(features, root):
             reduction_factor=2,stop_last_trials=False)
         tiny_search=ConcurrencyLimiter(
             TuneBOHB(metric=METRIC,mode="min",
-                     points_to_evaluate=[{"x":0.3}],seed=20261109),
+                     points_to_evaluate=[point],seed=20261109),
             max_concurrent=2)
         dummy=tune.Tuner(
             tune.with_resources(_SmallBOHB,{"cpu":1}),
-            param_space={"x":tune.uniform(0.0,1.0)},
+            param_space=search_space,
             tune_config=tune.TuneConfig(
                 metric=METRIC,mode="min",search_alg=tiny_search,
                 scheduler=tiny_sched,num_samples=5,time_budget_s=75),
