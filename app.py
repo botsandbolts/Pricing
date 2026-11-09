@@ -145,6 +145,11 @@ from pricing.navigation import prepare_navigation_state,render_navigation
 # Both branded banners remain mounted; the gold CTA scrolls to the same form.
 prepare_navigation_state()
 render_hero()
+# The Bid announcement sits above the older release bulletin on the calculator
+# only; neither the hero CTA nor the calculator's one-tap anchor is modified.
+if st.session_state.get('landing_studio_workspace') == '🚗 Price my car':
+    from pricing.bid_launch_announcement import banner_html as _bid_launch_banner
+    st.markdown(_bid_launch_banner(), unsafe_allow_html=True)
 st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
 _workspace=render_navigation()
 # Mount consent and first-party telemetry on early-return workspaces as well.
