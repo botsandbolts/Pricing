@@ -18,11 +18,14 @@ def diagnose(page,label):
     errors=page.locator('[data-testid="stException"]').count()
     if errors:
         raise AssertionError(f"Streamlit exception detected on {label}")
-    return page.evaluate("""() => ({
+    sizes=page.evaluate("""() => ({
        width: document.documentElement.clientWidth,
        scrollWidth: document.documentElement.scrollWidth,
        headings: [...document.querySelectorAll('h1,h2')].map(x=>x.textContent).slice(0,15)
     })""")
+    if sizes["scrollWidth"] > sizes["width"]+8:
+        raise AssertionError("Page has horizontal overflow on "+label+": "+repr(sizes))
+    return sizes
 
 def test_device(browser,device,width,height):
     page=browser.new_page(viewport={"width":width,"height":height},
