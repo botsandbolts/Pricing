@@ -3,10 +3,98 @@
 Presentation only. Intentionally avoids importing research or inference models.
 """
 from html import escape
+from pathlib import Path
+import json
+
+
+def _live_winner_banner():
+    """Render the actually installed loss and honestly labelled measurements."""
+    root = Path(__file__).resolve().parents[1]
+    from pricing.ray_bid_winner_live import available
+    if not available(root):
+        return None
+    m=json.loads((root/"models/ray-bid-9am-winner/manifest.json").read_text())
+    internal=float(m["retrained_internal_CVaR95_USD"])
+    external=float(m["original_validation"]["CVaR95_absolute_USD"])
+    mae=float(m["original_validation"]["MAE_USD"])
+    return f"""
+<section role="region" aria-labelledby="bid-breakthrough-title"
+  style="background:linear-gradient(125deg,#082d35 0%,#114452 58%,#183c35 100%);
+         color:#f7faf7;border:2px solid #f8d67a;border-radius:20px;
+         padding:clamp(17px,3.6vw,28px);margin:4px 0 17px;
+         box-shadow:0 12px 28px rgba(7,34,42,.19)">
+  <div style="color:#ffe49a;font-weight:900;letter-spacing:.08em;font-size:.8rem">
+    🚀 LIVE BID ENGINE · INDEPENDENT · MADE IN GERMANY 🇩🇪 · 9 NOV 2026
+  </div>
+  <h2 id="bid-breakthrough-title" style="color:#fff8d9;font-size:clamp(1.6rem,4vw,2.5rem);
+    font-weight:900;line-height:1.15;margin:13px 0">
+    The new wholesale engine is on the road. No lemons. 🍋🚫
+  </h2>
+  <p style="color:#f5fffa;font-size:1.05rem;line-height:1.55">
+    A newly retrained, unblended <strong>DeepFM16</strong> predicts historical
+    wholesale auction sale prices. Its loss is
+    <strong>CVaR95-weighted Huber</strong> — not AFT. We chose this architecture
+    using <strong>TRAIN-internal</strong> worst-tail errors; we do not
+    describe that score as independent accuracy.
+  </p>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:12px;margin:13px 0">
+    <div style="padding:15px;border:1px solid #ffffff61;border-radius:14px;background:#ffffff12">
+      <small style="color:#d5e7e1">TRAIN-internal CVaR95 · selection</small>
+      <strong style="display:block;color:#ffe49a;font-size:1.7rem">$ {internal:,.2f}</strong>
+    </div>
+    <div style="padding:15px;border:1px solid #ffffff61;border-radius:14px;background:#ffffff12">
+      <small style="color:#d5e7e1">Untouched original validation · CVaR95</small>
+      <strong style="display:block;color:#ffe49a;font-size:1.7rem">$ {external:,.2f}</strong>
+    </div>
+    <div style="padding:15px;border:1px solid #ffffff61;border-radius:14px;background:#ffffff12">
+      <small style="color:#d5e7e1">Untouched original validation · MAE</small>
+      <strong style="display:block;color:#ffe49a;font-size:1.7rem">$ {mae:,.2f}</strong>
+    </div>
+  </div>
+  <p style="color:#d8eeea;font-size:.94rem;line-height:1.55">
+    CVaR95 is the mean dollar error among the worst 5% of predictions.
+    Historical 2014–15 sales are not a guaranteed quote today. Compared
+    with the previous BOHB Bid release's $8,436 validation CVaR95,
+    this model's independent validation tail error is <strong>higher</strong>,
+    despite winning on the internal TRAIN split. We show both — no smoke and mirrors.
+  </p>
+  <div style="padding:12px 15px;border-left:4px solid #f8d67a;background:#071f2780">
+    <strong style="color:#ffe49a">🛃 Customs &amp; law enforcement</strong>
+    <p style="margin:6px 0;color:#f7faf9">
+      Screening estimates can flag unusual declarations and support research;
+      they are <strong>not official customs values, proof of wrongdoing, or
+      a substitute for investigation and professional appraisal.</strong>
+    </p>
+  </div>
+  <details style="margin-top:12px;color:#dff2eb">
+    <summary style="cursor:pointer;color:#ffe49a;font-weight:800">🔬 The actual science</summary>
+    <p>
+      We trained on original non-Lemon wholesale records, reserving 10% of TRAIN
+      for internal selection. No Lemon exclusions, XGBoost blend, text encoder
+      or invented censoring intervals. AFT, interval likelihoods and other
+      losses were competing experiments, <em>not</em> the installed objective.
+      The original TEST set was not used to choose or evaluate this retraining.
+    </p>
+  </details>
+  <p style="font-size:.87rem;color:#ffe49a;font-weight:700;margin:15px 0 0">
+    🇩🇪 Independent · Open source · No ads · No registration ·
+    <a href="https://github.com/botsandbolts/Pricing/actions/runs/42584931682"
+       target="_blank" rel="noopener noreferrer" style="color:#fff7cd;text-decoration:underline">
+      Retraining and verification receipts ↗</a>
+  </p>
+  <p style="font-size:.9rem;color:#cceee0;margin:9px 0 0">
+    <strong>Less haggle. More signal. Science before sirens.</strong> 🚓
+  </p>
+</section>
+"""
 
 
 def banner_html():
-    """Announce a conditional candidate release without claiming proven scores."""
+    """Show the verified installed winner, or the existing conditional candidate bulletin."""
+    live = _live_winner_banner()
+    if live is not None:
+        return live
     run_url = "https://github.com/botsandbolts/Pricing/actions/runs/42570947698"
     return f"""
 <section role="region" aria-labelledby="bid-breakthrough-title"
