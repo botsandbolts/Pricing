@@ -1,11 +1,8 @@
 name: Four-hour BOHB · deployed DeepFM Bid · 10 parallel slots · 250 epochs
 
+# Expensive four-hour training must only start by explicit dispatch.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/bohb-deployed-bid-4h.yml
 
 permissions:
   contents: read
@@ -135,9 +132,10 @@ jobs:
           merge-multiple: false
       - name: Rank internally selected winners without using TEST data
         run: |
-          python -m scripts.bohb_deployed_bid_4h \
+          python -m scripts.aggregate_bohb_bid_4h \
             --aggregate collected \
-            --aggregate-output reports/bohb-bid-4h/leaderboard.json
+            --aggregate-output reports/bohb-bid-4h/leaderboard.json \
+            --source-run-id "${{ github.run_id }}"
       - name: Preserve four-hour BOHB leaderboard (research only; no release)
         if: always()
         uses: actions/upload-artifact@v4
