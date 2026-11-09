@@ -1,0 +1,225 @@
+name: European ASK prices - 1h Ray AFT / Huber-AFT - 10 parallel + XGBoost baselines
+
+on:
+  push:
+    branches: [feature/europe-dedupe-granite-20261109]
+    paths:
+      - 'scripts/europe_price_ray.py'
+      - 'tests/test_europe_price_ray.py'
+      - 'requirements-europe-price.txt'
+      - '.github/workflows/europe-price-ray-1h.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: europe-ask-ray-1h-20261109-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMEXPR_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded CPU XGBoost test dependencies
+        run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=17,<23' 'xgboost>=2.1.3,<2.2' 'pytest>=8,<10' 'ray[tune]>=2.40,<2.50'
+      - name: Verify holdout grouping, AFT / Huber objectives and limits
+        run: |
+          python -m compileall -q scripts/europe_price_ray.py
+          python -m pytest -q tests/test_europe_price_ray.py
+          python -m scripts.europe_price_ray smoke
+          python -m scripts.europe_price_ray ray-smoke
+
+  prepare:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dataset conversion dependencies
+        run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=17,<23' 'huggingface_hub>=0.26,<2'
+      - name: Recover full European source listings once (NO deduplication)
+        id: dataset
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          path=hf_hub_download(repo_id='KTHESAT/european-used-car-market-2m-listings',
+                               repo_type='dataset',
+                               filename='data/train-00000-of-00001.parquet')
+          with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as f:
+              f.write('path='+path+'\n')
+          PY
+      - name: Freeze price-independent 80/10/10 group splits and provenance
+        run: |
+          python -m scripts.europe_price_ray prepare \
+            --input "${{ steps.dataset.outputs.path }}" \
+            --output "$RUNNER_TEMP/europe-splits"
+      - name: Publish training and validation ONLY (no test access)
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-ask-fit-data
+          path: |
+            ${{ runner.temp }}/europe-splits/manifest.json
+            ${{ runner.temp }}/europe-splits/train.npz
+            ${{ runner.temp }}/europe-splits/validation.npz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 1
+      - name: Seal test split separately (ONLY aggregator may access)
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-ask-sealed-test
+          path: ${{ runner.temp }}/europe-splits/test.npz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 1
+
+  ray:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        process: [0,1,2,3,4,5,6,7,8,9]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU-only Ray Tune and XGBoost
+        run: python -m pip install -r requirements-europe-price.txt
+      - name: Retrieve immutable training+validation ONLY
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-ask-fit-data
+          path: ${{ runner.temp }}/eu-fit
+      - name: Tune bounded AFT/Huber-AFT and hyperparameters for one hour
+        run: |
+          python -u -m scripts.europe_price_ray ray \
+            --features "$RUNNER_TEMP/eu-fit" \
+            --output "$RUNNER_TEMP/eu-candidate-${{ matrix.process }}" \
+            --shard "${{ matrix.process }}" --seconds 3600
+      - name: Preserve top validation model and trial ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-ask-candidate-ray-${{ matrix.process }}
+          path: |
+            ${{ runner.temp }}/eu-candidate-${{ matrix.process }}/result.json
+            ${{ runner.temp }}/eu-candidate-${{ matrix.process }}/trials.json
+            ${{ runner.temp }}/eu-candidate-${{ matrix.process }}/winner.ubj
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 1
+
+  baselines:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        family: [aft, huber]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU XGBoost
+        run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'xgboost>=2.1.3,<2.2'
+      - name: Retrieve identical training and validation cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-ask-fit-data
+          path: ${{ runner.temp }}/eu-fit
+      - name: Train and validate independent XGBoost baseline
+        run: |
+          python -u -m scripts.europe_price_ray baseline \
+            --features "$RUNNER_TEMP/eu-fit" \
+            --output "$RUNNER_TEMP/eu-baseline-${{ matrix.family }}" \
+            --family "${{ matrix.family }}"
+      - name: Preserve native baseline and validation metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-ask-candidate-baseline-${{ matrix.family }}
+          path: |
+            ${{ runner.temp }}/eu-baseline-${{ matrix.family }}/result.json
+            ${{ runner.temp }}/eu-baseline-${{ matrix.family }}/winner.ubj
+          if-no-files-found: warn
+          retention-days: 14
+
+  compare:
+    needs: [prepare, ray, baselines]
+    if: ${{ always() && needs.prepare.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install validation/single final test dependencies
+        run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'xgboost>=2.1.3,<2.2'
+      - name: Fetch available Ray and baseline validation candidates
+        uses: actions/download-artifact@v4
+        with:
+          pattern: eu-ask-candidate-*
+          path: ${{ runner.temp }}/candidates
+          merge-multiple: false
+      - name: Retrieve holdout manifest and features
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-ask-fit-data
+          path: ${{ runner.temp }}/eu-fit
+      - name: Unseal test once after validation selection
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-ask-sealed-test
+          path: ${{ runner.temp }}/eu-fit
+      - name: Select by validation CVaR95 and score ONE test winner
+        run: |
+          python -u -m scripts.europe_price_ray aggregate \
+            --root "$RUNNER_TEMP/candidates" \
+            --splits "$RUNNER_TEMP/eu-fit" \
+            --output "$RUNNER_TEMP/eu-comparison"
+      - name: Preserve final European ASK research leaderboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: european-ask-ray-1h-10way-aft-huber-comparison
+          path: |
+            ${{ runner.temp }}/eu-comparison/comparison.json
+            ${{ runner.temp }}/eu-comparison/winner.ubj
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,25 @@
+name: European deduplication — PAUSED (no processing)
+
+on:
+  push:
+    branches:
+      - feature/europe-dedupe-granite-20261109
+    paths:
+      - '.github/workflows/europe-make-parallel.yml'
+
+permissions:
+  contents: read
+
+# Keep the identical concurrency group: a push of this pause workflow
+# cancels the active deduplication run and does not launch replacement work.
+concurrency:
+  group: europe-make-parallel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stopped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirm user-requested stop
+        run: echo "European deduplication paused at user request; no matching or thinning runs."
