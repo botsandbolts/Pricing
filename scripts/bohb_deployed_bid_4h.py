@@ -84,10 +84,8 @@ def space(tune, original, features):
     # Vary optimizer, FM factor rank, DeepFM geometry, robust objective,
     # regularization, training schedule and tail-risk emphasis.
     return {
-        "features": str(Path(features).resolve()),
-        "family": "deepfm",
-        "loss": "cvar95_weighted_huber",
-        "seed": SEED,
+        # BOHB only receives tunable keys. Constants are injected into the
+        # Trainable.setup config, preventing hpbandster unknown-key crashes.
         "rank": tune.choice([16, 32]),
         "shape": tune.choice(["96x48x1", "128x64x2", "192x96x2",
                               "256x128x3", "128x64x3"]),
@@ -104,10 +102,6 @@ def space(tune, original, features):
         "tail_frac": tune.choice([0.03, 0.05, 0.08, 0.10, 0.15]),
         "tail_weight": tune.uniform(0.05, 1.0),
         "usd_scale": tune.choice([5000.0, 10000.0, 20000.0, 30000.0]),
-        # Not used by this deployed Huber loss; held fixed to avoid
-        # wasting BOHB samples on nominally different, identical fits.
-        "tau": float(original["tau"]),
-        "sigma_floor": float(original["sigma_floor"]),
     }
 
 
@@ -116,7 +110,10 @@ def incumbent_point(manifest, features):
     c["features"] = str(Path(features).resolve())
     c["seed"] = SEED
     bound_config(c)
-    return c
+    # ConfigSpace omits Constant entries. Supplying fixed fields to
+    # TuneBOHB.points_to_evaluate makes hpbandster crash on trial results.
+    fixed = {"features","family","loss","seed","tau","sigma_floor"}
+    return {k:v for k,v in c.items() if k not in fixed}
 
 
 def _trainable_class():
@@ -125,9 +122,14 @@ def _trainable_class():
 
     class FullNonLemonBOHB(Base):
         def setup(self, config):
-            if config["family"] != "deepfm" or config["loss"] != "cvar95_weighted_huber":
-                raise ValueError("Only the deployed DeepFM/HUBER objective is admissible")
-            super().setup(config)
+            # These exact constants are intentionally NOT part of the BOHB
+            # sampler/ConfigSpace; their training-time values remain frozen.
+            full = {**dict(config),
+                "features":os.environ["BOHB_FULL_FEATURES"],
+                "family":"deepfm","loss":"cvar95_weighted_huber",
+                "seed":SEED,"tau":0.2,"sigma_floor":0.15}
+            bound_config(full)
+            super().setup(full)
             # One CPU core per training slot: 5 shards x 2 slots = 10 workers.
             torch.set_num_threads(1)
 
@@ -193,13 +195,17 @@ def smoke(features, root):
     from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
     from ray import tune
     manifest, meta = preflight(features, root)
-    config = incumbent_point(manifest, features)
+    point = incumbent_point(manifest, features)
+    config = {**point,"features":str(Path(features).resolve()),
+              "family":"deepfm","loss":"cvar95_weighted_huber",
+              "seed":SEED,"tau":0.2,"sigma_floor":0.15}
+    bound_config(config)
     search_space = space(tune,config,features)
     # Actual conversion to ConfigSpace is necessary: older Ray BOHB supplies
     # keyword q= when building ConfigSpace hyperparameters. This explicitly
     # rejects an incompatible ConfigSpace 1.x before a four-hour matrix runs.
     conversion_probe=TuneBOHB(metric=METRIC,mode="min",seed=20261109,
-        points_to_evaluate=[config])
+        points_to_evaluate=[point])
     if not conversion_probe.set_search_properties(METRIC,"min",search_space):
         raise RuntimeError("TuneBOHB could not register the complete search space")
     print("BID_BOHB_CONFIGSPACE_CONVERSION_OK",flush=True)
@@ -208,7 +214,7 @@ def smoke(features, root):
         metric=METRIC,mode="min",max_t=MAX_EPOCHS,reduction_factor=3,
         stop_last_trials=False)
     searcher = TuneBOHB(metric=METRIC,mode="min",seed=20261109,
-        points_to_evaluate=[config])
+        points_to_evaluate=[point])
     if scheduler is None or searcher is None:
         raise AssertionError("Ray BOHB searcher/scheduler not constructed")
     torch.manual_seed(11)
@@ -315,6 +321,7 @@ def run_shard(args):
                       float(manifest["original_validation"]["CVaR95_absolute_USD"])},
     }
     (report_dir/"status.json").write_text(json.dumps(state,indent=2)+"\n")
+    os.environ["BOHB_FULL_FEATURES"]=str(Path(args.features).resolve())
     # Ray's AF_UNIX sockets have a 107-byte Linux path limit; checkout paths
     # on GitHub Actions are long. Use a short /tmp root for Ray internals.
     short_ray_tmp=Path("/tmp")/("rb4h"+str(args.shard))
@@ -397,13 +404,13 @@ def run_shard(args):
         if len(exact_val)!=82380:
             raise ValueError("Original full validation count drifted")
         network=BidNetwork(meta["cardinalities"],
-            float(np.median(np.log(z["y"][phase=="train"]))),winner.config)
+            float(np.median(np.log(z["y"][phase=="train"]))),saved["config"])
         network.load_state_dict(saved["best_state"] or saved["state"],strict=True)
         observed=z["y"][exact_val].astype(np.float64)
         pred=prices(network,z["num"][exact_val],z["cat"][exact_val])
         validation=_risk_exact(observed,pred)
         state["winner_original_validation"]=validation
-        state["winner_config"]=dict(winner.config)
+        state["winner_config"]=dict(saved["config"])
         state["winner_best_epoch"]=int(saved["best_epoch"])
         state["winner_selected_on"]="TRAIN internal CVaR95, not original validation"
         (report_dir/"status.json").write_text(json.dumps(state,indent=2)+"\n")
@@ -411,7 +418,7 @@ def run_shard(args):
         folder.mkdir(parents=True,exist_ok=True)
         torch.save({
             "state_dict":saved["best_state"] or saved["state"],
-            "config":dict(winner.config),
+            "config":dict(saved["config"]),
             "cards":meta["cardinalities"],
             "source_sha256":meta["cohort_sha256"],
             "original_test_scored":False,
@@ -420,7 +427,7 @@ def run_shard(args):
         (folder/"winner.json").write_text(json.dumps({
             "shard":args.shard,"internal_CVaR95_USD":score,
             "best_epoch":int(saved["best_epoch"]),
-            "validation":validation,"configuration":dict(winner.config),
+            "validation":validation,"configuration":dict(saved["config"]),
             "original_test_scored":False,"production_modified":False,
         },indent=2,allow_nan=False)+"\n")
         print("BID_BOHB_4H_SHARD_WINNER",json.dumps({
