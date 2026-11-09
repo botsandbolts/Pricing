@@ -44,7 +44,7 @@ jobs:
           run-id: 42249111756
           github-token: ${{ github.token }}
           path: training-cache/neural-bid
-      - name: Confirm genuine BOHB imports, deployed data and safe loss gradients
+      - name: Confirm BOHB with a complete small-scale Ray Tune trial and safe loss gradients
         run: |
           python -m compileall -q scripts/bohb_deployed_bid_4h.py scripts/ray_bid_9am.py
           python -u -m scripts.bohb_deployed_bid_4h --smoke
