@@ -63,3 +63,33 @@ Annotate a stratified random sample of automatic pairs, review pairs and hard ne
 There are no VINs or actual image bytes in the published dataset schema, so true physical identity cannot always be established. Verify first-registration date conventions, same-ID recycling, seller relocations and missing values. Do not treat similarities as definitive proof of identical vehicles.
 
 Existing American ASK/BID models, dependencies, navigation and Streamlit deployment remain unchanged.
+
+
+## Pragmatic hard rule: no manual review queue in the main training path
+
+For users who prefer sacrificing a small number of near-identical examples over reviewing hundreds of ambiguous pairs, add:
+
+~~~bash
+python -m pricing.europe_dedupe \
+  --input /path/to/train-00000-of-00001.parquet \
+  --output /path/to/eu-identity-and-thinning \
+  --granite --thin-review-candidates
+~~~
+
+This retains **two** cohorts:
+- **Identity-canonical**: only high-confidence actual listing-ID/identity matches collapsed (original behaviour).
+- **Training-thinned**: an additional optional subsample where each review-candidate pair has at least one endpoint omitted.
+
+The algorithm builds the undirected graph of review edges and greedily selects a **maximal independent set** of records, ranking those with the greatest non-target **information completeness** first (full registration date, mileage, horsepower, version richness, locality, fuel, transmission, colour and available listing ID). In ties the lowest original row index wins. **Asking-price magnitude is deliberately excluded from the quality score.** This avoids preferring expensive cars simply because they have a higher asking price.
+
+Thus, 686 review *pairs* do not necessarily mean 686 deleted *rows*. Overlapping edges can yield fewer exclusions. A-B-C similarity chains are **not** merged as physical identities. The extra exclusions are reversible and marked **similarity-thinned, not proven duplicate**.
+
+Additional results:
+- `training_thinned_listings.parquet` (or CSV): optional alternate research-training view.
+- `training_thinning_mapping.csv`: every original row to its training representative and retention decision.
+- `training_thinning_decisions.csv`: which canonical row lost to which more informative row, with quality scores.
+- `audit.json.training_thinning`: count excluded, percent of raw rows and country breakdown.
+
+When using `--sample` or `--no-canonical-export`, mappings and decisions still exist, but neither canonical nor training-thinned raw listings are exported.
+
+**Do not call these rows verified duplicates.** This is density reduction and may disproportionately remove ordinary, popular vehicles sharing similar specs. Compare the two trained models on an **identical untouched held-out set**, grouped to prevent possible cross-post leakage, including per-country MAE and CVaR95. Retain this optional policy only if results improve (or do not materially degrade) by-country accuracy and error calibration. Maintain both cohorts and all raw data.
