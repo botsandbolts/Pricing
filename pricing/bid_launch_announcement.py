@@ -17,6 +17,10 @@ def _live_winner_banner():
     internal=float(m["retrained_internal_CVaR95_USD"])
     external=float(m["original_validation"]["CVaR95_absolute_USD"])
     mae=float(m["original_validation"]["MAE_USD"])
+    rmse=float(m["original_validation"]["RMSE_USD"])
+    cfg=m["configuration"]
+    prior_cvar95=8436.360576611467
+    delta_percent=(external/prior_cvar95-1.0)*100.0
     return f"""
 <section role="region" aria-labelledby="bid-breakthrough-title"
   style="background:linear-gradient(125deg,#082d35 0%,#114452 58%,#183c35 100%);
@@ -24,40 +28,70 @@ def _live_winner_banner():
          padding:clamp(17px,3.6vw,28px);margin:4px 0 17px;
          box-shadow:0 12px 28px rgba(7,34,42,.19)">
   <div style="color:#ffe49a;font-weight:900;letter-spacing:.08em;font-size:.8rem">
-    🚀 LIVE BID ENGINE · INDEPENDENT · MADE IN GERMANY 🇩🇪 · 9 NOV 2026
+    ✅ DEPLOYED · LIVE BID ENGINE · INDEPENDENT · MADE IN GERMANY 🇩🇪 · 9 NOV 2026
   </div>
   <h2 id="bid-breakthrough-title" style="color:#fff8d9;font-size:clamp(1.6rem,4vw,2.5rem);
     font-weight:900;line-height:1.15;margin:13px 0">
-    The new wholesale engine is on the road. No lemons. 🍋🚫
+    Deployed! Meet the new Ray Tune Bid brain. 🧠🚗🍋🚫
   </h2>
   <p style="color:#f5fffa;font-size:1.05rem;line-height:1.55">
-    A newly retrained, unblended <strong>DeepFM16</strong> predicts historical
-    wholesale auction sale prices. Its loss is
-    <strong>CVaR95-weighted Huber</strong> — not AFT. We chose this architecture
-    using <strong>TRAIN-internal</strong> worst-tail errors; we do not
-    describe that score as independent accuracy.
+    The <strong>Ray Tune TRAIN-internal CVaR95 winner</strong> is now deployed:
+    a newly retrained <strong>non-Lemon DeepFM16</strong> model using
+    <strong>CVaR95-weighted Huber loss</strong>, not AFT.
+    It estimates historical wholesale auction sale prices from structured vehicle
+    facts. No Lemon exclusions, no XGBoost blending, no seller-description encoder.
+    The model aims to limit costly tail errors, rather than optimizing only the average.
   </p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
     gap:12px;margin:13px 0">
     <div style="padding:15px;border:1px solid #ffffff61;border-radius:14px;background:#ffffff12">
       <small style="color:#d5e7e1">TRAIN-internal CVaR95 · selection</small>
-      <strong style="display:block;color:#ffe49a;font-size:1.7rem">$ {internal:,.2f}</strong>
+      <strong style="display:block;color:#ffe49a;font-size:1.7rem">&#36;{internal:,.2f}</strong>
     </div>
     <div style="padding:15px;border:1px solid #ffffff61;border-radius:14px;background:#ffffff12">
       <small style="color:#d5e7e1">Untouched original validation · CVaR95</small>
-      <strong style="display:block;color:#ffe49a;font-size:1.7rem">$ {external:,.2f}</strong>
+      <strong style="display:block;color:#ffe49a;font-size:1.7rem">&#36;{external:,.2f}</strong>
     </div>
     <div style="padding:15px;border:1px solid #ffffff61;border-radius:14px;background:#ffffff12">
       <small style="color:#d5e7e1">Untouched original validation · MAE</small>
-      <strong style="display:block;color:#ffe49a;font-size:1.7rem">$ {mae:,.2f}</strong>
+      <strong style="display:block;color:#ffe49a;font-size:1.7rem">&#36;{mae:,.2f}</strong>
     </div>
   </div>
+  <div style="background:#ffffff10;border:1px solid #ffffff4f;
+    padding:14px 16px;border-radius:14px;margin:12px 0">
+    <strong style="color:#ffe49a">🔬 Inside the Ray Tune winning model</strong>
+    <p style="margin:8px 0;color:#f7faf9;line-height:1.54">
+      Ten parallel shards compared 14 loss functions across four model families.
+      The selected architecture combines <strong>rank {int(cfg["rank"])}
+      factorization-machine interactions</strong> with a
+      <strong>{escape(cfg["shape"])} GELU neural branch</strong>.
+      The objective adds a dollar-denominated penalty for the
+      <strong>worst {int(float(cfg["tail_frac"])*100)}% of prediction errors</strong>
+      to robust Huber regression on log prices. The tail penalty weight is
+      <strong>{float(cfg["tail_weight"]):.2f}</strong>.
+    </p>
+    <p style="margin:8px 0;color:#d6ede6;font-size:.9rem;line-height:1.55">
+      Exact training setup: RAdam optimizer · cosine learning-rate schedule ·
+      learning rate {float(cfg["lr"]):.7f} ·
+      dropout {float(cfg["dropout"])*100:.0f}% ·
+      batch size {int(cfg["batch"]):,} ·
+      best saved epoch {int(m["retrained_best_epoch"])}.
+      From {int(m["training_split"]["full_train"]):,} original TRAIN cars,
+      {int(m["training_split"]["fit"]):,} fitted the weights and
+      {int(m["training_split"]["inner"]):,} selected the checkpoint.
+      Original validation contains {int(m["original_validation"]["rows"]):,}
+      other cars (MAE &#36;{mae:,.2f}, RMSE &#36;{rmse:,.2f}).
+    </p>
+  </div>
   <p style="color:#d8eeea;font-size:.94rem;line-height:1.55">
-    CVaR95 is the mean dollar error among the worst 5% of predictions.
-    Historical 2014–15 sales are not a guaranteed quote today. Compared
-    with the previous BOHB Bid release's $8,436 validation CVaR95,
-    this model's independent validation tail error is <strong>higher</strong>,
-    despite winning on the internal TRAIN split. We show both — no smoke and mirrors.
+    <strong>What does CVaR95 measure?</strong> The mean absolute dollar error
+    among the worst 5% of cars. The smaller TRAIN-internal figure is a
+    <em>selection</em> metric, not independent accuracy.
+    On untouched original validation, this winner's CVaR95 is
+    <strong>{delta_percent:.1f}% higher</strong> than the previous BOHB Bid
+    release's &#36;{prior_cvar95:,.2f}. An internal win is not proof of
+    better generalization. Historical 2014–15 results do not validate 2026 prices.
+    The original TEST data were not used to choose this checkpoint.
   </p>
   <div style="padding:12px 15px;border-left:4px solid #f8d67a;background:#071f2780">
     <strong style="color:#ffe49a">🛃 Customs &amp; law enforcement</strong>
@@ -70,11 +104,14 @@ def _live_winner_banner():
   <details style="margin-top:12px;color:#dff2eb">
     <summary style="cursor:pointer;color:#ffe49a;font-weight:800">🔬 The actual science</summary>
     <p>
-      We trained on original non-Lemon wholesale records, reserving 10% of TRAIN
-      for internal selection. No Lemon exclusions, XGBoost blend, text encoder
-      or invented censoring intervals. AFT, interval likelihoods and other
-      losses were competing experiments, <em>not</em> the installed objective.
-      The original TEST set was not used to choose or evaluate this retraining.
+      The original unfiltered, non-Lemon auction dataset contains exact sale
+      prices with no verified interval-censoring bounds; none were invented.
+      We reserved 10% of TRAIN for internal selection. No Lemon exclusions,
+      XGBoost blend or text encoder. AFT and interval likelihood objectives
+      were among competing experiments, <em>not</em> the installed objective.
+      Robust Huber loss does not automatically correct truncation or
+      selection bias. The original TEST set was not used to choose or evaluate
+      this retraining.
     </p>
   </details>
   <p style="font-size:.87rem;color:#ffe49a;font-weight:700;margin:15px 0 0">
