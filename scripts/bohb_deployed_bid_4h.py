@@ -229,17 +229,17 @@ def smoke(features, root):
     from ray.tune.search import ConcurrencyLimiter
     class _SmallBOHB(tune.Trainable):
         def setup(self, config):
-            self.iteration = 0
+            self._tiny_epoch = 0
         def step(self):
-            self.iteration += 1
-            return {METRIC:1.0/float(self.iteration)+float(self.config["x"])}
+            self._tiny_epoch += 1
+            return {METRIC:1.0/float(self._tiny_epoch)+float(self.config["x"])}
         def save_checkpoint(self, checkpoint_dir):
             p=Path(checkpoint_dir)
             p.mkdir(parents=True,exist_ok=True)
-            (p/"step.txt").write_text(str(self.iteration))
+            (p/"step.txt").write_text(str(self._tiny_epoch))
             return str(p)
         def load_checkpoint(self, checkpoint_dir):
-            self.iteration=int((Path(checkpoint_dir)/"step.txt").read_text())
+            self._tiny_epoch=int((Path(checkpoint_dir)/"step.txt").read_text())
     temp=Path("/tmp/rb4h-test")
     temp.mkdir(parents=True,exist_ok=True)
     ray.init(num_cpus=2,include_dashboard=False,
