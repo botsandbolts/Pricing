@@ -51,18 +51,41 @@ class AFTPricePipeline:
         if self.manifest['text_feature']:
             if text_price is None or not np.isfinite(text_price):raise ValueError('Finite description-price feature required')
             x['predicted_text_price']=float(text_price)
+        # Preserve ORIGINAL training-time category ordering. Reordering codes
+        # to a more limited vocabulary would silently change every split.
         encoded=encode(apply_category_pooling(x,self.manifest.get('category_pooling',{})),self.schema)
         for name,levels in self._trained_categories.items():
             if name in encoded:
-                encoded[name]=pd.Categorical(encoded[name].astype(object),categories=levels)
+                encoded[name]=encoded[name].where(encoded[name].isin(levels))
         return encoded[self.names]
 
+    def _dmatrix(self,frame,text_price=None):
+        """Version-stable categorical inference with original saved category codes.
+
+        XGBoost 3.2 may reject unused labels carried in a pandas categorical
+        dictionary from a 3.4-trained model. Explicit categorical feature types
+        plus ORIGINAL saved training codes preserve every trained split while
+        avoiding that incompatible name-recoding path. Unknown names are NaN.
+        """
+        import xgboost as xgb
+        encoded=self.encoded(frame,text_price)
+        numeric=encoded.copy()
+        for name in self.schema:
+            if name in numeric:
+                codes=encoded[name].cat.codes.astype(float)
+                numeric[name]=codes.where(codes>=0,np.nan)
+        return xgb.DMatrix(numeric,enable_categorical=True,nthread=4,
+                           feature_types=['c' if name in self.schema else 'q'
+                                          for name in self.names])
+
     def predict_frame(self,frame,text_price=None):
-        return predict(self.model,'xgb_aft_normal',self.encoded(frame,text_price))
+        value=np.asarray(self.model.predict(self._dmatrix(frame,text_price)),float)
+        if not np.isfinite(value).all():raise ValueError('Nonfinite AFT estimate')
+        return np.clip(value,0,1e7)
 
     def native(self,frame,text_price=None):
         import xgboost as xgb
-        x=self.encoded(frame,text_price);dm=xgb.DMatrix(x,enable_categorical=True,nthread=4)
+        x=self.encoded(frame,text_price);dm=self._dmatrix(frame,text_price)
         values=np.asarray(self.model.predict(dm,pred_contribs=True),float)
         margin=np.asarray(self.model.predict(dm,output_margin=True),float)
         error=float(np.max(abs(values.sum(axis=1)-margin)))
