@@ -1,0 +1,15 @@
+{
+  "model": "HOFM3 Tail-MAE",
+  "source_run_id": 42873011193,
+  "source_artifact_id": 13795163042,
+  "source_trial": "eu-nov26-neural-13",
+  "checkpoint_sha256": "53ea354530c17ce1191e4110d4f6a5d700fdccabe5fe8bd2f047fefb50d8edd2",
+  "schema_training_sha256": "31737673739584dc3a9debd8531e1c2e99eaeac24b4abeb269f695b07be172f1",
+  "schema_validation_sha256": "2a4b7f2e64e060b1ea01fedfe58bc151e90a2223fe03b517d6eacdbb94fa3ad8",
+  "sealed_test_sha256": "732db40bbcaf037d10c4c31769a8bd8fc819834bef69d6c94b732f2b3863ba28",
+  "release_status": "verified exact observed-ASK HOFM3 checkpoint",
+  "market": "Europe ASK only",
+  "source_dates": "2026-10-13",
+  "automatic_eurostat_adjustment": false,
+  "published_by": "verified artifact packaging; never retrain"
+}

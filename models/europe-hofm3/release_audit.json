@@ -1,0 +1,27 @@
+{
+  "verified": true,
+  "source_run_id": 42873011193,
+  "checkpoint_sha256": "53ea354530c17ce1191e4110d4f6a5d700fdccabe5fe8bd2f047fefb50d8edd2",
+  "observed_ask_rows": 1920996,
+  "training_rows": 1536801,
+  "validation_rows": 192149,
+  "test_rows": 192046,
+  "iso2_countries": [
+    "at",
+    "be",
+    "de",
+    "es",
+    "fr",
+    "it",
+    "nl",
+    "pl"
+  ],
+  "exact_saved_train_feature_and_label_rows": 1536801,
+  "input_and_forward_parity_samples": 30,
+  "snapshot_date": "2026-10-13",
+  "market_aggregates": 23952,
+  "sealed_test_cvar95_eur": 19954.90306572287,
+  "sealed_test_mae_eur": 2890.2625385367573,
+  "sealed_test_rmse_eur": 8817.475749082327,
+  "no_synthetic_time_adjustment": true
+}
