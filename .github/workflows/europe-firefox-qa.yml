@@ -11,6 +11,7 @@ on:
       - 'assets/europe_parody_*.svg'
       - 'assets/europe_parody_*.webp'
       - 'tests/firefox_europe_e2e.py'
+      - 'tests/firefox_us_panels_e2e.py'
       - '.github/workflows/europe-firefox-qa.yml'
   workflow_dispatch:
 
@@ -66,11 +67,14 @@ jobs:
             sleep 2
           done
           python -u tests/firefox_europe_e2e.py || { cat /tmp/europe_streamlit.log; exit 1; }
+          python -u tests/firefox_us_panels_e2e.py || { cat /tmp/europe_streamlit.log; exit 1; }
       - name: Upload actual Firefox desktop/mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: firefox-europe-release-evidence
-          path: artifacts/firefox-europe/
+          path: |
+            artifacts/firefox-europe/
+            artifacts/firefox-us-panels/
           if-no-files-found: warn
           retention-days: 30
