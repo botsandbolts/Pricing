@@ -244,7 +244,7 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
         if not REQUIRED.issubset(reader.schema_arrow.names):
             raise ValueError("Original Parquet missing required price/date/country fields.")
         with pq.ParquetWriter(
-            str(output), reader.schema_arrow.append(
+            str(output), pa.schema(list(reader.schema_arrow) + [
                 pa.field(PRICE_FIELD, pa.float64()),
                 pa.field(FACTOR_FIELD, pa.float64()),
                 pa.field(STATUS_FIELD, pa.string()),
@@ -252,7 +252,7 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 pa.field(AGE_MONTHS_FIELD, pa.float64()),
                 pa.field(FRESHNESS_FIELD, pa.bool_()),
                 pa.field(AGE_STATUS_FIELD, pa.string()),
-            ).with_metadata({
+            ]).with_metadata({
                 **(reader.schema_arrow.metadata or {}),
                 b"derived_data_license": LICENSE.encode(),
                 b"original_dataset": (
