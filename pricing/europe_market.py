@@ -17,6 +17,8 @@ import streamlit as st
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
 from pricing.europe_price_clock import adjusted_quote, read_index, level_at, month_number, month_label
+from pricing.europe_eurostat import (
+    eurostat_adjusted_quote, eurostat_level_at, read_eurostat)
 
 DATASET="https://huggingface.co/datasets/KTHESAT/european-used-car-market-2m-listings"
 NAV=[
@@ -225,6 +227,11 @@ def _edit_vehicle(schema):
                 snapshot=_snapshot((None,schema))
                 indexed,clock=adjusted_quote(
                     base_price,snapshot,chosen_date,country)
+                if indexed is None:
+                    # Country's official consumer used-car HICP is a plainly
+                    # labelled price-index proxy, NOT a hedonic Fisher ASK index.
+                    indexed,clock=eurostat_adjusted_quote(
+                        base_price,snapshot,chosen_date,country)
                 price=indexed if indexed is not None else base_price
                 st.session_state["eu_receipt"]={
                     "vehicle":vehicle,"price_eur":price,"base_price_eur":base_price,
@@ -234,10 +241,10 @@ def _edit_vehicle(schema):
                 }
                 st.success("Valuation calculated. Advertised ASK, not a completed sale.")
                 if indexed is None:
-                    st.warning("A valid date-adjusted index is unavailable for this "
-                               "country/date. The displayed price remains the "
-                               "dataset-era estimate; it is NOT a price for your "
-                               "selected date.")
+                    st.warning("Neither an approved hedonic Fisher index nor a "
+                               "published Eurostat used-car HICP adjustment is "
+                               "available for this country/date. The displayed "
+                               "price remains the dataset-era estimate.")
             except (ValueError,EuropeanModelUnavailable,RuntimeError) as exc:
                 st.error("Valuation unavailable: "+str(exc))
     return vehicle
@@ -268,15 +275,24 @@ def _receipt(bundle):
                 +". No daily market movement is assumed.")
     else:
         change=100*(float(clock["factor"])-1)
-        st.metric("Hedonic Fisher market movement · "
-                  +clock["base_month"]+" → "+clock["target_month"],
+        proxy=clock.get("dataset")=="prc_hicp_minr"
+        label=("Eurostat used-car HICP proxy" if proxy else "Hedonic Fisher index")
+        st.metric(label+" · "+clock["base_month"]+" → "+clock["target_month"],
                   f"{change:+.2f}%",
-                  help="Quality-adjusted monthly market index movement. It does not "
-                       "project additional mileage or vehicle ageing.")
+                  help=("Official consumer second-hand car index: a market proxy, "
+                        "NOT the app's own hedonic Fisher ASK index."
+                        if proxy else "Quality-adjusted Fisher asking-price index."))
         st.caption("Index status: **"+status+"**. "
-                   "Forecasts are damped log-Holt scenarios, not observed prices. "
-                   "The index isolates market movement and does not separately "
-                   "forecast vehicle depreciation.")
+                   +("**Eurostat HICP, second-hand cars (CP07112), 2025=100**: "
+                     "consumer retail-price proxy, NOT a hedonic Fisher ASK index. "
+                     if proxy else "**Hedonic Fisher asking-price index.** ")
+                   +"Damped log-Holt forecasts are scenarios, NOT observed data. "
+                   "No extra vehicle ageing or mileage is projected.")
+        if clock.get("source_last_published_month"):
+            st.caption("Last published Eurostat source month: **"
+                       +str(clock["source_last_published_month"])+"**. "
+                       "[Eurostat source](https://ec.europa.eu/eurostat/"
+                       "databrowser/view/prc_hicp_minr/default/table?lang=en).")
         if "trend_only_range" in clock:
             low,high=clock["trend_only_range"]
             st.caption("Illustrative trend-only forecast band: "
@@ -641,9 +657,87 @@ def _garage_choices():
     st.caption("This is a listing-coverage explorer, not a garage recommendation or user-preference model.")
 
 
+
+def _eurostat_index_panel():
+    st.markdown("#### 🇪🇺 Eurostat · second-hand car price clock")
+    st.caption("Official monthly HICP for second-hand motor cars (ECOICOP **CP07112**), "
+               "base 2025=100. This is a consumer-price **market proxy**, not "
+               "our own hedonic Fisher index of asking-price advertisements.")
+    source=read_eurostat()
+    if source.get("status")!="validated" or not source.get("countries"):
+        st.warning(source.get("message") or
+                   "No verified Eurostat used-car monthly index is packaged.")
+        return
+    countries=source["countries"]
+    country=st.selectbox("National second-hand-car index",sorted(countries),
+                         format_func=lambda x:COUNTRIES.get(x,x),
+                         key="eu_hicp_country")
+    record=countries[country]
+    rows=pd.DataFrame(record.get("months",[]))
+    if rows.empty or not {"month","index"}.issubset(rows.columns):
+        st.warning("The published index has no usable monthly observations.")
+        return
+    rows=rows.sort_values("month").copy()
+    last=rows.iloc[-1]
+    earlier=rows.iloc[-13] if len(rows)>=13 else rows.iloc[0]
+    a,b,c=st.columns(3)
+    a.metric("Latest published month",str(last["month"]))
+    b.metric("Official used-car HICP",f'{float(last["index"]):.2f}')
+    c.metric("Change vs 12 months ago" if len(rows)>=13 else "Change over series",
+             f'{100*(float(last["index"])/float(earlier["index"])-1):+.2f}%')
+    st.caption("Official observations end at **"+str(last["month"])+"**. "
+               "Later dates are explicitly forecasts, never official data.")
+    horizon=st.slider("Damped Holt horizon · months",1,12,6,key="eu_hicp_horizon")
+    import plotly.graph_objects as go
+    fig=go.Figure()
+    fig.add_trace(go.Scatter(x=rows["month"],y=rows["index"],mode="lines",
+                             name="Eurostat · published",line=dict(color="#086c9c",width=3)))
+    last_index=month_number(str(last["month"]))
+    projected=[(month_label(last_index+i),
+                eurostat_level_at(source,country,month_label(last_index+i)))
+               for i in range(1,horizon+1)]
+    scenarios=[(m,p) for m,p in projected if p.get("method")=="holt_forecast"]
+    if scenarios:
+        fig.add_trace(go.Scatter(
+            x=[str(last["month"])]+[m for m,_ in scenarios],
+            y=[float(last["index"])]+[p["level"] for _,p in scenarios],
+            mode="lines+markers",name="Damped Holt · forecast",
+            line=dict(color="#d6882e",dash="dash",width=2)))
+        fig.add_trace(go.Scatter(
+            x=[m for m,_ in scenarios]+[m for m,_ in reversed(scenarios)],
+            y=[p["upper"] for _,p in scenarios]
+              +[p["lower"] for _,p in reversed(scenarios)],
+            fill="toself",fillcolor="rgba(214,136,46,0.13)",
+            line=dict(width=0),hoverinfo="skip",name="Trend-model band"))
+    fig.update_layout(title=f"Second-hand car prices · {COUNTRIES.get(country,country)}",
+                      xaxis_title="Month",yaxis_title="HICP · 2025=100",
+                      height=410,legend=dict(orientation="h"),
+                      margin=dict(l=10,r=10,t=54,b=10))
+    st.plotly_chart(fig,use_container_width=True)
+    st.caption("Blue: published Eurostat monthly consumer price index. "
+               "Orange: modelled, unobserved damped-Holt scenario. "
+               "Shaded area: trend-model diagnostics, NOT individual "
+               "vehicle-price confidence intervals.")
+    st.download_button("⬇️ Download Eurostat published monthly series (CSV)",
+                       rows.to_csv(index=False).encode("utf-8"),
+                       file_name="eurostat_second_hand_car_"+country+".csv",
+                       mime="text/csv",key="eu_hicp_download")
+    with st.expander("📚 Official source, coverage and economic meaning"):
+        st.markdown("Source: [Eurostat HICP · ECOICOP version 2]"
+                    "(https://ec.europa.eu/eurostat/databrowser/view/"
+                    "prc_hicp_minr/default/table?lang=en). "
+                    "Dataset \`prc_hicp_minr\`, code \`CP07112\`, unit \`I25\` "
+                    "(2025=100). This measures national consumer second-hand car "
+                    "price changes. It is an interim **proxy** for changes "
+                    "in classified advertisement ASK prices.")
+        st.dataframe(rows,use_container_width=True,hide_index=True)
+
 def _price_indices():
     """European price clock: empirical coverage first, no fabricated time series."""
     st.markdown("### 📈 European Price Index Observatory")
+    _eurostat_index_panel()
+    st.divider()
+    st.markdown("#### 🧪 Hedonic Fisher · independent listing research")
     st.caption("The market has a pulse. We measure it without confusing more "
                "expensive cars on offer with an actual increase in like-for-like prices.")
     one,two,three,four=st.columns(4)
