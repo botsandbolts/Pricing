@@ -1,5 +1,6 @@
 """Presentation-only design system for Car Price Studio. No prediction logic."""
 from html import escape
+from pricing.i18n import editorial_voice
 import json
 from pathlib import Path
 import streamlit as st
@@ -36,6 +37,7 @@ def landing_banner_html():
     """Self-contained local SVG and semantic anchor. Nothing external loads."""
     from pricing.garage_art import hero_svg
     art=hero_svg()
+    local_headline, local_invitation = editorial_voice()
     return f"""
 <section class="garage-home-hero" aria-labelledby="garage-home-title">
   <div class="garage-home-copy">
@@ -46,6 +48,7 @@ def landing_banner_html():
       with a mysterious rattle? Meet two <strong>historical U.S. price perspectives</strong>:
       seller <strong>Ask</strong> and wholesale <strong>Bid</strong>.
       Zero crystal balls. Your mechanic gets the last word.</p>
+    <p class="garage-home-lead"><strong>{escape(local_headline)}</strong><br>{escape(local_invitation)}</p>
     <div class="garage-home-actions">
       <a class="garage-home-cta" href="#studio-calculator" target="_self"
          aria-label="Go to the car pricing calculator">🚗 Price my car — let's roll <span aria-hidden="true">→</span></a>
