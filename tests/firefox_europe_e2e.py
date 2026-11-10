@@ -83,6 +83,52 @@ def test_device(browser,device,width,height):
     assert any(w>4 for w in widths), "ResMLP price-impact graphics are empty"
     assert page.locator('[data-testid="stException"]').count()==0
     diagnose(page,device+"-valuation")
+    # Exercise every European panel with the actual ResMLP receipt in memory.
+    # One broken panel must not hide failures in the rest of the application.
+    expected={
+        "🔎 Listing Inspector":"Listing Inspector",
+        "📉 Value over time":"Value over time",
+        "📊 Evaluation":"European evaluation",
+        "🧪 Model lab":"Ray Tune model lab",
+        "🔬 The science":"Under the bonnet",
+        "🕵️ Deal Detective":"Deal Detective",
+        "🧹 Outlier lab":"Outlier Lab",
+        "🌍 Market intelligence":"Market intelligence",
+        "🏪 Merchant lens":"Merchant lens",
+        "🚦 Pick your garage":"Pick your garage",
+    }
+    failures=[]
+    for label,heading in expected.items():
+        try:
+            pill=page.get_by_role("button",name=label,exact=True)
+            if not pill.count():
+                pill=page.get_by_role("radio",name=label,exact=True)
+            if not pill.count():
+                raise AssertionError("Panel control is missing: "+label)
+            pill.first.click(timeout=20000)
+            expect(page.get_by_text(heading,exact=False).first).to_be_visible(timeout=60000)
+            if page.locator('[data-testid="stException"]').count():
+                raise AssertionError("Uncaught Streamlit error")
+            box=page.evaluate("""() => ({
+                width:document.documentElement.clientWidth,
+                overflow:document.documentElement.scrollWidth
+            })""")
+            if box["overflow"]>box["width"]+8:
+                raise AssertionError("Horizontal overflow: "+repr(box))
+        except Exception as exc:
+            failures.append(label+": "+str(exc)[:280])
+            page.screenshot(path=str(ART/(device+"-panel-error-"+str(len(failures))+".png")),full_page=True)
+    # Go back and check the valuation persists rather than resetting the user.
+    try:
+        pricing=page.get_by_role("button",name="🚗 Price my car",exact=True)
+        if not pricing.count():
+            pricing=page.get_by_role("radio",name="🚗 Price my car",exact=True)
+        pricing.first.click(timeout=20000)
+        expect(page.locator(".eu-result strong")).to_be_visible(timeout=60000)
+        diagnose(page,device+"-return-to-pricing")
+    except Exception as exc:
+        failures.append("Return to pricing lost receipt: "+str(exc)[:280])
+    assert not failures, "European workspace failures: "+" | ".join(failures)
     assert not problems,f"Firefox JavaScript exceptions: {problems[:5]}"
     page.close()
 
