@@ -27,6 +27,34 @@ def diagnose(page,label):
         raise AssertionError("Page has horizontal overflow on "+label+": "+repr(sizes))
     return sizes
 
+
+def navigate_europe_panel(page,label):
+    """Operate Streamlit selectbox by accessibility roles, not BaseWeb internals."""
+    picker=page.locator('[data-testid="stSelectbox"]').filter(
+        has_text="European Studio panels").first
+    expect(picker).to_be_visible(timeout=20000)
+    control=picker.get_by_role("combobox").first
+    if not control.count():
+        control=picker.get_by_role("button").first
+    if not control.count():
+        control=picker.locator("input").first
+    if not control.count():
+        control=picker.locator("[tabindex='0']").first
+    if not control.count():
+        print("EU_NAV_DOM",picker.evaluate("(n)=>n.outerHTML.slice(0,5000)"),flush=True)
+        control=picker
+    control.click(timeout=10000)
+    option=page.get_by_role("option",name=label,exact=True)
+    if option.count():
+        option.first.click(timeout=10000)
+        return
+    text=page.get_by_text(label,exact=True)
+    if text.count():
+        text.last.click(timeout=10000)
+        return
+    print("EU_NAV_DOM",picker.evaluate("(n)=>n.outerHTML.slice(0,5000)"),flush=True)
+    raise AssertionError("Navigation option not found after opening: "+label)
+
 def test_device(browser,device,width,height):
     page=browser.new_page(viewport={"width":width,"height":height},
                           device_scale_factor=1,locale="en-US")
@@ -102,13 +130,7 @@ def test_device(browser,device,width,height):
     failures=[]
     for label,heading in expected.items():
         try:
-            picker=page.locator('[data-testid="stSelectbox"]').filter(
-                has_text="European Studio panels").first
-            expect(picker).to_be_visible(timeout=20000)
-            picker.locator('[data-baseweb="select"]').first.click(timeout=20000)
-            option=page.get_by_role("option",name=label,exact=True)
-            expect(option.first).to_be_visible(timeout=15000)
-            option.first.click(timeout=20000)
+            navigate_europe_panel(page,label)
             expect(page.locator("h1,h2,h3").filter(has_text=heading).first).to_be_visible(timeout=60000)
             if page.locator('[data-testid="stException"]').count():
                 raise AssertionError("Uncaught Streamlit error")
@@ -123,10 +145,7 @@ def test_device(browser,device,width,height):
             page.screenshot(path=str(ART/(device+"-panel-error-"+str(len(failures))+".png")),full_page=True)
     # Go back and check the valuation persists rather than resetting the user.
     try:
-        picker=page.locator('[data-testid="stSelectbox"]').filter(
-            has_text="European Studio panels").first
-        picker.locator('[data-baseweb="select"]').first.click(timeout=20000)
-        page.get_by_role("option",name="🚗 Price my car",exact=True).first.click(timeout=20000)
+        navigate_europe_panel(page,"🚗 Price my car")
         expect(page.locator(".eu-result strong")).to_be_visible(timeout=60000)
         diagnose(page,device+"-return-to-pricing")
     except Exception as exc:
