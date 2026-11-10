@@ -62,6 +62,12 @@ def _css():
     .st-key-eu_parody_banner [data-testid="stImage"]{border-radius:12px;overflow:hidden}
     .eu-parody-tagline{color:#ff991f!important;text-align:left;font-size:clamp(.85rem,1.7vw,1.2rem);
       font-weight:950;letter-spacing:.055em;margin:8px 3px 2px}
+    .eu-steps{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:12px 0 17px}
+    .eu-step{flex:1 1 175px;min-width:0;border:1px solid #83b9ac;border-radius:13px;padding:14px;background:rgba(42,106,106,.08)}
+    .eu-step b{display:block;margin:0 0 6px;font-size:.95rem;color:inherit}
+    .eu-step span{font-size:.86rem;line-height:1.5;display:block}
+    .eu-arrow{display:flex;align-items:center;font-size:2rem;color:#298e81;font-weight:bold}
+    @media(max-width:650px){.eu-step{flex:1 1 100%}.eu-arrow{display:none}}
     </style>""",unsafe_allow_html=True)
 
 def _parody_banner():
@@ -89,9 +95,9 @@ def _header():
       <h1>From Hamburg to Rome. Same love of cars.<br>Less guessing. More evidence.</h1>
       <p>Research-backed used-car <b>asking-price estimates</b> for supported European
          markets. No fictional auction bids. No registration. No advertising.
-         Just a carefully tested XGBoost engine with the science left in.</p>
+         Now powered by our independently tested ResMLP neural network: a fresh way to reduce expensive pricing mistakes.</p>
       <div class="eu-tags"><span>🇩🇪 Built independently in Germany</span>
-        <span>€ Advertised Ask, not sale price</span><span>🔍 Explainable AI</span>
+        <span>€ Advertised Ask, not sale price</span><span>📊 Real what-if estimates</span>
         <span>🛡️ Worst-error risk measured</span></div></section>""",
         unsafe_allow_html=True)
 
@@ -192,7 +198,7 @@ def _edit_vehicle(schema):
                 price=estimate(vehicle)
                 st.session_state["eu_receipt"]={
                     "vehicle":vehicle,"price_eur":price,"snapshot":_snapshot((None,schema)),
-                    "market":"Europe","engine":"XGBoost Gaussian AFT · rank-1 sealed-test winner"
+                    "market":"Europe","engine":"ResMLP Tail-MAE · verified European release"
                 }
                 st.success("Valuation complete. The estimate is for a dataset-era advert, not a guaranteed sale.")
             except (ValueError,EuropeanModelUnavailable,RuntimeError) as exc:
@@ -201,36 +207,42 @@ def _edit_vehicle(schema):
 
 def _receipt(bundle):
     quote=st.session_state.get("eu_receipt")
+    if quote and quote.get("engine")!="ResMLP Tail-MAE · verified European release":
+        st.session_state.pop("eu_receipt",None)
+        quote=None
+        st.info("European pricing was upgraded. Recalculate for a fresh ResMLP estimate.")
     if not quote:
-        st.info("Your European price receipt will appear here after valuation.")
+        st.info("Your European asking-price receipt will appear here after valuation.")
         return None
     st.markdown('<div class="eu-result"><small>EUROPEAN ADVERTISED ASK · EUR</small>'
                 '<strong>'+escape(money(quote["price_eur"]))+'</strong>'
-                '<p>Rank-1 Gaussian AFT · research estimate · no auction/Bid component</p>'
+                '<p>ResMLP neural network · independently validated · no auction/Bid component</p>'
                 '</div>',unsafe_allow_html=True)
-    st.caption("Historical listing-price research, not evidence of an actual sale. "
-               "Do not interpret the price as an insurance, customs or tax ruling.")
-    test=bundle[2]["winning_model"]["test_once"] if bundle else {}
+    st.caption("A historical advertised asking-price estimate, not evidence of a completed sale "
+               "or a customs, insurance, taxation or financing decision.")
+    test=bundle[2]["overall_champion"]["test_once"] if bundle else {}
     if test:
         a,b,c=st.columns(3)
-        a.metric("Held-out test MAE",money(test["mae_eur"]))
-        b.metric("Held-out test CVaR95",money(test["cvar95_absolute_eur"]))
-        c.metric("Test median absolute % error",f'{test["median_ape_pct"]:.2f}%')
-        st.caption("These are population-level test errors, not a guaranteed interval for this vehicle.")
-    if st.button("🔍 Why THAT price? · show model contributions",
+        a.metric("Sealed-test MAE",money(test["mae_eur"]))
+        b.metric("Worst 5% · CVaR95",money(test["cvar95_absolute_eur"]))
+        c.metric("Median absolute % error",f'{test["median_ape_pct"]:.2f}%')
+        st.caption("These are dataset-level errors, not a personal confidence interval.")
+    if st.button("🔍 What moves this price? · show real what-if graphics",
                  key="eu_explain_click",use_container_width=True):
         try:
             factors=explain(quote["vehicle"],bundle)
             if factors:
-                d=pd.DataFrame(factors[:12],columns=["Feature","log-price contribution"])
-                st.bar_chart(d.set_index("Feature"))
-                st.caption("Signed additive XGBoost contributions on the log-price scale. "
-                    "They show model associations, not causal effects.")
+                d=pd.DataFrame(factors,columns=["Change","Estimated € difference"])
+                st.bar_chart(d.set_index("Change"),horizontal=True)
+                st.caption("Each bar is a new ResMLP estimate after changing just one vehicle detail. "
+                           "Positive means a higher predicted asking price. "
+                           "These are hypothetical model sensitivities, not causal effects or SHAP attribution.")
             else:
-                st.info("Per-vehicle contributions were not available in this model format.")
+                st.info("No supported variations are available for this vehicle.")
         except (ValueError,RuntimeError) as exc:
-            st.warning("Could not calculate contributions: "+str(exc))
+            st.warning("Could not calculate what-if estimates: "+str(exc))
     return quote
+
 
 def _comparables(table,vehicle):
     if table.empty:
@@ -260,8 +272,25 @@ def _comparables(table,vehicle):
     st.caption("Actual market-cohort aggregates. Similar vehicles are NOT confirmed duplicate cars. "
                "Asking prices are not completed-sale prices; mix of condition and equipment varies.")
 
+def _how_it_works():
+    """A compact, responsive graphic designed for ordinary car owners."""
+    st.markdown("""<div class="eu-steps" aria-label="How the ResMLP car valuation works">
+       <div class="eu-step"><b>① Tell us about the car</b><span>Model, age,
+         kilometres, power, country and optional equipment</span></div>
+       <div class="eu-arrow" aria-hidden="true">›</div>
+       <div class="eu-step"><b>② AI connects the dots</b><span>Residual learning
+         combines vehicle details using patterns from 1.6 million adverts</span></div>
+       <div class="eu-arrow" aria-hidden="true">›</div>
+       <div class="eu-step"><b>③ Your independent price view</b><span>Euro ASK-price
+         estimate. We never buy your car, so we have no purchase offer to push.</span></div>
+    </div>""",unsafe_allow_html=True)
+    st.caption("This model uses structured car facts, not advert prose, photos or VINs. "
+               "Its target is the advertised price, never a verified completed sale.")
+
+
 def _valuation_page(bundle,error):
     st.markdown("### 🧮 European Asking Price Lab")
+    _how_it_works()
     if bundle is None:
         st.warning("The rank-1 model is undergoing reproducibility and package verification. "
                    "The calculator is gated; no fabricated or substitute prices will be shown.")
@@ -356,7 +385,7 @@ def _forensic(quote):
                 "This is not a confidence interval or fraud classifier.")
     report={"market":"European advertised ASK","valuation_eur":model,
             "listing_ask_eur":observed,"difference_eur":diff,
-            "model":"Rank-1 Gaussian AFT",
+            "model":"ResMLP Tail-MAE · Ray CVaR95 winner",
             "vehicle":{k:v for k,v in quote["vehicle"].items()
                        if k not in ("seller_city","version")},
             "limitations":"Not a sale price, validated personal interval, customs ruling, or fraud finding"}
