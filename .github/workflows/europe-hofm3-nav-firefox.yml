@@ -1,0 +1,51 @@
+name: HOFM3 European panel navigation · Firefox desktop and mobile
+on:
+  push:
+    branches: [hotfix/europe-hofm3-navigation-20261110]
+    paths:
+      - 'pricing/europe_market.py'
+      - 'tests/firefox_europe_e2e.py'
+      - '.github/workflows/europe-hofm3-nav-firefox.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: firefox-europe-hofm3-navigation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  navigation-firefox:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install full production requirements + UI automation
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install 'playwright>=1.55,<2' 'pytest>=8,<10'
+      - name: Install real Firefox
+        run: python -m playwright install --with-deps firefox
+      - name: Validate frozen HOFM3 and the eight-country selector
+        run: python -m pytest -q tests/test_europe_market.py
+      - name: Start local Streamlit and exercise all European panels in Firefox
+        run: |
+          (python -m streamlit run app.py --server.headless true \
+            --server.address 127.0.0.1 --server.port 8507 \
+            --browser.gatherUsageStats false > /tmp/hofm3_eu_nav.log 2>&1 &)
+          for n in $(seq 1 80); do
+             if curl -fsS http://127.0.0.1:8507/_stcore/health; then break; fi
+             sleep 2
+          done
+          status=0
+          python -u tests/firefox_europe_e2e.py || status=1
+          if test "$status" -ne 0; then tail -n 200 /tmp/hofm3_eu_nav.log; fi
+          exit "$status"
+      - name: Preserve real Firefox evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hofm3-country-nav-firefox
+          path: artifacts/firefox-europe/
+          retention-days: 30
+          if-no-files-found: warn
