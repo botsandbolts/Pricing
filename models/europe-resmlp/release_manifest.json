@@ -1,0 +1,12 @@
+{
+  "model": "ResMLP Tail-MAE",
+  "source_run_id": 42679651225,
+  "source_artifact_id": 13736822556,
+  "source_trial": "eu-neural-wave2-5",
+  "checkpoint_sha256": "4d649c4a9143f49d37398dffe276ead82fd920e28581e88ee3c97e65d8b61670",
+  "schema_training_sha256": "b9b099c94c04cf276cb0cddceedb745ceb57fe02b0980e55d363b196ef398822",
+  "sealed_test_sha256": "13b41b9c07b65e3a499dd938a17ff7e06e1c7da476266ebc86d96b36661e24c1",
+  "release_status": "verified for production main",
+  "market": "Europe ASK only",
+  "production_xgboost_fallback": false
+}
