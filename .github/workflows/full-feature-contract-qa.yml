@@ -35,6 +35,11 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
           python -m pip install 'pytest>=8,<10'
+      - name: Provide native OCR binary for the real screenshot-to-listing feature
+        if: matrix.suite == 'workspaces-and-research'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng fonts-dejavu-core
       - name: Compile all application modules, first-party tests and key entrypoints
         run: |
           python -m compileall -q app.py pricing marketbridge tests
