@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "status": "unavailable",
+  "method": "Adjacent-month common-support Huber regression on log(EUR ASK); Fisher=sqrt(Laspeyres*Paasche); log interpolation; damped-log Holt forecast",
+  "source": "KTHESAT/european-used-car-market-2m-listings",
+  "coverage": [
+    {
+      "country": "AE",
+      "month": "2026-10",
+      "n": 1
+    },
+    {
+      "country": "AT",
+      "month": "2026-10",
+      "n": 170407
+    },
+    {
+      "country": "BE",
+      "month": "2026-10",
+      "n": 89102
+    },
+    {
+      "country": "BG",
+      "month": "2026-10",
+      "n": 158
+    },
+    {
+      "country": "CH",
+      "month": "2026-10",
+      "n": 72661
+    },
+    {
+      "country": "CZ",
+      "month": "2026-10",
+      "n": 571
+    },
+    {
+      "country": "DE",
+      "month": "2026-09",
+      "n": 27293
+    },
+    {
+      "country": "DE",
+      "month": "2026-10",
+      "n": 911268
+    },
+    {
+      "country": "DK",
+      "month": "2026-10",
+      "n": 1601
+    },
+    {
+      "country": "EE",
+      "month": "2026-10",
+      "n": 239
+    },
+    {
+      "country": "ES",
+      "month": "2026-10",
+      "n": 98257
+    },
+    {
+      "country": "FI",
+      "month": "2026-10",
+      "n": 63
+    },
+    {
+      "country": "FR",
+      "month": "2026-10",
+      "n": 63441
+    },
+    {
+      "country": "GB",
+      "month": "2026-10",
+      "n": 8
+    },
+    {
+      "country": "GR",
+      "month": "2026-10",
+      "n": 1
+    },
+    {
+      "country": "HR",
+      "month": "2026-10",
+      "n": 11
+    },
+    {
+      "country": "HU",
+      "month": "2026-10",
+      "n": 246
+    },
+    {
+      "country": "IT",
+      "month": "2026-09",
+      "n": 7
+    },
+    {
+      "country": "IT",
+      "month": "2026-10",
+      "n": 243801
+    },
+    {
+      "country": "JP",
+      "month": "2026-10",
+      "n": 7
+    },
+    {
+      "country": "KR",
+      "month": "2026-10",
+      "n": 1
+    },
+    {
+      "country": "LT",
+      "month": "2026-10",
+      "n": 147
+    },
+    {
+      "country": "LU",
+      "month": "2026-10",
+      "n": 740
+    },
+    {
+      "country": "LV",
+      "month": "2026-10",
+      "n": 142
+    },
+    {
+      "country": "MC",
+      "month": "2026-10",
+      "n": 90
+    },
+    {
+      "country": "NL",
+      "month": "2026-10",
+      "n": 161785
+    },
+    {
+      "country": "NO",
+      "month": "2026-10",
+      "n": 9
+    },
+    {
+      "country": "PL",
+      "month": "2026-10",
+      "n": 403
+    },
+    {
+      "country": "PT",
+      "month": "2026-10",
+      "n": 2
+    },
+    {
+      "country": "RO",
+      "month": "2026-10",
+      "n": 449
+    },
+    {
+      "country": "SE",
+      "month": "2026-10",
+      "n": 292
+    },
+    {
+      "country": "SI",
+      "month": "2026-10",
+      "n": 41
+    },
+    {
+      "country": "SK",
+      "month": "2026-10",
+      "n": 418
+    },
+    {
+      "country": "US",
+      "month": "2026-10",
+      "n": 12
+    }
+  ],
+  "countries": {},
+  "message": "Not enough genuine consecutive observations to estimate a reliable monthly Fisher index."
+}
