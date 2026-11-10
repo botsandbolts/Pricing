@@ -58,7 +58,7 @@ def test_adjust_preserves_original_ask_and_distinguishes_stale_from_recent():
     assert month[0]=="2026-10"
     assert recency[1] is False and age[1]==73
     assert physical[1]=="stale_listing_age_mileage_not_observed"
-    assert status[1]=="index_unavailable"  # outside 12-month Holt window?
+    assert status[1]=="forecast"  # 2020 baseline is official, target is forecast
     assert status[2]=="forecast" and recency[2] is True
     assert status[3]=="unsupported_country" and vals[3] is None
     assert status[4]=="invalid_price" and vals[4] is None
