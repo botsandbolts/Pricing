@@ -4,6 +4,9 @@ scikit-learn>=1.4,<2
 lightgbm>=4.5,<5
 # Pin the runtime used by the connection-page and consent tests.
 streamlit==1.66.1
+# Streamlit Cloud repeatedly replaces PyArrow 26 after detecting its segfault risk.
+# Pin the verified Python 3.14 wheel so uv and Streamlit agree on a stable version.
+pyarrow==24.0.0
 requests>=2.31,<3
 
 plotly>=5.24,<7
