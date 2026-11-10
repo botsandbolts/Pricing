@@ -56,10 +56,13 @@ def _robust_se(x):
     return max(0.04, float(robust_sigma))/math.sqrt(len(v))
 
 
-def _stratified_sample(df, count, *, seed):
-    if len(df) <= count:
+def _stratified_sample(df, per_model, *, seed):
+    """Cap each genuine make/model cohort, preserving small eligible slices."""
+    if df.empty:
         return df
-    return df.sample(n=count,random_state=seed)
+    parts=[group.sample(n=min(len(group),per_model),random_state=seed)
+           for _,group in df.groupby("vehicle_group",sort=True)]
+    return pd.concat(parts,ignore_index=True)
 
 
 def fit_relative_pulse(data, *, early="2026-09", late="2026-10",
@@ -85,6 +88,8 @@ def fit_relative_pulse(data, *, early="2026-09", late="2026-10",
                            & (period_counts[late]>=min_late)]
     if len(eligible)<MIN_GROUPS:
         return None
+    eligible=(eligible.assign(support=eligible[[early,late]].min(axis=1))
+              .nlargest(MAX_NUM_GROUPS,"support"))
     early_data=source[source.month.eq(early)]
     late_data=source[source.month.eq(late)]
     # Keep both periods in the same common-support, comparable vehicle basket.
@@ -96,8 +101,8 @@ def fit_relative_pulse(data, *, early="2026-09", late="2026-10",
                         &late_data.vehicle_group.isin(common_groups)]
     # Do not allow one overwhelmingly larger snapshot to dictate the fit.
     train=pd.concat([
-        _stratified_sample(early_data,MAX_TRAIN_EARLY,seed=1626),
-        _stratified_sample(late_data,MAX_TRAIN_LATE,seed=1627),
+        _stratified_sample(early_data,min(300,MAX_TRAIN_EARLY//MAX_NUM_GROUPS),seed=1626),
+        _stratified_sample(late_data,min(600,MAX_TRAIN_LATE//MAX_NUM_GROUPS),seed=1627),
     ],ignore_index=True)
     if len(train)<1500:
         return None
