@@ -106,7 +106,7 @@ def test_device(browser,device,width,height):
             if not pill.count():
                 raise AssertionError("Panel control is missing: "+label)
             pill.first.click(timeout=20000)
-            expect(page.get_by_text(heading,exact=False).first).to_be_visible(timeout=60000)
+            expect(page.locator("h1,h2,h3").filter(has_text=heading).first).to_be_visible(timeout=60000)
             if page.locator('[data-testid="stException"]').count():
                 raise AssertionError("Uncaught Streamlit error")
             box=page.evaluate("""() => ({
