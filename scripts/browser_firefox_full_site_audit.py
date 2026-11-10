@@ -212,9 +212,15 @@ def run():
             for label in PANELS:
                 item={"panel":label}
                 try:
-                    radio=app.get_by_role("radio",name=label,exact=True)
+                    radio=app.locator('[data-testid="stPills"]').get_by_text(label,exact=True)
                     if not radio.count():
-                        radio=app.get_by_role("button",name=label,exact=True)
+                        radio=app.get_by_role("radio",name=label,exact=False)
+                    if not radio.count():
+                        radio=app.get_by_role("button",name=label,exact=False)
+                    if not radio.count():
+                        radio=app.get_by_role("option",name=label,exact=False)
+                    if not radio.count():
+                        radio=app.get_by_text(label,exact=True)
                     radio.wait_for(state="visible",timeout=60000)
                     radio.click(timeout=30000)
                     # Streamlit pills have used both radio and button semantics
