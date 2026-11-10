@@ -58,7 +58,16 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Previous runs may have published the same filename. Start from the
+          # latest branch HEAD, then install only this run's tested artifact.
+          cp models/europe-ask/model_pulse.json /tmp/model_pulse_verified.json
+          git fetch origin feature/europe-model-level-price-evidence-20261110
+          git reset --hard FETCH_HEAD
+          cp /tmp/model_pulse_verified.json models/europe-ask/model_pulse.json
           git add models/europe-ask/model_pulse.json
-          git diff --cached --quiet || git commit -m "Package observed make/model research pulse; not a live pricing factor"
-          git pull --rebase origin feature/europe-model-level-price-evidence-20261110
-          git push origin HEAD:feature/europe-model-level-price-evidence-20261110
+          if git diff --cached --quiet; then
+            echo "No research artifact changes"
+          else
+            git commit -m "Update observed make/model Bayesian research pilot"
+            git push origin HEAD:feature/europe-model-level-price-evidence-20261110
+          fi
