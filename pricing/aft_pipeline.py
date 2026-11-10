@@ -20,6 +20,20 @@ class AFTPricePipeline:
         self.model.load_model(bytearray(gzip.decompress(read_model_file(self.path/'xgb_aft_normal.ubj.gz'))))
         self.names=self.model.feature_names
         if self.names!=self.manifest['feature_names']:raise ValueError('AFT feature schema mismatch')
+        # XGBoost >=3.1 remembers which categorical labels the fitted booster
+        # actually saw. Our saved schema covers the wider original cohort and
+        # can contain labels absent from the final fitting subset. Passing the
+        # wider pandas Categorical vocabulary makes modern XGBoost raise:
+        # "Found a category not in the training set" even on a valid request.
+        # Restrict pandas categories to the booster-owned training vocabulary.
+        # Unseen values become genuine missing values, NEVER arbitrary codes.
+        exported=self.model.get_categories(export_to_arrow=True).to_arrow()
+        self._trained_categories={
+            name:values.to_pylist() for name,values in exported if values is not None
+        }
+        for name,levels in self._trained_categories.items():
+            if name not in self.schema:continue
+            if not levels:raise ValueError('AFT trained categorical vocabulary is empty: '+name)
         self.text_model=self.tokenizer=None
         if self.manifest['text_feature']:
             from pricing.text import load_text
@@ -37,7 +51,11 @@ class AFTPricePipeline:
         if self.manifest['text_feature']:
             if text_price is None or not np.isfinite(text_price):raise ValueError('Finite description-price feature required')
             x['predicted_text_price']=float(text_price)
-        return encode(apply_category_pooling(x,self.manifest.get('category_pooling',{})),self.schema)[self.names]
+        encoded=encode(apply_category_pooling(x,self.manifest.get('category_pooling',{})),self.schema)
+        for name,levels in self._trained_categories.items():
+            if name in encoded:
+                encoded[name]=pd.Categorical(encoded[name].astype(object),categories=levels)
+        return encoded[self.names]
 
     def predict_frame(self,frame,text_price=None):
         return predict(self.model,'xgb_aft_normal',self.encoded(frame,text_price))
