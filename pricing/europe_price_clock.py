@@ -92,7 +92,9 @@ def _holt_forecast(obs, target):
     if steps == 0 or steps > MAX_EXTRAPOLATION_MONTHS:
         return None
     # Only the consecutive observed tail (or head for backward forecasting).
-    ordered = keys if not before else list(reversed(keys))
+    # For future forecasts walk backwards from latest; for historical forecasts
+    # walk forwards from earliest. Then reverse for fitting in forecast direction.
+    ordered = list(reversed(keys)) if not before else keys
     contiguous = [ordered[0]]
     for k in ordered[1:]:
         if abs(k - contiguous[-1]) != 1:
@@ -101,10 +103,8 @@ def _holt_forecast(obs, target):
     if len(contiguous) < MIN_OBSERVED_MONTHS_FOR_HOLT:
         return None
     recent = contiguous[:min(18, len(contiguous))]
-    series = list(reversed(recent))  # time-forward in the relevant direction
-    if before:
-        series = recent  # backward-time sequence already starts at the latest
-    # For forward, contiguous starts newest -> reverse; for backward starts oldest -> keep.
+    # The latest observed boundary is the last fitted point in either direction.
+    series = list(reversed(recent))
     log_levels = [math.log(obs[m]["level"]) for m in series]
     fitted = _holt_fit(log_levels)
     if fitted is None:
