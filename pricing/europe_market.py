@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
+from pricing.i18n import tr
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -114,6 +115,7 @@ def _parody_banner():
 
 def _header():
     _parody_banner()
+    st.caption("🌐 "+tr("market_intro"))
     st.markdown("""<section class="eu-hero" aria-label="European automotive price studio">
       <div class="eu-kicker">🇪🇺 CAR PRICE STUDIO · EUROPEAN EDITION</div>
       <h1>From Hamburg to Rome. Same love of cars.<br>Less guessing. More evidence.</h1>
@@ -153,7 +155,7 @@ def _choices(schema):
 def _edit_vehicle(schema):
     """Persistent European facts; no US mile/state fields or model assumptions."""
     values=_choices(schema)
-    st.markdown("### 🚘 01 / Tell us about your European car")
+    st.markdown("### 🚘 01 / "+tr("form"))
     st.caption("European conventions: km, horsepower, registration year and euro asking prices. "
                "Unknown specifications stay unknown.")
     st.info("📅 **October 2026 observed market reference** · The selected "
@@ -164,29 +166,29 @@ def _edit_vehicle(schema):
             "research panel.")
     with st.form("eu_ask_form",clear_on_submit=False):
         a,b,c=st.columns(3)
-        country=a.selectbox("Country · eight supported markets",COUNTRY_OPTIONS,
+        country=a.selectbox(tr("country")+" · 8",COUNTRY_OPTIONS,
             format_func=lambda v:COUNTRIES[v.upper()],key="eu_country_v2")
         makes=values("make",["volkswagen","bmw","mercedes benz","toyota","renault"])
         preferred="volkswagen" if "volkswagen" in makes else makes[0]
-        make=b.selectbox("Make",makes,index=makes.index(preferred),
+        make=b.selectbox(tr("make"),makes,index=makes.index(preferred),
                          key="eu_make")
-        model=c.text_input("Model",value="golf" if make=="volkswagen" else "",
+        model=c.text_input(tr("model"),value="golf" if make=="volkswagen" else "",
                            key="eu_model",max_chars=80,
                            help="Enter the exact model as shown in a European advert.")
         a,b,c=st.columns(3)
-        registration=a.number_input("First-registration year",
+        registration=a.number_input(tr("year"),
                         min_value=1950,max_value=2026,value=2020,step=1,
                         key="eu_reg_year")
-        month=b.selectbox("First-registration month",list(range(1,13)),
+        month=b.selectbox(tr("month"),list(range(1,13)),
                           index=5,key="eu_reg_month")
-        km=c.number_input("Mileage · km",min_value=0,max_value=2_000_000,
+        km=c.number_input(tr("mileage"),min_value=0,max_value=2_000_000,
                           value=85000,step=1000,key="eu_km")
         a,b,c=st.columns(3)
-        power=a.number_input("Power · hp",min_value=20,max_value=1200,
+        power=a.number_input(tr("power"),min_value=20,max_value=1200,
                              value=110,key="eu_hp")
-        fuel=b.selectbox("Fuel",values("fuel",["petrol","diesel","electric","hybrid"]),
+        fuel=b.selectbox(tr("fuel"),values("fuel",["petrol","diesel","electric","hybrid"]),
                          key="eu_fuel")
-        transmission=c.selectbox("Transmission",values("transmission",["manual","automatic"]),
+        transmission=c.selectbox(tr("transmission"),values("transmission",["manual","automatic"]),
                                  key="eu_transmission")
         with st.expander("🔧 Optional vehicle and advert details"):
             a,b,c=st.columns(3)
@@ -206,7 +208,7 @@ def _edit_vehicle(schema):
             seats=b.number_input("Seats",0,12,5,key="eu_seats")
             accident=c.selectbox("Accident-free status",["Not stated","Yes","No"],
                                  key="eu_accident")
-        submitted=st.form_submit_button("🇪🇺 Calculate European asking price",
+        submitted=st.form_submit_button("🇪🇺 "+tr("calculate"),
                    type="primary",use_container_width=True,disabled=schema is None)
     vehicle={
        "seller_country":country.lower(),"make":make,"model":model.strip(),
@@ -358,7 +360,7 @@ def _how_it_works():
 
 
 def _valuation_page(bundle,error):
-    st.markdown("### 🧮 European Asking Price Lab")
+    st.markdown("### 🧮 "+tr("calculate"))
     _how_it_works()
     if bundle is None:
         st.warning("The rank-1 model is undergoing reproducibility and package verification. "
@@ -1029,7 +1031,8 @@ def render():
     bundle,error=_bundle()
     # A labelled, keyboard-operable navigation control is more reliable than
     # 12 wrapping pill buttons, especially on a narrow phone screen.
-    tab=st.selectbox("European Studio panels",NAV,
+    tab=st.selectbox(tr("panels"),NAV,
+                 format_func=lambda name: ("🚗 "+tr("form")) if name=="🚗 Price my car" else name,
                  key="eu_workspace_selector_v2",
                  help="Choose any European research panel. Your previous ASK receipt persists.")
     if tab=="🚗 Price my car":
