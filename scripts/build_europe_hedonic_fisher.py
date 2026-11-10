@@ -20,6 +20,7 @@ import pandas as pd
 DEFAULT_SOURCE = ("https://huggingface.co/datasets/KTHESAT/"
                   "european-used-car-market-2m-listings/resolve/main/"
                   "data/train-00000-of-00001.parquet")
+SUPPORTED_COUNTRIES = frozenset({"DE", "FR", "NL", "BE", "AT", "CH", "ES", "IT", "PL"})
 COLUMNS = ["id", "source_site", "seller_country", "make", "model", "price_eur",
            "mileage_km", "reg_year", "power_hp", "first_seen_at", "fuel",
            "transmission", "body_type"]
@@ -46,7 +47,7 @@ def clean(source):
                 "fuel", "transmission", "body_type"):
         d[key] = d[key].fillna("unknown").astype(str).str.strip().str.lower()
     d["seller_country"] = d["seller_country"].str.upper()
-    d = d[d["seller_country"].str.fullmatch("[A-Z]{2}")]
+    d = d[d["seller_country"].isin(SUPPORTED_COUNTRIES)]
     d = d.drop_duplicates(["seller_country", "month", "id"], keep="first")
     d["vehicle_group"] = d["make"] + " · " + d["model"]
     d["age"] = d["year"] - d["reg_year"]
@@ -142,12 +143,12 @@ def build(df, *, min_month_rows=1200, min_months=6, min_overlap=800):
         "source": "KTHESAT/european-used-car-market-2m-listings",
         "coverage": [{"country": r.seller_country, "month": r.month, "n": int(r.n)}
                      for r in coverage.itertuples(index=False)],
-        "countries": {}, "message": "Not enough genuine consecutive observations "
+        "countries": {}, "pilot_countries": {}, "message": "Not enough genuine consecutive observations "
                                  "to estimate a reliable monthly Fisher index.",
     }
     for country, all_periods in coverage.groupby("seller_country"):
         available = sorted(all_periods.loc[all_periods.n >= min_month_rows, "month"].tolist())
-        if len(available) < min_months:
+        if len(available) < 2:
             continue
         country_data = data[data.seller_country == country]
         # Evaluate each *adjacent* real month; gaps deliberately break chains.
@@ -185,6 +186,13 @@ def build(df, *, min_month_rows=1200, min_months=6, min_overlap=800):
             report["countries"][country] = {
                 "months": winner,
                 "start": winner[0]["month"], "end": winner[-1]["month"],
+                "sample_count": int(sum(r["n"] for r in winner))}
+        elif len(winner) >= 2:
+            # An empirical two-to-five-month pilot is useful for research but
+            # NEVER eligible for date-adjusted production quotes or Holt.
+            report["pilot_countries"][country] = {
+                "months": winner, "status": "experimental",
+                "reason": "Fewer than six consecutive observed months",
                 "sample_count": int(sum(r["n"] for r in winner))}
     if report["countries"]:
         report["status"] = "validated"
