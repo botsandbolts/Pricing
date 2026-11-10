@@ -55,9 +55,15 @@ def audit():
             for index,label in enumerate(PANELS):
                 item={"name":label}
                 try:
-                    pill=page.get_by_role("button",name=label,exact=True)
+                    pill=page.locator('[data-testid="stPills"]').get_by_text(label,exact=True)
                     if not pill.count():
-                        pill=page.get_by_role("radio",name=label,exact=True)
+                        pill=page.get_by_role("button",name=label,exact=False)
+                    if not pill.count():
+                        pill=page.get_by_role("radio",name=label,exact=False)
+                    if not pill.count():
+                        pill=page.get_by_role("option",name=label,exact=False)
+                    if not pill.count():
+                        pill=page.get_by_text(label,exact=True)
                     if not pill.count():
                         raise AssertionError("Workspace navigation control missing")
                     pill.first.click(timeout=30000)
@@ -103,6 +109,7 @@ def audit():
             context.close()
             browser.close()
     print(json.dumps({"panels_visited":len(report["panels"]),"viewport_tests":len(report["viewports"]),
+                      "legal":report.get("legal"),"panels":report.get("panels"),
                       "failures":failures},indent=2),flush=True)
     if failures:raise SystemExit(1)
 
