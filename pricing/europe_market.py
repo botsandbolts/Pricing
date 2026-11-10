@@ -793,10 +793,20 @@ def _model_pulse_panel():
                   "the matched listing basket. Negative: slower.")
     b.metric("Earlier-month adverts",int(row["n_early"]))
     c.metric("Later-month adverts",int(row["n_late"]))
-    st.caption("Approximate shrinkage-based range: "
+    st.caption("Approximate 95% Bayesian conditional credible interval: "
                +f'{float(row["interval_low_pct"]):+.2f}%'+" to "
                +f'{float(row["interval_high_pct"]):+.2f}%'+
-               ". This is not a calibrated forecasting interval.")
+               ". This excludes selection and time-series uncertainty.")
+    if "posterior_probability_positive" in row:
+        st.metric("Posterior probability this model outpaced the reference",
+                  f'{100*float(row["posterior_probability_positive"]):.1f}%',
+                  help="Conditional on the fixed hierarchical Gaussian priors "
+                       "and approximate robust standard error. Not an observed "
+                       "market probability or a price forecasting accuracy score.")
+        st.caption("Same-make reference models: "
+                   +str(int(row.get("brand_peer_count",0)))+
+                   ". More evidence means less shrinkage. This single-month "
+                   "comparison is never fed into live valuations.")
     subset=frame.sort_values("relative_pct").copy()
     subset["Model"]=subset["make"].str.title()+" · "+subset["model"].str.title()
     subset=subset.nlargest(15,"n_early").sort_values("relative_pct")
@@ -807,8 +817,11 @@ def _model_pulse_panel():
                     "body type and advertising portal. Robust residuals are "
                     "compared between **actual observed listing months**. "
                     "The model-level difference is relative to the wider "
-                    "matched German listing basket and **shrunk towards zero** "
-                    "if the sample is small or noisy.")
+                    "matched German listing basket and shrunk using **two-level "
+                    "Gaussian Bayesian partial pooling**: the same manufacturer "
+                    "and a country-centred prior. The approximate conditional "
+                    "credible interval and posterior probability omit some "
+                    "uncertainties and are not calibrated time-series predictions.")
         st.markdown("It is **not** a model-specific Fisher index, **not** a "
                     "completed-sales series, **not** proof of causality, and "
                     "not an independent forecast. We need at least six "
