@@ -38,11 +38,13 @@ def test_saved_aft_reconciles_training_vocabulary_without_retraining():
     assert 'model' in aft._trained_categories
     known=aft.encoded(pd.DataFrame([fields]))
     trained=set(aft._trained_categories['model'])
-    assert set(known['model'].cat.categories)==trained
+    assert set(known['model'].cat.categories)==set(aft.schema['model'])
     unseen={**fields,'model':'unseen-2026-novel-model-not-in-training'}
     encoded=aft.encoded(pd.DataFrame([unseen]))
     assert pd.isna(encoded['model'].iloc[0])
-    assert set(encoded['model'].cat.categories)==trained
+    assert set(encoded['model'].cat.categories)==set(aft.schema['model'])
+    # Both standard and explicit-code paths keep the exact original split codes.
+    assert list(aft._dmatrix(pd.DataFrame([fields])).feature_types)[4]=='c'
     # Keep the original training weights; no re-fitting in the serving path.
     old=pipeline.predict('Maintained sedan',fields,explain=True)
     assert np.isfinite(old['price']) and old['price']>0
