@@ -82,37 +82,123 @@ if set(CATALOGS) != set(LOCALES):
     raise ValueError("Locale catalog is incomplete")
 
 
+def browser_locale(value: str | None) -> str:
+    """Map navigator.language into one of our explicit supported locales."""
+    code = str(value or "").strip().replace("_", "-").lower()
+    language, _, region = code.partition("-")
+    if language == "en":
+        return "en-US" if region == "us" else "en-GB"
+    return language if language in LOCALES else "en-GB"
+
+
 def locale() -> str:
-    """Current session locale with safe fallback; no cookie or IP inference."""
+    """Return explicit user choice, local browser storage or browser default."""
     value = st.session_state.get("cps_locale", "en-GB")
     return value if value in LOCALES else "en-GB"
 
 
 def tr(key: str, **kwargs) -> str:
-    """Localised UI copy; missing deeper scientific copy stays English."""
+    """Localised UI copy; untranslated research copy explicitly stays English."""
     result = CATALOGS.get(locale(), ENGLISH).get(key, ENGLISH.get(key, key))
     return result.format(**kwargs) if kwargs else result
+
+
+# Distinct national/editorial voice instead of mechanical literal translation.
+# These are *jokes and calls to action*, not claims of improved model accuracy.
+VOICE = {
+    "bg": ("Съседът има мнение. Данните имат аргументи.", "Проверете оценката и ни кажете какво не сме улучили."),
+    "hr": ("Svatko zna cijenu. A što kažu podaci?", "Isprobajte procjenu i recite nam gdje griješimo."),
+    "cs": ("Každý má názor. Data mají poslední slovo?", "Vyzkoušejte odhad a napište nám, co nesedí."),
+    "da": ("Mindre mavefornemmelse. Mere dokumentation.", "Test prisen på din bil, og fortæl os, hvad vi skal forbedre."),
+    "nl": ("Je zwager heeft een mening. Wij hebben data.", "Test de vraagprijs. Is het raak of zitten we ernaast?"),
+    "en-GB": ("Your mate has a theory. The data has questions.", "Give your car a spin through the model — then tell us where it misses."),
+    "en-US": ("Your buddy knows the market. So does everyone at the cookout.", "Test the estimate, kick the tires, and tell us what we missed."),
+    "et": ("Arvamusi jagub. Aga mida näitavad andmed?", "Proovi hinnangut ja ütle, mida võiks parandada."),
+    "fi": ("Mutu-tuntuma ei ole hinnoittelumalli.", "Kokeile arviota ja kerro, mikä meni pieleen."),
+    "fr": ("Votre beau-frère a un avis. Nous avons des données.", "Testez le prix et dites-nous franchement où nous nous trompons."),
+    "de": ("Der Schwager schätzt. Wir rechnen nach.", "Testen Sie die Bewertung – und sagen Sie uns, wo wir danebenliegen."),
+    "el": ("Όλοι ξέρουν την τιμή. Τι λένε όμως τα δεδομένα;", "Δοκιμάστε την εκτίμηση και πείτε μας τι να βελτιώσουμε."),
+    "hu": ("A sógor tudja az árat. Mi megkérdezzük az adatokat.", "Próbálja ki, és írja meg, hol tévedünk."),
+    "ga": ("Tá tuairim ag cách. Cad a deir na sonraí?", "Bain triail as agus inis dúinn cad atá le feabhsú."),
+    "it": ("Il cognato ha un prezzo. I dati ne hanno un altro.", "Prova la stima: promossi o bocciati? Dicci la verità!"),
+    "lv": ("Viedokļu netrūkst. Ko saka dati?", "Izmēģini novērtējumu un pastāsti, ko uzlabot."),
+    "lt": ("Nuomonių netrūksta. O ką sako duomenys?", "Išbandyk vertinimą ir parašyk, ką galime patobulinti."),
+    "mt": ("Kulħadd għandu opinjoni. Xi tgħid id-data?", "Ipprova l-istima u għidilna x'nistgħu ntejbu."),
+    "pl": ("Szwagier zna cenę. My sprawdzamy dane.", "Przetestuj wycenę i napisz bez ogródek, gdzie się mylimy."),
+    "pt": ("O teu primo sabe o preço. Os dados também têm opinião.", "Experimenta a avaliação e diz-nos onde falhámos."),
+    "ro": ("Cumnatul știe prețul. Noi întrebăm datele.", "Testează estimarea și spune-ne ce nu merge."),
+    "sk": ("Švagor pozná cenu. My sa pýtame dát.", "Otestujte odhad a povedzte nám, kde sa mýlime."),
+    "sl": ("Vsak ima svojo ceno. Kaj pravijo podatki?", "Preizkusite oceno in nam povejte, kaj izboljšati."),
+    "es": ("Tu cuñado pone el precio. Nosotros consultamos los datos.", "Pruébalo y dinos sin pelos en la lengua dónde fallamos."),
+    "sv": ("Alla har en åsikt. Vad säger siffrorna?", "Testa värderingen och berätta vad vi borde förbättra."),
+}
+
+
+def editorial_voice() -> tuple[str, str]:
+    return VOICE[locale()]
+
+
+# This script runs in the same origin as the Streamlit page, not a sandboxed
+# iframe. Only a BCP-47 locale from our static allowlist is ever persisted.
+_BROWSER_STORAGE_JS = """
+export default function({data, setStateValue}) {
+  const storageKey = "car-price-studio.language.v1";
+  let stored = "";
+  try {
+    if (data.write && data.allowed.includes(data.write)) {
+      localStorage.setItem(storageKey, data.write);
+    }
+    const candidate = localStorage.getItem(storageKey) || "";
+    stored = data.allowed.includes(candidate) ? candidate : "";
+  } catch (err) {
+    // A privacy-hardened browser may disable localStorage; session choice works.
+  }
+  setStateValue("stored", stored);
+}
+"""
 
 
 def _on_locale_change() -> None:
     new = st.session_state.get("cps_locale_select", "en-GB")
     if new in LOCALES:
         st.session_state["cps_locale"] = new
+        st.session_state["cps_locale_manual"] = new
+        # Shareable language link. No analytics, no IP-based locale inference.
         st.query_params["lang"] = new
 
 
 def render_language_selector() -> str:
-    """Visible on every route, independent from country and pricing market.
+    """Browser locale on first visit; manual choice persisted in localStorage.
 
-    A URL query parameter makes language shareable across reloads, without
-    adding a persistence or tracking cookie. Selection never changes vehicle
-    feature units, model choice or existing widget keys.
+    Priority: manual choice this session > explicit link > localStorage >
+    navigator.language > en-GB. Market and model training inputs stay untouched.
+    Browser storage is local to the user's device and is not analytics consent.
     """
     requested = st.query_params.get("lang")
-    if requested in LOCALES and requested != st.session_state.get("_cps_lang_url"):
+    browser = browser_locale(getattr(st.context, "locale", None))
+    if not st.session_state.get("_cps_locale_initialised"):
+        st.session_state["cps_locale"] = requested if requested in LOCALES else browser
+        st.session_state["_cps_locale_initialised"] = True
+    elif (requested in LOCALES and
+          requested != st.session_state.get("_cps_lang_url") and
+          not st.session_state.get("cps_locale_manual")):
         st.session_state["cps_locale"] = requested
     st.session_state["_cps_lang_url"] = requested
-    st.session_state.setdefault("cps_locale", "en-GB")
+
+    # V2 has first-party DOM privileges and can actually access localStorage.
+    # It reports a saved locale, causing one rerun at most when it changes.
+    bridge = st.components.v2.component("cps_browser_language_storage",
+                                         js=_BROWSER_STORAGE_JS)
+    result = bridge(
+        data={"write": st.session_state.get("cps_locale_manual", ""),
+              "allowed": list(LOCALES)},
+        key="cps_browser_language_storage",
+        on_stored_change=lambda: None,
+    )
+    stored = getattr(result, "stored", None)
+    if (stored in LOCALES and not st.session_state.get("cps_locale_manual")
+            and requested not in LOCALES):
+        st.session_state["cps_locale"] = stored
     current = locale()
     if st.session_state.get("cps_locale_select") != current:
         st.session_state["cps_locale_select"] = current
