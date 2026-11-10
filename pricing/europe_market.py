@@ -20,6 +20,7 @@ from pricing.europe_price_clock import adjusted_quote, read_index, level_at, mon
 from pricing.europe_eurostat import (
     eurostat_adjusted_quote, eurostat_level_at, read_eurostat)
 from pricing.europe_model_pulse import read_pulse,lookup_pulse
+from pricing.europe_bayesian_state_space import model_scenario_series
 
 DATASET="https://huggingface.co/datasets/KTHESAT/european-used-car-market-2m-listings"
 NAV=[
@@ -756,10 +757,12 @@ def _eurostat_index_panel():
 def _model_pulse_panel():
     """Distinct make/model observation, not an official price index."""
     st.markdown("#### 🚘 Make & Model Pulse · experimental listing evidence")
-    st.caption("One brave little month-to-month comparison is **not** a historical "
-               "index. Here are the make/model differences the listings can "
-               "actually support. They are never extrapolated or automatically "
-               "mixed into customer valuations.")
+    st.caption("Two distinct sources, two levels of evidence: **years of "
+               "observed monthly Eurostat country indices**, plus a short "
+               "make/model listing comparison. Bayesian residual state-space "
+               "scenarios can connect them, but historical model deviations "
+               "outside the listing window are **inferred, not observed**. "
+               "They never alter production customer valuations.")
     research=read_pulse()
     pairs=research.get("research_pairs",[])
     if not pairs:
@@ -811,6 +814,7 @@ def _model_pulse_panel():
     subset["Model"]=subset["make"].str.title()+" · "+subset["model"].str.title()
     subset=subset.nlargest(15,"n_early").sort_values("relative_pct")
     st.bar_chart(subset.set_index("Model")["relative_pct"],horizontal=True)
+    _model_state_space_visual(research,pair,make,model)
     with st.expander("📚 Why these figures are not applied to valuations"):
         st.markdown("A pooled **SGDRegressor with Huber loss on log(EUR ASK)** "
                     "controls for model, age, mileage, power, fuel, gearbox, "
@@ -835,6 +839,118 @@ def _model_pulse_panel():
                        frame.to_csv(index=False).encode("utf-8"),
                        file_name="europe_make_model_pulse_research.csv",
                        mime="text/csv",key="eu_model_pulse_download")
+
+
+def _model_state_space_visual(research,pair,make,model):
+    """National observed HICP history plus Bayesian model-residual *scenarios*."""
+    st.markdown("##### 🔭 Bayesian Time Machine · country index + model residual")
+    st.caption("The **blue national path** comes from published Eurostat observations "
+               "(with a dashed segment for unpublished future months). "
+               "The **purple make/model path** is a conditional Bayesian AR(1) "
+               "scenario. Its historical model-specific trajectory is **not "
+               "observed**. Both paths are normalized to 100 in the first "
+               "month of the model listing comparison.")
+    a,b=st.columns(2)
+    backcast=a.select_slider("National history and model backcast · months",
+                             options=[12,24,36,48,60,72],value=24,
+                             key="eu_state_space_backcast")
+    horizon=b.slider("Future Bayesian scenario · months",0,12,6,
+                     key="eu_state_space_horizon")
+    pilot=lookup_pulse(research,pair["country"],make,model)
+    outcome=model_scenario_series(read_eurostat(),pilot,
+                                  lookback_months=backcast,
+                                  forward_months=horizon)
+    if outcome.get("status")!="research_only":
+        st.warning("Bayesian model scenario unavailable: "
+                   +outcome.get("reason","No qualifying evidence."))
+        return
+    frame=pd.DataFrame(outcome["points"])
+    observed=frame[frame["national_data_method"]=="observed"]
+    forecast=frame[frame["national_data_method"]!="observed"]
+    col1,col2,col3=st.columns(3)
+    source=read_eurostat()
+    col1.metric("Published national months",
+                len(source["countries"][pair["country"]]["months"]))
+    col2.metric("Observed model residual transitions",1)
+    col3.metric("Model-relative prior volatility / month",
+                f'{100*outcome["prior_stationary_sd_monthly_log"]:.1f}%',
+                help="Assumed monthly stationary standard deviation of "
+                     "the latent make/model log-growth differential. "
+                     "It is NOT estimated from decades of make/model observations.")
+    import plotly.graph_objects as go
+    fig=go.Figure()
+    # Band is conditional on the chosen state-space prior and sparse evidence;
+    # it DOES NOT include the national Holt forecast uncertainty.
+    fig.add_trace(go.Scatter(
+        x=frame["month"].tolist()+frame["month"].iloc[::-1].tolist(),
+        y=frame["model_scenario_upper"].tolist()+
+          frame["model_scenario_lower"].iloc[::-1].tolist(),
+        fill="toself",fillcolor="rgba(123,79,176,.12)",
+        mode="lines",line=dict(width=0),hoverinfo="skip",
+        name="Conditional model-residual band · not calibrated"))
+    fig.add_trace(go.Scatter(
+        x=frame["month"],y=frame["model_scenario_median"],
+        mode="lines",name="Bayesian model scenario · inferred",
+        line=dict(color="#8051ae",width=3,dash="dot")))
+    if not observed.empty:
+        fig.add_trace(go.Scatter(
+            x=observed["month"],y=observed["national_index"],
+            mode="lines",name="Eurostat · published country index",
+            line=dict(color="#12699a",width=3)))
+    if not forecast.empty:
+        joined=pd.concat([observed.tail(1),forecast],ignore_index=True)
+        fig.add_trace(go.Scatter(
+            x=joined["month"],y=joined["national_index"],
+            mode="lines",name="Country Holt scenario · unpublished",
+            line=dict(color="#12699a",width=2,dash="dash")))
+    transition=frame[frame["month"]==outcome["one_model_observation_month"]]
+    if not transition.empty:
+        fig.add_trace(go.Scatter(
+            x=transition["month"],y=transition["model_scenario_median"],
+            mode="markers",name="One month with direct model-listing evidence",
+            marker=dict(size=10,color="#8c5db6",symbol="diamond")))
+    fig.update_layout(
+        title=make.title()+" "+model.title()+
+              " · inferred residual path versus "+COUNTRIES.get(pair["country"],
+              pair["country"])+" second-hand-car HICP",
+        xaxis_title="Month",
+        yaxis_title="Market index · 100 in "+outcome["anchor_month"],
+        height=445,margin=dict(l=10,r=15,t=64,b=12),
+        legend=dict(orientation="h",y=-.28))
+    st.plotly_chart(fig,use_container_width=True)
+    st.caption("**Actual evidence:** "+outcome["national_first_published_month"]+
+               "–"+outcome["national_last_published_month"]+
+               " Eurostat monthly country values; one relative model-listing "
+               "contrast from "+outcome["anchor_month"]+" to "+
+               outcome["one_model_observation_month"]+". The other purple "
+               "points are **posterior backcasts/forecasts**, not observations. "
+               "The purple range is **not a calibrated car-price interval**.")
+    st.info("**Why the two paths differ:** the state-space model assumes that "
+            "the model's quality-adjusted growth can differ temporarily from "
+            "the national Eurostat trend. It also assumes that the German "
+            "matched-listing benchmark is comparable to the Eurostat market. "
+            "That transfer assumption has **not been validated**. "
+            "Calendar-time market movement is separate from vehicle ageing "
+            "or extra mileage, and the scenario is **never used in pricing**.")
+    with st.expander("🧬 The Bayesian equations and limitations"):
+        st.latex(r"\Delta\log I_{m,t}=\Delta\log HICP_{c,t}+\delta_{m,t}")
+        st.latex(r"\delta_{m,t}=\phi\delta_{m,t-1}+\epsilon_{m,t}")
+        st.markdown("A **stationary, mean-zero Gaussian AR(1) prior** (assumed "
+                    "monthly relative volatility of 3.5%, persistence 0.65) "
+                    "is conditioned on just one noisy, partially pooled "
+                    "SGD–Huber model residual change. The historical national "
+                    "HICP values are real; historical make/model residuals "
+                    "are regularized, **prior-driven reconstructions**. "
+                    "This is a fast **two-stage empirical-Bayes approximation**, "
+                    "not a fully learned multiyear Bayesian residual process.")
+        st.caption(outcome["uncertainty_warning"])
+        st.caption(outcome["depreciation_warning"])
+    st.download_button(
+        "⬇️ Export observed national index + inferred model scenario · CSV",
+        frame.to_csv(index=False).encode("utf-8"),
+        file_name="europe_bayesian_model_scenario_"+pair["country"]+"_"+
+                  make.replace(" ","_")+"_"+model.replace(" ","_")+".csv",
+        mime="text/csv",key="eu_state_space_csv")
 
 def _price_indices():
     """European price clock: empirical coverage first, no fabricated time series."""
