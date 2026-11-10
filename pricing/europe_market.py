@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.i18n import tr, editorial_voice, localized_panel, format_eur
+from pricing.i18n import tr, editorial_voice, localized_panel, format_eur, localized_country
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -170,7 +170,7 @@ def _edit_vehicle(schema):
     with st.form("eu_ask_form",clear_on_submit=False):
         a,b,c=st.columns(3)
         country=a.selectbox(tr("country")+" · 8",COUNTRY_OPTIONS,
-            format_func=lambda v:COUNTRIES[v.upper()],key="eu_country_v2")
+            format_func=localized_country,key="eu_country_v2")
         makes=values("make",["volkswagen","bmw","mercedes benz","toyota","renault"])
         preferred="volkswagen" if "volkswagen" in makes else makes[0]
         make=b.selectbox(tr("make"),makes,index=makes.index(preferred),
