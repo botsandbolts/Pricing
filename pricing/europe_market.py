@@ -19,6 +19,7 @@ from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
 from pricing.europe_price_clock import adjusted_quote, read_index, level_at, month_number, month_label
 from pricing.europe_eurostat import (
     eurostat_adjusted_quote, eurostat_level_at, read_eurostat)
+from pricing.europe_model_pulse import read_pulse,lookup_pulse
 
 DATASET="https://huggingface.co/datasets/KTHESAT/european-used-car-market-2m-listings"
 NAV=[
@@ -304,6 +305,24 @@ def _receipt(bundle):
         str(st.session_state["eu_valuation_date"]) != quote.get("selected_date")
     ):
         st.warning("The selected date changed. Press Calculate to refresh this receipt.")
+    pilot=lookup_pulse(read_pulse(),quote["vehicle"].get("seller_country"),
+                       quote["vehicle"].get("make"),quote["vehicle"].get("model"))
+    if pilot:
+        with st.expander("🧪 "+quote["vehicle"]["make"].title()+" "+
+                         quote["vehicle"]["model"].title()+
+                         " · real listing pulse (research only)"):
+            st.metric("Relative move vs German matched-listing basket · "+
+                      pilot["early_month"]+" → "+pilot["late_month"],
+                      f'{pilot["relative_pct"]:+.2f}%',
+                      help="Robust quality-adjusted Huber residual contrast, shrunk "
+                           "towards zero. Only a one-month research observation.")
+            st.caption("Sample: "+str(pilot["n_early"])+" earlier and "
+                       +str(pilot["n_late"])+" later adverts; approximate "
+                       "interval "+f'{pilot["interval_low_pct"]:+.2f}%'+" to "+
+                       f'{pilot["interval_high_pct"]:+.2f}%'+
+                       ". **Not applied** to your price. A two-month comparison "
+                       "is not a validated make/model price index, and cannot be "
+                       "extrapolated into future months.")
     st.caption("An advertised asking-price estimate, not evidence of a completed sale "
                "or a customs, insurance, taxation or financing decision.")
     test=bundle[2]["overall_champion"]["test_once"] if bundle else {}
@@ -733,10 +752,96 @@ def _eurostat_index_panel():
                     "in classified advertisement ASK prices.")
         st.dataframe(rows,use_container_width=True,hide_index=True)
 
+
+def _model_pulse_panel():
+    """Distinct make/model observation, not an official price index."""
+    st.markdown("#### 🚘 Make & Model Pulse · experimental listing evidence")
+    st.caption("One brave little month-to-month comparison is **not** a historical "
+               "index. Here are the make/model differences the listings can "
+               "actually support. They are never extrapolated or automatically "
+               "mixed into customer valuations.")
+    research=read_pulse()
+    pairs=research.get("research_pairs",[])
+    if not pairs:
+        st.info(research.get("message") or
+                "No well-supported make/model months passed the sample and "
+                "robustness gates. National Eurostat remains the price clock.")
+        return
+    frame=pd.DataFrame(pairs[0].get("models",[]))
+    if frame.empty:
+        st.info("No make/model cohort met the minimum sample-size and fit checks.")
+        return
+    pair=pairs[0]
+    st.caption("Country: **"+COUNTRIES.get(pair["country"],pair["country"])+"** · "
+               "Observation: **"+pair["early_month"]+" → "+pair["late_month"]+
+               "** · "+str(pair["n_training"])+" training listings · "
+               +str(pair["model_count"])+" supported model groups.")
+    best=frame.sort_values("n_early",ascending=False)
+    makes=sorted(frame.make.unique())
+    make=st.selectbox("Manufacturer",makes,
+                      key="eu_model_pulse_make",
+                      format_func=lambda x:x.title())
+    eligible=frame[frame.make==make].sort_values("n_early",ascending=False)
+    model=st.selectbox("Model",eligible.model.tolist(),
+                       key="eu_model_pulse_model",
+                       format_func=lambda x:x.title())
+    row=eligible[eligible.model==model].iloc[0]
+    a,b,c=st.columns(3)
+    a.metric("Relative movement vs German matched-listing basket",
+             f'{float(row["relative_pct"]):+.2f}%',
+             help="Positive: model's quality-adjusted residual rose faster than "
+                  "the matched listing basket. Negative: slower.")
+    b.metric("Earlier-month adverts",int(row["n_early"]))
+    c.metric("Later-month adverts",int(row["n_late"]))
+    st.caption("Approximate 95% Bayesian conditional credible interval: "
+               +f'{float(row["interval_low_pct"]):+.2f}%'+" to "
+               +f'{float(row["interval_high_pct"]):+.2f}%'+
+               ". This excludes selection and time-series uncertainty.")
+    if "posterior_probability_positive" in row:
+        st.metric("Posterior probability this model outpaced the reference",
+                  f'{100*float(row["posterior_probability_positive"]):.1f}%',
+                  help="Conditional on the fixed hierarchical Gaussian priors "
+                       "and approximate robust standard error. Not an observed "
+                       "market probability or a price forecasting accuracy score.")
+        st.caption("Same-make reference models: "
+                   +str(int(row.get("brand_peer_count",0)))+
+                   ". More evidence means less shrinkage. This single-month "
+                   "comparison is never fed into live valuations.")
+    subset=frame.sort_values("relative_pct").copy()
+    subset["Model"]=subset["make"].str.title()+" · "+subset["model"].str.title()
+    subset=subset.nlargest(15,"n_early").sort_values("relative_pct")
+    st.bar_chart(subset.set_index("Model")["relative_pct"],horizontal=True)
+    with st.expander("📚 Why these figures are not applied to valuations"):
+        st.markdown("A pooled **SGDRegressor with Huber loss on log(EUR ASK)** "
+                    "controls for model, age, mileage, power, fuel, gearbox, "
+                    "body type and advertising portal. Robust residuals are "
+                    "compared between **actual observed listing months**. "
+                    "The model-level difference is relative to the wider "
+                    "matched German listing basket and shrunk using **two-level "
+                    "Gaussian Bayesian partial pooling**: the same manufacturer "
+                    "and a country-centred prior. The approximate conditional "
+                    "credible interval and posterior probability omit some "
+                    "uncertainties and are not calibrated time-series predictions.")
+        st.markdown("It is **not** a model-specific Fisher index, **not** a "
+                    "completed-sales series, **not** proof of causality, and "
+                    "not an independent forecast. We need at least six "
+                    "consecutive observed monthly cohorts and out-of-time "
+                    "validation before using make/model market-time factors "
+                    "for prices. Eurostat remains the separate national "
+                    "market-time adjustment.")
+        st.dataframe(frame.sort_values(["make","model"]),
+                     hide_index=True,use_container_width=True)
+    st.download_button("⬇️ Download experimental model-level research (CSV)",
+                       frame.to_csv(index=False).encode("utf-8"),
+                       file_name="europe_make_model_pulse_research.csv",
+                       mime="text/csv",key="eu_model_pulse_download")
+
 def _price_indices():
     """European price clock: empirical coverage first, no fabricated time series."""
     st.markdown("### 📈 European Price Index Observatory")
     _eurostat_index_panel()
+    st.divider()
+    _model_pulse_panel()
     st.divider()
     st.markdown("#### 🧪 Hedonic Fisher · independent listing research")
     st.caption("The market has a pulse. We measure it without confusing more "
