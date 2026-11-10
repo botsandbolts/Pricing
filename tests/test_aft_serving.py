@@ -23,3 +23,27 @@ def test_installed_aft_and_explanations_match():
     assert graphs['native']['error']<1e-4
     assert graphs['unit']=='log(price)'
     assert np.isfinite(graphs['heatmap']['price']).all()
+
+
+def test_saved_aft_reconciles_training_vocabulary_without_retraining():
+    """A common car plus an unseen trim must not trip the XGBoost recoder.
+
+    The price and native explanation share the very same normalized input.
+    A never-trained label is missing, not a silently fabricated known model.
+    """
+    pipeline=PricePipeline('models/price-model-suite/ask')
+    aft=pipeline.aft
+    fields={'year':2015,'manufacturer':'toyota','model':'corolla','odometer':95000,
+            'type':'sedan','transmission':'automatic','state':'ca','fuel':'gas'}
+    assert 'model' in aft._trained_categories
+    known=aft.encoded(pd.DataFrame([fields]))
+    trained=set(aft._trained_categories['model'])
+    assert set(known['model'].cat.categories)==trained
+    unseen={**fields,'model':'unseen-2026-novel-model-not-in-training'}
+    encoded=aft.encoded(pd.DataFrame([unseen]))
+    assert pd.isna(encoded['model'].iloc[0])
+    assert set(encoded['model'].cat.categories)==trained
+    # Keep the original training weights; no re-fitting in the serving path.
+    old=pipeline.predict('Maintained sedan',fields,explain=True)
+    assert np.isfinite(old['price']) and old['price']>0
+    assert old['explanation']['additivity_error']<1e-4
