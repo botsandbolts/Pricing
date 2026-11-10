@@ -169,8 +169,8 @@ def available(path=None):
 
 
 # European production dispatch: retain the frozen feature encoder and market
-# statistics, but route all valuation calls to the verified ResMLP checkpoint.
+# statistics, but route European ASK valuation calls to the validated November 2026 HOFM3 checkpoint.
 # No XGBoost fallback: an absent/corrupt neural release must fail closed.
-from pricing.europe_resmlp import (  # noqa: E402,F401
+from pricing.europe_hofm3 import (  # noqa: E402,F401
     load_bundle, estimate, batch_estimate, explain, available,
 )

@@ -1,0 +1,116 @@
+name: Release verified HOFM3 November 2026 European ASK to review branch
+on:
+  push:
+    branches: [experiment/europe-nov2026-neural-ray-15x1h]
+    paths:
+      - 'pricing/europe_hofm3.py'
+      - 'pricing/europe_market.py'
+      - 'pricing/europe_model.py'
+      - 'scripts/package_europe_hofm3.py'
+      - 'tests/test_europe_market.py'
+      - '.github/workflows/europe-hofm3-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: hofm3-package-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install verified CPU-only training-parity runtime
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=17,<23' 'pytest>=8,<10' 'streamlit==1.66.1' 'plotly>=5.24,<7' 'scikit-learn>=1.4,<2'
+      - name: Compile EU production model, training reference and calculator
+        run: |
+          python -m py_compile pricing/europe_hofm3.py pricing/europe_model.py \
+            pricing/europe_market.py scripts/europe_neural_nov2026_ray.py \
+            scripts/europe_neural_nov2026_prepare.py scripts/package_europe_hofm3.py
+      - name: Download immutable full November-adjusted European Parquet as audited provenance
+        uses: actions/download-artifact@v4
+        with:
+          name: europe-2m-listings-nov2026-market-adjusted
+          run-id: 42819768767
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ runner.temp }}/raw-europe
+      - name: Retrieve exact frozen train/validation representation and hashes
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-nov26-neural-fresh-fit
+          run-id: 42873011193
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ runner.temp }}/fit
+      - name: Retrieve winner checkpoint and comparison (single tested HOFM3)
+        uses: actions/download-artifact@v4
+        with:
+          name: europe-nov26-15way-neural-1h-comparison
+          run-id: 42873011193
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ runner.temp }}/champion
+      - name: Package exact model/vocabulary and prove 30 training-row prediction parity
+        run: |
+          python -u -m scripts.package_europe_hofm3 \
+            --raw "$RUNNER_TEMP/raw-europe/europe_2m_nov2026_adjusted.parquet" \
+            --fit "$RUNNER_TEMP/fit" \
+            --model "$RUNNER_TEMP/champion/champion.pt" \
+            --comparison "$RUNNER_TEMP/champion/comparison.json" \
+            --output models/europe-hofm3
+      - name: Production model, country list, no double-Eurostat and US-route regression tests
+        run: |
+          python -m pytest -q tests/test_europe_market.py tests/test_europe_neural_nov2026.py
+      - name: Real HOFM3 inference in all eight countries and counterfactuals
+        run: |
+          python - <<'PY'
+          import numpy as np
+          from pricing.europe_model import load_bundle,estimate,batch_estimate,explain
+          from pricing.europe_hofm3 import SUPPORTED_COUNTRIES
+          net,schema,comp=load_bundle()
+          assert comp['overall_champion']['origin']=='eu-nov26-neural-13'
+          assert schema['automatic_eurostat_adjustment'] is False
+          v={'seller_country':'de','make':'volkswagen','model':'golf',
+             'reg_year':2020,'reg_month':6,'mileage_km':85000,'power_hp':110,
+             'fuel':'diesel','transmission':'manual','first_seen_at':schema['snapshot_date']}
+          rows=[{**v,'seller_country':country} for country in SUPPORTED_COUNTRIES]
+          amounts=batch_estimate(rows,bundle=(net,schema,comp))
+          assert len(amounts)==8 and np.isfinite(amounts).all()
+          assert (amounts>=100).all() and (amounts<=1000000).all()
+          assert abs(estimate(v,bundle=(net,schema,comp))-amounts[0])<.08
+          shifts=explain(v,bundle=(net,schema,comp))
+          assert len(shifts)>=2 and all(np.isfinite(x) for _,x in shifts)
+          for country,price in zip(SUPPORTED_COUNTRIES,amounts):
+              print(country,round(float(price),2),flush=True)
+          print('HOFM3_CROSS_COUNTRY_INFERENCE_AND_EXPLAIN_OK',flush=True)
+          PY
+      - name: Commit only tested frozen HOFM3 package to review branch
+        run: |
+          git config user.name "car-price-studio-release-bot"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add models/europe-hofm3/
+          git diff --cached --quiet && exit 0
+          git commit -m "Publish verified Nov-2026 HOFM3 weights, exact categorical vocabulary and test provenance"
+          git fetch origin "$GITHUB_REF_NAME"
+          git rebase "origin/$GITHUB_REF_NAME"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+      - name: Preserve release audit and full scientific comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: europe-hofm3-release-verification
+          path: |
+            models/europe-hofm3/release_audit.json
+            models/europe-hofm3/release_manifest.json
+            models/europe-hofm3/schema.json
+          if-no-files-found: warn
+          retention-days: 45
