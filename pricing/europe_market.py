@@ -394,86 +394,105 @@ def _forensic(quote):
         mime="application/json",key="eu_forensic_json")
 
 def _evaluation(bundle):
-    st.markdown("### 📊 European evaluation · full sealed holdouts")
+    st.markdown("### 📉 European evaluation · what improved?")
     if bundle is None:
-        st.info("A validated benchmark is bundled only with the released model.")
+        st.info("Verified research metrics become available with the released weights.")
         return
     comp=bundle[2]
-    train=comp["counts"]["train"]
-    valid=comp["counts"]["validation"]
-    test=comp["counts"]["test"]
     a,b,c=st.columns(3)
-    a.metric("Train",f"{train:,}")
-    b.metric("Validation",f"{valid:,}")
-    c.metric("Sealed test",f"{test:,}")
-    winner=comp["winning_model"]
-    rows=[]
-    for name,source in [("Validation",winner["validation"]),("Sealed test",winner["test_once"])]:
-        rows.append({"Cohort":name,
-          **{METRIC_LABELS[k]:round(source[k],2) for k in EVAL_FIELDS}})
-    st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
-    st.caption("Model selected using validation CVaR95 only. "
-        "The sealed test was evaluated once for the winner. "
-        "These results are not individually calibrated uncertainty bands.")
-    st.warning("A reliable per-country or per-model holdout scorecard has not yet been "
-        "reproduced. Do not imply equal accuracy in every country.")
-    st.download_button("Download research comparison · JSON",
-        json.dumps(comp,indent=2),file_name="european-xgboost-comparison.json",
+    a.metric("Training adverts",f'{comp["training_rows"]:,}')
+    b.metric("Validation adverts",f'{comp["validation_rows"]:,}')
+    c.metric("Sealed test adverts",f'{comp["test_rows"]:,}')
+    champion=comp["overall_champion"]
+    data=[{"Cohort":name,**{METRIC_LABELS[k]:round(metric[k],2) for k in EVAL_FIELDS}}
+        for name,metric in [("Validation",champion["validation"]),
+                            ("Untouched test",champion["test_once"])]]
+    st.dataframe(pd.DataFrame(data),hide_index=True,use_container_width=True)
+    old_path=ROOT/"comparison.json"
+    if old_path.is_file():
+        old=json.loads(old_path.read_text(encoding="utf-8"))
+        previous=old["winning_model"]
+        # Both held-out groups were computed on exactly the same frozen dataset.
+        if old["counts"]["test"]==comp["test_rows"] and old["counts"]["validation"]==comp["validation_rows"]:
+            chart=pd.DataFrame({
+                "New ResMLP":[champion["validation"]["cvar95_absolute_eur"],
+                              champion["test_once"]["cvar95_absolute_eur"]],
+                "Previous XGBoost":[previous["validation"]["cvar95_absolute_eur"],
+                                    previous["test_once"]["cvar95_absolute_eur"]],
+            },index=["Validation","Sealed test"])
+            st.markdown("#### Head-to-head: costliest 5% of valuation errors")
+            st.bar_chart(chart,y_label="CVaR95 in € · lower is better")
+            new=champion["test_once"]["cvar95_absolute_eur"]
+            old_error=previous["test_once"]["cvar95_absolute_eur"]
+            st.success(f"The new neural engine reduced worst-5% average test errors by "
+                       f"{(old_error-new)/old_error*100:.1f}% versus the previous XGBoost model.")
+    st.caption("CVaR95 is the mean absolute error in the worst 5% of examples. "
+               "The candidate was selected on validation; the test was scored once.")
+    st.warning("Scores differ by model, market and car type. They do not promise "
+               "this error for any single car or establish a transaction value.")
+    st.download_button("Download complete neural research comparison · JSON",
+        json.dumps(comp,indent=2),file_name="european-neural-comparison.json",
         mime="application/json",key="eu_eval_json")
 
+
 def _model_lab(bundle):
-    st.markdown("### 🧪 European Model Lab")
-    st.caption("Twelve XGBoost candidates: ten Ray-tuned workers and two fixed baselines. "
-               "Neural challengers remain independent until they pass the same checks.")
+    st.markdown("### 🧪 Ray Tune model lab · five neural architectures")
+    st.caption("Two research waves, 20 neural finalists, 30 objective families and "
+               "two XGBoost baselines. Ranking uses validation CVaR95.")
     if bundle is None:
-        st.info("The model laboratory will unlock with the verified release bundle.")
+        st.info("Model research details unlock when verified weights are available.")
         return
     comp=bundle[2]
     rows=[]
-    for candidate in comp["leaderboard"]:
-        val=candidate["validation"]
-        rows.append({"Candidate":candidate["origin"],
-          "Objective":candidate["family"],
-          "CVaR95 · €":round(val["cvar95_absolute_eur"]),
-          "MAE · €":round(val["mae_eur"]),
-          "RMSE · €":round(val["rmse_eur"]),
-          "Boosting rounds":candidate["iterations"]})
-    st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True)
-    top=comp["winning_model"]
-    with st.expander("Inspect the winning hyperparameters"):
-        st.json(top["config"])
-    st.caption("CVaR95 is the average absolute euro error in the worst 5% of cases; "
-               "lower is better. Hyperparameters chosen using validation, never test.")
+    for candidate in comp["neural_leaderboard"]:
+        score=candidate["validation"]
+        rows.append({"Neural architecture":candidate["architecture"],
+                     "Loss":candidate["loss"],
+                     "CVaR95 · €":round(score["cvar95_absolute_eur"]),
+                     "MAE · €":round(score["mae_eur"]),
+                     "Worker":candidate["origin"]})
+    st.dataframe(pd.DataFrame(rows).sort_values("CVaR95 · €"),
+                 hide_index=True,use_container_width=True)
+    with st.expander("Exact winning hyperparameters"):
+        st.json(comp["overall_champion"]["config"])
+    st.caption("The neural shortlist was assessed on a frozen 200,039-advert validation "
+               "sample. No unsupported claim that all 30 losses won was made.")
+
 
 def _science(bundle):
-    st.markdown("### 🔬 Under the bonnet · serious models, appropriately modest claims")
-    st.markdown("""**What is the target?** The advertised European asking price, in euros.
-    It is not a completed sale, wholesale auction bid, taxation estimate or customs value.
+    st.markdown("### 🔬 Under the bonnet · a neural engine, without the jargon")
+    _how_it_works()
+    st.markdown("""**Why a neural network?** A used car's features interact. An extra
+    20,000 km may mean something quite different for a young electric hatchback
+    and an older high-performance saloon. ResMLP learns these combinations
+    from real European listing patterns, rather than assuming a fixed deduction.
 
-    **Data.** The independent research dataset contains 2,003,645 listing rows.
-    After valid positive-price filtering, 2,003,371 rows were eligible. No unverified
-    duplicate removal or similarity-based thinning was applied.
+    **What are residual connections?** Small neural layers refine their
+    previous answer while keeping useful information from the earlier layer.
+    Our winner has two such blocks, and the learned answer becomes an asking
+    price in euros.
 
-    **How does it work?** The winning algorithm is a histogram-based XGBoost
-    regression tree ensemble with an exact-observation Gaussian accelerated
-    failure-time loss. AFT is used as a distribution-aware positive-price
-    objective: the data do **not** contain observed censoring intervals.
+    **Why focus on the worst cases?** Big mistakes can be expensive even when
+    the average estimate looks good. The Tail-MAE objective and validation
+    CVaR95 selection favour models with smaller extreme euro mistakes.
 
-    **Why CVaR95?** A small average miss can conceal very costly mistakes.
-    CVaR95 measures the mean absolute error among the worst 5% of validation
-    observations. It is optimized through validation-based model selection.
+    **What did we train on?** Approximately two million European car ads.
+    1,602,247 eligible adverts were used for training; 200,039 for validation
+    and 201,085 were held aside for final testing. The input was not
+    deduplicated using unverified similarity assumptions.
 
-    **What can't the model know?** An unreported fault, accident history, seller
-    incentives, export taxes, language in a description or the negotiated price.
-    No unsupported feature is silently invented.""")
-    st.markdown("**Source and usage:** [European Used Car Market dataset]("+DATASET+
-         ") · data supplied by KTHESAT under CC BY-NC-SA 4.0. "
-         "Car Price Studio's software is separately MIT-licensed.")
+    **What remains unknown?** The model does not read seller descriptions,
+    VINs or photographs. It does not inspect the vehicle or know the final
+    negotiated amount. Asking prices are not sales prices, customs decisions
+    or tax valuations.""")
+    st.markdown("**Dataset and usage:** [European Used Car Market]("+DATASET+
+        ") · CC BY-NC-SA 4.0. Car Price Studio software is separately MIT-licensed.")
     if bundle:
-        winning=bundle[2]["winning_model"]
-        st.info(f"Winner: Gaussian AFT with {winning['iterations']} boosting rounds; "
-                f"sealed-test MAE {money(winning['test_once']['mae_eur'])}; "
-                f"sealed-test CVaR95 {money(winning['test_once']['cvar95_absolute_eur'])}.")
+        winner=bundle[2]["overall_champion"]
+        st.info(f"Selected: ResMLP with Tail-MAE; sealed-test MAE "
+                f"{money(winner['test_once']['mae_eur'])}; worst-5% average "
+                f"error {money(winner['test_once']['cvar95_absolute_eur'])}.")
+
 
 def _market_intelligence():
     st.markdown("### 🌍 Market intelligence · European marketplace facts")
