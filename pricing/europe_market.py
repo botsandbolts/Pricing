@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.i18n import tr
+from pricing.i18n import tr, editorial_voice
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -115,6 +115,9 @@ def _parody_banner():
 
 def _header():
     _parody_banner()
+    local_headline, local_invitation = editorial_voice()
+    st.markdown("### "+escape(local_headline))
+    st.caption(local_invitation)
     st.caption("🌐 "+tr("market_intro"))
     st.markdown("""<section class="eu-hero" aria-label="European automotive price studio">
       <div class="eu-kicker">🇪🇺 CAR PRICE STUDIO · EUROPEAN EDITION</div>
