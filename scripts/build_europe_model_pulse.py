@@ -24,6 +24,7 @@ import pandas as pd
 from scripts.build_europe_hedonic_fisher import (
     DEFAULT_SOURCE, clean, design, month_coordinate,
 )
+from pricing.europe_bayes_pulse import shrink_model_differences
 
 # These thresholds prevent a "trend" based on a dozen exotic vehicles.
 MIN_EARLY = 60
@@ -127,7 +128,7 @@ def fit_relative_pulse(data, *, early="2026-09", late="2026-10",
     country_early=_trimmed_mean(train.loc[train.month.eq(early),"residual"])
     country_late=_trimmed_mean(train.loc[train.month.eq(late),"residual"])
     reference_delta=country_late-country_early
-    records=[]
+    raw_records=[]
     for group, part in train.groupby("vehicle_group"):
         before=part.loc[part.month.eq(early),"residual"].to_numpy(float)
         after=part.loc[part.month.eq(late),"residual"].to_numpy(float)
@@ -139,27 +140,31 @@ def fit_relative_pulse(data, *, early="2026-09", late="2026-10",
         if not math.isfinite(raw):
             continue
         err=math.hypot(_robust_se(after),_robust_se(before))
-        # Empirical-Bayes shrinkage toward the national/common-basket trend.
-        # Rare/noisy model slices automatically collapse towards zero.
-        prior_sd=0.06
-        shrink=prior_sd**2/(prior_sd**2+err**2)
-        delta=float(raw*shrink)
-        post_se=math.sqrt((err**2*prior_sd**2)/(err**2+prior_sd**2))
-        if not all(math.isfinite(z) for z in (delta,post_se)):
-            continue
-        # Clip unreasonable descriptive effects; do not amplify large outliers.
-        if abs(delta)>0.15:
+        if not math.isfinite(err) or err<=0 or abs(raw)>0.40:
             continue
         make,model_name=group.split(" · ",1)
+        raw_records.append({"make":make,"model":model_name,
+                            "n_early":int(n_early),"n_late":int(n_late),
+                            "raw":float(raw),"se":float(err)})
+    records=[]
+    for row in shrink_model_differences(raw_records):
+        delta=row["posterior_log_change"]
+        if abs(delta)>0.15:
+            continue  # extreme posterior cannot quietly become "normal"
         records.append({
-            "make":make,"model":model_name,
-            "n_early":int(n_early),"n_late":int(n_late),
+            "make":row["make"],"model":row["model"],
+            "n_early":row["n_early"],"n_late":row["n_late"],
             "relative_log_change":round(delta,6),
-            "relative_pct":round(100*(math.exp(delta)-1),2),
-            "interval_low_pct":round(100*(math.exp(delta-1.96*post_se)-1),2),
-            "interval_high_pct":round(100*(math.exp(delta+1.96*post_se)-1),2),
-            "shrink_weight":round(shrink,3),
-            "raw_relative_log_change":round(float(raw),6),
+            "relative_pct":round(100*math.expm1(delta),2),
+            "interval_low_pct":round(100*math.expm1(row["interval_low_log"]),2),
+            "interval_high_pct":round(100*math.expm1(row["interval_high_log"]),2),
+            "posterior_probability_positive":round(
+                row["posterior_probability_positive"],4),
+            "posterior_sd_log":round(row["posterior_sd_log"],6),
+            "brand_prior_log":round(row["brand_prior_log"],6),
+            "brand_peer_count":row["brand_peer_count"],
+            "shrink_weight":round(row["shrink_weight"],3),
+            "raw_relative_log_change":round(row["raw"],6),
         })
     records=sorted(records,key=lambda r:(-min(r["n_early"],r["n_late"]),r["make"],r["model"]))
     return {"country":"DE","early_month":early,"late_month":late,
@@ -170,7 +175,7 @@ def fit_relative_pulse(data, *, early="2026-09", late="2026-10",
             "converged_epochs":int(model.n_iter_),
             "description":"Exploratory relative month shift among observed advertisements, "
                           "adjusted for age, mileage, power, fuel, gearbox, portal "
-                          "and body; empirical-Bayes shrinkage. NOT a time-series "
+                          "and body; two-level approximate Bayesian partial pooling. NOT a time-series "
                           "index, not validated for time adjustment."}
 
 
@@ -182,7 +187,7 @@ def build(source=DEFAULT_SOURCE):
         "schema_version":1,"status":"research_only",
         "source":"KTHESAT/european-used-car-market-2m-listings",
         "method":"Pooled time-blind sparse SGDRegressor Huber on log(EUR ASK); "
-                 "relative make/model residual contrasts and hierarchical shrinkage",
+                 "relative make/model residual contrasts and conjugate hierarchical Bayesian shrinkage",
         "minimum_observed_months_to_enable_forecasting":RELEASE_MONTHS,
         "country_coverage":{"DE":{str(m):int(n) for m,n in periods.items()}},
         "research_pairs":[],"message":"No validated make/model monthly series is available; "
