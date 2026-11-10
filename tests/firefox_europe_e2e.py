@@ -100,9 +100,15 @@ def test_device(browser,device,width,height):
     failures=[]
     for label,heading in expected.items():
         try:
-            pill=page.get_by_role("button",name=label,exact=True)
+            pill=page.locator('[data-testid="stPills"]').get_by_text(label,exact=True)
             if not pill.count():
-                pill=page.get_by_role("radio",name=label,exact=True)
+                pill=page.get_by_role("button",name=label,exact=False)
+            if not pill.count():
+                pill=page.get_by_role("radio",name=label,exact=False)
+            if not pill.count():
+                pill=page.get_by_role("option",name=label,exact=False)
+            if not pill.count():
+                pill=page.get_by_text(label,exact=True)
             if not pill.count():
                 raise AssertionError("Panel control is missing: "+label)
             pill.first.click(timeout=20000)
@@ -120,9 +126,9 @@ def test_device(browser,device,width,height):
             page.screenshot(path=str(ART/(device+"-panel-error-"+str(len(failures))+".png")),full_page=True)
     # Go back and check the valuation persists rather than resetting the user.
     try:
-        pricing=page.get_by_role("button",name="🚗 Price my car",exact=True)
+        pricing=page.locator('[data-testid="stPills"]').get_by_text("🚗 Price my car",exact=True)
         if not pricing.count():
-            pricing=page.get_by_role("radio",name="🚗 Price my car",exact=True)
+            pricing=page.get_by_text("🚗 Price my car",exact=True)
         pricing.first.click(timeout=20000)
         expect(page.locator(".eu-result strong")).to_be_visible(timeout=60000)
         diagnose(page,device+"-return-to-pricing")
