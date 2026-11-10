@@ -156,11 +156,12 @@ def _edit_vehicle(schema):
     st.markdown("### 🚘 01 / Tell us about your European car")
     st.caption("European conventions: km, horsepower, registration year and euro asking prices. "
                "Unknown specifications stay unknown.")
-    st.info("📅 **Late-2026 market reference** · HOFM3 was trained on "
-            "recently verified September–November 2026 observed asking prices, "
-            "NOT artificially November-adjusted labels. No additional "
-            "Eurostat factor is applied. Official index scenarios remain in "
-            "the separate research panel.")
+    st.info("📅 **October 2026 observed market reference** · The selected "
+            "HOFM3 was trained on asking prices verified 4–15 October 2026 "
+            "(median 13 October). The separately generated November-indexed "
+            "column was **not** its training target. No additional Eurostat "
+            "adjustment is applied. Monthly market trends remain in the "
+            "research panel.")
     with st.form("eu_ask_form",clear_on_submit=False):
         a,b,c=st.columns(3)
         country=a.selectbox("Country · eight supported markets",COUNTRY_OPTIONS,
@@ -227,9 +228,9 @@ def _edit_vehicle(schema):
                 snapshot=_snapshot((None,schema))
                 st.session_state["eu_receipt"]={
                     "vehicle":vehicle,"price_eur":price,"base_price_eur":price,
-                    "snapshot":snapshot,"selected_date":"2026-11",
+                    "snapshot":snapshot,"selected_date":snapshot,
                     "clock":{"status":"built_in_recent_market","factor":1.0},
-                    "market":"Europe","engine":"HOFM3 Tail-MAE · November 2026",
+                    "market":"Europe","engine":"HOFM3 Tail-MAE · October 2026 evidence",
                 }
                 st.success("HOFM3 valuation calculated. No second date adjustment; "
                            "advertised ASK, not a completed sale.")
@@ -239,7 +240,7 @@ def _edit_vehicle(schema):
 
 def _receipt(bundle):
     quote=st.session_state.get("eu_receipt")
-    if quote and quote.get("engine")!="HOFM3 Tail-MAE · November 2026":
+    if quote and quote.get("engine")!="HOFM3 Tail-MAE · October 2026 evidence":
         st.session_state.pop("eu_receipt",None)
         quote=None
         st.info("European neural model upgraded. Recalculate to refresh your receipt.")
@@ -248,12 +249,12 @@ def _receipt(bundle):
         return None
     st.markdown('<div class="eu-result"><small>EUROPEAN ADVERTISED ASK · EUR</small>'
                 '<strong>'+escape(money(quote["price_eur"]))+'</strong>'
-                '<p>HOFM3 · Tail-MAE · recent late-2026 European listings</p>'
+                '<p>HOFM3 · Tail-MAE · October 2026 observed ASK</p>'
                 '</div>',unsafe_allow_html=True)
-    st.caption("Trained on observed asking prices from a recent "
-               "September–November 2026 cohort. **No additional Eurostat** "
-               "adjustment is applied. This is not an observed November "
-               "transaction value; age and mileage reflect your inputs.")
+    st.caption("Trained on observed October 4–15, 2026 asking prices "
+               "(reference October 13). **No additional Eurostat factor** "
+               "is applied. This is not a verified November 2026 "
+               "market price or completed sale; mileage is your input.")
     pilot=lookup_pulse(read_pulse(),quote["vehicle"].get("seller_country"),
                        quote["vehicle"].get("make"),quote["vehicle"].get("model"))
     if pilot:
@@ -548,7 +549,7 @@ def _science(bundle):
     _how_it_works()
     st.markdown("""**Why a neural network?** A used car's features interact. An extra
     20,000 km may mean something quite different for a young electric hatchback
-    and an older high-performance saloon. ResMLP learns these combinations
+    and an older high-performance saloon. HOFM3 learns these combinations
     from real European listing patterns, rather than assuming a fixed deduction.
 
     **What is HOFM3?** Higher-Order Factorization Machines combine embeddings,
@@ -560,9 +561,10 @@ def _science(bundle):
     CVaR95 selection favour models with smaller extreme euro mistakes.
 
     **What did we train on?** Approximately two million European car ads.
-    1,536,801 recent adverts were used for training; 192,149 for validation
-    and 192,046 for sealed testing. Stale adverts were excluded, seller
-    countries canonicalized, and forecast-generated prices were not target labels.
+    1,536,801 October-verified adverts were used for training; 192,149 for
+    validation and 192,046 for sealed testing. Older adverts were excluded,
+    seller countries canonicalized, and forecast-generated November prices
+    were not model labels.
 
     **What remains unknown?** The model does not read seller descriptions,
     VINs or photographs. It does not inspect the vehicle or know the final
