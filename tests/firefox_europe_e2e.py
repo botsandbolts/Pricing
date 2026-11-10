@@ -76,6 +76,11 @@ def test_device(browser,device,width,height):
     expect(explain).to_be_enabled()
     explain.click(timeout=30000)
     expect(page.get_by_text("Each bar is a new ResMLP estimate",exact=False)).to_be_visible(timeout=90000)
+    bars=page.locator(".eu-impact-graph .eu-impact-row")
+    expect(bars).to_have_count(4,timeout=90000)
+    widths=page.locator(".eu-impact-graph .eu-impact-bar").evaluate_all(
+        "(els) => els.map(el => el.getBoundingClientRect().width)")
+    assert any(w>4 for w in widths), "ResMLP price-impact graphics are empty"
     assert page.locator('[data-testid="stException"]').count()==0
     diagnose(page,device+"-valuation")
     assert not problems,f"Firefox JavaScript exceptions: {problems[:5]}"
