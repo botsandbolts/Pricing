@@ -1,7 +1,7 @@
 """Overnight Ray Tune: 5 DNN families on fresh observed October-2026 EU asks.
 
-10 independent CPU workers in TWO waves to respect GitHub's six-hour limit.
-15 workers per wave, two sequential waves until 11 Nov 2026 05:00 CET.
+15 independent CPU workers per wave in TWO sequential waves to respect
+GitHub's six-hour per-job limit, through 11 Nov 2026 05:00 CET.
 Long trials support up to 150 epochs; ASHA/early stopping can stop sooner.
 Uses re-prepared, country-standardized, fresh-only 80/10/10 grouped holdout. Search sees train+validation
 ONLY. All distributions are EXACT observed advertised asking prices, not
