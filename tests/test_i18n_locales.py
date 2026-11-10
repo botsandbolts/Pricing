@@ -1,5 +1,5 @@
 """Static regression tests: all EU languages, English variants and safe fallbacks."""
-from pricing.i18n import LOCALES, CATALOGS, KEYS, VOICE, PANEL_CATALOGS, _PANEL_KEYS, browser_locale, format_eur
+from pricing.i18n import LOCALES, CATALOGS, KEYS, VOICE, PANEL_CATALOGS, _PANEL_KEYS, COUNTRY_CATALOGS, _COUNTRY_KEYS, browser_locale, format_eur
 
 OFFICIAL_EU = {
     "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de",
@@ -9,7 +9,7 @@ OFFICIAL_EU = {
 
 def test_all_24_official_eu_languages_plus_english_variants():
     assert {k.split("-")[0] for k in LOCALES} == OFFICIAL_EU
-    assert set(LOCALES) == set(CATALOGS) == set(VOICE) == set(PANEL_CATALOGS)
+    assert set(LOCALES) == set(CATALOGS) == set(VOICE) == set(PANEL_CATALOGS) == set(COUNTRY_CATALOGS)
     assert "en-GB" in LOCALES and "en-US" in LOCALES
     assert len(LOCALES) == 25
 
@@ -20,6 +20,7 @@ def test_core_catalog_has_no_missing_or_blank_translations():
         assert all(v.strip() for v in VOICE[code]), code
         assert set(PANEL_CATALOGS[code]) == set(_PANEL_KEYS), code
         assert all(v.strip() for v in PANEL_CATALOGS[code].values()), code
+        assert set(COUNTRY_CATALOGS[code]) == set(_COUNTRY_KEYS), code
 
 def test_browser_locale_selection():
     cases = {
