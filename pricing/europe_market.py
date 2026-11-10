@@ -157,9 +157,10 @@ def _edit_vehicle(schema):
             "📅 Price estimate date · European market clock",
             value=date.today(),min_value=date(2015,1,1),
             max_value=date(date.today().year+1,12,31),key="eu_valuation_date",
-            help="Monthly hedonic Fisher market movement, with log interpolation or "
-                 "bounded damped-Holt scenarios where enough genuine monthly data exist. "
-                 "A selected date does not guarantee a supported index.")
+            help="Uses a validated hedonic Fisher ASK index if available; otherwise "
+                 "the official Eurostat second-hand motor-car HICP as a retail "
+                 "market proxy. Missing months use bounded log-Holt forecasts "
+                 "only when enough real history exists. No daily index is claimed.")
         a,b,c=st.columns(3)
         countries=values("seller_country",list(COUNTRIES))
         countries=[v for v in countries if v!="__missing__"] or list(COUNTRIES)
