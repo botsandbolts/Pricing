@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.i18n import tr, editorial_voice, localized_panel
+from pricing.i18n import tr, editorial_voice, localized_panel, format_eur
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -39,7 +39,7 @@ METRIC_LABELS={"cvar95_absolute_eur":"CVaR95 · worst 5%",
 EVAL_FIELDS=("cvar95_absolute_eur","mae_eur","rmse_eur","median_ape_pct")
 
 def money(value):
-    return "€"+format(float(value),",.0f")
+    return format_eur(float(value))
 
 def _css():
     st.markdown("""<style>
