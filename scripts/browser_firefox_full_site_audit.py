@@ -22,7 +22,7 @@ PANELS=[
 
 def safe_shot(page,name):
     try:
-        page.screenshot(path=str(OUT/name),full_page=True,timeout=30000)
+        page.screenshot(path=str(OUT/name),full_page=False,timeout=20000)
     except Exception as exc:
         return str(exc)[:250]
     return None
