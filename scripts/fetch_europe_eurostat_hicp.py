@@ -133,6 +133,18 @@ def main():
     manifest = build()
     outfile = Path(args.output)
     outfile.parent.mkdir(parents=True, exist_ok=True)
+    if outfile.is_file():
+        try:
+            previous=json.loads(outfile.read_text(encoding="utf-8"))
+            # Ignore the time of download when official observations are unchanged.
+            # Avoid a meaningless new commit every scheduled run.
+            if (previous.get("status")=="validated"
+                    and previous.get("countries")==manifest["countries"]
+                    and previous.get("errors")==manifest["errors"]):
+                manifest["generated_at"]=previous.get("generated_at",manifest["generated_at"])
+                print("Official series unchanged; preserving previous timestamp.",flush=True)
+        except (OSError,ValueError,TypeError):
+            pass
     outfile.write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n",
                        encoding="utf-8")
     print(json.dumps({"status": manifest["status"],
