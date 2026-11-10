@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.i18n import tr, editorial_voice
+from pricing.i18n import tr, editorial_voice, localized_panel
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -1035,7 +1035,7 @@ def render():
     # A labelled, keyboard-operable navigation control is more reliable than
     # 12 wrapping pill buttons, especially on a narrow phone screen.
     tab=st.selectbox(tr("panels"),NAV,
-                 format_func=lambda name: ("🚗 "+tr("form")) if name=="🚗 Price my car" else name,
+                 format_func=localized_panel,
                  key="eu_workspace_selector_v2",
                  help="Choose any European research panel. Your previous ASK receipt persists.")
     if tab=="🚗 Price my car":
