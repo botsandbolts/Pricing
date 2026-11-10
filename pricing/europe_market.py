@@ -68,6 +68,24 @@ def _css():
     .eu-step span{font-size:.86rem;line-height:1.5;display:block}
     .eu-arrow{display:flex;align-items:center;font-size:2rem;color:#298e81;font-weight:bold}
     @media(max-width:650px){.eu-step{flex:1 1 100%}.eu-arrow{display:none}}
+    .eu-impact-graph,.eu-benchmark{border:1px solid #8fb6b2;border-radius:15px;
+       padding:13px 17px;margin:8px 0 16px;background:rgba(31,91,91,.055)}
+    .eu-impact-row,.eu-benchmark-row{display:grid;
+       grid-template-columns:minmax(130px,1.4fr) minmax(80px,2fr) minmax(65px,90px);
+       gap:12px;align-items:center;padding:8px 2px}
+    .eu-impact-label,.eu-benchmark-row span{font-size:.88rem;line-height:1.4}
+    .eu-impact-track{height:17px;border-radius:9px;background:#d5e2df;overflow:hidden}
+    .eu-impact-bar{height:100%;border-radius:9px;min-height:17px}
+    .eu-impact-up{background:#16806d}.eu-impact-down{background:#c86d3a}
+    .eu-impact-reference{background:#7896b2}
+    .eu-impact-number,.eu-benchmark-row strong{font-variant-numeric:tabular-nums;
+       text-align:right;font-size:.91rem}
+    .eu-benchmark-group{margin:10px 0 15px}
+    .eu-benchmark-group>b{font-size:1rem}
+    @media(max-width:600px){.eu-impact-row,.eu-benchmark-row{
+       grid-template-columns:minmax(0,1fr) 74px;gap:6px}
+       .eu-impact-label,.eu-benchmark-row span{grid-column:1 / -1}
+       .eu-impact-track{grid-column:1}.eu-impact-number,.eu-benchmark-row strong{grid-column:2}}
     </style>""",unsafe_allow_html=True)
 
 def _parody_banner():
@@ -232,8 +250,21 @@ def _receipt(bundle):
         try:
             factors=explain(quote["vehicle"],bundle)
             if factors:
-                d=pd.DataFrame(factors,columns=["Change","Estimated € difference"])
-                st.bar_chart(d.set_index("Change"),horizontal=True)
+                magnitude=max(1.,max(abs(change) for _,change in factors))
+                rows=[]
+                for label,change in factors:
+                    width=0 if abs(change)<1 else max(2.,100.*abs(change)/magnitude)
+                    sign="+" if change>0 else "−" if change<0 else "±"
+                    tone="eu-impact-up" if change>=0 else "eu-impact-down"
+                    rows.append(
+                        '<div class="eu-impact-row"><span class="eu-impact-label">'+escape(label)+'</span>'
+                        '<div class="eu-impact-track"><div class="eu-impact-bar '+tone+
+                        '" style="width:'+f"{width:.1f}"+'%"></div></div>'
+                        '<strong class="eu-impact-number">'+sign+escape(money(abs(change)))+'</strong></div>'
+                    )
+                st.markdown('<div class="eu-impact-graph" role="img" '
+                            'aria-label="Hypothetical one-variable price changes, shown in euros">'
+                            +''.join(rows)+'</div>',unsafe_allow_html=True)
                 st.caption("Each bar is a new ResMLP estimate after changing just one vehicle detail. "
                            "Positive means a higher predicted asking price. "
                            "These are hypothetical model sensitivities, not causal effects or SHAP attribution.")
@@ -421,7 +452,22 @@ def _evaluation(bundle):
                                     previous["test_once"]["cvar95_absolute_eur"]],
             },index=["Validation","Sealed test"])
             st.markdown("#### Head-to-head: costliest 5% of valuation errors")
-            st.bar_chart(chart,y_label="CVaR95 in € · lower is better")
+            max_error=max(float(chart.max().max()),1.)
+            bars=[]
+            for name in chart.index:
+                bars.append('<div class="eu-benchmark-group"><b>'+escape(str(name))+'</b>')
+                for label in ("New ResMLP","Previous XGBoost"):
+                    value=float(chart.loc[name,label])
+                    tone="eu-impact-up" if label=="New ResMLP" else "eu-impact-reference"
+                    width=100.*value/max_error
+                    bars.append('<div class="eu-benchmark-row"><span>'+escape(label)+'</span>'
+                        '<div class="eu-impact-track"><div class="eu-impact-bar '+tone+
+                        '" style="width:'+f"{width:.1f}"+'%"></div></div>'
+                        '<strong>'+escape(money(value))+'</strong></div>')
+                bars.append('</div>')
+            st.markdown('<div class="eu-benchmark" role="img" '
+                        'aria-label="Validation and sealed-test worst-five-percent error comparison">'
+                        +''.join(bars)+'</div>',unsafe_allow_html=True)
             new=champion["test_once"]["cvar95_absolute_eur"]
             old_error=previous["test_once"]["cvar95_absolute_eur"]
             st.success(f"The new neural engine reduced worst-5% average test errors by "
