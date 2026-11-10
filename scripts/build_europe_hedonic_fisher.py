@@ -188,8 +188,8 @@ def build(df, *, min_month_rows=1200, min_months=6, min_overlap=800):
                 "sample_count": int(sum(r["n"] for r in winner))}
     if report["countries"]:
         report["status"] = "validated"
-        report["message"] = "Published observed months only. Holt beyond sample "
-                            "is a model forecast, never actual market evidence."
+        report["message"] = ("Published observed months only. Holt beyond sample "
+                             "is a model forecast, never actual market evidence.")
     return report
 
 
