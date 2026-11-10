@@ -93,7 +93,8 @@ def test_verified_release_with_real_weights():
     one=estimate(car,bundle=(model,schema,comp))
     two=batch_estimate([car,car],bundle=(model,schema,comp))
     assert 100<=one<=1000000 and np.isfinite(one)
-    assert np.allclose(two,[one,one],rtol=1e-6)
+    # PyTorch float32 matrix kernels may differ by a few cents between batch sizes.
+    assert np.allclose(two,[one,one],rtol=0,atol=0.05)
     scenarios=explain(car,bundle=(model,schema,comp))
     assert scenarios and all(np.isfinite(change) for _,change in scenarios)
     assert len(scenarios)>=2
