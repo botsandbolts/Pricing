@@ -12,6 +12,7 @@ off as current model-training targets.
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import datetime, timezone
 import math
 
 import numpy as np
@@ -60,6 +61,13 @@ def _date_age_and_pace(batch):
     registration = pd.to_numeric(_column(batch, "reg_year"),errors="coerce")
     km = pd.to_numeric(_column(batch, "mileage_km"),errors="coerce")
     observed_age = (date.dt.year + (date.dt.month-.5)/12 - registration).to_numpy(float)
+    # Prefer actual first-registration date over registration-year midpoints.
+    first_registration = pd.to_datetime(
+        _column(batch, "first_registration"), utc=True,
+        errors="coerce", format="mixed")
+    exact_age = ((date - first_registration).dt.total_seconds()/
+                 (365.2425*86400)).to_numpy(dtype=float)
+    observed_age = np.where(np.isfinite(exact_age),exact_age,observed_age)
     distance = km.to_numpy(float)
     return date, observed_age, distance
 
@@ -79,7 +87,8 @@ class UsagePriors:
                & np.isfinite(km) & (km>=1000) & (km<=800000)
                & (pace>=1500) & (pace<=50000)
                & date.notna().to_numpy(bool)
-               & (date.dt.year>=2024).to_numpy(bool))
+               & (date.dt.year>=2024).to_numpy(bool)
+               & (date.dt.strftime("%Y-%m")<=TARGET).fillna(False).to_numpy(bool))
         if not valid.any():
             return
         country=_column(batch,"seller_country").astype("string").str.upper()
@@ -143,7 +152,14 @@ class UsagePriors:
         verified_months=(last_verified.dt.year*12+last_verified.dt.month-1).to_numpy(float)
         months=(target_coordinate-verified_months)
         age=(target_year+(target_month-.5)/12.0-registration)
+        first_registration=pd.to_datetime(_column(batch,"first_registration"),
+            utc=True,errors="coerce",format="mixed")
+        target_date=datetime(target_year,target_month,1,tzinfo=timezone.utc)
+        exact_age=((target_date-first_registration).dt.total_seconds()/
+                   (365.2425*86400)).to_numpy(float)
+        age=np.where(np.isfinite(exact_age),exact_age,age)
         valid=(np.isfinite(age) & (age>=0) & (age<=90)
+               & np.isfinite(old_age) & (old_age>=0) & (old_age<=90)
                & np.isfinite(observed_km) & (observed_km>=0)
                & (observed_km<=MAX_MILEAGE_KM) & np.isfinite(months)
                & (months>=0))
