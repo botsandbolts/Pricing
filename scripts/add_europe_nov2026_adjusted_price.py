@@ -56,6 +56,10 @@ FROM_FIELD = "current_depreciation_source_month"
 REQUIRED = frozenset(("price_eur", "seller_country", "last_verified_at"))
 LICENSE = "CC BY-NC-SA 4.0"
 MAX_PRICE_EUR = 1_000_000
+STALENESS_MONTHS_FOR_CURRENT_TRAINING = 2
+AGE_MONTHS_FIELD = "months_since_last_verified"
+FRESHNESS_FIELD = "eligible_as_current_price_training_label"
+AGE_STATUS_FIELD = "vehicle_age_mileage_adjustment_status"
 
 
 def _source_file(source, directory):
@@ -119,7 +123,8 @@ def adjust_record_batch(batch, *, manifest, target=TARGET_MONTH, cache=None):
     if not set(REQUIRED).issubset(batch.schema.names):
         raise ValueError("Missing source fields: " +
                          ", ".join(sorted(REQUIRED - set(batch.schema.names))))
-    for new in (PRICE_FIELD, FACTOR_FIELD, STATUS_FIELD, FROM_FIELD):
+    for new in (PRICE_FIELD, FACTOR_FIELD, STATUS_FIELD, FROM_FIELD,
+                AGE_MONTHS_FIELD, FRESHNESS_FIELD, AGE_STATUS_FIELD):
         if new in batch.schema.names:
             raise ValueError("Output fields already exist in source; refuse double adjustment.")
     n = batch.num_rows
@@ -132,6 +137,14 @@ def adjust_record_batch(batch, *, manifest, target=TARGET_MONTH, cache=None):
         utc=True, errors="coerce", format="mixed",
     )
     source_months = verified.dt.strftime("%Y-%m")
+    target_coordinate = month_number(target)
+    month_coordinates = np.array([
+        month_number(x) if isinstance(x, str) and len(x) >= 7
+        else -1 for x in source_months
+    ], dtype=np.int32)
+    months_elapsed = np.where(
+        month_coordinates < 0, -1, target_coordinate - month_coordinates
+    ).astype(np.int32)
     original = pd.to_numeric(
         batch.column("price_eur").to_pandas(), errors="coerce"
     ).to_numpy(dtype="float64")
@@ -171,6 +184,33 @@ def adjust_record_batch(batch, *, manifest, target=TARGET_MONTH, cache=None):
     )
     result = result.append_column(STATUS_FIELD, pa.array(methods, type=pa.string()))
     result = result.append_column(FROM_FIELD, pa.array(month_strings, type=pa.string()))
+    # A five-year-old advert is NOT a current-day supervised target, even
+    # after country HICP normalization. No invented actual current odometer.
+    current_eligible = (
+        valid_adjusted &
+        (months_elapsed >= 0) &
+        (months_elapsed <= STALENESS_MONTHS_FOR_CURRENT_TRAINING)
+    )
+    result = result.append_column(
+        AGE_MONTHS_FIELD, pa.array(
+            months_elapsed.astype("float64"),
+            type=pa.float64(), mask=months_elapsed < 0
+        )
+    )
+    result = result.append_column(
+        FRESHNESS_FIELD, pa.array(current_eligible, type=pa.bool_())
+    )
+    result = result.append_column(
+        AGE_STATUS_FIELD, pa.array(
+            np.where(
+                ~valid_adjusted, "missing_market_time_adjustment",
+                np.where(
+                    current_eligible, "recent_listing_no_physical_projection",
+                    "stale_listing_age_mileage_not_observed"
+                )
+            ).tolist(), type=pa.string()
+        )
+    )
     return result
 
 
@@ -186,12 +226,14 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
     output, report = Path(output), Path(report)
     output.parent.mkdir(parents=True, exist_ok=True)
     report.parent.mkdir(parents=True, exist_ok=True)
-    if output.resolve() == Path(source).resolve() if Path(source).exists() else False:
+    if Path(source).is_file() and output.resolve() == Path(source).resolve():
         raise ValueError("Never overwrite the source dataset.")
     counts = Counter()
     country_counts = Counter()
     source_month_counts = Counter()
     status_by_country = Counter()
+    freshness_counts = Counter()
+    age_status_counts = Counter()
     ratio_cache = {}
     rows = 0
     with tempfile.TemporaryDirectory(prefix="eu-nov26-") as scratch:
@@ -207,6 +249,9 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 pa.field(FACTOR_FIELD, pa.float64()),
                 pa.field(STATUS_FIELD, pa.string()),
                 pa.field(FROM_FIELD, pa.string()),
+                pa.field(AGE_MONTHS_FIELD, pa.float64()),
+                pa.field(FRESHNESS_FIELD, pa.bool_()),
+                pa.field(AGE_STATUS_FIELD, pa.string()),
             ).with_metadata({
                 **(reader.schema_arrow.metadata or {}),
                 b"derived_data_license": LICENSE.encode(),
@@ -220,6 +265,10 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 b"warning": (
                     b"market-time proxy, NOT vehicle age/mileage depreciation "
                     b"or model-specific price prediction"),
+                b"training_eligibility": (
+                    b"Recent verified listings within 2 months are candidates "
+                    b"for contemporaneous training only, not automatic labels; "
+                    b"no reconstructed current odometer or physical ageing"),
             }), compression="zstd",
             compression_level=3,
         ) as writer:
@@ -232,6 +281,13 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 status = out.column(STATUS_FIELD).to_pylist()
                 country = out.column("seller_country").to_pylist()
                 months = out.column(FROM_FIELD).to_pylist()
+                freshness_counts.update(
+                    "recent_candidate" if x else "not_current_candidate"
+                    for x in out.column(FRESHNESS_FIELD).to_pylist()
+                )
+                age_status_counts.update(
+                    out.column(AGE_STATUS_FIELD).to_pylist()
+                )
                 counts.update(status)
                 country_counts.update(str(x or "").upper() for x in country)
                 source_month_counts.update(str(x) for x in months if x is not None)
@@ -251,11 +307,17 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
             "new_price_column": PRICE_FIELD,
             "new_factor_column": FACTOR_FIELD,
             "new_method_column": STATUS_FIELD,
+            "age_since_verification_column": AGE_MONTHS_FIELD,
+            "physical_revaluation_status_column": AGE_STATUS_FIELD,
             "rows": rows,
             "adjusted_rows": int(sum(
                 counts.get(k, 0) for k in
                 ("observed", "forecast", "interpolated", "snapshot"))),
             "status_counts": dict(counts.most_common()),
+            "freshness_counts": dict(freshness_counts.most_common()),
+            "physical_projection_counts": dict(age_status_counts.most_common()),
+            "freshness_threshold_months": STALENESS_MONTHS_FOR_CURRENT_TRAINING,
+            "current_training_eligibility_field": FRESHNESS_FIELD,
             "country_counts": dict(country_counts.most_common()),
             "source_month_counts": dict(source_month_counts.most_common()),
             "status_by_country": dict(status_by_country.most_common()),
@@ -275,6 +337,8 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 "National used-car consumer-price proxy only. Not actual "
                 "seller price changes, model-specific Bayesian scenarios, "
                 "vehicle age/mileage depreciation or completed sales. "
+                "Old ads are excluded from current-label eligibility even "
+                "when their index-adjusted ASK is available. "
                 "last_verified_at is not original ad publication date. "
                 "Missing/unsupported rows retain NULL derived prices."),
             "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -307,6 +371,7 @@ def main():
         "source": stats["dataset"],
         "rows": stats["rows"],
         "adjusted_rows": stats["adjusted_rows"],
+        "freshness_counts": stats["freshness_counts"],
         "status_counts": stats["status_counts"],
         "output": args.output,
         "report": args.report,
