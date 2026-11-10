@@ -138,6 +138,77 @@ def editorial_voice() -> tuple[str, str]:
     return VOICE[locale()]
 
 
+
+# Navigation labels are translated at display time; underlying route IDs remain
+# unchanged. The entries are the order of the original NAV menus.
+_PANEL_KEYS = ("price", "inspector", "timeline", "indices", "evaluation", "models",
+               "science", "detective", "outliers", "intelligence", "merchants", "garage")
+_PANEL_ROWS = r"""
+bg|Оцени автомобила|Проверка на обяви|Стойност във времето|Ценови индекси|Оценка|Лаборатория на модели|Науката|Детектив на сделки|Лаборатория за аномалии|Пазарни анализи|Търговци|Избери автокъща
+hr|Procijeni auto|Pregled oglasa|Vrijednost kroz vrijeme|Indeksi cijena|Evaluacija|Laboratorij modela|Znanost|Detektiv ponuda|Laboratorij odstupanja|Analiza tržišta|Trgovci|Odaberi autosalon
+cs|Ocenit auto|Kontrola inzerátů|Hodnota v čase|Cenové indexy|Vyhodnocení|Laboratoř modelů|Věda|Detektiv nabídek|Laboratoř odlehlých hodnot|Tržní analýza|Prodejci|Vyberte autosalon
+da|Vurdér min bil|Annonceinspektør|Værdi over tid|Prisindeks|Evaluering|Modellaboratorium|Videnskaben|Tilbudsdetektiv|Afvigelseslaboratorium|Markedsindsigt|Forhandlere|Vælg forhandler
+nl|Waardeer mijn auto|Advertentiecheck|Waarde door de tijd|Prijsindices|Evaluatie|Modellenlab|De wetenschap|Deal Detective|Uitschieterslab|Marktinzicht|Handelaars|Kies je garage
+et|Hinda autot|Kuulutuste kontroll|Väärtus ajas|Hinnaindeksid|Hindamine|Mudelite labor|Teadus|Tehingute detektiiv|Erindite labor|Turuanalüüs|Müüjad|Vali esindus
+fi|Arvioi autoni|Ilmoitusten tarkistus|Arvo ajan mittaan|Hintaindeksit|Arviointi|Mallilaboratorio|Tiede|Tarjousetsivä|Poikkeamien laboratorio|Markkinatieto|Myyjät|Valitse autoliike
+fr|Estimer ma voiture|Analyse des annonces|Valeur dans le temps|Indices de prix|Évaluation|Labo des modèles|La science|Détective des offres|Labo des anomalies|Analyse du marché|Professionnels|Choisir un garage
+de|Auto bewerten|Inserate prüfen|Wert im Zeitverlauf|Preisindizes|Evaluierung|Modelllabor|Die Wissenschaft|Deal-Detektiv|Ausreißerlabor|Marktanalyse|Händleranalyse|Werkstatt finden
+el|Εκτίμηση αυτοκινήτου|Έλεγχος αγγελιών|Αξία στον χρόνο|Δείκτες τιμών|Αξιολόγηση|Εργαστήριο μοντέλων|Η επιστήμη|Έλεγχος προσφορών|Εργαστήριο αποκλίσεων|Ανάλυση αγοράς|Έμποροι|Επιλογή συνεργείου
+hu|Autóm értéke|Hirdetések vizsgálata|Érték időben|Árindexek|Értékelés|Modell-labor|A tudomány|Ajánlatvizsgáló|Kiugró értékek|Piaci elemzés|Kereskedők|Válassz szalont
+ga|Luach mo chairr|Scrúdú fógraí|Luach le himeacht ama|Innéacsanna praghsanna|Meastóireacht|Saotharlann na samhlacha|An eolaíocht|Bleachtaire margaí|Saotharlann asluite|Eolas margaidh|Déileálaithe|Roghnaigh garáiste
+it|Valuta la mia auto|Controlla gli annunci|Valore nel tempo|Indici dei prezzi|Valutazione|Laboratorio modelli|La scienza|Detective delle offerte|Laboratorio anomalie|Analisi di mercato|Rivenditori|Scegli un autosalone
+lv|Novērtē auto|Sludinājumu pārbaude|Vērtība laika gaitā|Cenu indeksi|Novērtējums|Modeļu laboratorija|Zinātne|Darījumu detektīvs|Anomāliju laboratorija|Tirgus analīze|Tirgotāji|Izvēlies autosalonu
+lt|Įvertink automobilį|Skelbimų patikra|Vertė laikui bėgant|Kainų indeksai|Vertinimas|Modelių laboratorija|Mokslas|Sandorių detektyvas|Išskirčių laboratorija|Rinkos analizė|Pardavėjai|Pasirink saloną
+mt|Ivvaluta l-karozza|Spezzjoni tar-reklami|Valur maż-żmien|Indiċijiet tal-prezzijiet|Evalwazzjoni|Laboratorju tal-mudelli|Ix-xjenza|Investigatur tal-offerti|Laboratorju tal-anomaliji|Analiżi tas-suq|Negozjanti|Agħżel garaxx
+pl|Wyceń mój samochód|Sprawdź ogłoszenia|Wartość w czasie|Indeksy cen|Ocena modeli|Laboratorium modeli|Nauka|Detektyw okazji|Laboratorium anomalii|Analiza rynku|Handlarze|Wybierz komis
+pt|Avaliar o meu carro|Analisar anúncios|Valor ao longo do tempo|Índices de preços|Avaliação|Laboratório de modelos|A ciência|Detetive de negócios|Laboratório de anomalias|Análise de mercado|Comerciantes|Escolher stand
+ro|Evaluează mașina|Verifică anunțuri|Valoare în timp|Indici de preț|Evaluare|Laborator de modele|Știința|Detectiv de oferte|Laborator de anomalii|Analiza pieței|Dealeri|Alege un dealer
+sk|Ohodnoť auto|Kontrola inzerátov|Hodnota v čase|Cenové indexy|Hodnotenie|Laboratórium modelov|Veda|Detektív ponúk|Laboratórium odchýlok|Analýza trhu|Predajcovia|Vyber autobazár
+sl|Oceni moj avto|Pregled oglasov|Vrednost skozi čas|Cenovni indeksi|Vrednotenje|Laboratorij modelov|Znanost|Detektiv ponudb|Laboratorij odstopanj|Tržna analiza|Trgovci|Izberi salon
+es|Valora mi coche|Revisar anuncios|Valor a lo largo del tiempo|Índices de precios|Evaluación|Laboratorio de modelos|La ciencia|Detective de ofertas|Laboratorio de anomalías|Análisis de mercado|Concesionarios|Elige concesionario
+sv|Värdera min bil|Granska annonser|Värde över tid|Prisindex|Utvärdering|Modellabb|Vetenskapen|Affärsdetektiven|Avvikelselabb|Marknadsanalys|Handlare|Välj bilhandlare
+""".strip()
+PANEL_CATALOGS = {
+    "en-GB": dict(zip(_PANEL_KEYS, (
+        "Value my car", "Listing Inspector", "Value over time", "Price indices",
+        "Evaluation", "Model lab", "The science", "Deal Detective",
+        "Outlier lab", "Market intelligence", "Dealer view", "Pick your garage",
+    ))),
+    "en-US": dict(zip(_PANEL_KEYS, (
+        "Price my car", "Listing Inspector", "Value over time", "Price indexes",
+        "Evaluation", "Model lab", "The science", "Deal Detective",
+        "Outlier lab", "Market intelligence", "Dealer view", "Pick your dealership",
+    ))),
+}
+for _row in _PANEL_ROWS.splitlines():
+    _fields = _row.split("|")
+    if len(_fields) != len(_PANEL_KEYS) + 1:
+        raise ValueError("Invalid panel localization: " + _fields[0])
+    _code, *_names = _fields
+    PANEL_CATALOGS[_code] = dict(zip(_PANEL_KEYS, _names))
+if set(PANEL_CATALOGS) != set(LOCALES):
+    raise ValueError("Panel localization is incomplete")
+
+_PANEL_ROUTE_KEYS = {
+    "🚗 Price my car": "price", "🔎 Listing Inspector": "inspector",
+    "📉 Value over time": "timeline", "📅 Value over time": "timeline",
+    "📈 Price Indices": "indices", "📊 Evaluation": "evaluation",
+    "🧪 Model lab": "models", "🔬 The science": "science",
+    "🧠 The science": "science", "🕵️ Deal Detective": "detective",
+    "🧹 Outlier lab": "outliers", "🌍 Market intelligence": "intelligence",
+    "🏪 Merchant lens": "merchants", "🚦 Pick your garage": "garage",
+    "↔ Two-market garage": "garage",
+}
+
+
+def localized_panel(route: str) -> str:
+    """Translate only a displayed route label. Never translate routing keys."""
+    key = _PANEL_ROUTE_KEYS.get(route)
+    if not key:
+        return route
+    return route.split(" ", 1)[0] + " " + PANEL_CATALOGS[locale()][key]
+
+
 # This script runs in the same origin as the Streamlit page, not a sandboxed
 # iframe. Only a BCP-47 locale from our static allowlist is ever persisted.
 _BROWSER_STORAGE_JS = """
