@@ -12,6 +12,9 @@ MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
+# Repair hash-only CTA scrolling in Streamlit Cloud's overflow container.
+from pricing.ux_navigation_bridge import install as _install_calculator_scroll
+_install_calculator_scroll()
 # Two continents, one garage. European Ask is an isolated early route.
 # The existing American Ask/Bid path below remains unchanged.
 if (st.query_params.get("legal") not in ("imprint","privacy")
@@ -68,87 +71,25 @@ install_style()
 # Keep the release bulletin in the document while prioritizing the useful CTA above it.
 _RELEASE_ANNOUNCEMENT_HTML = """
 <section role="status" aria-label="Car Price Studio model upgrade announcement"
-  style="background:linear-gradient(115deg,#162735 0%,#1d3d4c 55%,#234d49 100%);
-         color:#f7faf9;border:2px solid #e7c76f;border-radius:18px;
-         padding:20px 24px;margin:4px 0 22px;
-         box-shadow:0 10px 26px rgba(9,32,39,.15)">
-  <div style="color:#ffe59a;font-size:.78rem;font-weight:800;letter-spacing:.09em;
-              margin-bottom:7px">🚀 CAR PRICE STUDIO · INTERNATIONAL EDITION · 9 NOVEMBER 2026</div>
-
-  <!-- Rollout timetable bulletin; only enabled inference choices may be submitted. -->
-  <div aria-label="Multilingual car descriptions target 9 November 2026 at 06:00 Central European Time"
-       style="background:linear-gradient(117deg,#6929bc 0%,#bd237d 46%,#eb5c39 100%);
-              border:2px solid #ffec9b;border-radius:18px;padding:clamp(16px,3vw,26px);
-              margin:14px 0 22px;box-shadow:0 10px 30px #160a3555;color:#ffffff">
-    <div style="font-size:.86rem;font-weight:900;letter-spacing:.09em;color:#fff2ad;
-                margin-bottom:7px">🌍 INTERNATIONAL EDITION · 06:00 CET LAUNCH PLAN</div>
-    <div style="font-size:clamp(1.55rem,4.2vw,2.3rem);font-weight:900;line-height:1.15;
-                letter-spacing:-.035em;margin:0 0 10px;color:#ffffff">
-      200+ languages. One beautiful car. Zero need to speak German. 🚗
-    </div>
-    <div style="font-size:clamp(1.3rem,3vw,1.9rem);letter-spacing:.1em;
-                line-height:1.5;margin-bottom:11px" role="img"
-         aria-label="Flags of the United Kingdom, France, Germany, Spain, Japan, Brazil, India, China and Saudi Arabia">
-      🇬🇧 🇫🇷 🇩🇪 🇪🇸 🇯🇵 🇧🇷 🇮🇳 🇨🇳 🇸🇦
-    </div>
-    <p style="font-size:1.04rem;line-height:1.6;margin:0 0 13px;color:#ffffff">
-      <strong style="color:#fff2ad">Updated launch target: Monday, 9 November 2026 at 06:00 CET</strong>,
-      We've moved our planned release up from 18:00 to <strong>06:00 CET</strong>.
-      That's <strong>12:00 AM EST (New York, 9 Nov)</strong>,
-      <strong>11:00 PM CST (Chicago, 8 Nov)</strong>, and
-      <strong>9:00 PM PST (Los Angeles, 8 Nov)</strong>.
-      Two evaluation engines: English accuracy and 200+ language reach.
-      No translation gymnastics required.
-    </p>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin:0 0 13px">
-      <div style="flex:1 1 170px;min-width:0;background:#ffffff1f;border:1px solid #ffffff88;
-                  border-radius:12px;padding:11px 13px">
-        <div style="font-size:.76rem;color:#ffe9a3;font-weight:800;letter-spacing:.06em">🇬🇧 ENGLISH</div>
-        <div style="font-size:1.12rem;font-weight:850;color:#ffffff">“A beautiful car.”</div>
-      </div>
-      <div style="flex:1 1 170px;min-width:0;background:#ffffff1f;border:1px solid #ffffff88;
-                  border-radius:12px;padding:11px 13px">
-        <div style="font-size:.76rem;color:#ffe9a3;font-weight:800;letter-spacing:.06em">🇫🇷 FRANÇAIS</div>
-        <div style="font-size:1.12rem;font-weight:850;color:#ffffff">« Une belle voiture. »</div>
-      </div>
-    </div>
-    <p style="margin:0;color:#fff7ed;line-height:1.5;font-weight:650">
-      Your car doesn't need a passport. And neither does its description.
-      <strong>The buttons only enable when their model passes its release checks.</strong>
-      Please try a valuation and rate it from 1 (catastrophic) to 4 (excellent).
-      <strong>We're waiting for your verdict. Très chic, ja? 🇩🇪</strong>
-    </p>
+  style="background:linear-gradient(120deg,#152c40,#1a564f);color:#f8fcfa;
+         border:1px solid #cfbc75;border-radius:16px;padding:16px 19px;
+         margin:5px 0 16px;box-shadow:0 6px 18px #13253222">
+  <div style="font-size:.78rem;font-weight:850;letter-spacing:.1em;color:#ffdfa0">
+    🏁 CAR PRICE STUDIO · LIVE RESEARCH TOOLS · BUILT IN GERMANY 🇩🇪
   </div>
-
-  <div style="font-size:1.42rem;line-height:1.3;font-weight:850;margin-bottom:10px">
-    The engines are purring. And this is just the aperitif. 🍸
+  <div style="font-size:clamp(1.12rem,2.5vw,1.45rem);font-weight:850;margin:6px 0">
+    Less haggle. More signal. The pricing engines are open.
   </div>
-  <p style="font-size:1.01rem;line-height:1.6;margin:0 0 12px">
-    Our <strong>Ask and Bid evaluation models</strong> have received major
-    state-of-the-art upgrades. They’re running well, several pesky UI gremlins
-    have been shown the exit, and we’re celebrating
-    <strong>our most accurate models since Car Price Studio first opened its garage doors.</strong>
+  <p style="font-size:.92rem;line-height:1.55;margin:0 0 7px;color:#e4f2f0">
+    🇺🇸 American seller <b>Ask</b> and historical wholesale <b>Bid</b> research;
+    🇪🇺 European advertised <b>Ask</b> in euros. Choose a market above, enter
+    your car once and inspect the evidence. No registration, ads or sales pitch.
   </p>
-  <p style="margin:0 0 12px;line-height:1.6">
-    <strong style="color:#ffe59a">But we haven’t even served the main course.</strong>
-    Over the coming week, we’re planning several more ambitious model upgrades.
-    Our working hypothesis? The biggest gains could be especially valuable in
-    <strong>customs and law enforcement</strong>, where precision and costly
-    valuation errors really matter.
+  <p style="font-size:.83rem;line-height:1.45;margin:0;color:#dbe8e5">
+    These are model-based research estimates, not purchase offers, actual
+    transaction prices or official valuations. Availability and validation
+    details appear alongside each engine. <b>Your car, your call.</b>
   </p>
-  <p style="margin:0 0 12px;line-height:1.6">
-    That’s a hypothesis we’re excited to test, <strong>not a result we’re
-    claiming in advance</strong>. Science first. Champagne later. 🥂
-    We’ll keep you posted as the next generation takes shape.
-  </p>
-  <p style="margin:0 0 10px;line-height:1.6">
-    Meanwhile, enjoy today’s upgraded models. The garage is open, the technology
-    is serious, and the German engineering comes with a sense of humour.
-    <strong>Less haggle. More signal. More horsepower to come.</strong>
-  </p>
-  <div style="color:#ffe59a;font-size:.83rem;font-weight:650">
-    🇩🇪 Independently built in Germany · Open source · No ads · No registration
-  </div>
 </section>
 """
 # In-page hash navigation never removes this bulletin or changes workspaces.
