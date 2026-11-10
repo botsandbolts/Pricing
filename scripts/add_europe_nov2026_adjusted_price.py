@@ -40,6 +40,11 @@ from pricing.europe_eurostat import (
     SOURCE_URL, SUPPORTED, eurostat_adjusted_quote, read_eurostat,
 )
 from pricing.europe_price_clock import month_number
+from pricing.europe_mileage_projection import (
+    UsagePriors, NEW_FIELDS, AGE_COL as PHYSICAL_AGE_COL,
+    KM_COL as PHYSICAL_MILEAGE_COL, KM_LOW as PHYSICAL_MILEAGE_LOW,
+    KM_HIGH as PHYSICAL_MILEAGE_HIGH, KM_STATUS as PHYSICAL_MILEAGE_STATUS,
+)
 
 SOURCE = (
     "https://huggingface.co/datasets/KTHESAT/"
@@ -235,6 +240,7 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
     freshness_counts = Counter()
     age_status_counts = Counter()
     ratio_cache = {}
+    projected_mileage_counts = Counter()
     rows = 0
     with tempfile.TemporaryDirectory(prefix="eu-nov26-") as scratch:
         local = _source_file(source, scratch)
@@ -243,6 +249,16 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
         reader = pq.ParquetFile(local)
         if not REQUIRED.issubset(reader.schema_arrow.names):
             raise ValueError("Original Parquet missing required price/date/country fields.")
+        priors = UsagePriors()
+        prior_columns = [
+            field for field in ("seller_country","make","model","fuel",
+                                "reg_year","mileage_km","last_verified_at")
+            if field in reader.schema_arrow.names
+        ]
+        for sample in reader.iter_batches(
+            batch_size=batch_size, columns=prior_columns
+        ):
+            priors.observe(sample)
         with pq.ParquetWriter(
             str(output), pa.schema(list(reader.schema_arrow) + [
                 pa.field(PRICE_FIELD, pa.float64()),
@@ -252,6 +268,7 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 pa.field(AGE_MONTHS_FIELD, pa.float64()),
                 pa.field(FRESHNESS_FIELD, pa.bool_()),
                 pa.field(AGE_STATUS_FIELD, pa.string()),
+                *NEW_FIELDS,
             ]).with_metadata({
                 **(reader.schema_arrow.metadata or {}),
                 b"derived_data_license": LICENSE.encode(),
@@ -269,12 +286,17 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                     b"Recent verified listings within 2 months are candidates "
                     b"for contemporaneous training only, not automatic labels; "
                     b"no reconstructed current odometer or physical ageing"),
+                b"physical_mileage_scenario": (
+                    b"research-only hierarchy: make/model/fuel/age-year cohort "
+                    b"with country/fuel and global shrinkage; hypothetical "
+                    b"annual mileage low=.6x, high=1.6x, not an actual odometer"),
             }), compression="zstd",
             compression_level=3,
         ) as writer:
             for batch in reader.iter_batches(batch_size=batch_size):
                 out = adjust_record_batch(batch, manifest=manifest,
                                           target=target, cache=ratio_cache)
+                out = priors.project(out, target=target)
                 # Ensure stable schema and field metadata in every row group.
                 writer.write_table(pa.Table.from_batches([out]))
                 rows += out.num_rows
@@ -287,6 +309,9 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 )
                 age_status_counts.update(
                     out.column(AGE_STATUS_FIELD).to_pylist()
+                )
+                projected_mileage_counts.update(
+                    out.column(PHYSICAL_MILEAGE_STATUS).to_pylist()
                 )
                 counts.update(status)
                 country_counts.update(str(x or "").upper() for x in country)
@@ -309,6 +334,11 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
             "new_method_column": STATUS_FIELD,
             "age_since_verification_column": AGE_MONTHS_FIELD,
             "physical_revaluation_status_column": AGE_STATUS_FIELD,
+            "hypothetical_age_column": PHYSICAL_AGE_COL,
+            "hypothetical_mileage_column": PHYSICAL_MILEAGE_COL,
+            "hypothetical_mileage_low_column": PHYSICAL_MILEAGE_LOW,
+            "hypothetical_mileage_high_column": PHYSICAL_MILEAGE_HIGH,
+            "hypothetical_mileage_method_column": PHYSICAL_MILEAGE_STATUS,
             "rows": rows,
             "adjusted_rows": int(sum(
                 counts.get(k, 0) for k in
@@ -316,6 +346,9 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
             "status_counts": dict(counts.most_common()),
             "freshness_counts": dict(freshness_counts.most_common()),
             "physical_projection_counts": dict(age_status_counts.most_common()),
+            "hypothetical_mileage_counts": dict(projected_mileage_counts.most_common()),
+            "usage_prior_observed_records": priors.observed_records,
+            "usage_prior_cohort_count": len(priors.sufficient),
             "freshness_threshold_months": STALENESS_MONTHS_FOR_CURRENT_TRAINING,
             "current_training_eligibility_field": FRESHNESS_FIELD,
             "country_counts": dict(country_counts.most_common()),
@@ -340,6 +373,9 @@ def enrich(source, output, report, *, manifest=None, target=TARGET_MONTH,
                 "Old ads are excluded from current-label eligibility even "
                 "when their index-adjusted ASK is available. "
                 "last_verified_at is not original ad publication date. "
+                "Hypothetical current odometer uses hierarchical cohort "
+                "annual-mileage assumptions; no physical current-price "
+                "label is created without actual updated odometer/condition. "
                 "Missing/unsupported rows retain NULL derived prices."),
             "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         }
