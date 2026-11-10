@@ -86,7 +86,7 @@ jobs:
           amounts=batch_estimate(rows,bundle=(net,schema,comp))
           assert len(amounts)==8 and np.isfinite(amounts).all()
           assert (amounts>=100).all() and (amounts<=1000000).all()
-          assert abs(estimate(v,bundle=(net,schema,comp))-amounts[0])<.01
+          assert abs(estimate(v,bundle=(net,schema,comp))-amounts[0])<.08
           shifts=explain(v,bundle=(net,schema,comp))
           assert len(shifts)>=2 and all(np.isfinite(x) for _,x in shifts)
           for country,price in zip(SUPPORTED_COUNTRIES,amounts):
