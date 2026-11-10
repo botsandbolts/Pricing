@@ -143,6 +143,7 @@ def load_bundle(path=None):
     except RuntimeError as exc:
         raise EuropeanModelUnavailable("ResMLP architecture/checkpoint mismatch.") from exc
     model.eval()
+    model._frozen_normalization = {"train_mean": pack["train_mean"], "train_std": pack["train_std"]}
     return (model, schema, comparison)
 
 
@@ -158,9 +159,7 @@ def batch_estimate(vehicles, bundle=None):
     if not vehicles:
         return np.asarray([], dtype=float)
     model, schema, _ = bundle if bundle is not None else load_bundle()
-    weight_file = NEURAL_ROOT / "champion.pt"
-    # Cached checkpoint metadata avoids re-reading the checkpoint on each quote.
-    pack = _normalization(str(weight_file))
+    pack = model._frozen_normalization
     rows = np.concatenate([encode_vehicle(vehicle, schema) for vehicle in vehicles], axis=0)
     numerical, categorical = _prepared(rows, pack, schema)
     results = []
@@ -173,13 +172,6 @@ def batch_estimate(vehicles, bundle=None):
     if not np.all(np.isfinite(values)):
         raise EuropeanModelUnavailable("ResMLP produced a non-finite estimate.")
     return np.clip(values, 100., 1_000_000.)
-
-
-@lru_cache(maxsize=1)
-def _normalization(path):
-    import torch
-    pack = torch.load(path, map_location="cpu", weights_only=True)
-    return {key: pack[key] for key in ("train_mean", "train_std")}
 
 
 def estimate(vehicle, bundle=None):
