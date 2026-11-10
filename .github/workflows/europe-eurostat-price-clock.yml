@@ -3,7 +3,7 @@ name: European Eurostat used-car HICP source and valuation tests
 on:
   push:
     branches:
-      - feature/eurostat-used-car-hicp-clock-20261110
+      - main
     paths:
       - pricing/europe_eurostat.py
       - pricing/europe_market.py
@@ -11,6 +11,9 @@ on:
       - scripts/build_europe_hedonic_fisher.py
       - tests/test_europe_eurostat.py
       - .github/workflows/europe-eurostat-price-clock.yml
+  # Refresh automatically twice weekly as national statistical offices publish.
+  schedule:
+    - cron: "15 7 * * 1,4"
   workflow_dispatch:
 
 permissions:
@@ -50,12 +53,16 @@ jobs:
         with:
           name: eurostat-used-car-hicp-2025-base-verified
           path: models/europe-ask/eurostat_hicp.json
-      - name: Commit validated official monthly index onto feature branch
-        if: github.ref == 'refs/heads/feature/eurostat-used-car-hicp-clock-20261110'
+      - name: Publish official index revisions only when underlying observations change
+        if: github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add models/europe-ask/eurostat_hicp.json
-          git diff --cached --quiet || git commit -m "Package verified official Eurostat second-hand motor-car index"
-          git pull --rebase origin feature/eurostat-used-car-hicp-clock-20261110
-          git push origin HEAD:feature/eurostat-used-car-hicp-clock-20261110
+          if git diff --cached --quiet; then
+            echo "Official Eurostat series unchanged; no redeployment necessary."
+          else
+            git commit -m "Update verified Eurostat used-car monthly HICP observations"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
