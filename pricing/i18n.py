@@ -157,6 +157,60 @@ def editorial_voice() -> tuple[str, str]:
 
 
 
+
+# Friendly country names for the eight currently supported European *models*.
+# Language selection never changes model-market coverage or country ISO codes.
+_COUNTRY_KEYS = ("de", "fr", "nl", "be", "at", "es", "it", "pl")
+_COUNTRY_ROWS = r"""
+bg|Германия|Франция|Нидерландия|Белгия|Австрия|Испания|Италия|Полша
+hr|Njemačka|Francuska|Nizozemska|Belgija|Austrija|Španjolska|Italija|Poljska
+cs|Německo|Francie|Nizozemsko|Belgie|Rakousko|Španělsko|Itálie|Polsko
+da|Tyskland|Frankrig|Nederlandene|Belgien|Østrig|Spanien|Italien|Polen
+nl|Duitsland|Frankrijk|Nederland|België|Oostenrijk|Spanje|Italië|Polen
+et|Saksamaa|Prantsusmaa|Madalmaad|Belgia|Austria|Hispaania|Itaalia|Poola
+fi|Saksa|Ranska|Alankomaat|Belgia|Itävalta|Espanja|Italia|Puola
+fr|Allemagne|France|Pays-Bas|Belgique|Autriche|Espagne|Italie|Pologne
+de|Deutschland|Frankreich|Niederlande|Belgien|Österreich|Spanien|Italien|Polen
+el|Γερμανία|Γαλλία|Κάτω Χώρες|Βέλγιο|Αυστρία|Ισπανία|Ιταλία|Πολωνία
+hu|Németország|Franciaország|Hollandia|Belgium|Ausztria|Spanyolország|Olaszország|Lengyelország
+ga|An Ghearmáin|An Fhrainc|An Ísiltír|An Bheilg|An Ostair|An Spáinn|An Iodáil|An Pholainn
+it|Germania|Francia|Paesi Bassi|Belgio|Austria|Spagna|Italia|Polonia
+lv|Vācija|Francija|Nīderlande|Beļģija|Austrija|Spānija|Itālija|Polija
+lt|Vokietija|Prancūzija|Nyderlandai|Belgija|Austrija|Ispanija|Italija|Lenkija
+mt|Il-Ġermanja|Franza|In-Netherlands|Il-Belġju|L-Awstrija|Spanja|L-Italja|Il-Polonja
+pl|Niemcy|Francja|Holandia|Belgia|Austria|Hiszpania|Włochy|Polska
+pt|Alemanha|França|Países Baixos|Bélgica|Áustria|Espanha|Itália|Polónia
+ro|Germania|Franța|Țările de Jos|Belgia|Austria|Spania|Italia|Polonia
+sk|Nemecko|Francúzsko|Holandsko|Belgicko|Rakúsko|Španielsko|Taliansko|Poľsko
+sl|Nemčija|Francija|Nizozemska|Belgija|Avstrija|Španija|Italija|Poljska
+es|Alemania|Francia|Países Bajos|Bélgica|Austria|España|Italia|Polonia
+sv|Tyskland|Frankrike|Nederländerna|Belgien|Österrike|Spanien|Italien|Polen
+""".strip()
+COUNTRY_CATALOGS = {
+    "en-GB": dict(zip(_COUNTRY_KEYS, (
+        "Germany", "France", "Netherlands", "Belgium", "Austria",
+        "Spain", "Italy", "Poland",
+    ))),
+    "en-US": dict(zip(_COUNTRY_KEYS, (
+        "Germany", "France", "Netherlands", "Belgium", "Austria",
+        "Spain", "Italy", "Poland",
+    ))),
+}
+for _row in _COUNTRY_ROWS.splitlines():
+    _fields = _row.split("|")
+    if len(_fields) != len(_COUNTRY_KEYS) + 1:
+        raise ValueError("Invalid country localization: " + _fields[0])
+    _code, *_names = _fields
+    COUNTRY_CATALOGS[_code] = dict(zip(_COUNTRY_KEYS, _names))
+if set(COUNTRY_CATALOGS) != set(LOCALES):
+    raise ValueError("Country localization is incomplete")
+
+
+def localized_country(country_code: str) -> str:
+    key = str(country_code).strip().lower()
+    return COUNTRY_CATALOGS[locale()].get(key, country_code)
+
+
 # Navigation labels are translated at display time; underlying route IDs remain
 # unchanged. The entries are the order of the original NAV menus.
 _PANEL_KEYS = ("price", "inspector", "timeline", "indices", "evaluation", "models",
