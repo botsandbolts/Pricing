@@ -16,11 +16,12 @@ import streamlit as st
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
+from pricing.europe_price_clock import adjusted_quote, read_index, level_at, month_number, month_label
 
 DATASET="https://huggingface.co/datasets/KTHESAT/european-used-car-market-2m-listings"
 NAV=[
     "🚗 Price my car","🔎 Listing Inspector","📉 Value over time",
-    "📊 Evaluation","🧪 Model lab","🔬 The science",
+    "📈 Price Indices","📊 Evaluation","🧪 Model lab","🔬 The science",
     "🕵️ Deal Detective","🧹 Outlier lab","🌍 Market intelligence",
     "🏪 Merchant lens","🚦 Pick your garage",
 ]
@@ -150,6 +151,13 @@ def _edit_vehicle(schema):
     st.caption("European conventions: km, horsepower, registration year and euro asking prices. "
                "Unknown specifications stay unknown.")
     with st.form("eu_ask_form",clear_on_submit=False):
+        chosen_date=st.date_input(
+            "📅 Price estimate date · European market clock",
+            value=date.today(),min_value=date(2015,1,1),
+            max_value=date(date.today().year+1,12,31),key="eu_valuation_date",
+            help="Monthly hedonic Fisher market movement, with log interpolation or "
+                 "bounded damped-Holt scenarios where enough genuine monthly data exist. "
+                 "A selected date does not guarantee a supported index.")
         a,b,c=st.columns(3)
         countries=values("seller_country",list(COUNTRIES))
         countries=[v for v in countries if v!="__missing__"] or list(COUNTRIES)
@@ -213,30 +221,73 @@ def _edit_vehicle(schema):
             st.error("Enter the exact model name, such as Golf or 320d.")
         else:
             try:
-                price=estimate(vehicle)
+                base_price=estimate(vehicle)
+                snapshot=_snapshot((None,schema))
+                indexed,clock=adjusted_quote(
+                    base_price,snapshot,chosen_date,country)
+                price=indexed if indexed is not None else base_price
                 st.session_state["eu_receipt"]={
-                    "vehicle":vehicle,"price_eur":price,"snapshot":_snapshot((None,schema)),
-                    "market":"Europe","engine":"ResMLP Tail-MAE · verified European release"
+                    "vehicle":vehicle,"price_eur":price,"base_price_eur":base_price,
+                    "snapshot":snapshot,"selected_date":chosen_date.isoformat(),
+                    "clock":clock,"market":"Europe",
+                    "engine":"European asking-price model",
                 }
-                st.success("Valuation complete. The estimate is for a dataset-era advert, not a guaranteed sale.")
+                st.success("Valuation calculated. Advertised ASK, not a completed sale.")
+                if indexed is None:
+                    st.warning("A valid date-adjusted index is unavailable for this "
+                               "country/date. The displayed price remains the "
+                               "dataset-era estimate; it is NOT a price for your "
+                               "selected date.")
             except (ValueError,EuropeanModelUnavailable,RuntimeError) as exc:
                 st.error("Valuation unavailable: "+str(exc))
     return vehicle
 
 def _receipt(bundle):
     quote=st.session_state.get("eu_receipt")
-    if quote and quote.get("engine")!="ResMLP Tail-MAE · verified European release":
+    if quote and quote.get("engine")!="European asking-price model":
         st.session_state.pop("eu_receipt",None)
         quote=None
-        st.info("European pricing was upgraded. Recalculate for a fresh ResMLP estimate.")
+        st.info("European pricing was upgraded. Recalculate to include the valuation date.")
     if not quote:
         st.info("Your European asking-price receipt will appear here after valuation.")
         return None
+    clock=quote.get("clock",{})
+    status=clock.get("status","unavailable")
     st.markdown('<div class="eu-result"><small>EUROPEAN ADVERTISED ASK · EUR</small>'
                 '<strong>'+escape(money(quote["price_eur"]))+'</strong>'
-                '<p>ResMLP neural network · independently validated · no auction/Bid component</p>'
+                '<p>Independent European asking-price model · no auction/Bid component</p>'
                 '</div>',unsafe_allow_html=True)
-    st.caption("A historical advertised asking-price estimate, not evidence of a completed sale "
+    if status=="unavailable":
+        st.warning("⚠️ Date adjustment NOT applied. You selected "
+                   +str(quote.get("selected_date","unknown"))+". "
+                   +str(clock.get("reason","A validated index is unavailable."))
+                   +" The amount shown is the "+str(quote.get("snapshot",""))
+                   +" dataset-era estimate.")
+    elif status=="snapshot":
+        st.info("📅 Dataset-snapshot month · "+str(quote.get("snapshot",""))
+                +". No daily market movement is assumed.")
+    else:
+        change=100*(float(clock["factor"])-1)
+        st.metric("Hedonic Fisher market movement · "
+                  +clock["base_month"]+" → "+clock["target_month"],
+                  f"{change:+.2f}%",
+                  help="Quality-adjusted monthly market index movement. It does not "
+                       "project additional mileage or vehicle ageing.")
+        st.caption("Index status: **"+status+"**. "
+                   "Forecasts are damped log-Holt scenarios, not observed prices. "
+                   "The index isolates market movement and does not separately "
+                   "forecast vehicle depreciation.")
+        if "trend_only_range" in clock:
+            low,high=clock["trend_only_range"]
+            st.caption("Illustrative trend-only forecast band: "
+                       +money(low)+"–"+money(high)
+                       +". This excludes car-model error and is not a calibrated "
+                        "confidence interval for your vehicle.")
+    if st.session_state.get("eu_valuation_date") and (
+        str(st.session_state["eu_valuation_date"]) != quote.get("selected_date")
+    ):
+        st.warning("The selected date changed. Press Calculate to refresh this receipt.")
+    st.caption("An advertised asking-price estimate, not evidence of a completed sale "
                "or a customs, insurance, taxation or financing decision.")
     test=bundle[2]["overall_champion"]["test_once"] if bundle else {}
     if test:
@@ -252,7 +303,9 @@ def _receipt(bundle):
             if factors:
                 magnitude=max(1.,max(abs(change) for _,change in factors))
                 rows=[]
+                clock_factor=float(quote.get("clock",{}).get("factor",1))
                 for label,change in factors:
+                    change*=clock_factor
                     width=0 if abs(change)<1 else max(2.,100.*abs(change)/magnitude)
                     sign="+" if change>0 else "−" if change<0 else "±"
                     tone="eu-impact-up" if change>=0 else "eu-impact-down"
@@ -265,7 +318,8 @@ def _receipt(bundle):
                 st.markdown('<div class="eu-impact-graph" role="img" '
                             'aria-label="Hypothetical one-variable price changes, shown in euros">'
                             +''.join(rows)+'</div>',unsafe_allow_html=True)
-                st.caption("Each bar is a new ResMLP estimate after changing just one vehicle detail. "
+                st.caption("Each bar uses the underlying European model after changing one detail; "
+                           "a common validated market index factor is then applied. "
                            "Positive means a higher predicted asking price. "
                            "These are hypothetical model sensitivities, not causal effects or SHAP attribution.")
             else:
@@ -370,6 +424,8 @@ def _timeline(bundle):
                            for factor in (.25,.5,.75,1,1.25,1.5,2)})
     variants=[{**vehicle,"mileage_km":v} for v in mileage_levels]
     result=batch_estimate(variants,bundle)
+    if quote.get("clock",{}).get("status") not in ("unavailable",None):
+        result=result*float(quote["clock"].get("factor",1))
     chart=pd.DataFrame({"Mileage · km":mileage_levels,"Estimated Ask · €":result})
     st.line_chart(chart.set_index("Mileage · km"))
     registration=int(vehicle["reg_year"])
@@ -378,10 +434,14 @@ def _timeline(bundle):
     if years:
         samples=[{**vehicle,"reg_year":y} for y in years]
         estimates=batch_estimate(samples,bundle)
+        if quote.get("clock",{}).get("status") not in ("unavailable",None):
+            estimates=estimates*float(quote["clock"].get("factor",1))
         st.line_chart(pd.DataFrame({"Registration year":years,
               "Estimated Ask · €":estimates}).set_index("Registration year"))
-    st.caption("No model output is a prospective time-price forecast. "
-               "Mileage, age and unobserved condition can be correlated.")
+    st.caption("This is a change in car specifications, not a calendar-time forecast. "
+               "When available, the chosen date's quality-adjusted monthly market "
+               "factor is applied consistently to each scenario. Changing registration "
+               "year is NOT the same as projecting the same car's depreciation.")
 
 def _inspector(bundle):
     st.markdown("### 🔎 Listing Inspector · compare, don't delete")
@@ -580,6 +640,112 @@ def _garage_choices():
     st.dataframe(d.nlargest(25,"sample_count"),hide_index=True,use_container_width=True)
     st.caption("This is a listing-coverage explorer, not a garage recommendation or user-preference model.")
 
+
+def _price_indices():
+    """European price clock: empirical coverage first, no fabricated time series."""
+    st.markdown("### 📈 European Price Index Observatory")
+    st.caption("The market has a pulse. We measure it without confusing more "
+               "expensive cars on offer with an actual increase in like-for-like prices.")
+    one,two,three,four=st.columns(4)
+    one.metric("Target", "Log € ASK")
+    two.metric("Robust fit", "Huber")
+    three.metric("Price formula", "Fisher")
+    four.metric("Forward scenarios", "Damped Holt")
+    st.markdown("**How the engine works:** monthly ads → robust hedonic regressions "
+                "on log prices → reprice the same vehicle baskets at both dates → "
+                "Laspeyres × Paasche (geometric mean) → monthly Fisher chain → "
+                "log interpolation or damped Holt beyond sample.")
+    st.info("A date on an advert is not a historical transaction. The index uses "
+            "advertised ASK prices, adjusts for vehicle-mix differences and is "
+            "independent of the vehicle's depreciation.")
+    release=read_index()
+    coverage=pd.DataFrame(release.get("coverage",[]))
+    if not coverage.empty and {"country","month","n"}.issubset(coverage.columns):
+        with st.expander("📦 Verified source-date coverage",expanded=False):
+            country_totals=coverage.groupby("country",as_index=False)["n"].sum()
+            st.bar_chart(country_totals.set_index("country"))
+            st.dataframe(coverage.sort_values(["country","month"]),
+                         use_container_width=True,hide_index=True)
+            st.caption("These bars count dated listings, not the number of "
+                       "independently verified market transactions.")
+    countries=release.get("countries",{})
+    if release.get("status")!="validated" or not countries:
+        st.warning("No independently validated multi-month index is installed. "
+                   +release.get("message","The build requires repeated genuine "
+                                          "observation months."))
+        st.caption("The October 2026 source snapshot alone does not establish a "
+                   "European historical monthly price index. This page will only "
+                   "plot supported periods after offline Huber-Fisher validation.")
+        return
+    selected=st.selectbox("🌍 Country index",sorted(countries),
+                          format_func=lambda x:COUNTRIES.get(x,x),
+                          key="eu_index_country")
+    rows=countries[selected].get("months",[])
+    frame=pd.DataFrame(rows)
+    if frame.empty or not {"month","index","n"}.issubset(frame):
+        st.warning("This country's published index has no valid chart data.")
+        return
+    frame=frame.sort_values("month").copy()
+    a,b,c=st.columns(3)
+    a.metric("Observed months",str(len(frame)))
+    b.metric("Latest quality-adjusted index",f'{frame["index"].iloc[-1]:.1f}',
+             help="First supported month = 100. Does not mean 100 euros.")
+    movement=100*(float(frame["index"].iloc[-1])/float(frame["index"].iloc[0])-1)
+    c.metric("Period movement",f"{movement:+.2f}%")
+    import plotly.graph_objects as go
+    fig=go.Figure()
+    fig.add_trace(go.Scatter(x=frame["month"],y=frame["index"],name="Observed Fisher",
+                             mode="lines+markers",line=dict(color="#136f74",width=3)))
+    horizon=st.slider("Holt scenario horizon · months",1,12,6,key="eu_holt_horizon")
+    last=month_number(frame["month"].iloc[-1])
+    projected=[level_at(release,selected,month_label(last+n))
+               for n in range(1,horizon+1)]
+    forecast_points=[(month_label(last+n),point)
+                     for n,point in enumerate(projected,1)
+                     if point.get("method")=="holt_forecast"]
+    if forecast_points:
+        fx=[frame["month"].iloc[-1]]+[m for m,_ in forecast_points]
+        fy=[float(frame["index"].iloc[-1])]+[p["level"] for _,p in forecast_points]
+        fig.add_trace(go.Scatter(x=fx,y=fy,name="Holt scenario (NOT observed)",
+                                 mode="lines+markers",
+                                 line=dict(color="#d38d32",dash="dash",width=2)))
+        fig.add_trace(go.Scatter(
+            x=[m for m,_ in forecast_points]+[m for m,_ in forecast_points[::-1]],
+            y=[p["upper"] for _,p in forecast_points]
+              +[p["lower"] for _,p in forecast_points[::-1]],
+            fill="toself",fillcolor="rgba(211,141,50,0.12)",
+            line=dict(width=0),hoverinfo="skip",name="Trend-model uncertainty"))
+    fig.update_layout(title="Quality-adjusted ASK index · 100 at first observed month",
+                      xaxis_title="Listing month",yaxis_title="Hedonic Fisher index",
+                      legend=dict(orientation="h"),margin=dict(l=10,r=10,t=54,b=10),
+                      height=410)
+    st.plotly_chart(fig,use_container_width=True)
+    if forecast_points:
+        st.caption("Orange: damped Holt forecast in log-index space, up to 12 months "
+                   "from a minimum of 6 consecutive observed months. Shading is "
+                   "a trend-model diagnostic, NOT a vehicle-valuation interval.")
+    st.dataframe(frame.rename(columns={"month":"Observed month",
+                                        "index":"Quality-adjusted index",
+                                        "n":"Listing count",
+                                        "overlap":"Matched model groups"}),
+                 use_container_width=True,hide_index=True)
+    st.download_button("⬇️ Download published monthly index (CSV)",
+                       frame.to_csv(index=False).encode("utf-8"),
+                       file_name="europe_hedonic_fisher_"+selected+".csv",
+                       mime="text/csv",key="eu_index_download")
+    with st.expander("🔬 Methodology · what the Fisher index does and does not say"):
+        st.markdown("Huber regression minimizes a robust loss on **log advertised "
+                    "prices**. Both monthly models price the **same overlapping "
+                    "vehicle baskets**. Laspeyres uses the earlier-month basket; "
+                    "Paasche uses the later-month basket. Their geometric mean "
+                    "forms the chained Fisher index. We do not use raw medians as "
+                    "the main market index, and we do not claim these are sales.")
+        st.markdown("**Gaps:** short gaps are interpolated on the log index. "
+                    "**Beyond observations:** a conservatively damped Holt trend "
+                    "may project at most 12 months; no unsupported extrapolation "
+                    "is called observed data. Long gaps and sparse countries are "
+                    "explicitly unavailable.")
+
 def render():
     _css()
     _header()
@@ -594,6 +760,8 @@ def render():
         _inspector(bundle)
     elif tab=="📉 Value over time":
         _timeline(bundle)
+    elif tab=="📈 Price Indices":
+        _price_indices()
     elif tab=="📊 Evaluation":
         _evaluation(bundle)
     elif tab=="🧪 Model lab":
