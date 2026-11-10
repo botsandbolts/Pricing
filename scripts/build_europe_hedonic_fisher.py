@@ -81,7 +81,8 @@ def design(rows):
 def pair_index(first, second, *, min_overlap=800, sample_per_month=2500):
     """Paired Huber(log-price) models on the *same* common quality baskets."""
     from sklearn.feature_extraction import DictVectorizer
-    from sklearn.linear_model import HuberRegressor
+    from sklearn.linear_model import SGDRegressor
+    from sklearn.preprocessing import StandardScaler
 
     a = first.copy()
     b = second.copy()
@@ -96,12 +97,18 @@ def pair_index(first, second, *, min_overlap=800, sample_per_month=2500):
     a = a.sample(min(sample_per_month, len(a)), random_state=20261110)
     b = b.sample(min(sample_per_month, len(b)), random_state=20261110)
     x = DictVectorizer(sparse=True).fit_transform(design(pd.concat([a, b])))
+    x = StandardScaler(with_mean=False).fit_transform(x)
     n = len(a)
     ya = np.log(a.price_eur.to_numpy(float))
     yb = np.log(b.price_eur.to_numpy(float))
-    kwargs = dict(alpha=0.02, epsilon=1.35, max_iter=175, tol=1e-4)
-    model_a = HuberRegressor(**kwargs).fit(x[:n], ya)
-    model_b = HuberRegressor(**kwargs).fit(x[n:], yb)
+    # SGD Huber epsilon is in *log-EUR residual units*, unlike HuberRegressor's
+    # scale-normalized epsilon. Validation and clipping are mandatory.
+    kwargs = dict(loss="huber", epsilon=0.20, alpha=0.0001,
+                  penalty="l2", max_iter=300, tol=1e-4,
+                  learning_rate="adaptive", eta0=0.0125,
+                  n_iter_no_change=10, average=True, random_state=20261110)
+    model_a = SGDRegressor(**kwargs).fit(x[:n], ya)
+    model_b = SGDRegressor(**kwargs).fit(x[n:], yb)
     if model_a.n_iter_ >= kwargs["max_iter"] or model_b.n_iter_ >= kwargs["max_iter"]:
         return None  # nonconverged models must never release a production index
     # Quality-adjusted arithmetic price ratios, held over identical price baskets.
