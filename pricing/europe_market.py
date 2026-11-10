@@ -1027,8 +1027,11 @@ def render():
     from pricing.analytics import render_privacy
     render_privacy()
     bundle,error=_bundle()
-    tab=st.pills("European Studio panels",NAV,selection_mode="single",
-                 key="eu_workspace",label_visibility="collapsed") or NAV[0]
+    # A labelled, keyboard-operable navigation control is more reliable than
+    # 12 wrapping pill buttons, especially on a narrow phone screen.
+    tab=st.selectbox("European Studio panels",NAV,
+                 key="eu_workspace_selector_v2",
+                 help="Choose any European research panel. Your previous ASK receipt persists.")
     if tab=="🚗 Price my car":
         _valuation_page(bundle,error)
     elif tab=="🔎 Listing Inspector":
