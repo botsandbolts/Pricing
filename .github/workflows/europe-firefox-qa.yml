@@ -66,8 +66,11 @@ jobs:
             if curl -fsS http://127.0.0.1:8507/_stcore/health; then break; fi
             sleep 2
           done
-          python -u tests/firefox_europe_e2e.py || { cat /tmp/europe_streamlit.log; exit 1; }
-          python -u tests/firefox_us_panels_e2e.py || { cat /tmp/europe_streamlit.log; exit 1; }
+          status=0
+          python -u tests/firefox_europe_e2e.py || { echo 'European Firefox audit failed'; status=1; }
+          python -u tests/firefox_us_panels_e2e.py || { echo 'US full-workspace Firefox audit failed'; status=1; }
+          if test "$status" -ne 0; then tail -n 250 /tmp/europe_streamlit.log; fi
+          exit "$status"
       - name: Upload actual Firefox desktop/mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
