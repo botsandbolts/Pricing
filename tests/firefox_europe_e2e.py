@@ -61,6 +61,7 @@ def test_device(browser,device,width,height):
     expect(page.locator(".eu-hero")).to_contain_text("European")
     expect(page.locator(".eu-steps .eu-step")).to_have_count(3,timeout=90000)
     assert page.get_by_role("button",name=re.compile("Calculate European asking price")).count()==1
+    expect(page.get_by_text("Country · eight supported markets")).to_be_visible(timeout=90000)
     diagnose(page,device+"-landing")
     model=page.get_by_role("textbox",name="Model",exact=True)
     if model.count():
@@ -75,15 +76,15 @@ def test_device(browser,device,width,height):
     explain=page.get_by_role("button",name=re.compile("What moves this price"))
     expect(explain).to_be_enabled()
     explain.click(timeout=30000)
-    expect(page.get_by_text("Each bar uses the underlying European model",exact=False)).to_be_visible(timeout=90000)
+    expect(page.get_by_text("Each bar is a real model counterfactual",exact=False)).to_be_visible(timeout=90000)
     bars=page.locator(".eu-impact-graph .eu-impact-row")
     expect(bars).to_have_count(4,timeout=90000)
     widths=page.locator(".eu-impact-graph .eu-impact-bar").evaluate_all(
         "(els) => els.map(el => el.getBoundingClientRect().width)")
-    assert any(w>4 for w in widths), "ResMLP price-impact graphics are empty"
+    assert any(w>4 for w in widths), "HOFM3 price-impact graphics are empty"
     assert page.locator('[data-testid="stException"]').count()==0
     diagnose(page,device+"-valuation")
-    # Exercise every European panel with the actual date-adjusted receipt in memory.
+    # Exercise European panels with the HOFM3 recent-market receipt in memory.
     # One broken panel must not hide failures in the rest of the application.
     expected={
         "🔎 Listing Inspector":"Listing Inspector",
