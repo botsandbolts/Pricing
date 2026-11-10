@@ -1,5 +1,5 @@
 """Static regression tests: all EU languages, English variants and safe fallbacks."""
-from pricing.i18n import LOCALES, CATALOGS, KEYS, VOICE, PANEL_CATALOGS, _PANEL_KEYS, browser_locale
+from pricing.i18n import LOCALES, CATALOGS, KEYS, VOICE, PANEL_CATALOGS, _PANEL_KEYS, browser_locale, format_eur
 
 OFFICIAL_EU = {
     "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de",
@@ -37,3 +37,13 @@ def test_editorial_tone_is_not_identical_across_markets():
     assert VOICE["en-US"] != VOICE["en-GB"]
     assert "Szwagier" in VOICE["pl"][0]
     assert "cuñado" in VOICE["es"][0]
+
+
+def test_euro_formatting_does_not_convert_values(monkeypatch):
+    import pricing.i18n as i18n
+    monkeypatch.setattr(i18n, "locale", lambda: "en-GB")
+    assert format_eur(12345.6) == "€12,346"
+    monkeypatch.setattr(i18n, "locale", lambda: "de")
+    assert format_eur(12345.6) == "12.346 €"
+    monkeypatch.setattr(i18n, "locale", lambda: "fr")
+    assert format_eur(12345.6) == "12\u202f346 €"
