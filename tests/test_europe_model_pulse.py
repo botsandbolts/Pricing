@@ -9,6 +9,7 @@ from scripts.build_europe_model_pulse import (
     build, fit_relative_pulse, _robust_se, _trimmed_mean,
 )
 from pricing.europe_model_pulse import read_pulse, lookup_pulse
+from pricing.europe_bayes_pulse import shrink_model_differences
 
 
 def artificial_dates(n=360):
@@ -64,6 +65,8 @@ def test_sgd_huber_research_generates_shrunk_vehicle_specific_effects():
     assert pair["model_count"]>=3
     assert pair["n_training"]>=1500
     assert all(0<=row["shrink_weight"]<=1 for row in pair["models"])
+    assert all(0<=row["posterior_probability_positive"]<=1 for row in pair["models"])
+    assert all("brand_peer_count" in row for row in pair["models"])
     # The first vehicle group has a real +7% difference, unlike other models.
     golf=next(x for x in pair["models"] if x["model"]=="golf")
     assert golf["relative_pct"]>0
@@ -94,3 +97,36 @@ def test_robust_trimmed_mean_resists_large_price_outliers():
     sample=[0.03]*100+[25,-30]
     assert abs(_trimmed_mean(sample)-0.03)<0.001
     assert _robust_se(sample)>0
+
+
+def test_two_level_bayesian_posterior_shrinks_sparse_models_and_uses_make_peers():
+    items=[
+        {"make":"volkswagen","model":"golf","raw":0.08,"se":0.012},
+        {"make":"volkswagen","model":"polo","raw":0.03,"se":0.02},
+        {"make":"volkswagen","model":"passat","raw":0.01,"se":0.025},
+        {"make":"bmw","model":"320","raw":-0.05,"se":0.015},
+        {"make":"bmw","model":"520","raw":-0.04,"se":0.018},
+        {"make":"toyota","model":"corolla","raw":0.25,"se":0.25},
+    ]
+    r=shrink_model_differences(items)
+    lookup={row["model"]:row for row in r}
+    assert len(r)==6
+    assert lookup["golf"]["brand_peer_count"]==2
+    assert lookup["corolla"]["brand_peer_count"]==0
+    assert lookup["corolla"]["posterior_log_change"]<0.1
+    assert lookup["golf"]["posterior_log_change"]>0.03
+    assert lookup["320"]["posterior_log_change"]<0
+    for row in r:
+        assert row["interval_low_log"]<=row["posterior_log_change"]<=row["interval_high_log"]
+        assert 0<=row["posterior_probability_positive"]<=1
+    # Known observations cannot be changed by an unrelated make's posterior
+    r2=shrink_model_differences(items[:-1])
+    look2={row["model"]:row for row in r2}
+    assert look2["golf"]["posterior_log_change"]==pytest.approx(
+        lookup["golf"]["posterior_log_change"])
+
+
+def test_two_level_bayesian_posterior_rejects_invalid_noise_and_prior_scales():
+    assert shrink_model_differences([{"make":"vw","model":"golf","raw":0.1,"se":0}])==[]
+    with pytest.raises(ValueError):
+        shrink_model_differences([{"make":"vw","raw":0.1,"se":0.02}],tau_make=-1)
