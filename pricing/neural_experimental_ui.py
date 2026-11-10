@@ -14,6 +14,7 @@ from html import escape
 import numpy as np
 import pandas as pd
 import streamlit as st
+from pricing.i18n import tr
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.granite_ask_live import available as granite_available, load as load_granite_ask
 from pricing.bge_overnight_ask_live import available as bge_overnight_available, load as load_bge_overnight
@@ -97,17 +98,17 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
              english_cvar=8959.62):
     """One unified, keyboard-accessible form. Main pricing has no scan/BART step."""
     with st.form(prefix+"_vehicle",clear_on_submit=False):
-        st.markdown("### 🚗 01 / Tell us about the car" if focus else
-                    "### 🚗 02 / Tell us about the car" if compact else
-                    "#### 01 / Describe the vehicle")
+        st.markdown("### 🚗 01 / "+tr("form") if focus else
+                    "### 🚗 02 / "+tr("form") if compact else
+                    "#### 01 / "+tr("form"))
         if compact:
             st.caption("No VIN upload, no special instructions and no degree in "
                        "automotive engineering required. The description is optional "
                        "for Bid but useful for Ask.")
         a,b,c=st.columns(3)
         year=a.number_input("Model year",1900,2021,2015,key=prefix+"_year",persist_state="session")
-        make=b.text_input("Make","Toyota",key=prefix+"_make",persist_state="session")
-        model=c.text_input("Model / trim","Corolla",key=prefix+"_model",persist_state="session")
+        make=b.text_input(tr("make"),"Toyota",key=prefix+"_make",persist_state="session")
+        model=c.text_input(tr("model")+" / trim","Corolla",key=prefix+"_model",persist_state="session")
         a,b,c=st.columns(3)
         miles=a.number_input("Mileage (miles)",0,2000000,95000,
                              step=1000,key=prefix+"_mileage",persist_state="session")
@@ -127,7 +128,7 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             title=b.selectbox("Title status",[
                 "unknown","clean","rebuilt","salvage","lien","missing","parts only"],
                 key=prefix+"_title",persist_state="session")
-            transmission=d.selectbox("Transmission",[
+            transmission=d.selectbox(tr("transmission"),[
                 "unknown","automatic","manual","other"],
                 key=prefix+"_transmission",persist_state="session")
             fuel=st.session_state.get(prefix+"_fuel","unknown")
@@ -140,7 +141,7 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
                 condition=a.selectbox("Condition",[
                     "good","excellent","fair","like new","new","salvage","unknown"],
                     key=prefix+"_condition",persist_state="session")
-                fuel=b.selectbox("Fuel",[
+                fuel=b.selectbox(tr("fuel"),[
                     "gas","diesel","hybrid","electric","other","unknown"],
                     key=prefix+"_fuel",persist_state="session")
                 transmission=d.selectbox("Transmission",[
@@ -207,7 +208,7 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             submitted="bge" if english_go else "granite" if multilingual_go else False
         else:
             submitted=st.form_submit_button(
-                "🚗 Calculate seller Ask + wholesale Bid" if compact else
+                "🚗 "+tr("calculate")+" + wholesale Bid" if compact else
                 "🚀 Run complete "+("wholesale" if bid else "asking-price neural")+" model",
                 key=prefix+"_calculate_single_tap",
                 type="primary",disabled=not ready,use_container_width=True)
