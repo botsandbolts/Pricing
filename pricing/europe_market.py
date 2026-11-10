@@ -17,8 +17,8 @@ import streamlit as st
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
 from pricing.europe_price_clock import adjusted_quote, read_index, level_at, month_number, month_label
-from pricing.europe_eurostat import (
-    eurostat_adjusted_quote, eurostat_level_at, read_eurostat)
+from pricing.europe_eurostat import (eurostat_level_at, read_eurostat)
+from pricing.europe_hofm3 import SUPPORTED_COUNTRIES, ROOT as HOFM3_ROOT
 from pricing.europe_model_pulse import read_pulse,lookup_pulse
 from pricing.europe_bayesian_state_space import model_scenario_series
 
@@ -30,7 +30,8 @@ NAV=[
     "🏪 Merchant lens","🚦 Pick your garage",
 ]
 COUNTRIES={"DE":"Germany","FR":"France","NL":"Netherlands","BE":"Belgium",
-           "AT":"Austria","ES":"Spain","IT":"Italy","PL":"Poland","CH":"Switzerland"}
+           "AT":"Austria","ES":"Spain","IT":"Italy","PL":"Poland"}
+COUNTRY_OPTIONS=tuple(x for x in ("de","fr","nl","be","at","es","it","pl") if x in SUPPORTED_COUNTRIES)
 METRIC_LABELS={"cvar95_absolute_eur":"CVaR95 · worst 5%",
                "mae_eur":"Mean absolute error","rmse_eur":"Root mean squared error",
                "median_ape_pct":"Median absolute percentage error"}
@@ -132,14 +133,15 @@ def _bundle():
 
 @st.cache_data(show_spinner=False,ttl=7200)
 def _market_table():
-    file=ROOT/"market_stats.csv.gz"
+    file=HOFM3_ROOT/"market_stats.csv.gz"
+    if not file.is_file():file=ROOT/"market_stats.csv.gz"
     if not file.is_file():
         return pd.DataFrame()
     return pd.read_csv(file,compression="gzip",
                        dtype={"seller_country":str,"make":str,"model":str})
 
 def _snapshot(bundle):
-    return bundle[1].get("snapshot_date","2026-06-01") if bundle else "2026-06-01"
+    return bundle[1].get("snapshot_date","2026-11-01") if bundle else "2026-11-01"
 
 def _choices(schema):
     vocab=schema["category_vocabulary"] if schema else {}
@@ -154,20 +156,15 @@ def _edit_vehicle(schema):
     st.markdown("### 🚘 01 / Tell us about your European car")
     st.caption("European conventions: km, horsepower, registration year and euro asking prices. "
                "Unknown specifications stay unknown.")
+    st.info("📅 **Late-2026 market reference** · HOFM3 was trained on "
+            "recently verified September–November 2026 observed asking prices, "
+            "NOT artificially November-adjusted labels. No additional "
+            "Eurostat factor is applied. Official index scenarios remain in "
+            "the separate research panel.")
     with st.form("eu_ask_form",clear_on_submit=False):
-        chosen_date=st.date_input(
-            "📅 Price estimate date · European market clock",
-            value=date.today(),min_value=date(2015,1,1),
-            max_value=date(date.today().year+1,12,31),key="eu_valuation_date",
-            help="Uses a validated hedonic Fisher ASK index if available; otherwise "
-                 "the official Eurostat second-hand motor-car HICP as a retail "
-                 "market proxy. Missing months use bounded log-Holt forecasts "
-                 "only when enough real history exists. No daily index is claimed.")
         a,b,c=st.columns(3)
-        countries=values("seller_country",list(COUNTRIES))
-        countries=[v for v in countries if v!="__missing__"] or list(COUNTRIES)
-        country=a.selectbox("Country",countries,
-            format_func=lambda v:COUNTRIES.get(v.upper(),v.title()),key="eu_country")
+        country=a.selectbox("Country · eight supported markets",COUNTRY_OPTIONS,
+            format_func=lambda v:COUNTRIES[v.upper()],key="eu_country_v2")
         makes=values("make",["volkswagen","bmw","mercedes benz","toyota","renault"])
         preferred="volkswagen" if "volkswagen" in makes else makes[0]
         make=b.selectbox("Make",makes,index=makes.index(preferred),
@@ -226,86 +223,37 @@ def _edit_vehicle(schema):
             st.error("Enter the exact model name, such as Golf or 320d.")
         else:
             try:
-                base_price=estimate(vehicle)
+                price=estimate(vehicle)
                 snapshot=_snapshot((None,schema))
-                indexed,clock=adjusted_quote(
-                    base_price,snapshot,chosen_date,country)
-                if indexed is None:
-                    # Country's official consumer used-car HICP is a plainly
-                    # labelled price-index proxy, NOT a hedonic Fisher ASK index.
-                    indexed,clock=eurostat_adjusted_quote(
-                        base_price,snapshot,chosen_date,country)
-                price=indexed if indexed is not None else base_price
                 st.session_state["eu_receipt"]={
-                    "vehicle":vehicle,"price_eur":price,"base_price_eur":base_price,
-                    "snapshot":snapshot,"selected_date":chosen_date.isoformat(),
-                    "clock":clock,"market":"Europe",
-                    "engine":"European asking-price model",
+                    "vehicle":vehicle,"price_eur":price,"base_price_eur":price,
+                    "snapshot":snapshot,"selected_date":"2026-11",
+                    "clock":{"status":"built_in_recent_market","factor":1.0},
+                    "market":"Europe","engine":"HOFM3 Tail-MAE · November 2026",
                 }
-                st.success("Valuation calculated. Advertised ASK, not a completed sale.")
-                if indexed is None:
-                    st.warning("Neither an approved hedonic Fisher index nor a "
-                               "published Eurostat used-car HICP adjustment is "
-                               "available for this country/date. The displayed "
-                               "price remains the dataset-era estimate.")
+                st.success("HOFM3 valuation calculated. No second date adjustment; "
+                           "advertised ASK, not a completed sale.")
             except (ValueError,EuropeanModelUnavailable,RuntimeError) as exc:
                 st.error("Valuation unavailable: "+str(exc))
     return vehicle
 
 def _receipt(bundle):
     quote=st.session_state.get("eu_receipt")
-    if quote and quote.get("engine")!="European asking-price model":
+    if quote and quote.get("engine")!="HOFM3 Tail-MAE · November 2026":
         st.session_state.pop("eu_receipt",None)
         quote=None
-        st.info("European pricing was upgraded. Recalculate to include the valuation date.")
+        st.info("European neural model upgraded. Recalculate to refresh your receipt.")
     if not quote:
         st.info("Your European asking-price receipt will appear here after valuation.")
         return None
-    clock=quote.get("clock",{})
-    status=clock.get("status","unavailable")
     st.markdown('<div class="eu-result"><small>EUROPEAN ADVERTISED ASK · EUR</small>'
                 '<strong>'+escape(money(quote["price_eur"]))+'</strong>'
-                '<p>Independent European asking-price model · no auction/Bid component</p>'
+                '<p>HOFM3 · Tail-MAE · recent late-2026 European listings</p>'
                 '</div>',unsafe_allow_html=True)
-    if status=="unavailable":
-        st.warning("⚠️ Date adjustment NOT applied. You selected "
-                   +str(quote.get("selected_date","unknown"))+". "
-                   +str(clock.get("reason","A validated index is unavailable."))
-                   +" The amount shown is the "+str(quote.get("snapshot",""))
-                   +" dataset-era estimate.")
-    elif status=="snapshot":
-        st.info("📅 Dataset-snapshot month · "+str(quote.get("snapshot",""))
-                +". No daily market movement is assumed.")
-    else:
-        change=100*(float(clock["factor"])-1)
-        proxy=clock.get("dataset")=="prc_hicp_minr"
-        label=("Eurostat used-car HICP proxy" if proxy else "Hedonic Fisher index")
-        st.metric(label+" · "+clock["base_month"]+" → "+clock["target_month"],
-                  f"{change:+.2f}%",
-                  help=("Official consumer second-hand car index: a market proxy, "
-                        "NOT the app's own hedonic Fisher ASK index."
-                        if proxy else "Quality-adjusted Fisher asking-price index."))
-        st.caption("Index status: **"+status+"**. "
-                   +("**Eurostat HICP, second-hand cars (CP07112), 2025=100**: "
-                     "consumer retail-price proxy, NOT a hedonic Fisher ASK index. "
-                     if proxy else "**Hedonic Fisher asking-price index.** ")
-                   +"Damped log-Holt forecasts are scenarios, NOT observed data. "
-                   "No extra vehicle ageing or mileage is projected.")
-        if clock.get("source_last_published_month"):
-            st.caption("Last published Eurostat source month: **"
-                       +str(clock["source_last_published_month"])+"**. "
-                       "[Eurostat source](https://ec.europa.eu/eurostat/"
-                       "databrowser/view/prc_hicp_minr/default/table?lang=en).")
-        if "trend_only_range" in clock:
-            low,high=clock["trend_only_range"]
-            st.caption("Illustrative trend-only forecast band: "
-                       +money(low)+"–"+money(high)
-                       +". This excludes car-model error and is not a calibrated "
-                        "confidence interval for your vehicle.")
-    if st.session_state.get("eu_valuation_date") and (
-        str(st.session_state["eu_valuation_date"]) != quote.get("selected_date")
-    ):
-        st.warning("The selected date changed. Press Calculate to refresh this receipt.")
+    st.caption("Trained on observed asking prices from a recent "
+               "September–November 2026 cohort. **No additional Eurostat** "
+               "adjustment is applied. This is not an observed November "
+               "transaction value; age and mileage reflect your inputs.")
     pilot=lookup_pulse(read_pulse(),quote["vehicle"].get("seller_country"),
                        quote["vehicle"].get("make"),quote["vehicle"].get("model"))
     if pilot:
@@ -340,9 +288,7 @@ def _receipt(bundle):
             if factors:
                 magnitude=max(1.,max(abs(change) for _,change in factors))
                 rows=[]
-                clock_factor=float(quote.get("clock",{}).get("factor",1))
                 for label,change in factors:
-                    change*=clock_factor
                     width=0 if abs(change)<1 else max(2.,100.*abs(change)/magnitude)
                     sign="+" if change>0 else "−" if change<0 else "±"
                     tone="eu-impact-up" if change>=0 else "eu-impact-down"
@@ -355,8 +301,8 @@ def _receipt(bundle):
                 st.markdown('<div class="eu-impact-graph" role="img" '
                             'aria-label="Hypothetical one-variable price changes, shown in euros">'
                             +''.join(rows)+'</div>',unsafe_allow_html=True)
-                st.caption("Each bar uses the underlying European model after changing one detail; "
-                           "a common validated market index factor is then applied. "
+                st.caption("Each bar is a real model counterfactual with one detail changed; "
+                           "no extra market-index factor is applied. "
                            "Positive means a higher predicted asking price. "
                            "These are hypothetical model sensitivities, not causal effects or SHAP attribution.")
             else:
@@ -461,8 +407,6 @@ def _timeline(bundle):
                            for factor in (.25,.5,.75,1,1.25,1.5,2)})
     variants=[{**vehicle,"mileage_km":v} for v in mileage_levels]
     result=batch_estimate(variants,bundle)
-    if quote.get("clock",{}).get("status") not in ("unavailable",None):
-        result=result*float(quote["clock"].get("factor",1))
     chart=pd.DataFrame({"Mileage · km":mileage_levels,"Estimated Ask · €":result})
     st.line_chart(chart.set_index("Mileage · km"))
     registration=int(vehicle["reg_year"])
@@ -471,14 +415,11 @@ def _timeline(bundle):
     if years:
         samples=[{**vehicle,"reg_year":y} for y in years]
         estimates=batch_estimate(samples,bundle)
-        if quote.get("clock",{}).get("status") not in ("unavailable",None):
-            estimates=estimates*float(quote["clock"].get("factor",1))
         st.line_chart(pd.DataFrame({"Registration year":years,
               "Estimated Ask · €":estimates}).set_index("Registration year"))
-    st.caption("This is a change in car specifications, not a calendar-time forecast. "
-               "When available, the chosen date's quality-adjusted monthly market "
-               "factor is applied consistently to each scenario. Changing registration "
-               "year is NOT the same as projecting the same car's depreciation.")
+    st.caption("A change in vehicle specifications, not a calendar-time forecast. "
+               "No additional Eurostat multiplier. Changing registration year is "
+               "NOT equivalent to projecting the actual car's depreciation.")
 
 def _inspector(bundle):
     st.markdown("### 🔎 Listing Inspector · compare, don't delete")
@@ -513,7 +454,7 @@ def _forensic(quote):
                 "This is not a confidence interval or fraud classifier.")
     report={"market":"European advertised ASK","valuation_eur":model,
             "listing_ask_eur":observed,"difference_eur":diff,
-            "model":"ResMLP Tail-MAE · Ray CVaR95 winner",
+            "model":"HOFM3 Tail-MAE · fresh European ASK CVaR95 winner",
             "vehicle":{k:v for k,v in quote["vehicle"].items()
                        if k not in ("seller_city","version")},
             "limitations":"Not a sale price, validated personal interval, customs ruling, or fraud finding"}
@@ -543,7 +484,7 @@ def _evaluation(bundle):
         # Both held-out groups were computed on exactly the same frozen dataset.
         if old["counts"]["test"]==comp["test_rows"] and old["counts"]["validation"]==comp["validation_rows"]:
             chart=pd.DataFrame({
-                "New ResMLP":[champion["validation"]["cvar95_absolute_eur"],
+                "New HOFM3":[champion["validation"]["cvar95_absolute_eur"],
                               champion["test_once"]["cvar95_absolute_eur"]],
                 "Previous XGBoost":[previous["validation"]["cvar95_absolute_eur"],
                                     previous["test_once"]["cvar95_absolute_eur"]],
@@ -553,9 +494,9 @@ def _evaluation(bundle):
             bars=[]
             for name in chart.index:
                 bars.append('<div class="eu-benchmark-group"><b>'+escape(str(name))+'</b>')
-                for label in ("New ResMLP","Previous XGBoost"):
+                for label in ("New HOFM3","Previous XGBoost"):
                     value=float(chart.loc[name,label])
-                    tone="eu-impact-up" if label=="New ResMLP" else "eu-impact-reference"
+                    tone="eu-impact-up" if label=="New HOFM3" else "eu-impact-reference"
                     width=100.*value/max_error
                     bars.append('<div class="eu-benchmark-row"><span>'+escape(label)+'</span>'
                         '<div class="eu-impact-track"><div class="eu-impact-bar '+tone+
@@ -580,8 +521,8 @@ def _evaluation(bundle):
 
 def _model_lab(bundle):
     st.markdown("### 🧪 Ray Tune model lab · five neural architectures")
-    st.caption("Two research waves, 20 neural finalists, 30 objective families and "
-               "two XGBoost baselines. Ranking uses validation CVaR95.")
+    st.caption("One November-2026 refresh: 15 Ray workers, five architectures and "
+               "30 loss functions. Rankings use CVaR95 on genuine recent asking prices.")
     if bundle is None:
         st.info("Model research details unlock when verified weights are available.")
         return
@@ -598,8 +539,8 @@ def _model_lab(bundle):
                  hide_index=True,use_container_width=True)
     with st.expander("Exact winning hyperparameters"):
         st.json(comp["overall_champion"]["config"])
-    st.caption("The neural shortlist was assessed on a frozen 200,039-advert validation "
-               "sample. No unsupported claim that all 30 losses won was made.")
+    st.caption("192,149 validation listings; 192,046 sealed test listings. "
+               "Recent-country ISO-2 observations only.")
 
 
 def _science(bundle):
@@ -610,19 +551,18 @@ def _science(bundle):
     and an older high-performance saloon. ResMLP learns these combinations
     from real European listing patterns, rather than assuming a fixed deduction.
 
-    **What are residual connections?** Small neural layers refine their
-    previous answer while keeping useful information from the earlier layer.
-    Our winner has two such blocks, and the learned answer becomes an asking
-    price in euros.
+    **What is HOFM3?** Higher-Order Factorization Machines combine embeddings,
+    pairwise and third-order interactions with a residual network. This
+    winner has two residual blocks and 32-dimensional embeddings.
 
     **Why focus on the worst cases?** Big mistakes can be expensive even when
     the average estimate looks good. The Tail-MAE objective and validation
     CVaR95 selection favour models with smaller extreme euro mistakes.
 
     **What did we train on?** Approximately two million European car ads.
-    1,602,247 eligible adverts were used for training; 200,039 for validation
-    and 201,085 were held aside for final testing. The input was not
-    deduplicated using unverified similarity assumptions.
+    1,536,801 recent adverts were used for training; 192,149 for validation
+    and 192,046 for sealed testing. Stale adverts were excluded, seller
+    countries canonicalized, and forecast-generated prices were not target labels.
 
     **What remains unknown?** The model does not read seller descriptions,
     VINs or photographs. It does not inspect the vehicle or know the final
@@ -632,7 +572,7 @@ def _science(bundle):
         ") · CC BY-NC-SA 4.0. Car Price Studio software is separately MIT-licensed.")
     if bundle:
         winner=bundle[2]["overall_champion"]
-        st.info(f"Selected: ResMLP with Tail-MAE; sealed-test MAE "
+        st.info(f"Selected: HOFM3 with Tail-MAE; sealed-test MAE "
                 f"{money(winner['test_once']['mae_eur'])}; worst-5% average "
                 f"error {money(winner['test_once']['cvar95_absolute_eur'])}.")
 
