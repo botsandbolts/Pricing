@@ -6,7 +6,7 @@ Existing American routes remain the default and retain their original IDs.
 from __future__ import annotations
 import streamlit as st
 from html import escape
-from pricing.i18n import tr
+from pricing.i18n import tr, editorial_voice
 
 MARKETS={"us":"🇺🇸 United States","eu":"🇪🇺 Europe"}
 
@@ -54,6 +54,10 @@ def render_market_gateway():
     landing_html=landing_html.replace("Two continents. One garage. Zero crystal balls.",escape(tr("market_title")))
     landing_html=landing_html.replace("Independent automotive price research. Select your market;\n       your American and European car details stay separate. No account. No ads.",escape(tr("market_intro")))
     st.markdown(landing_html,unsafe_allow_html=True)
+    headline, invitation = editorial_voice()
+    st.markdown('<div class="cps-market-card" role="note"><b>'+escape(headline)+'</b>'
+                '<small>'+escape(invitation)+'</small></div>',
+                unsafe_allow_html=True)
     left,right=st.columns(2,gap="medium")
     with left:
         st.markdown('<div class="cps-market-card"><b>🇺🇸 United States</b>'
@@ -73,5 +77,5 @@ def render_market_gateway():
                      key="cps_market_eu",use_container_width=True,
                      type="primary" if selected=="eu" else "secondary"):
             _choose("eu")
-    st.caption("Switch markets here any time. Predictions are research estimates, not guaranteed sale prices.")
+    st.caption("Market and language are independent. Estimates are research predictions, not sale guarantees.")
     return selected
