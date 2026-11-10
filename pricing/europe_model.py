@@ -166,3 +166,11 @@ def explain(vehicle,bundle=None):
 def available(path=None):
     p=Path(path) if path is not None else ROOT
     return all((p/name).is_file() for name in ("winner.ubj","schema.json","comparison.json"))
+
+
+# European production dispatch: retain the frozen feature encoder and market
+# statistics, but route all valuation calls to the verified ResMLP checkpoint.
+# No XGBoost fallback: an absent/corrupt neural release must fail closed.
+from pricing.europe_resmlp import (  # noqa: E402,F401
+    load_bundle, estimate, batch_estimate, explain, available,
+)
