@@ -36,8 +36,8 @@ def read_index(path=INDEX_PATH):
     """An absent or invalid artifact is a disabled index, never a fictional flat one."""
     try:
         obj = json.loads(Path(path).read_text(encoding="utf-8"))
-        if obj.get("schema_version") != 1 or obj.get("status") != "validated":
-            raise ValueError("Release is not validated")
+        if obj.get("schema_version") != 1 or obj.get("status") not in ("validated", "unavailable"):
+            raise ValueError("Invalid release status")
         if not isinstance(obj.get("countries"), dict):
             raise ValueError("No countries")
         return obj
@@ -114,7 +114,10 @@ def _holt_forecast(obs, target):
     drift = trend * sum(phi ** k for k in range(1, steps + 1))
     # Guard against unreasonable extrapolation, not a fitted observation.
     drift = max(-0.35, min(0.35, drift))
-    forecast = math.exp(level + drift)
+    # Anchor the Holt trend to the actual boundary observation. The fitted
+    # level is used to estimate the slope and forecast errors, not to introduce
+    # an artificial jump at the sample boundary.
+    forecast = math.exp(math.log(obs[nearest]["level"]) + drift)
     band = 1.282 * rms * math.sqrt(steps)
     return {"level": forecast, "method": "holt_forecast", "months_ahead": steps,
             "lower": forecast * math.exp(-band), "upper": forecast * math.exp(band),
