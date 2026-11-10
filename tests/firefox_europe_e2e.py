@@ -58,7 +58,7 @@ def test_device(browser,device,width,height):
     assert banner_y<hero_y, "European satire must be above European hero"
     expect(page.get_by_text("From Hamburg to Rome.",exact=False)).to_be_visible(timeout=120000)
     expect(page.get_by_text("European Asking Price Lab",exact=False)).to_be_visible(timeout=90000)
-    expect(page.locator(".eu-hero")).to_contain_text("ResMLP")
+    expect(page.locator(".eu-hero")).to_contain_text("European")
     expect(page.locator(".eu-steps .eu-step")).to_have_count(3,timeout=90000)
     assert page.get_by_role("button",name=re.compile("Calculate European asking price")).count()==1
     diagnose(page,device+"-landing")
@@ -71,11 +71,11 @@ def test_device(browser,device,width,height):
     expect(page.locator(".eu-result strong")).to_be_visible(timeout=180000)
     content=page.locator(".eu-result strong").inner_text()
     assert "€" in content and len(content)>2
-    expect(page.locator(".eu-result")).to_contain_text("ResMLP")
+    expect(page.locator(".eu-result")).to_contain_text("ASK")
     explain=page.get_by_role("button",name=re.compile("What moves this price"))
     expect(explain).to_be_enabled()
     explain.click(timeout=30000)
-    expect(page.get_by_text("Each bar is a new ResMLP estimate",exact=False)).to_be_visible(timeout=90000)
+    expect(page.get_by_text("Each bar uses the underlying European model",exact=False)).to_be_visible(timeout=90000)
     bars=page.locator(".eu-impact-graph .eu-impact-row")
     expect(bars).to_have_count(4,timeout=90000)
     widths=page.locator(".eu-impact-graph .eu-impact-bar").evaluate_all(
@@ -83,11 +83,12 @@ def test_device(browser,device,width,height):
     assert any(w>4 for w in widths), "ResMLP price-impact graphics are empty"
     assert page.locator('[data-testid="stException"]').count()==0
     diagnose(page,device+"-valuation")
-    # Exercise every European panel with the actual ResMLP receipt in memory.
+    # Exercise every European panel with the actual date-adjusted receipt in memory.
     # One broken panel must not hide failures in the rest of the application.
     expected={
         "🔎 Listing Inspector":"Listing Inspector",
         "📉 Value over time":"Value over time",
+        "📈 Price Indices":"European Price Index Observatory",
         "📊 Evaluation":"European evaluation",
         "🧪 Model lab":"Ray Tune model lab",
         "🔬 The science":"Under the bonnet",
