@@ -3,7 +3,8 @@
 The selected language affects *presentation only*. Model features, enums, widget
 keys, market IDs and scientific targets must remain canonical and untranslated.
 English remains the explicit fallback while additional research panels are
-migrated. No network translation, language inference or tracking cookies.
+migrated. Browser language is read locally; no IP geolocation, translation
+service or tracking cookies.
 """
 from __future__ import annotations
 
@@ -132,6 +133,23 @@ VOICE = {
     "es": ("Tu cuñado pone el precio. Nosotros consultamos los datos.", "Pruébalo y dinos sin pelos en la lengua dónde fallamos."),
     "sv": ("Alla har en åsikt. Vad säger siffrorna?", "Testa värderingen och berätta vad vi borde förbättra."),
 }
+
+
+
+def format_eur(amount: float) -> str:
+    """Present only an EUR amount in local typography; never convert it.
+
+    Display separators are linguistic conventions, not model/currency changes.
+    The quote retains full numeric precision in session state and exports.
+    """
+    number = format(float(amount), ",.0f")
+    lang = locale()
+    if lang in ("en-GB", "en-US", "ga", "mt"):
+        return "€" + number
+    if lang in ("de", "nl", "es", "it", "pt", "sl", "el"):
+        return number.replace(",", ".") + " €"
+    # French and most Central/Northern/Eastern European publication styles.
+    return number.replace(",", "\u202f") + " €"
 
 
 def editorial_voice() -> tuple[str, str]:
