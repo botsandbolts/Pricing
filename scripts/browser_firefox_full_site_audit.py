@@ -181,23 +181,6 @@ def run():
             assert not english.is_disabled(), "BGE winner has not passed release gate"
             assert not multilingual.is_disabled(), "Granite INT8 winner has not passed release gate"
             assert "LIVE RESEARCH TOOLS" in release.inner_text(), "Current launch/status branding missing"
-            english.scroll_into_view_if_needed()
-            english.click(timeout=30000)
-            report["pricing"]["submit_clicks"]=1
-            report["pricing"]["selected_engine"]="BGE English"
-            # The visible acknowledgement or completed result must follow ONE event.
-            messages=app.get_by_text(re.compile(
-                r"One click received|Calculation complete|Your car . estimated prices|"
-                r"Ask engine failed|Seller Ask couldn't finish|Wholesale Bid couldn't finish|"
-                r"Pricing runtime is unavailable",re.I))
-            messages.first.wait_for(state="visible",timeout=240000)
-            report["pricing"]["one_click_reached_server"]=True
-            report["pricing"]["first_response"]=messages.first.inner_text()[:240]
-            safe_shot(page,"after-one-submit.png")
-            page.wait_for_timeout(1000)
-            body=app.locator("body").inner_text(timeout=10000)
-            if "Calculation complete." in body and "One click received." in body:
-                failures.append("Finished calculation still shows the processing notice")
             for width,height in ((390,844),(820,1100),(1440,900),(320,800)):
                 if not viewport_check(page,app,width,height,report):
                     failures.append("Responsive overflow at %spx"%width)
@@ -250,6 +233,49 @@ def run():
                     legal["error"]=str(exc)[:250]
                     failures.append("Legal page failed: "+route)
                 report.setdefault("legal",[]).append(legal)
+            # Keep the full-site and WCAG sweep independent of heavyweight
+            # neural inference. Return to pricing only after every panel/legal
+            # route has been examined, then submit one genuine appraisal.
+            page.goto(URL,wait_until="domcontentloaded",timeout=90000)
+            app=actual_streamlit_frame(page,report)
+            for _ in range(6):
+                dismiss_consent(page,report)
+                if report.get("consent_action")!="No visible accessible rejection button":
+                    break
+                page.wait_for_timeout(500)
+            english=app.get_by_role("button",name=re.compile("Evaluate in English",re.I))
+            english.wait_for(state="visible",timeout=90000)
+            assert not english.is_disabled(), "BGE full-network serving unavailable"
+            english.scroll_into_view_if_needed()
+            english.click(timeout=30000)
+            report["pricing"]["submit_clicks"]=1
+            report["pricing"]["selected_engine"]="BGE English"
+            # The visible acknowledgement or completed result must follow ONE event.
+            messages=app.get_by_text(re.compile(
+                r"One click received|Calculation complete|Your car . estimated prices|"
+                r"Ask engine failed|Seller Ask couldn't finish|Wholesale Bid couldn't finish|"
+                r"Pricing runtime is unavailable",re.I))
+            messages.first.wait_for(state="visible",timeout=240000)
+            report["pricing"]["one_click_reached_server"]=True
+            report["pricing"]["first_response"]=messages.first.inner_text()[:240]
+            safe_shot(page,"after-one-submit.png")
+            # Do not call a received-click toast a successful price. Demand a
+            # completed full-network receipt or record the actual runtime error.
+            terminal=app.get_by_text(re.compile(
+                r"Calculation complete|Ask engine failed|Seller Ask couldn't finish|"
+                r"Wholesale Bid couldn't finish|Pricing runtime is unavailable",re.I))
+            try:
+                terminal.first.wait_for(state="visible",timeout=180000)
+                report["pricing"]["final_response"]=terminal.first.inner_text()[:350]
+                report["pricing"]["valuation_complete"]="Calculation complete" in terminal.first.inner_text()
+                if not report["pricing"]["valuation_complete"]:
+                    failures.append("Real valuation did not complete successfully")
+            except Exception as exc:
+                report["pricing"]["final_wait_error"]=str(exc)[:260]
+                failures.append("Real valuation did not finish within 180 seconds")
+            body=app.locator("body").inner_text(timeout=10000)
+            if "Calculation complete." in body and "One click received." in body:
+                failures.append("Finished calculation still shows the processing notice")
         except Exception as exc:
             report["fatal_error"]=str(exc)[:650]
             failures.append("Pricing priority flow failed: "+str(exc)[:240])
