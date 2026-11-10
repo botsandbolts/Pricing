@@ -1,0 +1,68 @@
+name: Europe 2M listings · November 2026 market normalization
+
+on:
+  push:
+    branches:
+      - feature/europe-nov2026-last-verified-price-20261110
+    paths:
+      - scripts/add_europe_nov2026_adjusted_price.py
+      - tests/test_europe_nov2026_price_adjustment.py
+      - .github/workflows/europe-nov2026-adjust-dataset.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Parquet + regression dependencies
+        run: python -m pip install "pytest>=8,<10" "numpy>=1.26,<3" "pandas>=2.1,<3" "pyarrow>=17,<24" "requests>=2.31,<3"
+      - name: Compile and regression-test 2M-row date correction
+        run: |
+          python -m py_compile scripts/add_europe_nov2026_adjusted_price.py
+          python -m pytest -q tests/test_europe_nov2026_price_adjustment.py tests/test_europe_eurostat.py
+  enrich-source:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install "numpy>=1.26,<3" "pandas>=2.1,<3" "pyarrow>=17,<24" "requests>=2.31,<3"
+      - name: Transform the complete source dataset with observed-or-forecast source labels
+        run: python -m scripts.add_europe_nov2026_adjusted_price
+      - name: Verify full Parquet count and fields
+        run: |
+          python - <<'PY'
+          import json
+          import pyarrow.parquet as pq
+          manifest=json.load(open('artifacts/europe-nov2026/adjustment_report.json'))
+          pf=pq.ParquetFile('artifacts/europe-nov2026/europe_2m_nov2026_adjusted.parquet')
+          assert manifest['rows']==pf.metadata.num_rows
+          assert pf.metadata.num_rows>=1_500_000, 'Expected full original ~2M listings'
+          assert manifest['adjusted_rows']>0
+          assert 'current_depreciated_price_eur' in pf.schema_arrow.names
+          assert 'eligible_as_current_price_training_label' in pf.schema_arrow.names
+          assert 'vehicle_age_mileage_adjustment_status' in pf.schema_arrow.names
+          print(json.dumps({'rows':manifest['rows'],
+                            'adjusted_rows':manifest['adjusted_rows'],
+                            'status_counts':manifest['status_counts'],
+                            'freshness_counts':manifest['freshness_counts']},indent=2))
+          PY
+      - name: Upload full date-normalized Parquet and auditable provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: europe-2m-listings-nov2026-market-adjusted
+          path: artifacts/europe-nov2026/
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
