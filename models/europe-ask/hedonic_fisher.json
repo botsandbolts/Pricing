@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "status": "unavailable",
+  "method": "Adjacent-month common-support Huber regression on log(EUR ASK); Fisher=sqrt(Laspeyres*Paasche); log interpolation; damped-log Holt forecast",
+  "source": "KTHESAT/european-used-car-market-2m-listings",
+  "coverage": [
+    {
+      "country": "AT",
+      "month": "2026-10",
+      "n": 170407
+    },
+    {
+      "country": "BE",
+      "month": "2026-10",
+      "n": 89102
+    },
+    {
+      "country": "CH",
+      "month": "2026-10",
+      "n": 72661
+    },
+    {
+      "country": "DE",
+      "month": "2026-09",
+      "n": 27293
+    },
+    {
+      "country": "DE",
+      "month": "2026-10",
+      "n": 911268
+    },
+    {
+      "country": "ES",
+      "month": "2026-10",
+      "n": 98257
+    },
+    {
+      "country": "FR",
+      "month": "2026-10",
+      "n": 63441
+    },
+    {
+      "country": "IT",
+      "month": "2026-09",
+      "n": 7
+    },
+    {
+      "country": "IT",
+      "month": "2026-10",
+      "n": 243801
+    },
+    {
+      "country": "NL",
+      "month": "2026-10",
+      "n": 161785
+    },
+    {
+      "country": "PL",
+      "month": "2026-10",
+      "n": 403
+    }
+  ],
+  "countries": {},
+  "pilot_countries": {},
+  "message": "Not enough genuine consecutive observations to estimate a reliable monthly Fisher index."
+}
