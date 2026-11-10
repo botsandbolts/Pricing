@@ -76,24 +76,43 @@ def axe_scan(frame,label,report):
     except Exception as exc:
         report.setdefault("axe",{})[label]={"scan_error":str(exc)[:250]}
 
-def viewport_check(page,frame,width,height,report):
-    page.set_viewport_size({"width":width,"height":height})
-    page.wait_for_timeout(800)
-    result=frame.evaluate("""() => ({
-        innerWidth:innerWidth,
-        scrollWidth:document.documentElement.scrollWidth,
-        interactiveOverflow:[...document.querySelectorAll('input,textarea,button,[role="radio"]')]
-            .filter(el=>{const r=el.getBoundingClientRect();
-               return r.width>1 && r.height>1 && (r.left < -2 || r.right > innerWidth+2)})
-            .map(el=>(el.getAttribute('aria-label')||el.textContent||'control').slice(0,75))
-            .slice(0,15)
-    })""")
-    result["width"]=width
-    result["height"]=height
-    result["pass"]=result["scrollWidth"]<=width+2 and not result["interactiveOverflow"]
-    report.setdefault("viewports",[]).append(result)
-    safe_shot(page,"pricing-%spx.png"%width)
-    return result["pass"]
+def viewport_check(browser,original_page,original_frame,width,height,report):
+    """Use fresh fixed-size Firefox contexts, never resize an active Cloud app.
+
+    Firefox 159 can crash its renderer on Playwright's set_viewport_size while
+    a tall Streamlit application/iframe is updating. This tests real responsive
+    layouts without triggering a browser-only resize crash.
+    """
+    transient=None
+    if width==390 and height==844:
+        page,frame=original_page,original_frame
+    else:
+        transient=browser.new_context(viewport={"width":width,"height":height},
+                                      reduced_motion="reduce",device_scale_factor=1)
+        page=transient.new_page()
+        page.goto(URL,wait_until="domcontentloaded",timeout=90000)
+        frame=actual_streamlit_frame(page,{})
+        frame.locator(".garage-home-hero").wait_for(state="visible",timeout=70000)
+    try:
+        result=frame.evaluate("""() => ({
+            innerWidth:innerWidth,
+            scrollWidth:document.documentElement.scrollWidth,
+            interactiveOverflow:[...document.querySelectorAll('input,textarea,button,[role="radio"]')]
+                .filter(el=>{const r=el.getBoundingClientRect();
+                   return r.width>1 && r.height>1 && (r.left < -2 || r.right > innerWidth+2)})
+                .map(el=>(el.getAttribute('aria-label')||el.textContent||'control').slice(0,75))
+                .slice(0,15)
+        })""")
+        result["width"]=width
+        result["height"]=height
+        result["pass"]=result["scrollWidth"]<=width+2 and not result["interactiveOverflow"]
+        report.setdefault("viewports",[]).append(result)
+        if width==1440:
+            axe_scan(frame,"pricing-desktop",report)
+        safe_shot(page,"pricing-%spx.png"%width)
+        return result["pass"]
+    finally:
+        if transient is not None:transient.close()
 
 def run():
     report={"target":URL,"browser":"Firefox","hosted":True,"pricing":{},
@@ -182,11 +201,12 @@ def run():
             assert not multilingual.is_disabled(), "Granite INT8 winner has not passed release gate"
             assert "LIVE RESEARCH TOOLS" in release.inner_text(), "Current launch/status branding missing"
             for width,height in ((390,844),(820,1100),(1440,900),(320,800)):
-                if not viewport_check(page,app,width,height,report):
-                    failures.append("Responsive overflow at %spx"%width)
+                try:
+                    if not viewport_check(browser,page,app,width,height,report):
+                        failures.append("Responsive overflow at %spx"%width)
+                except Exception as exc:
+                    failures.append("Firefox fixed-viewport failure at %spx: %s"%(width,str(exc)[:160]))
             axe_scan(app,"pricing-mobile",report)
-            page.set_viewport_size({"width":1440,"height":900})
-            axe_scan(app,"pricing-desktop",report)
             # The same long-lived session must navigate every other panel without
             # dropping into a hidden no-navigation route or raising a Streamlit error.
             for label in PANELS:
