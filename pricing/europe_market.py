@@ -114,7 +114,7 @@ def _header():
       <h1>From Hamburg to Rome. Same love of cars.<br>Less guessing. More evidence.</h1>
       <p>Research-backed used-car <b>asking-price estimates</b> for supported European
          markets. No fictional auction bids. No registration. No advertising.
-         Now powered by our independently tested ResMLP neural network: a fresh way to reduce expensive pricing mistakes.</p>
+         Our European model is evaluated against held-out asking prices; market-time adjustment is a separate, transparent research layer.</p>
       <div class="eu-tags"><span>🇩🇪 Built independently in Germany</span>
         <span>€ Advertised Ask, not sale price</span><span>📊 Real what-if estimates</span>
         <span>🛡️ Worst-error risk measured</span></div></section>""",
@@ -359,12 +359,12 @@ def _comparables(table,vehicle):
 
 def _how_it_works():
     """A compact, responsive graphic designed for ordinary car owners."""
-    st.markdown("""<div class="eu-steps" aria-label="How the ResMLP car valuation works">
+    st.markdown("""<div class="eu-steps" aria-label="How the European ASK valuation works">
        <div class="eu-step"><b>① Tell us about the car</b><span>Model, age,
          kilometres, power, country and optional equipment</span></div>
        <div class="eu-arrow" aria-hidden="true">›</div>
-       <div class="eu-step"><b>② AI connects the dots</b><span>Residual learning
-         combines vehicle details using patterns from 1.6 million adverts</span></div>
+       <div class="eu-step"><b>② Machine learning, not guesswork</b><span>Vehicle features
+         are compared with documented asking-price patterns</span></div>
        <div class="eu-arrow" aria-hidden="true">›</div>
        <div class="eu-step"><b>③ Your independent price view</b><span>Euro ASK-price
          estimate. We never buy your car, so we have no purchase offer to push.</span></div>
@@ -673,9 +673,26 @@ def _price_indices():
         st.warning("No independently validated multi-month index is installed. "
                    +release.get("message","The build requires repeated genuine "
                                           "observation months."))
-        st.caption("The October 2026 source snapshot alone does not establish a "
-                   "European historical monthly price index. This page will only "
-                   "plot supported periods after offline Huber-Fisher validation.")
+        pilots=release.get("pilot_countries",{})
+        if pilots:
+            st.markdown("#### 🧪 The pilot garage · actual observations, not a live index")
+            selected_pilot=st.selectbox(
+                "Research country", sorted(pilots),key="eu_index_pilot_country",
+                format_func=lambda x:COUNTRIES.get(x,x))
+            p=pd.DataFrame(pilots[selected_pilot].get("months",[]))
+            if not p.empty and {"month","index","n"}.issubset(p):
+                p=p.sort_values("month")
+                st.line_chart(p.set_index("month")["index"])
+                change=100*(float(p["index"].iloc[-1])/float(p["index"].iloc[0])-1)
+                st.metric("Preliminary common-basket Fisher movement",f"{change:+.2f}%")
+                st.dataframe(p,use_container_width=True,hide_index=True)
+                st.caption("EXPERIMENTAL pilot only. This result comes from too few "
+                           "independent months for a validated price index or "
+                           "Holt forecast. It never adjusts a customer's quote.")
+        else:
+            st.caption("The October 2026 source snapshot alone does not establish "
+                       "a European historical monthly price index. We need more "
+                       "genuine independent months to train and validate Holt.")
         return
     selected=st.selectbox("🌍 Country index",sorted(countries),
                           format_func=lambda x:COUNTRIES.get(x,x),
