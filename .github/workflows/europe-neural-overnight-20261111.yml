@@ -1,0 +1,285 @@
+name: European fresh ASK · overnight Ray DNN to 05 CET · 15-way · 150 epochs
+
+on:
+  push:
+    branches: [experiment/europe-neural-overnight-100plus-20261111]
+    paths:
+      - scripts/europe_neural_overnight_100plus.py
+      - .github/workflows/europe-neural-overnight-20261111.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: eu-neural-overnight-20261111-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMEXPR_NUM_THREADS: '2'
+  NUMEXPR_MAX_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+  EXPERIMENT_CUTOFF_UTC: '2026-11-11T04:00:00Z'
+
+jobs:
+  preflight:
+    name: Preflight · 5 neural architectures · 30 losses · long-epoch ASHA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install PyTorch CPU and Ray Tune compatible NumPy/PyArrow
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=2.0,<2.3' 'pandas>=2.2,<3' 'pyarrow>=19,<23' 'ray[tune]>=2.40,<2.50' 'pytest>=8,<10'
+      - name: Verify epoch search / deadline / frozen architecture and objective smoke
+        run: |
+          python - <<'PY'
+          import datetime as dt
+          import numpy,pyarrow,ray
+          from scripts.europe_neural_overnight_100plus import (
+              DEADLINE, EPOCH_CHOICES,FAMILIES,LOSSES,base_config,safe_config
+          )
+          assert DEADLINE==dt.datetime(2026,11,11,4,0,tzinfo=dt.timezone.utc)
+          assert len(FAMILIES)==5 and len(LOSSES)==30
+          assert max(EPOCH_CHOICES)>=100 and 100 in EPOCH_CHOICES
+          for f in FAMILIES:
+              for e in EPOCH_CHOICES:
+                  safe_config({**base_config(f),'epochs':e})
+          print('RUN_PLAN_OK:',len(FAMILIES),'families',len(LOSSES),
+                'losses','epochs',EPOCH_CHOICES,'cutoff',DEADLINE)
+          print('DEPENDENCIES_OK:',numpy.__version__,pyarrow.__version__,ray.__version__)
+          PY
+          python -m py_compile scripts/europe_neural_overnight_100plus.py
+          python -u -m scripts.europe_neural_overnight_100plus smoke
+          python -u -m scripts.europe_neural_overnight_100plus ray-smoke
+
+  fit:
+    name: Reuse proven October-verified observed-ASK split; keep test sealed
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Download exact 1.92M recent/ISO2 fresh train and validation from prior run
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-nov26-neural-fresh-fit
+          run-id: 42873011193
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ runner.temp }}/fit
+      - name: Verify exact frozen split and absence of synthetic forecast labels
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'fit'
+          m=json.loads((p/'manifest.json').read_text())
+          assert m['counts']=={'train':1536801,'validation':192149,'test':192046}
+          assert m['target']=='price_eur'
+          assert not m['synthetic_hicp_prices_used_as_training_labels']
+          assert not m['hypothetical_mileage_used_as_training_input']
+          assert set(m['freshness_and_country_audit']['standard_country_counts'])==set(
+              ('de','fr','nl','be','at','es','it','pl'))
+          assert (p/'train.npz').is_file() and (p/'validation.npz').is_file()
+          assert not (p/'test.npz').exists()
+          print(json.dumps({'split':m['counts'],
+                            'source':m['freshness_and_country_audit']['min_source_date'],
+                            'last_observed':m['freshness_and_country_audit']['max_source_date'],
+                            'target':m['target']},indent=2))
+          PY
+      - name: Seal original 80/10/10 training reference artifact for worker waves
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-overnight-20261111-fit
+          path: |
+            ${{ runner.temp }}/fit/train.npz
+            ${{ runner.temp }}/fit/validation.npz
+            ${{ runner.temp }}/fit/manifest.json
+            ${{ runner.temp }}/fit/freshness_audit.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 1
+
+  wave1:
+    name: Wave 1 · Ray neural worker ${{ matrix.worker }} · up to 150 epochs
+    needs: fit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 255
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        worker: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install frozen compatible CPU PyTorch/Ray
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=2.0,<2.3' 'pandas>=2.2,<3' 'pyarrow>=19,<23' 'ray[tune]>=2.40,<2.50'
+      - uses: actions/download-artifact@v4
+        with:
+          name: eu-overnight-20261111-fit
+          path: ${{ runner.temp }}/fit
+      - name: Wave 1 · 215-minute budget, hard cutoff 05 CET
+        run: |
+          python -u -m scripts.europe_neural_overnight_100plus ray \
+            --features "$RUNNER_TEMP/fit" \
+            --output "$RUNNER_TEMP/wave1-${{ matrix.worker }}" \
+            --shard "${{ matrix.worker }}" --wave 1 --budget-min 215
+      - name: Always retain best validated checkpoint and full trial ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-overnight-20261111-wave1-${{ matrix.worker }}
+          path: |
+            ${{ runner.temp }}/wave1-${{ matrix.worker }}/result.json
+            ${{ runner.temp }}/wave1-${{ matrix.worker }}/trials.json
+            ${{ runner.temp }}/wave1-${{ matrix.worker }}/winner.pt
+            ${{ runner.temp }}/wave1-${{ matrix.worker }}/cutoff.json
+          retention-days: 30
+          compression-level: 1
+          if-no-files-found: warn
+
+  wave2:
+    name: Wave 2 · Ray neural worker ${{ matrix.worker }} · to 05 CET
+    needs: [fit,wave1]
+    if: ${{ always() && needs.fit.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 265
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        worker: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install frozen compatible CPU PyTorch/Ray
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=2.0,<2.3' 'pandas>=2.2,<3' 'pyarrow>=19,<23' 'ray[tune]>=2.40,<2.50'
+      - uses: actions/download-artifact@v4
+        with:
+          name: eu-overnight-20261111-fit
+          path: ${{ runner.temp }}/fit
+      - name: Wave 2 · remaining budget capped at 05 CET absolute
+        run: |
+          python -u -m scripts.europe_neural_overnight_100plus ray \
+            --features "$RUNNER_TEMP/fit" \
+            --output "$RUNNER_TEMP/wave2-${{ matrix.worker }}" \
+            --shard "${{ matrix.worker }}" --wave 2 --budget-min 250
+      - name: Always retain best validated checkpoint and full trial ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eu-overnight-20261111-wave2-${{ matrix.worker }}
+          path: |
+            ${{ runner.temp }}/wave2-${{ matrix.worker }}/result.json
+            ${{ runner.temp }}/wave2-${{ matrix.worker }}/trials.json
+            ${{ runner.temp }}/wave2-${{ matrix.worker }}/winner.pt
+            ${{ runner.temp }}/wave2-${{ matrix.worker }}/cutoff.json
+          retention-days: 30
+          compression-level: 1
+          if-no-files-found: warn
+
+  comparison:
+    name: Validation leaderboard · CVaR95/MAE/RMSE · ONE sealed test
+    needs: [fit,wave1,wave2]
+    if: ${{ always() && needs.fit.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install frozen compare-only CPU libraries
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=2.0,<2.3' 'pandas>=2.2,<3' 'pyarrow>=19,<23'
+      - name: Collect validation winners and trial ledgers from both 15-way waves
+        uses: actions/download-artifact@v4
+        with:
+          pattern: eu-overnight-20261111-wave*
+          path: ${{ runner.temp }}/candidates
+          merge-multiple: false
+      - name: Reuse the same fit and unmodified validation
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-overnight-20261111-fit
+          path: ${{ runner.temp }}/fit
+      - name: Unseal prior held-out test only for validation-selected final winner
+        uses: actions/download-artifact@v4
+        with:
+          name: eu-nov26-neural-sealed-test
+          run-id: 42873011193
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          path: ${{ runner.temp }}/fit
+      - name: Rank all available models by validation worst-5% EUR loss and test ONLY champion
+        run: |
+          python -u -m scripts.europe_neural_overnight_100plus compare \
+            --root "$RUNNER_TEMP/candidates" \
+            --features "$RUNNER_TEMP/fit" \
+            --output "$RUNNER_TEMP/overnight-results"
+      - name: Tabulate ALL trial scores and compare with deployed HOFM3 validation reference
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json,os
+          base=Path(os.environ['RUNNER_TEMP'])
+          root=base/'candidates'
+          out=base/'overnight-results'
+          trials=[]
+          for f in root.glob('*/trials.json'):
+              for t in json.loads(f.read_text()):
+                  vals=t.get('validation') or {}
+                  if 'cvar95_absolute_eur' not in vals:continue
+                  trials.append({
+                      'source':f.parent.name,
+                      'architecture':t.get('architecture'),'loss':t.get('loss'),
+                      'epoch':t.get('epoch'), 'config':t.get('config'),
+                      'cvar95_eur':vals.get('cvar95_absolute_eur'),
+                      'mae_eur':vals.get('mae_eur'),'rmse_eur':vals.get('rmse_eur')
+                  })
+          trials.sort(key=lambda t:(t['cvar95_eur'],t['mae_eur']))
+          (out/'all_trial_validation_leaderboard.json').write_text(
+              json.dumps({'observed_trial_count':len(trials),'trials':trials},indent=2))
+          ref=json.loads(Path('models/europe-hofm3/comparison.json').read_text())
+          baseline=ref['overall_champion']['validation']
+          report=json.loads((out/'comparison.json').read_text())
+          champion=report['overall_champion']['validation']
+          report['deployed_hofm3_validation_reference']=baseline
+          report['vs_deployed_hofm3_cvar95_eur']=champion['cvar95_absolute_eur']-baseline['cvar95_absolute_eur']
+          report['all_trial_count']=len(trials)
+          report['cutoff_local']='2026-11-11 05:00 CET'
+          (out/'comparison.json').write_text(json.dumps(report,indent=2))
+          print('WAVE_WINNERS:',report['total_neural_winners'])
+          print('ALL_VALID_TRIALS:',len(trials))
+          print('TOP10_VAL:',json.dumps(trials[:10],indent=2))
+          print('DEPLOYED_REFERENCE_CVAR95:',baseline['cvar95_absolute_eur'])
+          PY
+      - name: Persist complete validation leaderboard and frozen checkpoint · NO AUTO-DEPLOY
+        uses: actions/upload-artifact@v4
+        with:
+          name: european-neural-overnight-20261111-validation-and-champion
+          path: |
+            ${{ runner.temp }}/overnight-results/comparison.json
+            ${{ runner.temp }}/overnight-results/champion.pt
+            ${{ runner.temp }}/overnight-results/all_trial_validation_leaderboard.json
+          retention-days: 45
+          if-no-files-found: error
