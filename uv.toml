@@ -1,0 +1,5 @@
+# Resolve public packages from PyPI if the PyTorch CPU index only has an
+# incompatible, older version (e.g. requests 2.28.1 vs required >=2.31).
+# Retains priority of the PyTorch index while avoiding Streamlit's slow pip fallback.
+[pip]
+index-strategy = "unsafe-first-match"
