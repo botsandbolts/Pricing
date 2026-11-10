@@ -10,6 +10,9 @@ from scripts.add_europe_nov2026_adjusted_price import (
     FROM_FIELD, PRICE_FIELD, STATUS_FIELD, adjust_record_batch, enrich,
 )
 from pricing.europe_price_clock import month_label, month_number
+from pricing.europe_mileage_projection import (
+    UsagePriors, AGE_COL, KM_COL, KM_LOW, KM_HIGH, KM_STATUS,
+)
 
 
 def fixture_manifest():
@@ -77,6 +80,12 @@ def test_full_parquet_streaming_preserves_records_and_writes_report(tmp_path):
                    batch_size=2)
     output=pq.read_table(dest)
     assert output.num_rows==table.num_rows==summary["rows"]==7
+    assert summary["usage_prior_observed_records"]>0
+    assert output.column(KM_COL).to_pylist()[0]>45000
+    assert output.column(KM_LOW).to_pylist()[0]<=output.column(KM_COL).to_pylist()[0]
+    assert output.column(KM_HIGH).to_pylist()[0]>=output.column(KM_COL).to_pylist()[0]
+    assert output.column(AGE_COL).to_pylist()[0]>5
+    assert "hypothetical" in output.column(KM_STATUS).to_pylist()[0]
     assert summary["adjusted_rows"]>=2
     assert summary["freshness_counts"]["recent_candidate"]==2
     assert output.column("id").to_pylist()==table.column("id").to_pylist()
@@ -111,3 +120,20 @@ def test_invalid_manifest_and_missing_source_columns_fail_closed():
     with pytest.raises(ValueError,match="Missing source"):
         adjust_record_batch(pa.record_batch({"price_eur":[200.]}),
                             manifest=fixture_manifest())
+
+
+def test_mileage_scenarios_do_not_claim_current_odometer_or_physical_price():
+    batch=fixture_batch()
+    priors=UsagePriors()
+    priors.observe(batch)
+    projection=priors.project(batch)
+    assert projection.num_rows==7
+    original=projection.column("mileage_km").to_pylist()
+    assert original==batch.column("mileage_km").to_pylist()
+    assert projection.column(KM_COL).to_pylist()[0]>original[0]
+    assert projection.column(KM_STATUS).to_pylist()[0].endswith("_hypothetical")
+    # An impossible historical registration/verification pairing is unavailable.
+    assert projection.column(KM_COL).to_pylist()[1] is None
+    # No fabricated physical depreciation EUR price exists in these scenarios.
+    assert "physical_depreciated_price_eur" not in projection.schema.names
+    assert projection.column(KM_COL).to_pylist()[-1] is None
