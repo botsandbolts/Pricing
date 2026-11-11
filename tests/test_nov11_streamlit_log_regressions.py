@@ -24,3 +24,12 @@ def test_onnx_and_native_dimensionality_contract_share_current_api():
     encoder = object.__new__(VerifiedInt8BGE)
     assert encoder.get_embedding_dimension() == 384
     assert encoder.get_sentence_embedding_dimension() == 384
+
+
+def test_navigation_bridge_keeps_same_origin_script_without_deprecated_html():
+    from pathlib import Path
+    source = (Path(__file__).resolve().parents[1] / "pricing/ux_navigation_bridge.py").read_text()
+    assert "st.iframe(_BRIDGE, height=0" in source
+    assert "components.html(" not in source
+    assert 'href="#studio-calculator"' in source
+    assert "scrollIntoView" in source
