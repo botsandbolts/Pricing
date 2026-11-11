@@ -1070,11 +1070,11 @@ def render():
                  format_func=localized_panel,
                  key="eu_workspace_selector_v2",
                  help="Choose any European research panel. Your previous ASK receipt persists.")
+    if tab!="🚗 Price my car" and locale() not in ("en-GB","en-US"):
+        st.info(story("science_notice"))
+        # This notice does not interrupt access to any research panel.
     if tab=="🚗 Price my car":
         _valuation_page(bundle,error)
-    elif locale() not in ("en-GB","en-US"):
-        st.info(story("science_notice"))
-        # Detailed research panels retain their original English scientific text.
     elif tab=="🔎 Listing Inspector":
         _inspector(bundle)
     elif tab=="📉 Value over time":
