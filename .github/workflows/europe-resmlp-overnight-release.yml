@@ -61,7 +61,7 @@ jobs:
           path: ${{ runner.temp }}/champion
       - name: Package exact model/vocabulary and prove 30 training-row prediction parity
         run: |
-          python -u -m scripts.package_europe_hofm3 \
+          python -u -m scripts.package_europe_resmlp_overnight \
             --raw "$RUNNER_TEMP/raw-europe/europe_2m_nov2026_adjusted.parquet" \
             --fit "$RUNNER_TEMP/fit" \
             --model "$RUNNER_TEMP/champion/champion.pt" \
@@ -75,7 +75,7 @@ jobs:
           python - <<'PY'
           import numpy as np
           from pricing.europe_model import load_bundle,estimate,batch_estimate,explain
-          from pricing.europe_hofm3 import SUPPORTED_COUNTRIES
+          from pricing.europe_resmlp_overnight import SUPPORTED_COUNTRIES
           net,schema,comp=load_bundle()
           assert comp['overall_champion']['origin']=='eu-overnight-20261111-wave1-0'
           assert comp['overall_champion']['neural_epoch']==76
