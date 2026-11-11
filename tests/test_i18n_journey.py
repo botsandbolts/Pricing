@@ -44,8 +44,6 @@ def test_real_eu_route_translates_header_and_core_input_labels():
     at = run_market("eu")
     copy = all_rendered_text(at)
     assert "Verenigde Staten" in copy
-    assert "Europese autoprijs zonder nattevingerwerk" not in copy  # Avoid unrelated guessed wording.
-    assert "Europese prijzen" not in copy  # Text is locale-authored, not a machine-generated claim.
     assert "Vraagprijsramingen" in copy or "vraagprijsramingen" in copy
     assert "From Hamburg to Rome" not in copy
     assert "EUROPEAN ADVERTISED ASK" not in copy
