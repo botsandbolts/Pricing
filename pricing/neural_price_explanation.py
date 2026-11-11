@@ -195,14 +195,14 @@ def render(result, adjusted_receipt=None, bid_analogue=None):
     if adjusted_receipt:
         today = float(adjusted_receipt["price"])
         st.write(
-            f"Historical {market.upper()} neural estimate: **\${historical:,.0f}**. "
-            f"Market-date adjustment: **\${today - historical:+,.0f}**. "
-            f"Displayed date-scenario price: **\${today:,.0f}**."
+            f"Historical {market.upper()} neural estimate: **\\${historical:,.0f}**. "
+            f"Market-date adjustment: **\\${today - historical:+,.0f}**. "
+            f"Displayed date-scenario price: **\\${today:,.0f}**."
         )
         st.caption("The market-clock adjustment is separate from the neural model "
                    "and is not counted as a learned feature contribution.")
     else:
-        st.write(f"Historical {market.upper()} model estimate: **\${historical:,.0f}**.")
+        st.write(f"Historical {market.upper()} model estimate: **\\${historical:,.0f}**.")
     if market == "bid" and bid_analogue:
         st.warning("This wholesale quote uses a historical age-matched vehicle proxy. "
                    "The explanation describes that proxy, not a verified sale of this model year.")
