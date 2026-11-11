@@ -16,6 +16,7 @@ import streamlit as st
 from pricing.i18n import tr, editorial_voice, localized_panel, format_eur, localized_country, locale
 from pricing.i18n_story import story, story_html
 from pricing.i18n_fields import field
+from pricing.i18n_enums import option_label
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -213,17 +214,17 @@ def _edit_vehicle(schema):
         power=a.number_input(tr("power"),min_value=20,max_value=1200,
                              value=110,key="eu_hp")
         fuel=b.selectbox(tr("fuel"),values("fuel",["petrol","diesel","electric","hybrid"]),
-                         key="eu_fuel")
+                         key="eu_fuel",format_func=option_label)
         transmission=c.selectbox(tr("transmission"),values("transmission",["manual","automatic"]),
-                                 key="eu_transmission")
+                                 key="eu_transmission",format_func=option_label)
         with st.expander("🔧 "+field("optional")):
             a,b,c=st.columns(3)
             body=a.selectbox(field("body"),["__missing__"]+values("body_type",[]),
-                             key="eu_body")
+                             key="eu_body",format_func=option_label)
             drive=b.selectbox(field("drive"),["__missing__"]+values("drive_type",[]),
-                              key="eu_drive")
+                              key="eu_drive",format_func=option_label)
             color=c.selectbox(field("color"),["__missing__"]+values("color",[]),
-                              key="eu_color")
+                              key="eu_color",format_func=option_label)
             a,b,c=st.columns(3)
             trim=a.text_input(field("trim"),key="eu_trim")
             city=b.text_input(field("city"),key="eu_city")
@@ -233,7 +234,7 @@ def _edit_vehicle(schema):
             doors=a.number_input(field("doors"),0,8,5,key="eu_doors")
             seats=b.number_input(field("seats"),0,12,5,key="eu_seats")
             accident=c.selectbox(field("accident"),["Not stated","Yes","No"],
-                                 key="eu_accident")
+                                 key="eu_accident",format_func=lambda v:"—" if v=="Not stated" else option_label(v))
         submitted=st.form_submit_button("🇪🇺 "+tr("calculate"),
                    type="primary",use_container_width=True,disabled=schema is None)
     vehicle={
