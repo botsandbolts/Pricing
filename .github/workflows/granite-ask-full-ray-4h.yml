@@ -1,0 +1,236 @@
+name: Granite INT8 U.S. Ask · full data · Ray 15 workers · 4h · 100 epochs
+on:
+  push:
+    branches: [experiment/us-ask-granite-int8-full-ray-4h-20261111]
+    paths: ['.github/workflows/granite-ask-full-ray-4h.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: granite-ask-int8-full-20261111-4h
+  cancel-in-progress: false
+
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMEXPR_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  HF_HUB_DISABLE_TELEMETRY: '1'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU-only neural framework and common regression dependencies
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'pyarrow>=15,<22' 'joblib>=1.4,<2' 'ray[tune]>=2.40,<2.50'
+      - name: Verify syntax, all 5 architectures and all 14 losses
+        run: |
+          python -m compileall -q scripts/granite_ask_full_features.py scripts/granite_ask_full_ray_4h.py
+          python -u -m scripts.granite_ask_full_features --smoke
+          python -u -m scripts.granite_ask_full_ray_4h --smoke
+          python - <<'PY'
+          from scripts.granite_ask_full_ray_4h import LOSSES,FAMILIES,COUNTS
+          assert len(LOSSES)==14 and len(FAMILIES)==5
+          assert COUNTS=={'train':147777,'validation':31668,'test':31682}
+          print('GRANITE_ASK_FULL_DATA_INT8_PRECHECK_PASSED',flush=True)
+          PY
+  prepare:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install data-preparation libraries
+        run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'scikit-learn>=1.4,<2'
+      - name: Restore original 2021 Craigslist Ask cohort, no row exclusions
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/original
+      - name: Fit make/model annual mileage profiles on ALL original TRAIN rows only
+        run: |
+          python -u -m scripts.granite_ask_full_features --source "$RUNNER_TEMP/original/features.npz" --output "$RUNNER_TEMP/full/features.npz"
+      - name: Confirm no train/validation/test filtering and correct dataset
+        run: |
+          python - <<'PY'
+          import os,json,numpy as np
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'full'
+          m=json.loads((p/'features.json').read_text())
+          profile=json.loads((p/'mileage_profiles.json').read_text())
+          with np.load(p/'features.npz',allow_pickle=False) as z:
+              assert z['num'].shape==(211127,10)
+              assert z['cat'].shape==(211127,11)
+              assert int(sum(z['phase']=='train'))==147777
+              assert int(sum(z['phase']=='validation'))==31668
+              assert int(sum(z['phase']=='test'))==31682
+              assert np.isfinite(z['num']).all()
+          assert m['full_unfiltered_original_training'] is True
+          assert m['no_target_conditioned_row_removal'] is True
+          assert profile['trained_on_original_train_only'] is True
+          print('GRANITE_ASK_147777_FULL_TRAIN_READY',flush=True)
+          PY
+      - name: Upload immutable augmented features and train-only mileage profiles
+        uses: actions/upload-artifact@v4
+        with:
+          name: granite-ask-full-2021-model-mileage-features
+          path: |
+            ${{ runner.temp }}/full/features.npz
+            ${{ runner.temp }}/full/features.json
+            ${{ runner.temp }}/full/mileage_profiles.json
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  ray:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 290
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU-only Ray neural search stack
+        run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'joblib>=1.4,<2' 'ray[tune]>=2.40,<2.50'
+      - uses: actions/download-artifact@v4
+        with:
+          name: granite-ask-full-2021-model-mileage-features
+          path: ${{ runner.temp }}/features
+      - name: Restore FROZEN multilingual Granite QInt8 ONNX embeddings, all original rows
+        uses: actions/download-artifact@v4
+        with:
+          name: granite-97m-r2-int8-onnx-ask-embeddings
+          run-id: 42518049406
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/granite-int8
+      - name: Ray ASHA · 240min wall time · max 100 epochs · TRAIN-only selection
+        run: |
+          python -u -m scripts.granite_ask_full_ray_4h \
+            --features "$RUNNER_TEMP/features/features.npz" \
+            --embeddings "$RUNNER_TEMP/granite-int8" \
+            --shard "${{ matrix.shard }}" \
+            --budget-minutes 240 \
+            --output "$RUNNER_TEMP/results/shard-${{ matrix.shard }}"
+      - name: Preserve original-validation winner and native checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: granite-ask-int8-full-4h-shard-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/summary.json
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/winner-*/result.json
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/winner-*/validation.csv.gz
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/winner-*/weights.pt
+          retention-days: 90
+          compression-level: 3
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [prepare,ray]
+    if: ${{ always() && needs.prepare.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Download original worker artifacts (no retraining / no PyTorch required)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: granite-ask-int8-full-4h-shard-*
+          path: ${{ runner.temp }}/shards
+          merge-multiple: false
+      - name: Aggregate and validate the full-original-cohort leaderboard
+        run: |
+          python - <<'PY'
+          import csv,json,os,math
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'shards'
+          out=Path(os.environ['RUNNER_TEMP'])/'aggregate'
+          out.mkdir(parents=True,exist_ok=True)
+          shards=[];rows=[];source_sha=set();emb_sha=set()
+          for i in range(15):
+              folder=root/f'granite-ask-int8-full-4h-shard-{i}'
+              report=folder/'summary.json'
+              if not report.is_file():
+                  shards.append({'shard':i,'status':'missing_artifact'})
+                  continue
+              summary=json.loads(report.read_text())
+              if summary.get('shard')!=i or not summary.get('full_unfiltered_training'):
+                  raise ValueError(f'Unexpected training cohort in shard {i}')
+              shards.append({k:summary.get(k) for k in
+                ('shard','status','trials_total','trials_ok','trials_failed')})
+              for result in summary.get('loss_winners',[]):
+                  if (result.get('original_test_scored') is not False or
+                      result.get('complete_original_training_cohort') is not True or
+                      result.get('fitted_original_training_rows')!=133000 or
+                      result.get('train_only_early_stopping_rows')!=14777 or
+                      result['original_validation'].get('rows')!=31668):
+                      raise ValueError('Unverified validation cohort or training provenance')
+                  for name in ('CVaR95_absolute_USD','MAE_USD','RMSE_USD'):
+                      if not 0<float(result['original_validation'][name])<1e8:
+                          raise ValueError('Non-finite or invalid metric')
+                  source_sha.add(result['source_sha256'])
+                  emb_sha.add(result['embedding_sha256'])
+                  rows.append(result)
+          if len(source_sha)>1 or len(emb_sha)>1:
+              raise ValueError('Worker source/encoder identities differ')
+          rows.sort(key=lambda row:row['original_validation']['CVaR95_absolute_USD'])
+          report={'study':'U.S. Ask Granite R2 97M QInt8 ONNX · full cohort Ray Tune 15 x 4h',
+              'status':'complete' if len(rows)==15 else 'partial',
+              'full_original_train':147777,'train_fit':133000,'train_only_internal':14777,
+              'original_validation':31668,'original_test':31682,'original_test_scored':False,
+              'text_encoder_quantized':'Pinned IBM Granite ONNX QInt8; native pricing head FP32',
+              'no_outcome_based_filter':True,'model_mileage_train_only':True,
+              'worker_reports':shards,'leaderboard':rows}
+          (out/'leaderboard.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
+          with (out/'leaderboard.csv').open('w',newline='') as handle:
+              writer=csv.writer(handle)
+              writer.writerow(['rank','shard','model','loss','best_epoch','CVaR95_USD','MAE_USD','RMSE_USD','hyperparameters_json'])
+              for n,row in enumerate(rows,1):
+                  v=row['original_validation']
+                  writer.writerow([n,row['shard'],row['family'],row['loss'],row['best_epoch'],
+                      v['CVaR95_absolute_USD'],v['MAE_USD'],v['RMSE_USD'],
+                      json.dumps(row['configuration'],sort_keys=True)])
+          print('GRANITE_ASK_4H_TOP10',json.dumps([
+              {'rank':i,'family':r['family'],'loss':r['loss'],
+               'CVaR95_USD':r['original_validation']['CVaR95_absolute_USD'],
+               'MAE_USD':r['original_validation']['MAE_USD'],
+               'RMSE_USD':r['original_validation']['RMSE_USD']}
+              for i,r in enumerate(rows[:10],1)]),flush=True)
+          print('GRANITE_ASK_AGGREGATE_STATUS',report['status'],len(rows),flush=True)
+          if not rows:
+              raise SystemExit('All workers failed to return a verified training result')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: granite-ask-int8-full-15workers-4hours-leaderboard
+          path: ${{ runner.temp }}/aggregate/
+          retention-days: 90
+          if-no-files-found: warn
