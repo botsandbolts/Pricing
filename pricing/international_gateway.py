@@ -1,10 +1,12 @@
-"""One studio, two explicit markets. English-only interface by design.
+"""One studio, two explicit markets. The gateway is locale-aware.
 
 No browser geolocation, language-based redirection or tracking cookie.
 Existing American routes remain the default and retain their original IDs.
 """
 from __future__ import annotations
 import streamlit as st
+from html import escape
+from pricing.i18n import tr, editorial_voice
 
 MARKETS={"us":"🇺🇸 United States","eu":"🇪🇺 Europe"}
 
@@ -43,20 +45,26 @@ def render_market_gateway():
     </style>""",unsafe_allow_html=True)
     # The top-level HTML block must START at column zero. When indented
     # beneath a CSS block, Markdown treats <section> as a literal code block.
-    st.markdown("""<section class="cps-globe" aria-label="Choose a vehicle pricing market">
+    landing_html="""<section class="cps-globe" aria-label="Choose a vehicle pricing market">
     <div class="pre">CAR PRICE STUDIO · INTERNATIONAL EDITION</div>
     <h1>Two continents. One garage. Zero crystal balls.</h1>
     <p>Independent automotive price research. Select your market;
        your American and European car details stay separate. No account. No ads.</p>
-    </section>""",unsafe_allow_html=True)
+    </section>"""
+    landing_html=landing_html.replace("Two continents. One garage. Zero crystal balls.",escape(tr("market_title")))
+    landing_html=landing_html.replace("Independent automotive price research. Select your market;\n       your American and European car details stay separate. No account. No ads.",escape(tr("market_intro")))
+    st.markdown(landing_html,unsafe_allow_html=True)
+    headline, invitation = editorial_voice()
+    st.markdown('<div class="cps-market-card" role="note"><b>'+escape(headline)+'</b>'
+                '<small>'+escape(invitation)+'</small></div>',
+                unsafe_allow_html=True)
     left,right=st.columns(2,gap="medium")
     with left:
         st.markdown('<div class="cps-market-card"><b>🇺🇸 United States</b>'
                     '<small>American seller Ask + historical wholesale Bid. '
                     'The original tools and models stay right where they belong.</small></div>',
                     unsafe_allow_html=True)
-        if st.button("🇺🇸 "+("United States · Selected" if selected=="us"
-                            else "Open the US Studio"),
+        if st.button("🇺🇸 "+("✓ " if selected=="us" else "")+tr("open_us"),
                      key="cps_market_us",use_container_width=True,
                      type="primary" if selected=="us" else "secondary"):
             _choose("us")
@@ -65,10 +73,9 @@ def render_market_gateway():
                     '<small>European advertised asking prices in euros. '
                     'Country-aware details, explainable AI and scientific checks. No Bid.</small></div>',
                     unsafe_allow_html=True)
-        if st.button("🇪🇺 "+("Europe · Selected" if selected=="eu"
-                            else "Open the European Studio"),
+        if st.button("🇪🇺 "+("✓ " if selected=="eu" else "")+tr("open_eu"),
                      key="cps_market_eu",use_container_width=True,
                      type="primary" if selected=="eu" else "secondary"):
             _choose("eu")
-    st.caption("Switch markets here any time. Predictions are research estimates, not guaranteed sale prices.")
+    st.caption("Market and language are independent. Estimates are research predictions, not sale guarantees.")
     return selected

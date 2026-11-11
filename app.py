@@ -12,6 +12,9 @@ MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
+# Language is presentation-only and always available, including on legal routes.
+from pricing.i18n import render_language_selector
+render_language_selector()
 # Repair hash-only CTA scrolling in Streamlit Cloud's overflow container.
 from pricing.ux_navigation_bridge import install as _install_calculator_scroll
 _install_calculator_scroll()

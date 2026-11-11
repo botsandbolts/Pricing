@@ -1,0 +1,62 @@
+name: I18N UI · Firefox and Chromium
+on:
+  push:
+    branches:
+      - feature/eu-multilingual-ui-20261110
+    paths:
+      - "pricing/i18n.py"
+      - "pricing/international_gateway.py"
+      - "pricing/europe_market.py"
+      - "pricing/navigation.py"
+      - "pricing/neural_experimental_ui.py"
+      - "pricing/studio_design.py"
+      - "tests/*i18n*"
+      - ".github/workflows/i18n-ui-firefox.yml"
+  pull_request:
+    paths:
+      - "pricing/i18n.py"
+      - "pricing/international_gateway.py"
+      - "pricing/europe_market.py"
+      - "pricing/navigation.py"
+      - "pricing/neural_experimental_ui.py"
+      - "pricing/studio_design.py"
+      - "tests/*i18n*"
+      - ".github/workflows/i18n-ui-firefox.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install lightweight UI test stack
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install streamlit==1.66.1 pytest playwright
+          python -m playwright install --with-deps firefox chromium
+      - name: Compile all modified production UI modules
+        run: |
+          python -m py_compile app.py pricing/i18n.py pricing/international_gateway.py pricing/europe_market.py pricing/navigation.py pricing/neural_experimental_ui.py pricing/studio_design.py
+      - name: Check 24 EU languages, English dialects, and catalog coverage
+        run: python -m pytest -q tests/test_i18n_locales.py
+      - name: Test first-visit browser selection and persistence with Firefox and Chromium
+        run: |
+          python -m streamlit run tests/i18n_smoke_app.py --server.headless true --server.port 8776 --server.address 127.0.0.1 > /tmp/i18n-streamlit.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:8776/_stcore/health >/dev/null && break
+            sleep 1
+          done
+          python tests/browser_i18n_smoke.py || (cat /tmp/i18n-streamlit.log && exit 1)
+      - name: Upload browser screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i18n-browser-debug
+          path: |
+            /tmp/i18n_*.png
+            /tmp/i18n-streamlit.log
+          if-no-files-found: ignore

@@ -1,5 +1,6 @@
 """Single landing-page navigation, including callback and shared-link routing."""
 import streamlit as st
+from pricing.i18n import tr, localized_panel
 PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
 def prepare_navigation_state():
     pending=st.session_state.pop('_navigate_to',None)
@@ -21,7 +22,8 @@ def render_navigation():
     prepare_navigation_state()
     st.markdown('<div id="studio-workspace" tabindex="-1"></div>',unsafe_allow_html=True)
     st.markdown('<div class="garage-nav-heading"><strong>Choose a panel</strong><span>Tap a panel to open it.</span></div>',unsafe_allow_html=True)
-    page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed',persist_state='session') or PAGES[0]
+    page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed',persist_state='session',
+                 format_func=localized_panel) or PAGES[0]
     st.session_state['studio_tabs']=page
     from pricing.accessibility import announce
     announce('Current panel: '+page)
