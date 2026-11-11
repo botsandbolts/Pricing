@@ -106,8 +106,12 @@ class VerifiedInt8BGE:
             raise ValueError("INT8 BGE ONNX input signature changed")
         self.outputs=[out.name for out in self.session.get_outputs()]
 
-    def get_sentence_embedding_dimension(self):
+    def get_embedding_dimension(self):
         return 384
+
+    def get_sentence_embedding_dimension(self):
+        # Compatibility alias for older SentenceTransformer integrations.
+        return self.get_embedding_dimension()
 
     def eval(self):
         return self
