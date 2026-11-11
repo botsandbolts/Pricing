@@ -1,0 +1,168 @@
+name: Deploy verified U.S. Bid ResMLP with 36-language announcement
+
+# Trigger only once this release workflow exists on the explicit experiment branch.
+# Build and parity-check from archived worker artifacts. Only then push main.
+on:
+  push:
+    branches: [experiment/us-bid-nov26-ray-15x3h]
+    paths: ['.github/workflows/us-bid-resmlp-release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: us-bid-resmlp-controlled-promotion
+  cancel-in-progress: false
+
+jobs:
+  build-verify-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install CPU-only PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+      - name: Install numerical, parquet and compatibility dependencies
+        run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'joblib>=1.4,<2'
+      - name: Validate release source syntax and every translated locale
+        run: |
+          python -m compileall -q pricing/us_bid_resmlp_live.py pricing/bid_launch_i18n.py pricing/bid_launch_announcement.py pricing/neural_experimental_ui.py app.py scripts/us_bid_ray_15x3h.py scripts/us_bid_ray_current_features.py scripts/build_us_bid_resmlp_release.py
+          python - <<'PY'
+          import sys,types
+          sys.modules['streamlit']=types.ModuleType('streamlit')
+          from pricing.bid_launch_i18n import COPY
+          from pricing.i18n import LOCALES
+          assert len(COPY)==len(LOCALES)==36
+          assert set(COPY)==set(LOCALES)
+          for lang,entry in COPY.items():
+              assert all(isinstance(text,str) and len(text)>3 for text in entry.values()),lang
+          print('ALL_36_BID_BANNER_LOCALES_PASSED',flush=True)
+          PY
+      - name: Recover exactly the winner 4 ResMLP checkpoint and validation receipts
+        uses: actions/download-artifact@v4
+        with:
+          name: us-bid-ray-3h-shard-4
+          run-id: 42998336606
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/winner
+      - name: Restore the original frozen train-only mileage feature cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: us-bid-3h-model-mileage-features
+          run-id: 42998336606
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/source
+      - name: Build checkpoint profile and compare 128 archived validation prices
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u -m scripts.build_us_bid_resmlp_release \
+            --source "$RUNNER_TEMP/source/features.npz" \
+            --winner "$RUNNER_TEMP/winner/winner-huber_usd" \
+            --root "." --output "$RUNNER_TEMP/staged/models/us-bid-resmlp-20261111"
+      - name: Confirm final artifact identity, schema and legacy fallbacks
+        run: |
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          source=Path(os.environ["RUNNER_TEMP"])/'staged/models/us-bid-resmlp-20261111'
+          m=json.loads((source/'manifest.json').read_text())
+          v=json.loads((source/'verification.json').read_text())
+          p=json.loads((source/'mileage_profiles.json').read_text())
+          assert m['status']=='verified_for_live_historical_bid'
+          assert m['source_workflow_run']==42998336606 and m['source_shard']==4
+          assert m['configuration']['family']=='resmlp' and m['configuration']['loss']=='huber_usd'
+          assert m['original_validation']['rows']==82380
+          assert 8718<m['original_validation']['CVaR95_absolute_USD']<8720
+          assert 1757<m['original_validation']['MAE_USD']<1759
+          assert 2869<m['original_validation']['RMSE_USD']<2871
+          assert v['validation_prediction_parity_passed']
+          assert v['training_numeric_feature_parity_passed']
+          assert v['no_test_scoring'] and not m['test_scored']
+          assert p['training_only'] and p['extra_feature_count']==3
+          assert m['checkpoint_sha256']==hashlib.sha256((source/'weights.pt').read_bytes()).hexdigest()
+          print('US_BID_PRE_DEPLOY_GATES_PASSED',flush=True)
+          PY
+      - name: Safely deploy checkpoint and multilingual application on freshest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE="$RUNNER_TEMP/release-files"
+          mkdir -p "$RELEASE/models/us-bid-resmlp-20261111"
+          cp -a "$RUNNER_TEMP/staged/models/us-bid-resmlp-20261111/." "$RELEASE/models/us-bid-resmlp-20261111/"
+          for file in \
+            app.py \
+            pricing/us_bid_resmlp_live.py \
+            pricing/bid_launch_i18n.py \
+            pricing/bid_launch_announcement.py \
+            pricing/neural_experimental_ui.py \
+            scripts/us_bid_ray_15x3h.py \
+            scripts/us_bid_ray_current_features.py \
+            scripts/build_us_bid_resmlp_release.py; do
+              mkdir -p "$RELEASE/$(dirname "$file")"
+              cp "$file" "$RELEASE/$file"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BASE_SHA="$(git rev-parse HEAD)"
+          for attempt in 1 2 3 4; do
+            git fetch origin main
+            UPSTREAM="$(git rev-parse origin/main)"
+            ANCESTOR="$(git merge-base "$BASE_SHA" "$UPSTREAM")"
+            CHANGED="$(git diff --name-only "$ANCESTOR" "$UPSTREAM" -- \
+              app.py \
+              pricing/us_bid_resmlp_live.py pricing/bid_launch_i18n.py \
+              pricing/bid_launch_announcement.py pricing/neural_experimental_ui.py \
+              scripts/us_bid_ray_15x3h.py scripts/us_bid_ray_current_features.py \
+              scripts/build_us_bid_resmlp_release.py \
+              models/us-bid-resmlp-20261111)"
+            if [[ -n "$CHANGED" ]]; then
+              echo "Affected files changed on main since study branch was created; refusing to overwrite:"
+              echo "$CHANGED"
+              exit 1
+            fi
+            git reset --hard "$UPSTREAM"
+            cp -a "$RELEASE/." .
+            git add app.py pricing/us_bid_resmlp_live.py pricing/bid_launch_i18n.py \
+              pricing/bid_launch_announcement.py pricing/neural_experimental_ui.py \
+              scripts/us_bid_ray_15x3h.py scripts/us_bid_ray_current_features.py \
+              scripts/build_us_bid_resmlp_release.py models/us-bid-resmlp-20261111
+            if git diff --cached --quiet; then
+              echo "Verified release already identical to main"
+              exit 0
+            fi
+            git commit -m "Deploy audited ResMLP Huber Bid and 36-language launch banner"
+            if git push origin HEAD:main; then
+              echo "DEPLOYED_MAIN_COMMIT $(git rev-parse HEAD)"
+              exit 0
+            fi
+            echo "Concurrent main update; retrying without rewriting unrelated work."
+            sleep 3
+          done
+          echo "Could not fast-forward main after four release attempts" >&2
+          exit 1
+      - name: Ensure deployed commit contains serving and banner wiring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          app=Path('app.py').read_text()
+          ui=Path('pricing/neural_experimental_ui.py').read_text()
+          banner=Path('pricing/bid_launch_announcement.py').read_text()
+          m=json.loads(Path('models/us-bid-resmlp-20261111/manifest.json').read_text())
+          assert 'st.markdown(_banner, unsafe_allow_html=True)' in app
+          assert 'load_resmlp_bid(root) if resmlp_bid_ready else' in ui
+          assert 'resmlp_bid_available(root)' in ui
+          assert 'def _new_resmlp_banner():' in banner
+          assert m['status']=='verified_for_live_historical_bid'
+          print('US_BID_MAIN_SERVING_AND_BANNER_WIRED',flush=True)
+          PY
