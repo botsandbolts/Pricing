@@ -575,6 +575,37 @@ only when you ask. No model circus required. 🎪🚗
             st.caption("Right here under your quote. Choose Ask or Bid and "
                        "click Explain; the first quote has zero Captum overhead.")
             st.info("🧠 "+granite_copy(locale())["intro"])
+            available_to_explain=[side for side in ("ask","bid") if side in saved]
+            if available_to_explain:
+                labels={"ask":"🪧 Seller Ask","bid":"🔨 Wholesale Bid"}
+                chosen_side=st.radio(
+                    "Which neural estimate should we explain?",
+                    available_to_explain,format_func=lambda s:labels[s],
+                    horizontal=True,key="experimental_explain_market")
+                if st.button("🔍 Explain this price · show real AI feature contributions",
+                             type="primary",use_container_width=True,
+                             key="experimental_explain_go"):
+                    try:
+                        _bound_native_cpu_threads()
+                        with st.spinner("Inspecting the neural network · 24 small, memory-bounded steps…"):
+                            from pricing.neural_price_explanation import calculate
+                            interpretation=calculate(root,chosen_side,saved)
+                        st.session_state["experimental_neural_explanation"]={
+                            "request_id":saved.get("request_id"),
+                            "market":chosen_side,"result":interpretation}
+                    except Exception as exc:
+                        logging.getLogger("car_price_studio.explanation").exception(
+                            "On-demand explanation failed: %s",type(exc).__name__)
+                        st.error("The explanation could not run ("+
+                                 type(exc).__name__+"). Your price is still valid; "
+                                 "please try again without recalculating.")
+                previous=st.session_state.get("experimental_neural_explanation")
+                if (previous and previous.get("request_id")==saved.get("request_id")
+                        and previous.get("market")==chosen_side):
+                    from pricing.neural_price_explanation import render as render_neural_explanation
+                    render_neural_explanation(previous["result"],
+                        adjusted.get(chosen_side),saved.get("bid_analogue"))
+
 
         if "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
