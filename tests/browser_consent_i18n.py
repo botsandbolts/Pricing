@@ -35,6 +35,30 @@ def smoke(engine):
         expect(page,"Consent locale: fr")
         page.get_by_role("button",name="Confidentialité et cookies").wait_for(timeout=TIMEOUT)
         context.close()
+
+        # Turkish privacy controls: reject and accept independently of model.
+        turkey = browser.new_context(locale="tr-TR",
+            viewport={"width":390,"height":844})
+        tr = turkey.new_page()
+        tr.goto(BASE+"/?lang=tr",wait_until="domcontentloaded")
+        expect(tr,"Consent locale: tr")
+        tr.get_by_role("button",name="Analizi reddet").wait_for(timeout=TIMEOUT)
+        tr.get_by_role("button",name="Analizi reddet").click()
+        tr.get_by_role("button",name="Gizlilik ve çerezler").click()
+        tr.get_by_role("button",name="Analize izin ver").wait_for(timeout=TIMEOUT)
+        tr.get_by_role("button",name="Analize izin ver").click()
+        tr.get_by_role("button",name="Gizlilik ve çerezler").click()
+        expect(tr,"Verileriniz, kararınız")
+        turkey.close()
+
+        # Serbian Cyrillic uses its own script and correctly localised buttons.
+        serbia = browser.new_context(locale="sr-RS")
+        sr = serbia.new_page()
+        sr.goto(BASE+"/?lang=sr-Cyrl",wait_until="domcontentloaded")
+        expect(sr,"Consent locale: sr-Cyrl")
+        sr.get_by_role("button",name="Одбиј аналитику").wait_for(timeout=TIMEOUT)
+        sr.get_by_role("button",name="Одбиј аналитику").click()
+        serbia.close()
     finally:
         browser.close()
 
