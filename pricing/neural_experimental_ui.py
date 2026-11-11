@@ -105,9 +105,8 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
                     "### 🚗 02 / "+tr("form") if compact else
                     "#### 01 / "+tr("form"))
         if compact:
-            st.caption("No VIN upload, no special instructions and no degree in "
-                       "automotive engineering required. The description is optional "
-                       "for Bid but useful for Ask.")
+            st.caption("No VIN upload, no special instructions and no degree in automotive engineering required. The description is optional for Bid but useful for Ask."
+                       if locale() in ("en-GB","en-US") else story("form_intro"))
         a,b,c=st.columns(3)
         year=a.number_input(field("model_year"),1900,2021,2015,key=prefix+"_year",persist_state="session")
         make=b.text_input(tr("make"),"Toyota",key=prefix+"_make",persist_state="session")
@@ -122,8 +121,8 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
               "wagon","van","convertible","other","unknown"],
               key=prefix+"_body",persist_state="session",format_func=option_label)
         if compact:
-            st.caption("Three useful facts; everything else is recorded as "
-                       "'unknown', not guessed.")
+            st.caption("Three useful facts; everything else is recorded as 'unknown', not guessed."
+                       if locale() in ("en-GB","en-US") else field("form_help"))
             a,b,d=st.columns(3)
             condition=a.selectbox(field("condition"),[
                 "unknown","good","excellent","fair","like new","new","salvage"],
@@ -184,10 +183,10 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             fields["auction_grade"]=grade
             notes=""
         else:
-            st.markdown("### ✍ 03 / What does the advert say?" if compact
-                        else "#### 02 / The car's entire story")
+            st.markdown("### ✍ 03 / "+("What does the advert say?" if locale() in ("en-GB","en-US") else field("description")) if compact
+                        else "#### 02 / "+("The car's entire story" if locale() in ("en-GB","en-US") else field("description")))
             notes=st.text_area(field("description"),
-                "Well maintained. Clean title. New tires.",
+                "Well maintained. Clean title. New tires." if locale() in ("en-GB","en-US") else "",
                 max_chars=8000,height=125 if compact else 140,
                 key=prefix+"_description",persist_state="session",
                 help="The original BGE text encoder interprets the advert. "
@@ -196,15 +195,16 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             st.markdown("### 🧠 04 / Pick your AI engine · one click, one valuation")
             left,right=st.columns(2)
             with left:
-                st.markdown("**🇬🇧 English precision · BGE DeepCross**")
-                st.caption("Our accuracy-first English model. Cleaned historical-validation CVaR95 $"+f"{english_cvar:,.2f}"+".")
+                st.markdown("**🇬🇧 BGE DeepCross**")
+                st.caption("Our accuracy-first English model. Cleaned historical-validation CVaR95 $"+f"{english_cvar:,.2f}"+"."
+                           if locale() in ("en-GB","en-US") else "BGE · CVaR95 $"+f"{english_cvar:,.2f}"+". "+story("science_notice"))
                 english_go=st.form_submit_button("🇬🇧 Evaluate in English" if locale() in ("en-GB","en-US") else "🇬🇧 BGE · "+story("us_cta"),
                     key=prefix+"_calculate_english",type="primary",
                     disabled=not english_ready,use_container_width=True)
             with right:
-                st.markdown("**🌍 International · Granite R2 97M**")
-                st.caption("INT8 ONNX · 200+ pretrained languages, 52 enhanced. "
-                           "Cleaned historical-validation CVaR95 $9,392.76.")
+                st.markdown("**🌍 Granite R2 97M**")
+                st.caption("INT8 ONNX · 200+ pretrained languages, 52 enhanced. Cleaned historical-validation CVaR95 $9,392.76."
+                           if locale() in ("en-GB","en-US") else "INT8 ONNX · Granite R2 97M · CVaR95 $9,392.76. "+story("science_notice"))
                 multilingual_go=st.form_submit_button("🌍 Evaluate in my language" if locale() in ("en-GB","en-US") else "🌍 Granite · "+story("us_cta"),
                     key=prefix+"_calculate_multilingual",type="primary",
                     disabled=not international_ready,use_container_width=True)
@@ -496,7 +496,9 @@ models used on our main price calculator.</p>
     # One canonical pricing page; the homepage CTA changes only the hash.
     market_guide()
     from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
-    if not (granite_available(root) and bge_overnight_available(root)):
+    if locale() not in ("en-GB","en-US"):
+        st.caption(story("us_pitch"))
+    elif not (granite_available(root) and bge_overnight_available(root)):
         render_lemon75_launch(root)
     else:
         st.markdown("### 🏁 9 NOV INTERNATIONAL EDITION · Two verified AI engines")
