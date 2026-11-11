@@ -21,5 +21,6 @@ def test_example_selection_rejects_invalid_and_stale_indices():
 
 
 def test_onnx_and_native_dimensionality_contract_share_current_api():
-    assert VerifiedInt8BGE.get_embedding_dimension(None) == 384
-    assert VerifiedInt8BGE.get_sentence_embedding_dimension(None) == 384
+    encoder = object.__new__(VerifiedInt8BGE)
+    assert encoder.get_embedding_dimension() == 384
+    assert encoder.get_sentence_embedding_dimension() == 384
