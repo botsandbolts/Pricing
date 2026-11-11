@@ -12,8 +12,10 @@ def expect_text(page, value):
     page.get_by_text(value, exact=False).first.wait_for(timeout=TIMEOUT)
 
 def select_language(page, label):
-    # Streamlit 1.66: first combobox is the top-of-page language selector.
-    page.get_by_role("combobox").first.click()
+    # Long language menus virtualize options: type a search query first.
+    picker = page.get_by_role("combobox").first
+    picker.click()
+    picker.fill(label.split(" ", 1)[-1])
     page.get_by_text(label, exact=True).last.click()
 
 def smoke(engine):
@@ -55,6 +57,45 @@ def smoke(engine):
         assert nl.get_by_text("INTERNATIONAL EDITION",exact=False).count() == 0
         nl.screenshot(path=f"/tmp/i18n_{engine.name}_nl_mobile.png",full_page=True)
         dutch.close()
+
+        # New high-priority languages: production gateway and auto-detection.
+        new_languages = [
+            ("uk-UA", "uk", "Два континенти"),
+            ("ru-RU", "ru", "Два континента"),
+            ("tr-TR", "tr", "İki kıta"),
+            ("nb-NO", "nb", "To kontinenter"),
+            ("sr-RS", "sr-Cyrl", "Два континента. Једна гаража."),
+            ("sr-Latn-RS", "sr-Latn", "Dva kontinenta. Jedna garaža."),
+            ("sq-AL", "sq", "Dy kontinente"),
+            ("bs-BA", "bs", "Dva kontinenta"),
+            ("mk-MK", "mk", "Два континента. Една гаража."),
+            ("is-IS", "is", "Tvær heimsálfur"),
+            ("ca-ES", "ca", "Dos continents"),
+        ]
+        for browser_lang, code, tagline in new_languages:
+            context = browser.new_context(locale=browser_lang,
+                viewport={"width":390,"height":844})
+            new = context.new_page()
+            # Script variants are explicitly addressable via BCP-47 links.
+            path = "?lang="+code if code.startswith("sr-") else ""
+            new.goto(BASE+"/"+path, wait_until="domcontentloaded")
+            expect_text(new,"Smoke language: "+code)
+            expect_text(new,tagline)
+            assert new.get_by_text("INTERNATIONAL EDITION",exact=False).count() == 0
+            context.close()
+
+        # A manual choice must override browser language and survive reload.
+        persist = browser.new_context(locale="tr-TR")
+        p = persist.new_page()
+        p.goto(BASE, wait_until="domcontentloaded")
+        expect_text(p, "Smoke language: tr")
+        select_language(p, "🇺🇦 Українська")
+        expect_text(p, "Smoke language: uk")
+        p.wait_for_function(
+            "localStorage.getItem('car-price-studio.language.v1') === 'uk'")
+        p.reload(wait_until="domcontentloaded")
+        expect_text(p, "Smoke language: uk")
+        persist.close()
 
         american = browser.new_context(locale="en-US")
         us = american.new_page()

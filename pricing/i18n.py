@@ -9,6 +9,7 @@ service or tracking cookies.
 from __future__ import annotations
 
 import streamlit as st
+from pricing.i18n_extra_core import EXTRA_LOCALES, CORE as EXTRA_CORE, PANELS as EXTRA_PANELS, COUNTRIES as EXTRA_COUNTRIES, VOICE as EXTRA_VOICE
 
 # All 24 official EU languages; English is offered in both UK and US variants.
 LOCALES = {
@@ -26,6 +27,8 @@ LOCALES = {
     "sl": "🇸🇮 Slovenščina", "es": "🇪🇸 Español",
     "sv": "🇸🇪 Svenska",
 }
+LOCALES.update(EXTRA_LOCALES)
+
 
 KEYS = (
     "market_title", "market_intro", "open_us", "open_eu",
@@ -79,6 +82,7 @@ for _line in _ROWS.splitlines():
         raise ValueError("Invalid localisation row: " + _parts[0])
     _locale, *_values = _parts
     CATALOGS[_locale] = dict(zip(KEYS, _values))
+CATALOGS.update(EXTRA_CORE)
 if set(CATALOGS) != set(LOCALES):
     raise ValueError("Locale catalog is incomplete")
 
@@ -86,9 +90,15 @@ if set(CATALOGS) != set(LOCALES):
 def browser_locale(value: str | None) -> str:
     """Map navigator.language into one of our explicit supported locales."""
     code = str(value or "").strip().replace("_", "-").lower()
-    language, _, region = code.partition("-")
+    language, *subtags = code.split("-")
     if language == "en":
-        return "en-US" if region == "us" else "en-GB"
+        return "en-US" if "us" in subtags else "en-GB"
+    if language == "sr":
+        # Browser BCP-47 usually defaults to Serbian Cyrillic without a script.
+        return "sr-Latn" if "latn" in subtags else "sr-Cyrl"
+    if language in ("nb", "nn", "no"):
+        # Nynorsk is not among the requested new variants.
+        return "nb"
     return language if language in LOCALES else "en-GB"
 
 
@@ -133,6 +143,7 @@ VOICE = {
     "es": ("Tu cuñado pone el precio. Nosotros consultamos los datos.", "Pruébalo y dinos sin pelos en la lengua dónde fallamos."),
     "sv": ("Alla har en åsikt. Vad säger siffrorna?", "Testa värderingen och berätta vad vi borde förbättra."),
 }
+VOICE.update(EXTRA_VOICE)
 
 
 
@@ -146,7 +157,7 @@ def format_eur(amount: float) -> str:
     lang = locale()
     if lang in ("en-GB", "en-US", "ga", "mt"):
         return "€" + number
-    if lang in ("de", "nl", "es", "it", "pt", "sl", "el"):
+    if lang in ("de", "nl", "es", "it", "pt", "sl", "el", "tr", "ca", "is", "sr-Latn", "sr-Cyrl", "bs", "mk"):
         return number.replace(",", ".") + " €"
     # French and most Central/Northern/Eastern European publication styles.
     return number.replace(",", "\u202f") + " €"
@@ -202,6 +213,7 @@ for _row in _COUNTRY_ROWS.splitlines():
         raise ValueError("Invalid country localization: " + _fields[0])
     _code, *_names = _fields
     COUNTRY_CATALOGS[_code] = dict(zip(_COUNTRY_KEYS, _names))
+COUNTRY_CATALOGS.update(EXTRA_COUNTRIES)
 if set(COUNTRY_CATALOGS) != set(LOCALES):
     raise ValueError("Country localization is incomplete")
 
@@ -263,6 +275,7 @@ for _row in _PANEL_ROWS.splitlines():
         raise ValueError("Invalid panel localization: " + _fields[0])
     _code, *_names = _fields
     PANEL_CATALOGS[_code] = dict(zip(_PANEL_KEYS, _names))
+PANEL_CATALOGS.update(EXTRA_PANELS)
 if set(PANEL_CATALOGS) != set(LOCALES):
     raise ValueError("Panel localization is incomplete")
 

@@ -1,5 +1,6 @@
 """Localized, model-honest scientific explanations (no inference changes)."""
 from pricing.i18n import locale, LOCALES
+from pricing.i18n_extra_research import RESEARCH as EXTRA_RESEARCH
 KEYS=["timeline","indices","models","evaluation","forensics","inspector","market","garage"]
 ROWS=r"""en-GB|Changing age or mileage produces a hypothetical scenario, not a forecast of the same car's future value.|Published country indices and inferred trends must not be confused. Unobserved months are estimates.|The model laboratory compares alternative neural networks and their validation criteria, not promises for your vehicle.|MAE is average absolute error; RMSE weighs large errors more; CVaR95 averages the worst 5% of misses.|An unusual asking price is not evidence of fraud. Investigate with independent records.|Comparable adverts are not verified identical cars or completed sales.|Listing counts describe the sample, not an entire country's car sales.|Explore preferences and representative vehicles; this is not a dealer endorsement.
 en-US|Changing model year or mileage creates a what-if scenario, not a verified depreciation forecast.|Published country indexes are observations; inferred future trends are not.|The model lab compares tested algorithms and validation losses, not guaranteed appraisals.|MAE measures average absolute misses, RMSE emphasizes large ones, and CVaR95 covers the worst 5%.|An unusual price alone does not establish fraud. Check independent evidence.|Similar listings may not be the same cars and do not show completed sales.|Sample listing counts are not national vehicle sales totals.|Explore sample vehicles and preferences, not endorsed dealerships.
@@ -32,6 +33,7 @@ for row in ROWS.splitlines():
     if len(values)!=len(KEYS) or any(not v.strip() for v in values):
         raise ValueError("Incomplete scientific overview: "+code)
     SCIENCE[code]=dict(zip(KEYS,values))
+SCIENCE.update(EXTRA_RESEARCH)
 if set(SCIENCE)!=set(LOCALES):
     raise ValueError("Missing locale in science registry")
 

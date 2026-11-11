@@ -5,6 +5,7 @@ source documents. Summaries are helpful but are NOT certified translations.
 The locale controls copy only, never legal terms, consent or model input data.
 """
 from pricing.i18n import locale, LOCALES
+from pricing.i18n_extra_research import LEGAL as EXTRA_LEGAL
 KEYS=["privacy_title","imprint_title","welcome","operator","service","consent","retention","sharing","rights","contact","reference","original","return","science_intro","science_limits","show_technical"]
 ROWS=r"""en-GB|Privacy and cookies|Imprint and legal information|Your data. Your choice. Clear information, no small-print tricks.|Operated privately by Amit Steinberg in Hamburg, Germany.|Car details help us estimate asking prices; an estimate is not a sale or purchase offer.|Optional analytics need your consent. Refuse them and pricing still works.|Consent cookies and optional visit records are intended for up to 90 days. Some clean-up may run late.|With permission, Turso, GeoJS and Google Analytics may process visit details. Streamlit hosts the app.|You can ask to see, correct or delete personal data, object to certain uses, and withdraw consent.|Questions and requests: amitsteinberg74@gmail.com|The complete English policy is retained below as the source text.|Show the complete English legal notice|Return to the calculator|The models use observed listings, vehicle attributes and statistical comparisons. See the technical methods and limitations.|Results are research estimates, not verified transactions, fraud findings, insurance values, or guarantees.|Show original research details in English
 en-US|Privacy and cookies|Legal notice and site operator|Your data. Your call. No hidden fine print.|Run independently by Amit Steinberg in Hamburg, Germany.|Car details help estimate listing prices; an estimate is not a completed sale or a purchase offer.|Optional analytics require your consent. Declining does not block pricing.|Consent cookies and optional visit records are intended for up to 90 days. Some cleanup can run late.|With permission, Turso, GeoJS and Google Analytics may process visit details. Streamlit hosts the app.|You can request access, correction or deletion, object to certain uses, and withdraw consent.|Questions and requests: amitsteinberg74@gmail.com|The full English policy remains the reference text below.|Read the full English legal notice|Return to pricing|The models analyze actual listings, vehicle details and statistics. Explore the limitations before relying on a figure.|These are research estimates, not confirmed sales, fraud evidence, insurance values or guaranteed offers.|Open detailed research in English
@@ -37,6 +38,7 @@ for row in ROWS.splitlines():
     if len(phrases)!=len(KEYS) or any(not text.strip() for text in phrases):
         raise ValueError("Scientific/legal localization incomplete: "+code)
     CATALOG[code]=dict(zip(KEYS,phrases))
+CATALOG.update(EXTRA_LEGAL)
 if set(CATALOG)!=set(LOCALES):
     raise ValueError("Missing scientific/legal locale")
 

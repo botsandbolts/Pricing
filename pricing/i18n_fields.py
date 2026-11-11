@@ -3,6 +3,7 @@
 Raw model enum values, state codes and analytics field keys are never translated.
 """
 from pricing.i18n import locale
+from pricing.i18n_extra_vehicle import FIELDS as EXTRA_FIELDS
 
 KEYS=["model_year","miles","state","body","condition","title","drive","color","optional","description","city","platform","doors","seats","accident","trim","feedback_title","feedback_consent","feedback_submit","quote","compare","form_help"]
 ROWS=r"""en-GB|Model year|Mileage (miles)|US state code|Body style|Condition|Title status|Drivetrain|Colour|Optional vehicle details|Seller's description|Seller city|Listing site|Doors|Seats|Accident-free|Version or trim|How useful was this estimate?|I agree to store my rating, basic car facts and estimated price. Do not store my description, VIN, address or contact details.|Send feedback|Your estimated asking price|Compare similar listings|Enter your details. Estimates are not completed sales.
@@ -36,6 +37,7 @@ for line in ROWS.splitlines():
     if len(values)!=len(KEYS) or not all(values):
         raise ValueError("Incomplete car-form translation: "+code)
     FIELDS[code]=dict(zip(KEYS,values))
+FIELDS.update(EXTRA_FIELDS)
 
 def field(key: str) -> str:
     code=locale()

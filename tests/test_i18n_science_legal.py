@@ -1,4 +1,4 @@
-"""The 25 supported locales must have legal, science and consent copy.
+"""The 36 supported language variants must have legal, science and consent copy.
 
 The consent choice values and data fields must remain stable English tokens;
 only displayed text changes with locale.
@@ -13,7 +13,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def test_every_supported_language_has_complete_information():
-    assert len(LOCALES)==25
+    assert len(LOCALES)==36
     assert set(CATALOG)==set(SCIENCE)==set(LABELS)==set(LOCALES)
     for code in LOCALES:
         for messages, keys in ((CATALOG[code],LEGAL_KEYS),

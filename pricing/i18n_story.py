@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from html import escape
 from pricing.i18n import locale
+from pricing.i18n_extra_vehicle import STORIES as EXTRA_STORIES
+from pricing.i18n_extra_core import A11Y as EXTRA_A11Y
 
 KEYS=["picker","edition","us_name","eu_name","us_desc","eu_desc","disclaimer","source","independent","us_hero","us_pitch","us_cta","eu_hero","eu_pitch","trust","form_intro","submit_tip","science_notice"]
 ROWS=r"""en-GB|Language|INTERNATIONAL EDITION|United States|Europe|American seller asking prices and historical wholesale auction research. Models and original tools remain separate.|European advertised asking-price estimates in euros. Country-aware research and explanations; no wholesale bids.|Switch markets at any time. Estimates are research, not guaranteed sale prices.|Explore the open-source code|Independent research · no registration · no adverts|Your car. Our data. No sales pitch.|Two historical US perspectives: seller asking and wholesale auction. Different targets, different prices.|Price my car|European car prices, minus the guesswork.|Research-backed asking-price estimates for supported European markets. Not a purchase offer or completed sale.|Privacy matters. You control optional analytics. No account or advertising required.|Give us the details; the model does the maths.|Try a real car and tell us what we got wrong.|Detailed technical research and legal documentation are currently in English.
@@ -41,6 +43,7 @@ for line in ROWS.splitlines():
     if len(values)!=len(KEYS) or not all(values):
         raise ValueError("Incomplete landing localization for "+code)
     STORIES[code]=dict(zip(KEYS,values))
+STORIES.update(EXTRA_STORIES)
 
 def story(key: str) -> str:
     code=locale()
@@ -83,6 +86,7 @@ for line in A11Y_ROWS.splitlines():
     if len(values)!=len(A11Y_KEYS) or not all(values):
         raise ValueError("Incomplete accessibility locale: "+code)
     A11Y[code]=dict(zip(A11Y_KEYS,values))
+A11Y.update(EXTRA_A11Y)
 
 def a11y(key):
     return A11Y[locale()][key]
