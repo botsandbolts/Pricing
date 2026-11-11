@@ -1104,7 +1104,14 @@ def render():
     elif tab=="🚦 Pick your garage":
         _garage_choices()
     st.divider()
-    st.caption("🇩🇪 Independently built in Hamburg · No registration · No ads · "
-        "Asking prices only · [Open-source code](https://github.com/botsandbolts/Pricing) · "
-        "[Dataset and attribution]("+DATASET+") · "
-        "[Privacy policy](?legal=privacy) · [Imprint](?legal=imprint)")
+    if locale() in ("en-GB","en-US"):
+        st.caption("🇩🇪 Independently built in Hamburg · No registration · No ads · "
+            "Asking prices only · [Open-source code](https://github.com/botsandbolts/Pricing) · "
+            "[Dataset and attribution]("+DATASET+") · "
+            "[Privacy policy](?legal=privacy) · [Imprint](?legal=imprint)")
+    else:
+        st.caption("🇩🇪 Made in Germany · "+story("independent")+" · "+
+            "[ⓘ](?legal=imprint) · [🛡️](?legal=privacy) · "+
+            "["+story("source")+"](https://github.com/botsandbolts/Pricing) · "+
+            "[📊]("+DATASET+")")
+        st.caption(story("science_notice"))
