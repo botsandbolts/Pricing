@@ -17,6 +17,7 @@ import streamlit as st
 from pricing.i18n import tr, locale
 from pricing.i18n_story import story
 from pricing.i18n_fields import field
+from pricing.i18n_enums import option_label
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.granite_ask_live import available as granite_available, load as load_granite_ask
 from pricing.bge_overnight_ask_live import available as bge_overnight_available, load as load_bge_overnight
@@ -119,14 +120,14 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
         body=c.selectbox(field("body"),[
               "sedan","suv","truck","pickup","hatchback","coupe",
               "wagon","van","convertible","other","unknown"],
-              key=prefix+"_body",persist_state="session")
+              key=prefix+"_body",persist_state="session",format_func=option_label)
         if compact:
             st.caption("Three useful facts; everything else is recorded as "
                        "'unknown', not guessed.")
             a,b,d=st.columns(3)
             condition=a.selectbox(field("condition"),[
                 "unknown","good","excellent","fair","like new","new","salvage"],
-                key=prefix+"_condition",persist_state="session")
+                key=prefix+"_condition",persist_state="session",format_func=option_label)
             title=b.selectbox(field("title"),[
                 "unknown","clean","rebuilt","salvage","lien","missing","parts only"],
                 key=prefix+"_title",persist_state="session")
@@ -142,13 +143,13 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
                 a,b,d=st.columns(3)
                 condition=a.selectbox("Condition",[
                     "good","excellent","fair","like new","new","salvage","unknown"],
-                    key=prefix+"_condition",persist_state="session")
+                    key=prefix+"_condition",persist_state="session",format_func=option_label)
                 fuel=b.selectbox(tr("fuel"),[
                     "gas","diesel","hybrid","electric","other","unknown"],
-                    key=prefix+"_fuel",persist_state="session")
+                    key=prefix+"_fuel",persist_state="session",format_func=option_label)
                 transmission=d.selectbox("Transmission",[
                     "automatic","manual","other","unknown"],
-                    key=prefix+"_transmission",persist_state="session")
+                    key=prefix+"_transmission",persist_state="session",format_func=option_label)
                 a,b,d=st.columns(3)
                 drive=a.selectbox(field("drive"),[
                     "fwd","rwd","4wd","unknown"],key=prefix+"_drive",persist_state="session")
