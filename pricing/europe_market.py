@@ -261,8 +261,8 @@ def _edit_vehicle(schema):
                     "clock":{"status":"built_in_recent_market","factor":1.0},
                     "market":"Europe","engine":"HOFM3 Tail-MAE · October 2026 evidence",
                 }
-                st.success("HOFM3 valuation calculated. No second date adjustment; "
-                           "advertised ASK, not a completed sale.")
+                st.success("HOFM3 valuation calculated. No second date adjustment; advertised ASK, not a completed sale."
+                           if locale() in ("en-GB","en-US") else "✅ "+field("quote")+" · "+story("disclaimer"))
             except (ValueError,EuropeanModelUnavailable,RuntimeError) as exc:
                 st.error("Valuation unavailable: "+str(exc))
     return vehicle
@@ -274,7 +274,8 @@ def _receipt(bundle):
         quote=None
         st.info("European neural model upgraded. Recalculate to refresh your receipt.")
     if not quote:
-        st.info("Your European asking-price receipt will appear here after valuation.")
+        st.info("Your European asking-price receipt will appear here after valuation."
+                if locale() in ("en-GB","en-US") else "€ "+field("quote")+" · "+story("form_intro"))
         return None
     st.markdown('<div class="eu-result"><small>'+escape(field("quote"))+' · EUR</small>'
                 '<strong>'+escape(money(quote["price_eur"]))+'</strong>'
@@ -302,8 +303,8 @@ def _receipt(bundle):
                        ". **Not applied** to your price. A two-month comparison "
                        "is not a validated make/model price index, and cannot be "
                        "extrapolated into future months.")
-    st.caption("An advertised asking-price estimate, not evidence of a completed sale "
-               "or a customs, insurance, taxation or financing decision.")
+    st.caption("An advertised asking-price estimate, not evidence of a completed sale or a customs, insurance, taxation or financing decision."
+               if locale() in ("en-GB","en-US") else story("disclaimer"))
     test=bundle[2]["overall_champion"]["test_once"] if bundle else {}
     if test:
         a,b,c=st.columns(3)
@@ -398,12 +399,12 @@ def _valuation_page(bundle,error):
     st.markdown("### 🧮 "+tr("calculate"))
     _how_it_works()
     if bundle is None:
-        st.warning("The rank-1 model is undergoing reproducibility and package verification. "
-                   "The calculator is gated; no fabricated or substitute prices will be shown.")
+        st.warning("The rank-1 model is undergoing reproducibility and package verification. The calculator is gated; no fabricated or substitute prices will be shown."
+                   if locale() in ("en-GB","en-US") else "⚠️ "+story("science_notice"))
         st.caption(error or "Trained weights and vocabulary must be published together.")
     vehicle=_edit_vehicle(bundle[1] if bundle else None)
     quote=_receipt(bundle)
-    with st.expander("📚 "+field("compare"),expanded=True):
+    with st.expander("📚 "+field("compare"),expanded=locale() in ("en-GB","en-US")):
         _comparables(_market_table(),quote["vehicle"] if quote else vehicle)
     _feedback(quote)
 
@@ -1071,6 +1072,9 @@ def render():
                  help="Choose any European research panel. Your previous ASK receipt persists.")
     if tab=="🚗 Price my car":
         _valuation_page(bundle,error)
+    elif locale() not in ("en-GB","en-US"):
+        st.info(story("science_notice"))
+        # Detailed research panels retain their original English scientific text.
     elif tab=="🔎 Listing Inspector":
         _inspector(bundle)
     elif tab=="📉 Value over time":
