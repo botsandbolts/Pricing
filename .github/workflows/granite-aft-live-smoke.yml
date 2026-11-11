@@ -24,6 +24,7 @@ jobs:
       - name: Verify the released checkpoint and render every one of 36 translated banners
         run: |
           python - <<'PY'
+          from html import unescape
           import sys,types
           from pathlib import Path
           import numpy as np
@@ -51,8 +52,10 @@ jobs:
           for code,translation in COPY.items():
               fake.session_state['cps_locale']=code
               html=banner_html(root)
-              assert translation['title'] in html,code
-              assert translation['bid_explanation'] in html,code
+              # Rendered HTML escapes punctuation; compare visible text.
+              visible=unescape(html)
+              assert translation['title'] in visible,code
+              assert translation['bid_explanation'] in visible,code
               assert '18,448 USD' in html,code
               assert '2,805 USD' in html and '5,766 USD' in html
               assert '#studio-calculator' in html
