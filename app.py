@@ -127,7 +127,11 @@ if _workspace!='🚗 Price my car' and locale() not in ('en-GB','en-US'):
         if not st.checkbox("📚 "+legal_copy('show_technical'),
                            key="cps_research_english_"+_workspace,
                            value=False):
+            # Consent controls remain available even on the simplified
+            # local-language scientific overview; no tracking runs by default.
+            from pricing.analytics import render_privacy
             from pricing.studio_design import footer
+            render_privacy()
             footer()
             st.stop()
 # Mount consent and first-party telemetry on early-return workspaces as well.
