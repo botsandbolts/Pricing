@@ -1,0 +1,110 @@
+name: Recover U.S. Bid 3h Ray Tune aggregate · no retraining
+on:
+  push:
+    branches: [experiment/us-bid-nov26-ray-15x3h]
+    paths: ['.github/workflows/us-bid-recover-aggregate.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  aggregate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all 15 completed original worker artifacts
+        uses: actions/download-artifact@v4
+        with:
+          run-id: 42998336606
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          pattern: us-bid-ray-3h-shard-*
+          path: collected
+          merge-multiple: false
+      - name: Validate and aggregate original validation scores (stdlib only)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,json,math
+          from pathlib import Path
+          root=Path('collected')
+          output=Path('reports/us-bid-15x3h-recovered')
+          output.mkdir(parents=True,exist_ok=True)
+          rows=[]
+          sha=set()
+          total_trials=0
+          for shard in range(15):
+              folder=root/f'us-bid-ray-3h-shard-{shard}'
+              if not folder.is_dir():
+                  raise ValueError(f'Missing shard {shard}')
+              summary=json.loads((folder/'summary.json').read_text())
+              if summary['status']!='complete' or summary['shard']!=shard:
+                  raise ValueError(f'Shard {shard} incomplete/mismatched')
+              if summary['test_scored'] is not False:
+                  raise ValueError('Test scored before model selection')
+              total_trials+=int(summary.get('trials_ok',0))
+              sha.add(summary['dataset_sha256'])
+              files=list(folder.glob('winner-*/result.json'))
+              if len(files)!=1:
+                  raise ValueError(f'Expected one selected validation candidate per shard {shard}, saw {len(files)}')
+              row=json.loads(files[0].read_text())
+              if row['test_scored'] is not False or not row['training_full_non_lemon']:
+                  raise ValueError(f'Invalid holdout/training provenance shard {shard}')
+              if row['source_sha256']!=summary['dataset_sha256']:
+                  raise ValueError('Inconsistent dataset provenance')
+              metrics=row['original_validation']
+              if int(metrics['rows'])!=82380:
+                  raise ValueError('Original validation cohort unexpectedly changed')
+              for key in ('CVaR95_absolute_USD','MAE_USD','RMSE_USD'):
+                  if not math.isfinite(float(metrics[key])) or float(metrics[key])<=0:
+                      raise ValueError(f'Invalid metric {key} for shard {shard}')
+              row['shard']=shard
+              rows.append(row)
+          if len(sha)!=1:
+              raise ValueError('Training cohort changed between workers')
+          rows.sort(key=lambda x:(x['original_validation']['CVaR95_absolute_USD'], x['original_validation']['MAE_USD']))
+          leaderboard={
+            'status':'recovered_from_original_worker_artifacts',
+            'source_run_id':42998336606,
+            'model_workers':len(rows),
+            'completed_successful_trials':total_trials,
+            'validation_records':82380,
+            'dataset_sha256':next(iter(sha)),
+            'primary_rank_metric':'original validation CVaR95_absolute_USD',
+            'target_basis':'historical wholesale prices, 2015-index-normalized USD',
+            'original_test_scored':False,
+            'production_modified':False,
+            'models':rows,
+          }
+          (output/'leaderboard.json').write_text(json.dumps(leaderboard,indent=2,allow_nan=False)+'\n')
+          with (output/'leaderboard.csv').open('w',newline='') as f:
+              writer=csv.writer(f)
+              writer.writerow(['rank','shard','architecture','loss','best_epoch','validation_CVaR95_USD','validation_MAE_USD','validation_RMSE_USD','hyperparameters_json'])
+              for index,r in enumerate(rows,1):
+                  m=r['original_validation']
+                  writer.writerow([index,r['shard'],r['family'],r['loss'],r['best_epoch'],
+                      m['CVaR95_absolute_USD'],m['MAE_USD'],m['RMSE_USD'],
+                      json.dumps(r['configuration'],sort_keys=True)])
+          lines=['# Recovered U.S. Bid 3-hour Ray Tune',
+                 '',
+                 'Source run: https://github.com/botsandbolts/Pricing/actions/runs/42998336606',
+                 'All 15 workers succeeded; original aggregator lacked PyTorch.',
+                 'Recovered from saved model validation JSON receipts; no retraining or test scoring.',
+                 '',
+                 '| Rank | Network | Loss | CVaR95 ($) | MAE ($) | RMSE ($) | Best epoch |',
+                 '|---:|---|---|---:|---:|---:|---:|']
+          for index,r in enumerate(rows[:10],1):
+              m=r['original_validation']
+              lines.append(f"| {index} | {r['family']} | {r['loss']} | {m['CVaR95_absolute_USD']:,.2f} | {m['MAE_USD']:,.2f} | {m['RMSE_USD']:,.2f} | {r['best_epoch']} |")
+          (output/'README.md').write_text('\n'.join(lines)+'\n')
+          print('RECOVERED_BID_TOP10',json.dumps([{'rank':i,'family':r['family'],'loss':r['loss'],'CVaR95':r['original_validation']['CVaR95_absolute_USD'],'MAE':r['original_validation']['MAE_USD'],'RMSE':r['original_validation']['RMSE_USD']} for i,r in enumerate(rows[:10],1)]),flush=True)
+          print('RECOVERY_SUCCESS',json.dumps({'workers':len(rows),'trials_ok':total_trials,'test_scored':False}),flush=True)
+          PY
+      - name: Preserve recovered result files for research
+        uses: actions/upload-artifact@v4
+        with:
+          name: us-bid-20261111-3h-recovered-top10-full-leaderboard
+          path: reports/us-bid-15x3h-recovered/
+          retention-days: 90
+          if-no-files-found: error
