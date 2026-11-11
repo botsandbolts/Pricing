@@ -4,6 +4,8 @@ from pricing.i18n_story import STORIES, KEYS as STORY_KEYS
 from pricing.i18n_fields import FIELDS, KEYS as FIELD_KEYS
 from pricing.i18n_enums import ENUMS, KEYS as ENUM_KEYS
 
+HIGH_PRIORITY = {"uk", "ru", "tr", "nb", "sr-Latn", "sr-Cyrl", "sq", "bs", "mk", "is", "ca"}
+
 OFFICIAL_EU = {
     "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de",
     "el", "hu", "ga", "it", "lv", "lt", "mt", "pl", "pt", "ro",
@@ -11,10 +13,11 @@ OFFICIAL_EU = {
 }
 
 def test_all_24_official_eu_languages_plus_english_variants():
-    assert {k.split("-")[0] for k in LOCALES} == OFFICIAL_EU
+    assert {k.split("-")[0] for k in LOCALES if k not in HIGH_PRIORITY} == OFFICIAL_EU
+    assert set(HIGH_PRIORITY).issubset(LOCALES)
     assert set(LOCALES) == set(CATALOGS) == set(VOICE) == set(PANEL_CATALOGS) == set(COUNTRY_CATALOGS) == set(STORIES) == set(FIELDS) == set(ENUMS)
     assert "en-GB" in LOCALES and "en-US" in LOCALES
-    assert len(LOCALES) == 25
+    assert len(LOCALES) == 36
 
 def test_core_catalog_has_no_missing_or_blank_translations():
     for code, messages in CATALOGS.items():
@@ -36,6 +39,12 @@ def test_browser_locale_selection():
         "pt-BR": "pt", "nl-NL": "nl", "ga-IE": "ga",
         "en-US": "en-US", "en-GB": "en-GB", "en-IE": "en-GB",
         "de-AT": "de", "EN_us": "en-US", "zz-ZZ": "en-GB",
+        "uk-UA": "uk", "ru-RU": "ru", "tr-TR": "tr",
+        "nb-NO": "nb", "no-NO": "nb", "nn-NO": "nb",
+        "sr-RS": "sr-Cyrl", "sr-Cyrl-RS": "sr-Cyrl",
+        "sr-Latn-RS": "sr-Latn", "sr_latn_BA": "sr-Latn",
+        "sq-AL": "sq", "bs-BA": "bs", "mk-MK": "mk",
+        "is-IS": "is", "ca-ES": "ca",
         None: "en-GB", "": "en-GB",
     }
     for value, expected in cases.items():
