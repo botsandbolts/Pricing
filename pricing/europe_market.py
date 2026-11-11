@@ -13,10 +13,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.i18n import tr, editorial_voice, localized_panel, format_eur, localized_country, locale
+from pricing.i18n import tr, editorial_voice, localized_panel, localized_panel_for, format_eur, localized_country, localized_country_for, locale
+from functools import partial
 from pricing.i18n_story import story, story_html
 from pricing.i18n_fields import field
-from pricing.i18n_enums import option_label
+from pricing.i18n_enums import option_label, option_label_for
 from pricing.i18n_research import localized_science_intro
 from pricing.i18n_science_legal import copy as legal_copy
 
@@ -196,7 +197,7 @@ def _edit_vehicle(schema):
     with st.form("eu_ask_form",clear_on_submit=False):
         a,b,c=st.columns(3)
         country=a.selectbox(tr("country")+" · 8",COUNTRY_OPTIONS,
-            format_func=localized_country,key="eu_country_v2")
+            format_func=partial(localized_country_for,locale()),key="eu_country_v2")
         makes=values("make",["volkswagen","bmw","mercedes benz","toyota","renault"])
         preferred="volkswagen" if "volkswagen" in makes else makes[0]
         make=b.selectbox(tr("make"),makes,index=makes.index(preferred),
@@ -216,17 +217,17 @@ def _edit_vehicle(schema):
         power=a.number_input(tr("power"),min_value=20,max_value=1200,
                              value=110,key="eu_hp")
         fuel=b.selectbox(tr("fuel"),values("fuel",["petrol","diesel","electric","hybrid"]),
-                         key="eu_fuel",format_func=option_label)
+                         key="eu_fuel",format_func=partial(option_label_for,locale()))
         transmission=c.selectbox(tr("transmission"),values("transmission",["manual","automatic"]),
-                                 key="eu_transmission",format_func=option_label)
+                                 key="eu_transmission",format_func=partial(option_label_for,locale()))
         with st.expander("🔧 "+field("optional")):
             a,b,c=st.columns(3)
             body=a.selectbox(field("body"),["__missing__"]+values("body_type",[]),
-                             key="eu_body",format_func=option_label)
+                             key="eu_body",format_func=partial(option_label_for,locale()))
             drive=b.selectbox(field("drive"),["__missing__"]+values("drive_type",[]),
-                              key="eu_drive",format_func=option_label)
+                              key="eu_drive",format_func=partial(option_label_for,locale()))
             color=c.selectbox(field("color"),["__missing__"]+values("color",[]),
-                              key="eu_color",format_func=option_label)
+                              key="eu_color",format_func=partial(option_label_for,locale()))
             a,b,c=st.columns(3)
             trim=a.text_input(field("trim"),key="eu_trim")
             city=b.text_input(field("city"),key="eu_city")
@@ -236,7 +237,7 @@ def _edit_vehicle(schema):
             doors=a.number_input(field("doors"),0,8,5,key="eu_doors")
             seats=b.number_input(field("seats"),0,12,5,key="eu_seats")
             accident=c.selectbox(field("accident"),["Not stated","Yes","No"],
-                                 key="eu_accident",format_func=lambda v:"—" if v=="Not stated" else option_label(v))
+                                 key="eu_accident",format_func=lambda v,_loc=locale():"—" if v=="Not stated" else option_label_for(_loc,v))
         submitted=st.form_submit_button("🇪🇺 "+tr("calculate"),
                    type="primary",use_container_width=True,disabled=schema is None)
     vehicle={
@@ -1069,7 +1070,7 @@ def render():
     # A labelled, keyboard-operable navigation control is more reliable than
     # 12 wrapping pill buttons, especially on a narrow phone screen.
     tab=st.selectbox(tr("panels"),NAV,
-                 format_func=localized_panel,
+                 format_func=partial(localized_panel_for,locale()),
                  key="eu_workspace_selector_v2",
                  help=("Choose any European research panel. Your previous ASK receipt persists."
                        if locale() in ("en-GB","en-US") else None))
