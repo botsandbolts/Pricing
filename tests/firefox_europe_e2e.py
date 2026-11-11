@@ -44,16 +44,14 @@ def navigate_europe_panel(page,label):
         print("EU_NAV_DOM",picker.evaluate("(n)=>n.outerHTML.slice(0,5000)"),flush=True)
         control=picker
     control.click(timeout=10000)
-    option=page.get_by_role("option",name=label,exact=True)
-    if option.count():
-        option.first.click(timeout=10000)
-        return
-    text=page.get_by_text(label,exact=True)
-    if text.count():
-        text.last.click(timeout=10000)
-        return
-    print("EU_NAV_DOM",picker.evaluate("(n)=>n.outerHTML.slice(0,5000)"),flush=True)
-    raise AssertionError("Navigation option not found after opening: "+label)
+    # The displayed labels are translated, but the order and route IDs are
+    # stable. Select the canonical option index rather than relying on emoji
+    # and UK/US spelling ("indices" versus "indexes", "garage" vs "dealership").
+    from pricing.europe_market import NAV
+    index=NAV.index(label)
+    options=page.get_by_role("option")
+    expect(options).to_have_count(len(NAV),timeout=10000)
+    options.nth(index).click(timeout=10000)
 
 def test_device(browser,device,width,height):
     page=browser.new_page(viewport={"width":width,"height":height},
@@ -65,7 +63,7 @@ def test_device(browser,device,width,height):
     # HTML hero as literal source text / an empty code block.
     international=page.locator(".cps-globe h1")
     expect(international).to_be_visible(timeout=120000)
-    expect(international).to_have_text("Two continents. One garage. Zero crystal balls.")
+    expect(international).to_have_text("Two continents. One garage.")
     assert '<section class="cps-globe"' not in page.locator("body").inner_text()
     # Production banner must be visible ABOVE the European market hero, never on US.
     banner=page.locator(".st-key-eu_parody_banner")
@@ -85,16 +83,16 @@ def test_device(browser,device,width,height):
     hero_y=page.locator(".eu-hero").bounding_box()["y"]
     assert banner_y<hero_y, "European satire must be above European hero"
     expect(page.get_by_text("From Hamburg to Rome.",exact=False)).to_be_visible(timeout=120000)
-    expect(page.get_by_text("European Asking Price Lab",exact=False)).to_be_visible(timeout=90000)
+    expect(page.get_by_text("Tell us about your car",exact=False)).to_be_visible(timeout=90000)
     expect(page.locator(".eu-hero")).to_contain_text("European")
     expect(page.locator(".eu-steps .eu-step")).to_have_count(3,timeout=90000)
-    assert page.get_by_role("button",name=re.compile("Calculate European asking price")).count()==1
-    expect(page.get_by_text("Country · eight supported markets")).to_be_visible(timeout=90000)
+    assert page.get_by_role("button",name=re.compile("Calculate asking price")).count()==1
+    expect(page.get_by_text("Country · 8")).to_be_visible(timeout=90000)
     diagnose(page,device+"-landing")
     model=page.get_by_role("textbox",name="Model",exact=True)
     if model.count():
         model.fill("golf")
-    button=page.get_by_role("button",name=re.compile("Calculate European asking price"))
+    button=page.get_by_role("button",name=re.compile("Calculate asking price"))
     assert button.is_enabled(), "Release is not model-ready"
     button.click(timeout=30000)
     expect(page.locator(".eu-result strong")).to_be_visible(timeout=180000)
@@ -109,10 +107,10 @@ def test_device(browser,device,width,height):
     expect(bars).to_have_count(4,timeout=90000)
     widths=page.locator(".eu-impact-graph .eu-impact-bar").evaluate_all(
         "(els) => els.map(el => el.getBoundingClientRect().width)")
-    assert any(w>4 for w in widths), "HOFM3 price-impact graphics are empty"
+    assert any(w>4 for w in widths), "ResMLP price-impact graphics are empty"
     assert page.locator('[data-testid="stException"]').count()==0
     diagnose(page,device+"-valuation")
-    # Exercise European panels with the HOFM3 recent-market receipt in memory.
+    # Exercise European panels with the ResMLP recent-market receipt in memory.
     # One broken panel must not hide failures in the rest of the application.
     expected={
         "🔎 Listing Inspector":"Listing Inspector",
