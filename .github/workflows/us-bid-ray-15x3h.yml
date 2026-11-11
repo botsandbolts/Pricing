@@ -1,0 +1,157 @@
+name: U.S. Bid · Ray Tune 15 workers · 3 hours · 100 epochs · model mileage
+on:
+  push:
+    branches: [experiment/us-bid-nov26-ray-15x3h]
+    paths: ['scripts/us_bid_ray_current_features.py','scripts/us_bid_ray_15x3h.py','.github/workflows/us-bid-ray-15x3h.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: us-bid-ray-15x3h
+  cancel-in-progress: false
+env:
+  OMP_NUM_THREADS: '2'
+  MKL_NUM_THREADS: '2'
+  OPENBLAS_NUM_THREADS: '2'
+  NUMEXPR_NUM_THREADS: '2'
+  TOKENIZERS_PARALLELISM: 'false'
+  PYTHONUNBUFFERED: '1'
+  RAY_DEDUP_LOGS: '0'
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+      - run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'joblib>=1.4,<2' 'ray[tune]>=2.40,<2.50'
+      - name: Test features and all five neural networks with fourteen losses
+        run: |
+          python -m compileall -q scripts/us_bid_ray_current_features.py scripts/us_bid_ray_15x3h.py
+          python -u -m scripts.us_bid_ray_current_features --smoke
+          python -u -m scripts.us_bid_ray_15x3h --smoke
+  prepare:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22'
+      - name: Restore original VIN-disjoint historical Bid cohort
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-bid-frozen-features
+          run-id: 42249111756
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/original
+      - name: Derive TRAIN-only make-model expected annual mileage
+        run: |
+          python -u -m scripts.us_bid_ray_current_features --source "$RUNNER_TEMP/original/features.npz" --output "$RUNNER_TEMP/augmented/features.npz"
+      - name: Verify historical labels and augmented schema
+        run: |
+          python - <<'PY'
+          import json,os,numpy as np
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'augmented'
+          m=json.loads((root/'features.json').read_text())
+          with np.load(root/'features.npz',allow_pickle=False) as z:
+              assert z['num'].shape == (550181,8)
+              assert z['cat'].shape == (550181,10)
+              assert (z['phase']=='train').sum() == 384198
+              assert (z['phase']=='validation').sum() == 82380
+              assert (z['phase']=='test').sum() == 83603
+              assert np.isfinite(z['num']).all()
+          assert m['model_specific_mileage_expected_train_only'] is True
+          assert m['dataset_is_not_current'] is True
+          assert m['no_price_derived_inputs'] is True
+          assert (root/'canonical-bid.parquet').exists()
+          print('US_BID_AUDITED_FEATURES_OK',flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: us-bid-3h-model-mileage-features
+          path: |
+            ${{ runner.temp }}/augmented/features.npz
+            ${{ runner.temp }}/augmented/features.json
+            ${{ runner.temp }}/augmented/canonical-bid.parquet
+            ${{ runner.temp }}/augmented/mileage_audit.json
+          retention-days: 45
+          compression-level: 1
+          if-no-files-found: error
+  ray:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 215
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: |
+          python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+          python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow>=15,<22' 'joblib>=1.4,<2' 'ray[tune]>=2.40,<2.50'
+      - uses: actions/download-artifact@v4
+        with:
+          name: us-bid-3h-model-mileage-features
+          path: ${{ runner.temp }}/features
+      - name: Ray Tune / ASHA research, three hours per worker, 100 epochs maximum
+        run: |
+          python -u -m scripts.us_bid_ray_15x3h --features "$RUNNER_TEMP/features/features.npz" --shard "${{ matrix.shard }}" --budget-minutes 180 --output "$RUNNER_TEMP/results/shard-${{ matrix.shard }}"
+      - name: Retain best checkpoints and ORIGINAL validation results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: us-bid-ray-3h-shard-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/summary.json
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/winner-*/result.json
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/winner-*/validation.csv.gz
+            ${{ runner.temp }}/results/shard-${{ matrix.shard }}/winner-*/weights.pt
+          if-no-files-found: warn
+          retention-days: 60
+          compression-level: 3
+  aggregate:
+    needs: [prepare,ray]
+    if: ${{ always() && needs.prepare.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: us-bid-ray-3h-shard-*
+          path: ${{ runner.temp }}/shards
+          merge-multiple: false
+      - name: Publish top-ten validation CVaR95 with MAE, RMSE and loss
+        run: |
+          python -u -m scripts.us_bid_ray_15x3h --aggregate "$RUNNER_TEMP/shards" --output "$RUNNER_TEMP/aggregate/leaderboard.json"
+          python - <<'PY'
+          import os,json
+          from pathlib import Path
+          p=Path(os.environ['RUNNER_TEMP'])/'aggregate/leaderboard.json'
+          r=json.loads(p.read_text())
+          assert len(r['shards']) == 15, 'Missing shard reports'
+          assert r['leaderboard'], 'No valid neural model'
+          assert r['original_test_scored'] is False
+          print('US_BID_3H_TOP10',json.dumps(r['leaderboard'][:10]),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: us-bid-15workers-3hours-100epochs-leaderboard
+          path: ${{ runner.temp }}/aggregate/
+          retention-days: 90
+          if-no-files-found: warn
