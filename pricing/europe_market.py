@@ -1071,7 +1071,8 @@ def render():
     tab=st.selectbox(tr("panels"),NAV,
                  format_func=localized_panel,
                  key="eu_workspace_selector_v2",
-                 help="Choose any European research panel. Your previous ASK receipt persists.")
+                 help=("Choose any European research panel. Your previous ASK receipt persists."
+                       if locale() in ("en-GB","en-US") else None))
     if tab=="🚗 Price my car":
         _valuation_page(bundle,error)
     else:
