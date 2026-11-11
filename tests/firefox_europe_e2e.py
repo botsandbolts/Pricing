@@ -74,7 +74,17 @@ def test_device(browser,device,width,height):
     expect(page.locator(".eu-hero")).to_contain_text("European")
     expect(page.locator(".eu-steps .eu-step")).to_have_count(3,timeout=90000)
     assert page.get_by_role("button",name=re.compile("Calculate asking price")).count()==1
-    expect(page.get_by_text("Country · 8")).to_be_visible(timeout=90000)
+    expect(page.get_by_role("combobox",name="Country · 8")).to_be_visible(timeout=90000)
+    # Verify the browser-visible country selector has precisely the eight
+    # canonical trained markets, not legacy aliases or unsupported Switzerland.
+    country=page.get_by_role("combobox",name="Country · 8")
+    country.click(timeout=15000)
+    options=page.get_by_role("option")
+    expect(options).to_have_count(8,timeout=15000)
+    country_names=set(options.all_inner_texts())
+    assert country_names=={"Germany","France","Netherlands","Belgium",
+                           "Austria","Spain","Italy","Poland"},country_names
+    options.first.click(timeout=15000)
     diagnose(page,device+"-landing")
     model=page.get_by_role("textbox",name="Model",exact=True)
     if model.count():
@@ -86,6 +96,7 @@ def test_device(browser,device,width,height):
     content=page.locator(".eu-result strong").inner_text()
     assert "€" in content and len(content)>2
     expect(page.locator(".eu-result")).to_contain_text("ASK")
+    expect(page.locator(".eu-result")).to_contain_text("ResMLP")
     explain=page.get_by_role("button",name=re.compile("What moves this price"))
     expect(explain).to_be_enabled()
     explain.click(timeout=30000)
