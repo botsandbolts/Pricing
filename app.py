@@ -59,7 +59,7 @@ if st.query_params.get('connection_check') == '1':
     st.stop()
 
 @st.cache_resource(show_spinner=False)
-def _main_two_market_release_v20():
+def _main_two_market_release_v21():
     # Deployment cache bust v17: refresh the actual hosted pricing form and
     # report modules after today's focused CTA layout release, even if
     # Streamlit preserved v16 resource cache through hot redeployment.
@@ -68,7 +68,7 @@ def _main_two_market_release_v20():
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
-_main_two_market_release_v20()
+_main_two_market_release_v21()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
