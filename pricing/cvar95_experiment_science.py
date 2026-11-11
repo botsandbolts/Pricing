@@ -105,8 +105,8 @@ def render(root):
     import streamlit as st
     st.markdown("### 🛡️ Why CVaR95? The expensive end of being wrong")
     st.write("A car valuation isn't only about being right **on average**. "
-             "A rare \$20,000 miss can be a much more memorable business meeting "
-             "than twenty \$200 misses. Nobody wants an unexpectedly collectible lemon.")
+             r"A rare \$20,000 miss can be a much more memorable business meeting "
+             r"than twenty \$200 misses. Nobody wants an unexpectedly collectible lemon.")
     st.latex(r"\mathrm{CVaR}_{95}(|e|)=\operatorname{mean}\left(\mathrm{largest\ 5\%}\ \left|\widehat{P}_i-P_i\right|\right)")
     st.caption("The input is absolute model error in historical US dollars. "
                "It is **not** a 95% prediction interval, worst-case bound, "

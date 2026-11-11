@@ -83,10 +83,15 @@ def test_consented_audit_deduplicates_and_expiry_respects_foreign_keys():
     assert store.execute('SELECT count(*) FROM hierarchical_estimations').fetchone()[0]==1
     assert store.execute('SELECT city FROM hierarchical_estimations').fetchone()[0]=='Hamburg'
     old=(datetime.now(timezone.utc)-timedelta(days=100)).isoformat()
-    store.execute('UPDATE visitors SET last_seen=?',[old]);store.purge()
+    store.execute('UPDATE visitors SET last_seen=?',[old])
+    # A consented visit also creates a session. Mark it expired as well;
+    # otherwise it legitimately keeps its parent visitor alive.
+    store.execute('UPDATE analytics_sessions SET last_seen=?',[old])
+    store.purge()
     assert store.execute('SELECT count(*) FROM visitors').fetchone()[0]==1
     store.execute('UPDATE hierarchical_estimations SET timestamp=?',[old]);store.purge()
     assert store.execute('SELECT count(*) FROM hierarchical_estimations').fetchone()[0]==0
+    assert store.execute('SELECT count(*) FROM analytics_sessions').fetchone()[0]==0
     assert store.execute('SELECT count(*) FROM visitors').fetchone()[0]==0
 
 

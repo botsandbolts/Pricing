@@ -8,16 +8,26 @@ def load_examples():
     return json.loads(file.read_text())['examples'] if file.exists() else []
 
 
+
+def selected_example(examples, selected):
+    """Resolve a Streamlit index safely, including persisted numeric strings."""
+    if isinstance(selected, bool) or not isinstance(selected, (int, str)):
+        return None
+    try:
+        index = int(selected)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return examples[index - 1] if 1 <= index <= len(examples) else None
+
 def render_examples(uses_text,*,prefix='vehicle',description_key='seller_description',example_key='description_example'):
     import streamlit as st
     examples = load_examples()
     if not examples:
         return
     def apply():
-        selected = st.session_state.get(example_key, 0)
-        if not selected:
+        example = selected_example(examples, st.session_state.get(example_key, 0))
+        if example is None:
             return
-        example = examples[selected - 1]
         st.session_state[description_key] = example['text']
         for key, value in example['fields'].items():
             if value is not None:
