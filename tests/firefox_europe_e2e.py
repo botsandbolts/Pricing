@@ -65,23 +65,10 @@ def test_device(browser,device,width,height):
     expect(international).to_be_visible(timeout=120000)
     expect(international).to_have_text("Two continents. One garage.")
     assert '<section class="cps-globe"' not in page.locator("body").inner_text()
-    # Production banner must be visible ABOVE the European market hero, never on US.
-    banner=page.locator(".st-key-eu_parody_banner")
-    expect(banner).to_be_visible(timeout=120000)
-    artwork=banner.locator("img").first
-    expect(artwork).to_be_visible(timeout=30000)
-    alt=artwork.get_attribute("alt") or ""
-    for term in ("NICHT", "wirksufendeinaito", "WKDA", "Autohero", "AUTO1"):
-        assert term in alt, f"Missing requested accessible text: {term}"
-    page.wait_for_function("""() => {
-        const img=document.querySelector(".st-key-eu_parody_banner img");
-        return img && img.complete;
-    }""",timeout=30000)
-    loaded=artwork.evaluate("(img) => ({w:img.naturalWidth,h:img.naturalHeight,src:img.currentSrc})")
-    assert loaded["w"]>500 and loaded["h"]>100, f"Banner asset did not render: {loaded}"
-    banner_y=banner.bounding_box()["y"]
-    hero_y=page.locator(".eu-hero").bounding_box()["y"]
-    assert banner_y<hero_y, "European satire must be above European hero"
+    # The satirical advertising banner is German-only by design. English
+    # browser sessions must not display the German parody or its legal copy.
+    assert page.locator(".st-key-eu_parody_banner").count()==0, \
+        "German-only parody is leaking into the English European calculator"
     expect(page.get_by_text("From Hamburg to Rome.",exact=False)).to_be_visible(timeout=120000)
     expect(page.get_by_text("Tell us about your car",exact=False)).to_be_visible(timeout=90000)
     expect(page.locator(".eu-hero")).to_contain_text("European")
