@@ -3,6 +3,7 @@
 The returned UI value stays the original canonical training/serving token.
 """
 from pricing.i18n import locale
+from pricing.i18n_extra_vehicle import ENUMS as EXTRA_ENUMS
 
 KEYS=["petrol","diesel","electric","hybrid","automatic","manual","unknown","other","yes","no","gas","sedan","hatchback","wagon","van","convertible"]
 ROWS=r"""en-GB|Petrol|Diesel|Electric|Hybrid|Automatic|Manual|Unknown|Other|Yes|No|Petrol|Saloon|Hatchback|Estate|Van|Convertible
@@ -36,6 +37,7 @@ for line in ROWS.splitlines():
     if len(names)!=len(KEYS) or not all(names):
         raise ValueError("Incomplete enum localization: "+code)
     ENUMS[code]=dict(zip(KEYS,names))
+ENUMS.update(EXTRA_ENUMS)
 
 def option_label_for(locale_code, raw):
     value=str(raw).strip()
