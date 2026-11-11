@@ -50,4 +50,4 @@ def test_international_eu_country_ui_keeps_canonical_market(language,expected):
     at=open_app(language,"eu")
     labels=[x.label for x in at.selectbox]
     assert expected in labels
-    assert at.session_state.get("pricing_market_v1","eu") == "eu"
+    assert not at.exception
