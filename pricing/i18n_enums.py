@@ -37,8 +37,12 @@ for line in ROWS.splitlines():
         raise ValueError("Incomplete enum localization: "+code)
     ENUMS[code]=dict(zip(KEYS,names))
 
-def option_label(raw):
+def option_label_for(locale_code, raw):
     value=str(raw).strip()
     if value=="__missing__":
         return "—"
-    return ENUMS[locale()].get(value.lower(),value)
+    return ENUMS.get(locale_code, ENUMS["en-GB"]).get(value.lower(),value)
+
+
+def option_label(raw):
+    return option_label_for(locale(),raw)

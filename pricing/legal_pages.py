@@ -11,21 +11,48 @@ _FILES = {
 def render_legal_page(kind: str) -> None:
     import streamlit as st
     from pricing.studio_design import page_intro
+    from pricing.i18n import locale
+    from pricing.i18n_science_legal import copy
 
     if kind not in _FILES:
         st.error("That legal page was not found.")
         return
 
-    if kind == "imprint":
-        page_intro("Legal information", "Imprint / Legal Notice",
-                   "Independent research. A real person. A clear point of contact.", "🚗")
+    if locale() in ("en-GB", "en-US"):
+        if kind == "imprint":
+            page_intro("Legal information", "Imprint / Legal Notice",
+                       "Independent research. A real person. A clear point of contact.", "🚗")
+        else:
+            page_intro("Your data, your choice", "Privacy Policy",
+                       "The small print, with the small words. You stay in charge.", "💚")
+        st.markdown(_FILES[kind].read_text(encoding="utf-8"))
     else:
-        page_intro("Your data, your choice", "Privacy Policy",
-                   "The small print, with the small words. You stay in charge.", "💚")
+        page_intro("Car Price Studio", copy("imprint_title" if kind=="imprint" else "privacy_title"),
+                   copy("welcome"), "🚗" if kind=="imprint" else "💚")
+        if kind == "imprint":
+            # Main contact and legally relevant source text are retained
+            # verbatim; a localized guide does not purport to replace them.
+            st.markdown(copy("operator"))
+            st.markdown(copy("service"))
+            st.markdown("**[amitsteinberg74@gmail.com](mailto:amitsteinberg74@gmail.com)**")
+            st.markdown("[GitHub](https://github.com/botsandbolts/Pricing) · "
+                        "[MIT](https://github.com/botsandbolts/Pricing/blob/main/LICENSE) · "
+                        "[Hamburg](https://datenschutz-hamburg.de/)")
+        else:
+            for key in ("service","consent","retention","sharing","rights"):
+                st.markdown("- "+copy(key))
+            st.markdown("**[amitsteinberg74@gmail.com](mailto:amitsteinberg74@gmail.com)**")
+            st.markdown("[Hamburg](https://datenschutz-hamburg.de/service-information/beschwerde-oder-hinweis-einreichen) · "
+                        "[Streamlit](https://streamlit.io/privacy-policy) · "
+                        "[Turso](https://turso.tech/privacy-policy) · "
+                        "[Google](https://policies.google.com/privacy) · "
+                        "[GeoJS](https://www.geojs.io/privacy/)")
+        st.caption(copy("reference"))
+        with st.expander("📄 "+copy("original"),expanded=False):
+            st.markdown(_FILES[kind].read_text(encoding="utf-8"))
+        st.caption("🇪🇺 "+copy("welcome"))
 
-    st.markdown(_FILES[kind].read_text(encoding="utf-8"))
-
-    if kind == "privacy":
+    if kind == "privacy" and locale() in ("en-GB","en-US"):
         with st.expander("How easy is this notice to read? · Open reading check"):
             from scripts.audit_legal_readability import audit_markdown
             check = audit_markdown(_FILES["privacy"].read_text(encoding="utf-8"))
@@ -48,4 +75,7 @@ def render_legal_page(kind: str) -> None:
                 "(https://github.com/botsandbolts/Pricing/blob/main/scripts/audit_legal_readability.py)"
             )
 
-    st.markdown("[← Return to the price calculator](./)")
+    if locale() in ("en-GB","en-US"):
+        st.markdown("[← Return to the price calculator](./)")
+    else:
+        st.markdown("[← "+copy("return")+"](./)")

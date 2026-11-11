@@ -115,6 +115,25 @@ else:
                 story_html("eu_hero")+'</strong><p>'+story_html("disclaimer")+
                 '</p><p>'+story_html("independent")+'</p></section>',unsafe_allow_html=True)
 _workspace=render_navigation()
+# Scientific research keeps its exact measured values and canonical model code.
+# A local-language guide is shown first. Original English technical documents
+# require explicit opening, so non-English visitors do not land in English prose.
+if _workspace!='🚗 Price my car' and locale() not in ('en-GB','en-US'):
+    from pricing.i18n_research import localized_science_intro
+    from pricing.i18n_science_legal import copy as legal_copy
+    localized_science_intro(_workspace)
+    if _workspace in ('🧠 The science','📅 Value over time','📊 Evaluation',
+                      '🧪 Model lab','🧹 Outlier lab'):
+        if not st.checkbox("📚 "+legal_copy('show_technical'),
+                           key="cps_research_english_"+_workspace,
+                           value=False):
+            # Consent controls remain available even on the simplified
+            # local-language scientific overview; no tracking runs by default.
+            from pricing.analytics import render_privacy
+            from pricing.studio_design import footer
+            render_privacy()
+            footer()
+            st.stop()
 # Mount consent and first-party telemetry on early-return workspaces as well.
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
     from pricing.analytics import render_privacy

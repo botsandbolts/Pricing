@@ -268,7 +268,9 @@ function pricingGoogleAnalytics(data, allowed, root) {
     clearCookies();
     if(state)state.featureConsent=false;
     interactions.consentChanged();
-    status.textContent = 'Google Analytics: off until you accept.';
+    status.textContent = data.labels?.status
+      ? data.labels.status + ': Google Analytics ⛔'
+      : 'Google Analytics: off until you accept.';
     return;
   }
   window[flag] = false;
@@ -304,7 +306,9 @@ function pricingGoogleAnalytics(data, allowed, root) {
   state.trackingVersion = '2026_10_30_v4';
   state.featureConsent = data.version === '2026-11-05-v4';
   interactions.consentChanged();
-  status.textContent = state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
+  status.textContent = data.labels?.status
+    ? data.labels.status + ': Google Analytics ' + (state.failed ? '⚠' : state.loaded ? '✓' : '…')
+    : state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
     : state.loaded ? 'Google Analytics: tag loaded after acceptance · panel/action tracking v4.'
     : 'Google Analytics: requested after acceptance; delivery is not yet confirmed.';
 }
@@ -312,6 +316,23 @@ function pricingGoogleAnalytics(data, allowed, root) {
 export default function(component) {
   const {parentElement: root, data, setStateValue, setTriggerValue} = component;
   const dialog = root.querySelector('dialog');
+  // Only localized copy is injected, using textContent (never HTML).
+  // Consent, cookies, collection rules and events retain their original IDs.
+  const t = (key, fallback='') =>
+    (typeof data.labels?.[key] === 'string' && data.labels[key])
+      ? data.labels[key] : fallback;
+  const label = (selector, key) => {
+    const node = root.querySelector(selector);
+    if (node && t(key)) node.textContent = t(key);
+  };
+  for (const [selector,key] of [
+    ['#privacy','open'], ['#privacy-title','welcome'],
+    ['#summary','consent'], ['#privacy-before','reference'],
+    ['#privacy-original-link','original'], ['#privacy-retention','retention'],
+    ['#privacy-city-label','city'], ['#privacy-city-help','city_note'],
+    ['#privacy-details-label','original'], ['#check-connection','check'],
+    ['#reject','reject'], ['#accept','accept'], ['#close','close'],
+  ]) label(selector,key);
   const prefName = 'pricing_consent';
   const visitorName = 'pricing_visitor';
   const read = name => {
@@ -362,19 +383,16 @@ export default function(component) {
   bridge.publish=events=>setStateValue('telemetry_events',events);
   if(!bridge.allowed)bridge.pending=[];
   pricingGoogleAnalytics(data, pref?.choice === 'accepted' && data.enabled, root);
-  root.querySelector('#operator').textContent = 'Operator: '+data.controller+'. Contact: '+data.contact+'.';
-  root.querySelector('#status').textContent = data.enabled ? '' : 'Optional analytics are off. No analytics visitor ID is active. You can use every pricing tool normally.';
+  root.querySelector('#operator').textContent =
+    t('operator','Operator: '+data.controller) + ' ' + t('contact_copy','Contact: '+data.contact);
+  root.querySelector('#status').textContent = data.enabled ? '' : t('off','Optional analytics are off; pricing still works.');
   root.querySelector('#status').hidden = data.enabled;
-  root.querySelector('#delivery').textContent = 'Collection status: '+(data.backend_status || 'pending')+'.';
+  root.querySelector('#delivery').textContent = t('status','Collection status')+': '+(data.backend_status || 'pending')+'.';
   root.querySelector('#consent-info').hidden = !data.enabled;
   root.querySelector('.actions').hidden = !data.enabled;
-  root.querySelector('#geo-short').textContent = data.geo_mode === 'geojs'
-    ? 'After acceptance, GeoJS estimates your city and country; you can correct the city below.'
-    : 'Location is estimated locally from an IP supplied by our host; you can correct the city below.';
+  root.querySelector('#geo-short').textContent = t('sharing','GeoJS may estimate a coarse city after consent.');
   root.querySelector('#accept').disabled = !data.enabled;
-  root.querySelector('#geo-notice').textContent = data.geo_mode === 'geojs'
-    ? 'After acceptance, your browser contacts GeoJS (using MaxMind GeoLite data) to estimate your country/city. GeoJS and its network provider receive your IP through that connection. We keep only country, city and region; the returned IP, coordinates and other fields are discarded. No lookup is made before consent.'
-    : 'After acceptance, a local geolocation database may temporarily process an IP supplied by our hosting provider. No visitor IP is sent to an external geolocation API. Only country, city and region are saved.';
+  root.querySelector('#geo-notice').textContent = t('sharing','Geolocation is used only after consent.');
   const lookup = async () => {
     if (data.geo_mode !== 'geojs') return null;
     try {
@@ -429,7 +447,9 @@ export default function(component) {
         }
       } catch {payload={choice:'rejected',version:data.version};clearIdentity();}
     }
-    root.querySelector('#visitor').textContent=payload.visitor_id ? 'Your analytics visitor ID: '+payload.visitor_id : 'No analytics visitor ID is active.';
+    root.querySelector('#visitor').textContent=payload.visitor_id
+      ? t('visitor','Analytics visitor code')+': '+payload.visitor_id
+      : t('off','No active analytics visitor code.');
     root.querySelector('#check-connection').hidden = !(payload.choice === 'accepted' && data.enabled);
     // A rerender must not create a Python rerun loop.
     const serialized=JSON.stringify(payload);
@@ -447,7 +467,7 @@ export default function(component) {
   root.querySelector('#close').onclick=()=>dialog.close();
   root.querySelector('#check-connection').onclick=()=>{
     if (pref?.choice === 'accepted' && data.enabled) {
-      root.querySelector('#delivery').textContent='Checking collection connection…';
+      root.querySelector('#delivery').textContent=t('status','Collection status')+': …';
       setTriggerValue('check_connection',true);
     }
   };
