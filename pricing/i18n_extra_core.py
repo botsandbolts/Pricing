@@ -14,7 +14,7 @@ EXTRA_LOCALES={
     "bs": "🇧🇦 Bosanski",
     "mk": "🇲🇰 Македонски",
     "is": "🇮🇸 Íslenska",
-    "ca": "🏳️ Català"
+    "ca": "🇦🇩 Català"
 }
 
 def _parse(rows,keys):
