@@ -8,6 +8,7 @@ on:
       - 'pricing/europe_model.py'
       - 'scripts/package_europe_resmlp_overnight.py'
       - 'tests/test_europe_market.py'
+      - 'tests/firefox_europe_e2e.py'
       - '.github/workflows/europe-resmlp-overnight-release.yml'
   workflow_dispatch:
 permissions:
