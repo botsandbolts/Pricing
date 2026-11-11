@@ -5,7 +5,7 @@ Cloud the URL hash can change without scrolling the app's overflow container;
 the bridge asks the actual in-app target to scroll into view.
 No analytics, cookies, external scripts, or model dependencies.
 """
-import streamlit.components.v1 as components
+import streamlit as st
 
 _BRIDGE = r"""
 <script>
@@ -49,4 +49,4 @@ _BRIDGE = r"""
 
 def install():
     """Mount once per Streamlit rerun; the parent document owns one listener."""
-    components.html(_BRIDGE, height=0, scrolling=False)
+    st.iframe(_BRIDGE, height=0, tab_index=-1, alt="Internal calculator navigation bridge")
