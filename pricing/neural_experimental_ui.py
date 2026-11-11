@@ -88,6 +88,16 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
              two_models=False,english_ready=False,international_ready=False,
              english_cvar=8959.62):
     """One unified, keyboard-accessible form. Main pricing has no scan/BART step."""
+    # Set initial values BEFORE creating the widgets. The example picker also
+    # writes these keys, so passing positional defaults as well makes
+    # Streamlit 1.66 emit a widget-state warning and risks stale text.
+    for name, default in (
+        ("year", 2015), ("make", "Toyota"), ("model", "Corolla"),
+        ("mileage", 95000), ("state", "ca"),
+        ("description", "Well maintained. Clean title. New tires."
+         if locale() in ("en-GB","en-US") else ""),
+    ):
+        st.session_state.setdefault(prefix+"_"+name,default)
     with st.form(prefix+"_vehicle",clear_on_submit=False):
         st.markdown("### 🚗 01 / "+tr("form") if focus else
                     "### 🚗 02 / "+tr("form") if compact else
@@ -96,15 +106,14 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             st.caption("No VIN upload, no special instructions and no degree in automotive engineering required. The description is optional for Bid but useful for Ask."
                        if locale() in ("en-GB","en-US") else story("form_intro"))
         a,b,c=st.columns(3)
-        year=a.number_input(field("model_year"),1900,2021,
-                            2015 if prefix+"_year" not in st.session_state else None,
+        year=a.number_input(field("model_year"),min_value=1900,max_value=2021,
                             key=prefix+"_year",persist_state="session")
-        make=b.text_input(tr("make"),"Toyota",key=prefix+"_make",persist_state="session")
-        model=c.text_input(tr("model")+" / trim","Corolla",key=prefix+"_model",persist_state="session")
+        make=b.text_input(tr("make"),key=prefix+"_make",persist_state="session")
+        model=c.text_input(tr("model")+" / trim",key=prefix+"_model",persist_state="session")
         a,b,c=st.columns(3)
-        miles=a.number_input(field("miles"),0,2000000,95000,
+        miles=a.number_input(field("miles"),min_value=0,max_value=2000000,
                              step=1000,key=prefix+"_mileage",persist_state="session")
-        state=b.text_input(field("state"),"ca",max_chars=2,
+        state=b.text_input(field("state"),max_chars=2,
                            key=prefix+"_state",persist_state="session")
         body=c.selectbox(field("body"),[
               "sedan","suv","truck","pickup","hatchback","coupe",
@@ -176,7 +185,6 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             st.markdown("### ✍ 03 / "+("What does the advert say?" if locale() in ("en-GB","en-US") else field("description")) if compact
                         else "#### 02 / "+("The car's entire story" if locale() in ("en-GB","en-US") else field("description")))
             notes=st.text_area(field("description"),
-                "Well maintained. Clean title. New tires." if locale() in ("en-GB","en-US") else "",
                 max_chars=8000,height=125 if compact else 140,
                 key=prefix+"_description",persist_state="session",
                 help=granite_copy(locale())["intro"])
@@ -185,14 +193,14 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             st.caption(granite_copy(locale())["intro"])
             clicked=st.form_submit_button("🌍 "+granite_copy(locale())["cta"],
                 key=prefix+"_calculate_granite",type="primary",
-                disabled=not ready,use_container_width=True)
+                disabled=not ready,width="stretch")
             submitted="granite" if clicked else False
         else:
             clicked=st.form_submit_button(
                 "🚗 "+tr("calculate") if compact else
                 "🌍 "+granite_copy(locale())["cta"],
                 key=prefix+"_calculate_single_tap",
-                type="primary",disabled=not ready,use_container_width=True)
+                type="primary",disabled=not ready,width="stretch")
             submitted="granite" if clicked else False
 
     return fields,notes,submitted
@@ -414,10 +422,33 @@ only when you ask. No model circus required. 🎪🚗
         progress_notice=st.empty()
         progress_notice.info("⏳ One click received. Calculating your Ask and Bid…")
         _valuation_probe("form_submitted")
-        results={"fields":fields,"notes":notes,"date":str(valuation_date),
-                 "ask_choice":choice,
-                 "ask_backend":"granite_aft_only",
-                 "request_id":str(uuid.uuid4())}
+        # A browser may trigger another rerun while the first cold-started
+        # Granite evaluation is still running. Identify *one* exact submitted
+        # request, reuse a successful Ask checkpoint, and avoid double billing,
+        # duplicate database rows and redundant ONNX inference.
+        request_signature=json.dumps({
+            "fields":fields,"notes":notes,"date":str(valuation_date),
+            "auction":str(auction),"grade":grade,
+            "allow_analogue":bool(allow_analogue),"choice":choice
+        },sort_keys=True,separators=(",",":"),default=str)
+        previous=st.session_state.get("experimental_combined_receipt")
+        same_request=bool(previous and
+            previous.get("_request_signature")==request_signature)
+        if same_request:
+            results=dict(previous)
+        else:
+            results={"fields":fields,"notes":notes,"date":str(valuation_date),
+                     "ask_choice":choice,
+                     "ask_backend":"granite_aft_only",
+                     "request_id":str(uuid.uuid4()),
+                     "_request_signature":request_signature}
+        if "ask" in results and "bid" in results:
+            progress_notice.empty()
+            st.info("✅ These exact inputs have already been evaluated. "
+                    "Your results are below; no second inference was needed.")
+        # Preserve partial successes when a later Streamlit rerun interrupts
+        # the script, including after the 10-second initial Granite load.
+        st.session_state["experimental_combined_receipt"]=dict(results)
         try:
             _bound_native_cpu_threads()
             _valuation_probe("torch_cpu_threads_bounded")
@@ -429,7 +460,8 @@ only when you ask. No model circus required. 🎪🚗
             results["ask_error"]="Pricing runtime initialization failed."
             results["bid_error"]="Pricing runtime initialization failed."
             ask_ready=bid_ready=False
-        if chosen_ready:
+        if chosen_ready and "ask" not in results:
+            results.pop("ask_error",None)
             phase="load_checkpoint"
             started=time.monotonic()
             _valuation_probe("ask_checkpoint_start")
@@ -449,6 +481,7 @@ only when you ask. No model circus required. 🎪🚗
                     _valuation_probe("ask_native_forward_start")
                     results["ask"]=model.predict_prepared(fields,prepared)
                     results["ask_embedding"]=prepared["embedding"]
+                    st.session_state["experimental_combined_receipt"]=dict(results)
                     _valuation_probe("ask_native_forward_complete",started)
             except Exception as exc:
                 logging.getLogger("car_price_studio.valuation").exception(
@@ -460,7 +493,8 @@ only when you ask. No model circus required. 🎪🚗
                 st.error("Seller Ask couldn't finish "+phase.replace("_"," ")+
                          ". Your inputs are preserved and Bid can still run. "
                          "Details are in the app's private server log.")
-        if bid_ready:
+        if bid_ready and "bid" not in results:
+            results.pop("bid_error",None)
             phase="build_features"
             started=time.monotonic()
             _valuation_probe("bid_features_start")
@@ -483,6 +517,7 @@ only when you ask. No model circus required. 🎪🚗
                     results["bid_fields"]=bid_fields
                     _valuation_probe("bid_native_forward_complete",started)
                 if analogue:results["bid_analogue"]=analogue
+                st.session_state["experimental_combined_receipt"]=dict(results)
             except Exception as exc:
                 logging.getLogger("car_price_studio.valuation").exception(
                     "Bid valuation failed at phase=%s error_type=%s",
@@ -491,7 +526,7 @@ only when you ask. No model circus required. 🎪🚗
                 st.warning("Wholesale Bid couldn't finish "+phase.replace("_"," ")+
                            ". Ask remains available if it completed. "
                            "Check the private server log for details.")
-        elif "bid_error" not in results:
+        elif not bid_ready and "bid_error" not in results and "bid" not in results:
             results["bid_error"]="Verified wholesale weights are not installed or have failed the parity gate."
         progress_notice.empty()
         st.session_state["experimental_combined_receipt"]=results
@@ -553,7 +588,7 @@ only when you ask. No model circus required. 🎪🚗
                     available_to_explain,format_func=lambda s:labels[s],
                     horizontal=True,key="experimental_explain_market")
                 if st.button("🔍 Explain this price · show real AI feature contributions",
-                             type="primary",use_container_width=True,
+                             type="primary",width="stretch",
                              key="experimental_explain_go"):
                     try:
                         _bound_native_cpu_threads()
