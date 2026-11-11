@@ -543,7 +543,8 @@ only when you ask. No model circus required. 🎪🚗
             st.markdown("### 🔍 04 / Why THAT price? · Your AI price detective")
             st.caption("Right here under your quote. Choose Ask or Bid and "
                        "click Explain; the first quote has zero Captum overhead.")
-            st.info("🧠 "+granite_copy(locale())["intro"])
+            with st.expander("🧠 About the neural engine",expanded=False):
+                st.caption(granite_copy(locale())["intro"])
             available_to_explain=[side for side in ("ask","bid") if side in saved]
             if available_to_explain:
                 labels={"ask":"🪧 Seller Ask","bid":"🔨 Wholesale Bid"}
