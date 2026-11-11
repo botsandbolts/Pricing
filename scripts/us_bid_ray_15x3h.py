@@ -136,7 +136,7 @@ class BidNetwork(nn.Module):
                 nn.Embedding(int(size),rank,padding_idx=0) for size in cards])
             layer = nn.TransformerEncoderLayer(
                 d_model=rank,nhead=4,dim_feedforward=rank*2,
-                dropout=dropout,activation=config["activation"],
+                dropout=dropout,activation=("gelu" if config["activation"]=="gelu" else F.silu),
                 batch_first=True,norm_first=False)
             self.encoder = nn.TransformerEncoder(layer,num_layers=depth)
             self.output_linear = nn.Linear(rank,1)
