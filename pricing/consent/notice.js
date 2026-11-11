@@ -268,7 +268,9 @@ function pricingGoogleAnalytics(data, allowed, root) {
     clearCookies();
     if(state)state.featureConsent=false;
     interactions.consentChanged();
-    status.textContent = (data.labels?.status || 'Collection status') + ': Google Analytics ⛔';
+    status.textContent = data.labels?.status
+      ? data.labels.status + ': Google Analytics ⛔'
+      : 'Google Analytics: off until you accept.';
     return;
   }
   window[flag] = false;
@@ -304,8 +306,11 @@ function pricingGoogleAnalytics(data, allowed, root) {
   state.trackingVersion = '2026_10_30_v4';
   state.featureConsent = data.version === '2026-11-05-v4';
   interactions.consentChanged();
-  status.textContent = (data.labels?.status || 'Collection status') + ': Google Analytics ' +
-    (state.failed ? '⚠' : state.loaded ? '✓' : '…');
+  status.textContent = data.labels?.status
+    ? data.labels.status + ': Google Analytics ' + (state.failed ? '⚠' : state.loaded ? '✓' : '…')
+    : state.failed ? 'Google Analytics: blocked or unavailable; pricing still works.'
+    : state.loaded ? 'Google Analytics: tag loaded after acceptance · panel/action tracking v4.'
+    : 'Google Analytics: requested after acceptance; delivery is not yet confirmed.';
 }
 
 export default function(component) {
