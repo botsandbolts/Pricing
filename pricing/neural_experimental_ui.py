@@ -1,7 +1,7 @@
 """Experimental model workshop: two independent parity-gated neural engines.
 
 Ask: description -> pinned BGE embedding -> entire DeepCross/AFT price model.
-Bid: full-data DeepFM16 (75%) + matched Lemon XGBoost (25%).
+Bid: verified full historical auction cohort, ResMLP and Huber USD.
 Research models are never substituted by the primary calculator's predictions.
 """
 import json
@@ -22,9 +22,6 @@ from pricing.i18n_enums import option_label, option_label_for
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.granite_ask_live import available as granite_available, load as load_granite_ask
 from pricing.bge_overnight_ask_live import available as bge_overnight_available, load as load_bge_overnight
-from pricing.ray_lemon75_ask_live import (
-    available as lemon75_ask_available, load as load_lemon75_ask,
-)
 from pricing.neural_bid_blend_live import available as bid_available
 from pricing.ray_bid_winner_live import available as ray_bid_available, load as load_ray_bid
 from pricing.us_bid_resmlp_live import available as resmlp_bid_available, load as load_resmlp_bid
@@ -200,15 +197,15 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             left,right=st.columns(2)
             with left:
                 st.markdown("**🇬🇧 BGE DeepCross**")
-                st.caption("Our accuracy-first English model. Cleaned historical-validation CVaR95 $"+f"{english_cvar:,.2f}"+"."
-                           if locale() in ("en-GB","en-US") else "BGE · CVaR95 $"+f"{english_cvar:,.2f}"+". "+story("science_notice"))
+                st.caption("Original full-cohort BGE price network. No target-based removals."
+                           if locale() in ("en-GB","en-US") else "BGE · "+story("science_notice"))
                 english_go=st.form_submit_button("🇬🇧 Evaluate in English" if locale() in ("en-GB","en-US") else "🇬🇧 BGE · "+story("us_cta"),
                     key=prefix+"_calculate_english",type="primary",
                     disabled=not english_ready,use_container_width=True)
             with right:
                 st.markdown("**🌍 Granite R2 97M**")
-                st.caption("INT8 ONNX · 200+ pretrained languages, 52 enhanced. Cleaned historical-validation CVaR95 $9,392.76."
-                           if locale() in ("en-GB","en-US") else "INT8 ONNX · Granite R2 97M · CVaR95 $9,392.76. "+story("science_notice"))
+                st.caption("INT8 ONNX · IBM Granite R2 97M · complete-cohort search underway. Not yet deployed."
+                           if locale() in ("en-GB","en-US") else "IBM Granite R2 97M · INT8 ONNX · "+story("science_notice"))
                 multilingual_go=st.form_submit_button("🌍 Evaluate in my language" if locale() in ("en-GB","en-US") else "🌍 Granite · "+story("us_cta"),
                     key=prefix+"_calculate_multilingual",type="primary",
                     disabled=not international_ready,use_container_width=True)
@@ -311,91 +308,14 @@ def _ask(root):
                mime="application/json",key="bge_download")
 
 
-def _bid(root):
-    st.markdown("### 🚘 Wholesale · DeepFM + Lemon XGBoost")
-    st.caption("Historical completed 2014–15 wholesale auction sales, expressed "
-               "in January 2015-indexed dollars. No current-year price guarantee.")
-    from pricing.cvar95_experiment_science import model_kpis,evidence
-    from pricing.cvar95_experiment_science import all_validation
-    kpi=model_kpis(root,"bid") if all_validation(root,"bid") else None
-    d=evidence(root)
-    baseline=next((x for x in d.get("bid",[]) if x.get("model")=="Lemon XGBoost historical baseline"),None)
-    if kpi:
-        a,b,c=st.columns(3)
-        a.metric("🛡️ CVaR95 · PRIMARY","$"+f"{kpi['CVaR95_absolute_USD']:,.0f}")
-        b.metric("RMSE · secondary","$"+f"{kpi['RMSE_USD']:,.0f}")
-        c.metric("MAE · secondary","$"+f"{kpi['MAE_USD']:,.0f}")
-        if baseline:
-            st.caption("Worst 5% average absolute miss reduced by "+
-                       f"{(1-kpi['CVaR95_absolute_USD']/baseline['CVaR95_absolute_USD'])*100:.1f}%"+
-                       " versus matched Lemon XGBoost on 83,603 2015-indexed-dollar auctions.")
-        st.caption("The 75/25 blend was originally selected by validation RMSE; overnight CVaR-first selection is independent.")
-    else:
-        st.info("No verified CVaR95 original wholesale holdout archive is installed.")
-    ready=bid_available(root)
-    if not ready:
-        st.warning("The wholesale DeepFM/XGBoost release has not passed "
-                   "original test prediction parity. It cannot issue an experimental price.")
-        st.markdown("[Inspect bid serving verification](https://github.com/botsandbolts/Pricing/actions/workflows/experimental-two-model-release.yml)")
-    fields,notes,go=_vehicle("deepfm_bid",bid=True,ready=ready)
-    if go:
-        try:
-            from pricing.neural_bid_blend_live import load
-            with st.spinner("Evaluating DeepFM16 and matched Lemon XGBoost…"):
-                result=load(root).predict(fields)
-            st.session_state["deepfm_complete_receipt"]={"fields":fields,"result":result}
-        except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
-            st.session_state.pop("deepfm_complete_receipt",None)
-            st.error("Unable to reproduce historical wholesale valuation: "+str(exc))
-    saved=st.session_state.get("deepfm_complete_receipt") if ready else None
-    if saved:
-        r=saved["result"]
-        _price("Historical wholesale sale · 2015-indexed USD",
-               r["price"],"Not a dealer bid, guaranteed sale, or November 2026 appraisal")
-        a,b=st.columns(2)
-        a.metric("DeepFM16 · 75%","$"+f"{r['deepfm_price']:,.0f}")
-        b.metric("Lemon XGBoost · 25%","$"+f"{r['xgboost_lemon_price']:,.0f}")
-        if r["unrecognized_categories"]:
-            st.info("These features use original unknown-category fallbacks: "+
-                    ", ".join(r["unrecognized_categories"]))
-        st.download_button("Download wholesale research receipt",
-                json.dumps({**r,"vehicle":saved["fields"]},indent=2),
-                file_name="deepfm-experimental-bid.json",
-                mime="application/json",key="deepfm_download")
-
-
 def _explanation(root):
-    st.markdown("### 🥇 The models with fewer nightmare valuation surprises")
-    from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
-    live=lemon_manifest(root)
-    if live:
-        k=live["filtered_validation"]
-        st.write("**Asking:** Today's original Ray Lemon75 DeepCross model "
-                 "reads the BGE description and vehicle attributes. On "+
-                 format(int(k["rows"]),",")+
-                 " retained VALIDATION listings, the model's "
-                 "**CVaR95 was "+_usd(k["CVaR95_absolute_USD"])+
-                 ", MAE "+_usd(k["MAE_USD"])+
-                 " and RMSE "+_usd(k["RMSE_USD"])+
-                 "**. Selection of the retained set uses observed prices.")
-    else:
-        st.write("**Asking:** The Lemon75 DeepCross Ask release is not "
-                 "currently verified. We do not show a different model's "
-                 "historical error as if it belonged to this checkpoint.")
-    st.write("**Wholesale:** A DeepFM network models vehicle-feature "
-             "interactions while Lemon XGBoost provides a separate "
-             "tree-based signal. The wholesale and Ask cohorts differ; "
-             "a separately audited Lemon-filtered Bid TEST report is "
-             "required before making a cleaned-cohort comparison.")
-    st.info("These are historical matched research comparisons, NOT proof that either "
-            "experimental model is superior to the primary calculator for a "
-            "November 2026 car. The primary price pipeline uses a different "
-            "market-date transport and possibly Bayesian residual adjustments.")
+    """CVaR95 documentation, with no outcome-filtered historical comparisons."""
+    st.markdown("### 🧪 CVaR95 · when a valuation misses badly")
+    st.write("CVaR95 is the mean absolute dollar error among the worst 5% "
+             "of an original validation set. MAE and RMSE are reported too. "
+             "Historic Ask and Bid errors are measured on different markets.")
     from pricing.cvar95_experiment_science import render as show_cvar_science
     show_cvar_science(root)
-    st.markdown("[Original CVaR95 audit](https://github.com/botsandbolts/Pricing/blob/main/reports/cvar95/previously-selected/comparison.json)"
-                " · [Full 109-model overnight validation audit](https://github.com/botsandbolts/Pricing/actions/workflows/overnight-cvar95-all-models.yml)")
-
 
 def _apply_example():
     from pricing.description_examples import load_examples, selected_example
@@ -489,7 +409,7 @@ def render(root,*,main=False):
 <p>Seller asking and wholesale auction estimates from the same verified
 models used on our main price calculator.</p>
 <span class="exp-chip">✍ BGE + ResMLP / DeepCross</span>
-<span class="exp-chip">🚘 DeepFM + Lemon XGBoost</span>
+<span class="exp-chip">🚘 ResMLP + robust Huber</span>
 <span class="exp-chip">🛡 CVaR95 · worst 5%</span>
 </section>""",unsafe_allow_html=True)
     from pricing.studio_design import market_guide
@@ -498,17 +418,16 @@ models used on our main price calculator.</p>
     from pricing.cvar95_experiment_science import model_kpis,all_validation
     # One canonical pricing page; the homepage CTA changes only the hash.
     market_guide()
-    from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
     if locale() not in ("en-GB","en-US"):
         st.caption(story("us_pitch"))
-    elif not (granite_available(root) and bge_overnight_available(root)):
-        render_lemon75_launch(root)
     else:
-        st.markdown("### 🏁 9 NOV INTERNATIONAL EDITION · Two verified AI engines")
-        st.caption("🇬🇧 English accuracy champion · BGE DeepCross BOHB  |  "
-                   "🌍 200+ language reach · IBM Granite R2 97M INT8 ONNX. "
-                   "Two buttons, one honest pricing laboratory. Both are retrospective "
-                   "historical estimates, not evidence of any specific vehicle's actual sale.")
+        st.markdown("### 🧰 Full-cohort car valuation laboratory")
+        st.caption("Our published Bid model uses the original unfiltered auction "
+                   "training population. IBM Granite 97M QInt8 ONNX is being "
+                   "trained on all original Ask training listings, with "
+                   "price-independent mileage statistics. It is not yet the "
+                   "production Ask model.")
+
     if main and locale() in ("en-GB","en-US"):
         # Visibility is intentional: Captum itself still runs ONLY on a user
         # click after pricing. A pre-price guide prevents the key feature
@@ -547,18 +466,17 @@ only when you ask. No model circus required. 🎪🚗
         st.caption("Historical, price-redacted car adverts (CC BY 4.0). Choose an example to populate the form, or enter your own car. Picking a car does not automatically submit a valuation." if locale() in ("en-GB","en-US") else story("form_intro"))
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
-    lemon75_ask=lemon75_ask_available(root)
-    ask_bohb=bohb_available(root,"ask")
-    bid_bohb=bohb_available(root,"bid")
+    ask_bohb=False  # Historical archived candidate, not in active routing
+    bid_bohb=False  # Disable legacy blended bid serving
     resmlp_bid_ready=resmlp_bid_available(root)
     ray_bid_ready=ray_bid_available(root)
     ask_champion=champion_ask_available(root)
-    bid_champion=champion_bid_available(root)
-    bge_overnight=bge_overnight_available(root)
-    english_ready=bge_overnight or lemon75_ask or ask_bohb or ask_champion or ask_available(root)
-    international_ready=granite_available(root)
+    bid_champion=False  # Only verified original full-cohort auction models
+    bge_overnight=False  # Retire older outcome-conditioned selection
+    english_ready=ask_champion or ask_available(root)
+    international_ready=False  # Retire older outcome-conditioned Granite head pending new full release
     ask_ready=english_ready or international_ready
-    bid_ready=resmlp_bid_ready or ray_bid_ready or bid_bohb or bid_champion or bid_available(root)
+    bid_ready=resmlp_bid_ready or ray_bid_ready
     valuation_date,allow_analogue=clock_controls(
         prefix="main" if main else "experimental",prominent=main)
     # These historical models and their original data are never retrained by changing the date.
@@ -579,7 +497,7 @@ only when you ask. No model circus required. 🎪🚗
         two_models=main,english_ready=english_ready,
         international_ready=international_ready,
         english_cvar=8740.063663572575 if bge_overnight else 8959.618399982903)
-    choice=go if go in ("bge","granite") else "bge"
+    choice="granite" if go=="granite" and international_ready else "bge"
     chosen_ready=international_ready if choice=="granite" else english_ready
     # The public date picker can predate a particular model year. Reject before
     # expensive BGE inference, and do not retain a stale previous receipt.
@@ -626,7 +544,6 @@ only when you ask. No model circus required. 🎪🚗
                 with st.spinner("🧠 Loading verified "+("Granite INT8 multilingual" if choice=="granite" else "BGE English")+" Ask model…"):
                     model=(load_granite_ask(root) if choice=="granite" else
                            load_bge_overnight(root) if bge_overnight else
-                           load_lemon75_ask(root) if lemon75_ask else
                            load_bohb_ask(root) if ask_bohb else
                            load_champion_ask(root) if ask_champion else ask_load(root))
                     _valuation_probe("ask_checkpoint_complete",started)
@@ -666,11 +583,9 @@ only when you ask. No model circus required. 🎪🚗
                 started=time.monotonic()
                 _valuation_probe("bid_checkpoint_start")
                 with st.spinner("🔨 Running the verified "+("ResMLP · Huber USD" if resmlp_bid_ready else
-                        "non-Lemon Ray DeepFM" if ray_bid_ready else "DeepFM + Lemon XGBoost")+" Bid model…"):
+                        "full-original-cohort Ray DeepFM" if ray_bid_ready else "original auction model")+" Bid model…"):
                     model=(load_resmlp_bid(root) if resmlp_bid_ready else
-                           load_ray_bid(root) if ray_bid_ready else
-                           load_bohb_bid(root) if bid_bohb else
-                           load_champion_bid(root) if bid_champion else bid_load(root))
+                           load_ray_bid(root))
                     _valuation_probe("bid_checkpoint_complete",started)
                     phase="price_head"
                     started=time.monotonic()
@@ -786,7 +701,6 @@ only when you ask. No model circus required. 🎪🚗
                         from pricing.neural_ask_embedding_live import load
                         revised=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
                                   else load_bge_overnight(root) if saved.get("ask_backend")=="overnight"
-                                  else load_lemon75_ask(root) if lemon75_ask
                                  else load_bohb_ask(root) if ask_bohb
                                  else load_champion_ask(root) if ask_champion
                                  else load(root)).predict(alt,saved["fields"])["price"]
@@ -804,7 +718,6 @@ only when you ask. No model circus required. 🎪🚗
                         from pricing.neural_ask_embedding_live import load
                         model=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
                                 else load_bge_overnight(root) if saved.get("ask_backend")=="overnight"
-                                else load_lemon75_ask(root) if lemon75_ask
                                 else load_bohb_ask(root) if ask_bohb
                                 else load_champion_ask(root) if ask_champion else load(root))
                         prepared=({"embedding":saved["ask_embedding"],"raw":saved["notes"]}
@@ -837,214 +750,49 @@ only when you ask. No model circus required. 🎪🚗
     with st.expander("⚙️ Which engines priced this car? · verified model details",expanded=False):
         a,b=st.columns(2)
         with a:
-            st.markdown("**✍ Seller asking · full neural network**")
-            if saved and saved.get("ask_choice")=="granite" and international_ready:
-                st.caption("🌍 GRANITE R2 97M MULTILINGUAL · Published IBM INT8 ONNX CPU "
-                           "encoder with native DeepCross head, stage-3 worker 8. "
-                           "Cleaned historical-validation CVaR95 $9,392.76 on 23,751 cars; "
-                           "cross-language price accuracy requires further testing.")
-            elif saved and saved.get("ask_backend")=="overnight" and bge_overnight:
-                st.caption("🇬🇧 LIVE 9 NOV 2026 BGE DEEPCROSS BOHB · Stage-3 worker 5. "
-                           "Cleaned historical-validation CVaR95 $8,740.06 on "
-                           "23,751 cars. Frozen BGE encoder: validated INT8 ONNX "
-                           "if its separate backend manifest passes; otherwise native.")
-            elif lemon75_ask:
-                st.caption("🍋 LIVE 8 NOV 2026 LEMON EDITION · the exact one-hour Ray-trained DeepCross neural price head, original FP32 PyTorch (no head quantization). Audited Lemon-filtered historical validation on 23,751 listings. Original BGE encoder reused; no fake text-price head.")
-            elif ask_bohb:
-                meta=json.loads((root/"models/neural-bohb-ask/manifest.json").read_text())
-                st.caption("LIVE BOHB WINNER #36 · pinned BGE → 64-dimensional projection → DeepCross/MoE. "
-                           "CVaR95-first, independently replayed on historical validation and test. "
-                           "No MiniLM price head.")
-                st.caption("Native PyTorch price network; shared BGE encoder automatically uses verified ONNX INT8 if installed.")
-            elif ask_champion:
-                st.caption("Earlier research champion: pinned BGE → trainable projection → ResMLP · trial 15. No Ridge or MiniLM price replacement.")
+            st.markdown("**✍ Advertised Ask · original historical training**")
+            if ask_champion:
+                st.caption("Frozen BGE text embeddings and a fully trainable "
+                           "ResMLP head; original chronological listing cohort.")
             else:
-                st.caption("Original BGE text embeddings → complete DeepCross/AFT. No Ridge or MiniLM price replacement.")
-                if ask_ready:st.info("CVaR95 ResMLP challenger is not release-verified; original model remains active.")
-            if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
+                st.caption("Frozen BGE embeddings and the original DeepCross/AFT "
+                           "head, without outcome-conditioned row removal.")
+            if not ask_ready:st.warning("No release-verified original-cohort Ask model is installed.")
         with b:
-            st.markdown("**🔨 Wholesale auction · verified production model**")
+            st.markdown("**🔨 Wholesale auction · complete original cohort**")
             if resmlp_bid_ready:
                 meta=json.loads((root/"models/us-bid-resmlp-20261111/manifest.json").read_text())
                 stats=meta["original_validation"]
-                st.caption(
-                    "🚀 LIVE 11 NOV 2026 · U.S. wholesale ResMLP + Huber USD. "
-                    "New model-specific annual mileage features learned from original "
-                    "training auctions only. No Lemon removal and no blend. "
-                    "ORIGINAL historical validation, {:,} auctions: "
-                    "CVaR95 ${:,.0f} · MAE ${:,.0f} · RMSE ${:,.0f}. "
-                    "2015-indexed dollars—not proof of 2026 market accuracy."
-                    .format(stats["rows"],stats["CVaR95_absolute_USD"],
-                            stats["MAE_USD"],stats["RMSE_USD"]))
+                st.caption("ResMLP + Huber USD; TRAIN-only model-specific mileage. "
+                           "Original validation: CVaR95 USD {:,.0f}, MAE USD {:,.0f}, "
+                           "RMSE USD {:,.0f}, {:,} completed auctions."
+                           .format(stats["CVaR95_absolute_USD"],stats["MAE_USD"],
+                                   stats["RMSE_USD"],stats["rows"]))
             elif ray_bid_ready:
-                meta=json.loads((root/"models/ray-bid-9am-winner/manifest.json").read_text())
-                st.caption(("🚀 LIVE 9 NOV 2026 · non-Lemon DeepFM16, CVaR95-weighted Huber. "
-                           "Original full wholesale TRAIN cohort; NO Lemon exclusions, "
-                           "NO XGBoost blend and NO text encoder. Internal TRAIN CVaR95 "
-                           "USD {:,.2f}; independent original-validation CVaR95 USD {:,.2f}. "
-                           "Internal performance does not establish independent accuracy.")
-                           .format(meta["retrained_internal_CVaR95_USD"],
-                                   meta["original_validation"]["CVaR95_absolute_USD"]))
-            elif bid_bohb:
-                meta=json.loads((root/"models/neural-bohb-bid/manifest.json").read_text())
-                st.caption(f"LIVE BOHB WINNER #116 · {meta['neural_weight']:.0%} structured DeepFM + "
-                           f"{meta['lemon_weight']:.0%} original Lemon XGBoost. "
-                           "Uses structured auction data—not BGE or a text encoder.")
-            elif bid_champion:
-                meta=json.loads((root/"models/neural-experimental-bid-cvar95/manifest.json").read_text())
-                st.caption(f"Earlier research champion: {meta['neural_weight']:.0%} tuned DeepFM16 + {meta['lemon_weight']:.0%} original Lemon XGBoost.")
+                st.caption("Original full-cohort DeepFM; model-native historical wholesale Bid.")
             else:
-                st.caption("Original 75% DeepFM16 + 25% Lemon XGBoost, with historical 2014–2015 auction assumptions.")
-                if bid_ready:st.info("CVaR95 Bid challenger is not release-verified; original model remains active.")
-            if not bid_ready:st.warning("Wholesale model has not passed deployment parity; estimate disabled.")
-        st.caption("Ask is what a seller advertises. Bid is the wholesale auction "
-                   "analogue. The gap is **not** dealer profit; it also spans different "
-                   "types of transactions. One vehicle, two economic questions.")
-    st.markdown("### 🧪 Research notes: how it works, and where it can be wrong")
-    st.caption("Ask: audited Lemon-filtered historical validation, not test. "
-               "Historical outcomes define the excluded 25%, so this "
-               "conditional cohort is not prospective accuracy.")
-    st.caption("Ask training labels are advertised prices; Bid labels "
-               "are completed historical auctions. Their cohorts and "
-               "targets are different. No original TEST score is "
-               "replaced with a validation score.")
-    # The old research ResMLP $19k original TEST is not the live Ask model.
-    # Show only current matched Lemon75 retrospective validation metrics.
-    if saved and saved.get("ask_choice")=="granite" and international_ready:
-        from pricing.granite_ask_live import manifest as granite_manifest
-        meta=granite_manifest(root)
-        with st.expander("🌍 Granite R2 · multilingual cleaned historical VALIDATION",
-                         expanded=True):
-            m=meta["cleaned_validation"]
-            x,y,z=st.columns(3)
-            x.metric("CVaR95 · worst 5%",_usd(m["CVaR95_absolute_USD"]))
-            y.metric("RMSE",_usd(m["RMSE_USD"]))
-            z.metric("MAE",_usd(m["MAE_USD"]))
-            st.caption("23,751 retrospectively Lemon-filtered historical cars. "
-                       "The 25% filter uses observed outcomes, so this score "
-                       "is optimistic for unknown vehicles; multilingual price "
-                       "accuracy has not been validated language by language.")
-    elif saved and saved.get("ask_backend")=="overnight" and bge_overnight:
-        from pricing.bge_overnight_ask_live import manifest as bge_manifest
-        meta=bge_manifest(root)
-        with st.expander("🇬🇧 BGE BOHB · cleaned historical VALIDATION", expanded=True):
-            m=meta["cleaned_validation"]
-            x,y,z=st.columns(3)
-            x.metric("CVaR95 · worst 5%",_usd(m["CVaR95_absolute_USD"]))
-            y.metric("RMSE",_usd(m["RMSE_USD"]))
-            z.metric("MAE",_usd(m["MAE_USD"]))
-            st.caption("23,751 retrospectively Lemon-filtered historical cars. "
-                       "The filter uses observed outcomes, not prospective labels. "
-                       "No original TEST price scores were used to pick this checkpoint.")
-    elif lemon75_ask:
-        from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
-        audit=lemon_manifest(root)
-        metric=audit["filtered_validation"]
-        with st.expander(
-                "✍ Seller asking · Lemon-cleaned 75% historical VALIDATION",
-                expanded=True):
-            x,y,z=st.columns(3)
-            x.metric("CVaR95 · worst 5%",_usd(metric["CVaR95_absolute_USD"]))
-            y.metric("RMSE",_usd(metric["RMSE_USD"]))
-            z.metric("MAE",_usd(metric["MAE_USD"]))
-            st.caption("This live DeepCross model was measured on "+
-                       format(int(metric["rows"]),",")+
-                       " historical VALIDATION listings after the fixed "
-                       "25% Lemon reference filter. This is NOT a TEST "
-                       "result. Because historical observed prices are used "
-                       "for filtering, it is a retrospective, conditional "
-                       "score, optimistic for unknown cars.")
-            # The separate one-time TEST receipt is optional and only shown
-            # after the original historical row identities, checkpoint SHA,
-            # reference residuals and 25% filter pass the CI audit.
-            testpath=(root/"reports/cvar95/lemon75-ask-cleaned-test"/
-                      "report.json")
-            report=_report(root,
-                "reports/cvar95/lemon75-ask-cleaned-test/report.json")
-            test_metric=report.get("filtered_test",{})
-            verified=(
-                testpath.is_file()
-                and report.get("status")=="verified"
-                and report.get("source_run_id")==audit["study_run_id"]
-                and report.get("model_native_sha256")==audit["native_sha256"]
-                and report.get("test_never_used_to_select_hyperparameters") is True
-                and report.get("test_reference_uses_actual_observed_prices") is True
-                and report.get("original_test_rows")==31682
-                and report.get("excluded_test_rows")==7921
-                and report.get("retained_test_rows")==23761
-                and test_metric.get("rows")==23761
-                and all(isinstance(test_metric.get(k),(int,float))
-                        and np.isfinite(test_metric[k])
-                        and test_metric[k]>0 for k in (
-                            "CVaR95_absolute_USD","RMSE_USD","MAE_USD"))
-            )
-            if verified:
-                # Streamlit forbids nesting st.expander inside an expander.
-                # Keep separately-labelled test evidence visible in a supported container.
-                with st.container(border=True):
-                    st.markdown("#### ✍ Independently audited Lemon-cleaned TEST")
-                    a,b,c=st.columns(3)
-                    a.metric("TEST CVaR95 · worst 5%",
-                             _usd(test_metric["CVaR95_absolute_USD"]))
-                    b.metric("TEST RMSE",_usd(test_metric["RMSE_USD"]))
-                    c.metric("TEST MAE",_usd(test_metric["MAE_USD"]))
-                    st.caption("The ORIGINAL historical TEST was scored once "
-                               "after model selection. 7,921 of 31,682 rows "
-                               "were removed using the fixed pre-Lemon "
-                               "reference model; 23,761 remain. Observed "
-                               "test prices determine this conditional "
-                               "retrospective filter, so its score is "
-                               "optimistic for future unknown cars.")
-            else:
-                st.caption("No matched Lemon-cleaned original TEST receipt "
-                           "has been independently verified yet. Older "
-                           "model's test figures are deliberately hidden.")
-    else:
-        st.info("The Lemon75 Ask release has not passed its availability "
-                "gate. Previous-model errors are not a valid substitute.")
-    if bid_champion:
-        d=json.loads((root/"models/neural-experimental-bid-cvar95"/
-                      "manifest.json").read_text())
-        with st.expander("🔨 Wholesale auction · original historical "
-                         "TEST (unfiltered)",expanded=False):
-            k=d["historical_test"]
-            x,y,z=st.columns(3)
-            x.metric("CVaR95 · worst 5%",_usd(k["CVaR95_absolute_USD"]))
-            y.metric("RMSE",_usd(k["RMSE_USD"]))
-            z.metric("MAE",_usd(k["MAE_USD"]))
-            st.caption("Original Bid TEST, not Lemon-filtered; not "
-                       "directly comparable with Ask validation.")
-    with st.expander("🧠 How the new models work · tail-risk research",expanded=False):
-        explain_ask,explain_bid,explain_risk=st.tabs(
-            ["✍ Asking · BGE ResMLP","🔨 Wholesale · DeepFM","🛡️ Risk & limitations"])
-        with explain_ask:
-            st.markdown("**A residual neural network that reads the advert.** "
-                        "The pinned BGE-small encoder maps description text to "
-                        "384 semantic dimensions. A learned projector compresses "
-                        "this vector and residual MLP blocks mix it with the "
-                        "vehicle's mileage, model year and category features. "
-                        "The model predicts a historical *advertised* asking price. "
-                        "No Ridge or MiniLM price head substitutes for the full network.")
-            st.caption("Research winner: Ask25 trial 15 (when its original-test "
-                       "checkpoint passes the separate serving release gate).")
-        with explain_bid:
-            st.markdown("**FM interactions plus an independent XGBoost voice.** "
-                        "DeepFM learns individual effects, feature-pair interactions "
-                        "and a compact nonlinear correction over auction attributes. "
-                        "The complete neural output is blended with the original "
-                        "Lemon-cleaned XGBoost wholesale estimate. The blend weight "
-                        "was selected using VIN-disjoint historical validation.")
-            st.caption("Research winner: Bid hyperparameter trial 18 when verified. "
-                       "Auction label: completed 2014–2015 sale in 2015-indexed USD.")
-        with explain_risk:
-            st.markdown("**CVaR95:** the mean of absolute pricing errors among "
-                        "the largest 5% of misses. It helps identify the models "
-                        "that tend to make fewer costly mistakes; RMSE and MAE "
-                        "remain secondary diagnostics.")
-            st.warning("Both studies use historical training populations. "
-                       "Ask estimates asking prices, Bid predicts auction sales, "
-                       "and date transport to today's dollars is a scenario. "
-                       "Models are NOT validated on November 2026 vehicle sales. "
-                       "Recent model years may be outside the training support.")
+                st.warning("Verified wholesale auction model unavailable.")
+        st.caption("Ask estimates advertised prices; Bid estimates completed "
+                   "2014–15 wholesale sale amounts. Neither is a live purchase offer.")
+
+    st.markdown("### 🧪 Research notes: matched historical populations")
+    st.caption("Ask: 2021 Craigslist advertised prices, full original "
+               "training and validation. Bid: 2014–15 completed wholesale "
+               "auctions, full original training and validation. No "
+               "observed-price-dependent row exclusions in active serving. "
+               "Historical research cannot prove 2026 market accuracy.")
+    if saved and "ask" in saved:
+        st.info("A previous model's score is not substituted for this "
+                "checkpoint's validation. The complete-cohort Granite "
+                "release will publish its own CVaR95, MAE and RMSE after tuning.")
+    with st.expander("🧠 How the new neural models learn",expanded=False):
+        st.markdown("**Asking:** Frozen multilingual or English sentence "
+                    "embeddings enter a trainable price network with vehicle "
+                    "attributes and make/model mileage statistics.")
+        st.markdown("**Bid:** The preferred ResMLP uses Huber-dollar loss "
+                    "and train-only make/model annual mileage.")
+        st.caption("CVaR95 is the worst-five-percent average absolute dollar "
+                   "error. It is not a legal valuation or a guarantee.")
+
     with st.expander("🛡️ Why CVaR95? The business case and the original scientific evidence"):
         _explanation(root)
