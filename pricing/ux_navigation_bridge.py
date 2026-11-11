@@ -48,5 +48,5 @@ _BRIDGE = r"""
 """
 
 def install():
-    """Mount once per Streamlit rerun; the parent document owns one listener."""
-    st.iframe(_BRIDGE, height=0, tab_index=-1, alt="Internal calculator navigation bridge")
+    """Install trusted, first-party JS; the parent document owns one listener."""
+    st.html(_BRIDGE, unsafe_allow_javascript=True)
