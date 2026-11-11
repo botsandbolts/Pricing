@@ -7,6 +7,7 @@ from __future__ import annotations
 import streamlit as st
 from html import escape
 from pricing.i18n import tr, editorial_voice
+from pricing.i18n_story import story, story_html
 
 MARKETS={"us":"🇺🇸 United States","eu":"🇪🇺 Europe"}
 
@@ -45,14 +46,11 @@ def render_market_gateway():
     </style>""",unsafe_allow_html=True)
     # The top-level HTML block must START at column zero. When indented
     # beneath a CSS block, Markdown treats <section> as a literal code block.
-    landing_html="""<section class="cps-globe" aria-label="Choose a vehicle pricing market">
-    <div class="pre">CAR PRICE STUDIO · INTERNATIONAL EDITION</div>
-    <h1>Two continents. One garage. Zero crystal balls.</h1>
-    <p>Independent automotive price research. Select your market;
-       your American and European car details stay separate. No account. No ads.</p>
+    landing_html=f"""<section class="cps-globe" aria-label="{story_html('edition')}">
+    <div class="pre">CAR PRICE STUDIO · {story_html('edition')}</div>
+    <h1>{escape(tr('market_title'))}</h1>
+    <p>{escape(tr('market_intro'))}</p>
     </section>"""
-    landing_html=landing_html.replace("Two continents. One garage. Zero crystal balls.",escape(tr("market_title")))
-    landing_html=landing_html.replace("Independent automotive price research. Select your market;\n       your American and European car details stay separate. No account. No ads.",escape(tr("market_intro")))
     st.markdown(landing_html,unsafe_allow_html=True)
     headline, invitation = editorial_voice()
     st.markdown('<div class="cps-market-card" role="note"><b>'+escape(headline)+'</b>'
@@ -60,22 +58,20 @@ def render_market_gateway():
                 unsafe_allow_html=True)
     left,right=st.columns(2,gap="medium")
     with left:
-        st.markdown('<div class="cps-market-card"><b>🇺🇸 United States</b>'
-                    '<small>American seller Ask + historical wholesale Bid. '
-                    'The original tools and models stay right where they belong.</small></div>',
+        st.markdown('<div class="cps-market-card"><b>🇺🇸 '+story_html("us_name")+'</b>'
+                    '<small>'+story_html("us_desc")+'</small></div>',
                     unsafe_allow_html=True)
         if st.button("🇺🇸 "+("✓ " if selected=="us" else "")+tr("open_us"),
                      key="cps_market_us",use_container_width=True,
                      type="primary" if selected=="us" else "secondary"):
             _choose("us")
     with right:
-        st.markdown('<div class="cps-market-card"><b>🇪🇺 Europe</b>'
-                    '<small>European advertised asking prices in euros. '
-                    'Country-aware details, explainable AI and scientific checks. No Bid.</small></div>',
+        st.markdown('<div class="cps-market-card"><b>🇪🇺 '+story_html("eu_name")+'</b>'
+                    '<small>'+story_html("eu_desc")+'</small></div>',
                     unsafe_allow_html=True)
         if st.button("🇪🇺 "+("✓ " if selected=="eu" else "")+tr("open_eu"),
                      key="cps_market_eu",use_container_width=True,
                      type="primary" if selected=="eu" else "secondary"):
             _choose("eu")
-    st.caption("Market and language are independent. Estimates are research predictions, not sale guarantees.")
+    st.caption(story("disclaimer"))
     return selected
