@@ -52,3 +52,15 @@ def test_real_eu_route_translates_header_and_core_input_labels():
     assert "Merk" in labels
     assert "Jaar eerste toelating" in labels
     assert "Kilometerstand (km)" in labels
+
+
+def test_dutch_european_science_panel_is_accessible_without_nested_expanders():
+    at = run_market("eu")
+    nav = next(x for x in at.selectbox if x.key == "eu_workspace_selector_v2")
+    nav.set_value("🔬 The science").run()
+    assert not at.exception
+    research = next(x for x in at.checkbox if x.key == "cps_eu_research_english_🔬 The science")
+    assert "Engels" in research.label or "Engelse" in research.label
+    research.check().run()
+    assert not at.exception
+    assert next(x for x in at.selectbox if x.key == "eu_workspace_selector_v2").value == "🔬 The science"
