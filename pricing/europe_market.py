@@ -13,7 +13,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.i18n import tr, editorial_voice, localized_panel, format_eur, localized_country
+from pricing.i18n import tr, editorial_voice, localized_panel, format_eur, localized_country, locale
+from pricing.i18n_story import story, story_html
+from pricing.i18n_fields import field
+from pricing.i18n_enums import option_label
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -97,6 +100,8 @@ def _css():
 
 def _parody_banner():
     """European-only independent satire, safely outside US pricing routes."""
+    if locale() != "de":
+        return  # Original German-language satire is shown only in German UI.
     artwork=Path(__file__).resolve().parent.parent/"assets"/"europe_parody_split_blue_orange.svg"
     if not artwork.is_file():
         return  # Missing decorative art must never block the valuation calculator.
@@ -116,6 +121,17 @@ def _parody_banner():
 def _header():
     _parody_banner()
     local_headline, local_invitation = editorial_voice()
+    if locale() not in ("en-GB", "en-US"):
+        st.markdown(f"""<section class="eu-hero" aria-label="{story_html('eu_name')}">
+          <div class="eu-kicker">🇪🇺 CAR PRICE STUDIO · {story_html('edition')}</div>
+          <h1>{story_html('eu_hero')}</h1>
+          <p>{story_html('eu_pitch')}</p>
+          <p><strong>{escape(local_headline)}</strong> {escape(local_invitation)}</p>
+          <div class="eu-tags"><span>🇩🇪 Made in Germany</span>
+          <span>📊 {story_html('independent')}</span></div></section>""",
+          unsafe_allow_html=True)
+        st.caption(story("science_notice"))
+        return
     st.markdown("### "+escape(local_headline))
     st.caption(local_invitation)
     st.caption("🌐 "+tr("market_intro"))
@@ -159,14 +175,22 @@ def _edit_vehicle(schema):
     """Persistent European facts; no US mile/state fields or model assumptions."""
     values=_choices(schema)
     st.markdown("### 🚘 01 / "+tr("form"))
-    st.caption("European conventions: km, horsepower, registration year and euro asking prices. "
-               "Unknown specifications stay unknown.")
-    st.info("📅 **October 2026 observed market reference** · The selected "
+    if locale() in ("en-GB","en-US"):
+        st.caption("European conventions: km, horsepower, registration year and euro asking prices. Unknown specifications stay unknown.")
+    else:
+        st.caption(field("form_help")+" · km · €")
+    market_reference=("📅 **October 2026 observed market reference** · The selected "
             "HOFM3 was trained on asking prices verified 4–15 October 2026 "
             "(median 13 October). The separately generated November-indexed "
             "column was **not** its training target. No additional Eurostat "
             "adjustment is applied. Monthly market trends remain in the "
             "research panel.")
+    if locale() in ("en-GB","en-US"):
+        st.info(market_reference)
+    else:
+        st.caption("📅 HOFM3 · 4–15.10.2026 · "+story("science_notice"))
+        with st.expander("🔬 "+story("science_notice")):
+            st.info(market_reference)
     with st.form("eu_ask_form",clear_on_submit=False):
         a,b,c=st.columns(3)
         country=a.selectbox(tr("country")+" · 8",COUNTRY_OPTIONS,
@@ -190,27 +214,27 @@ def _edit_vehicle(schema):
         power=a.number_input(tr("power"),min_value=20,max_value=1200,
                              value=110,key="eu_hp")
         fuel=b.selectbox(tr("fuel"),values("fuel",["petrol","diesel","electric","hybrid"]),
-                         key="eu_fuel")
+                         key="eu_fuel",format_func=option_label)
         transmission=c.selectbox(tr("transmission"),values("transmission",["manual","automatic"]),
-                                 key="eu_transmission")
-        with st.expander("🔧 Optional vehicle and advert details"):
+                                 key="eu_transmission",format_func=option_label)
+        with st.expander("🔧 "+field("optional")):
             a,b,c=st.columns(3)
-            body=a.selectbox("Body style",["__missing__"]+values("body_type",[]),
-                             key="eu_body")
-            drive=b.selectbox("Drivetrain",["__missing__"]+values("drive_type",[]),
-                              key="eu_drive")
-            color=c.selectbox("Colour",["__missing__"]+values("color",[]),
-                              key="eu_color")
+            body=a.selectbox(field("body"),["__missing__"]+values("body_type",[]),
+                             key="eu_body",format_func=option_label)
+            drive=b.selectbox(field("drive"),["__missing__"]+values("drive_type",[]),
+                              key="eu_drive",format_func=option_label)
+            color=c.selectbox(field("color"),["__missing__"]+values("color",[]),
+                              key="eu_color",format_func=option_label)
             a,b,c=st.columns(3)
-            trim=a.text_input("Version / trim (optional)",key="eu_trim")
-            city=b.text_input("Seller city (optional)",key="eu_city")
-            source=c.selectbox("Listing platform (optional)",
+            trim=a.text_input(field("trim"),key="eu_trim")
+            city=b.text_input(field("city"),key="eu_city")
+            source=c.selectbox(field("platform"),
                  ["__missing__"]+values("source_site",[]),key="eu_source")
             a,b,c=st.columns(3)
-            doors=a.number_input("Doors",0,8,5,key="eu_doors")
-            seats=b.number_input("Seats",0,12,5,key="eu_seats")
-            accident=c.selectbox("Accident-free status",["Not stated","Yes","No"],
-                                 key="eu_accident")
+            doors=a.number_input(field("doors"),0,8,5,key="eu_doors")
+            seats=b.number_input(field("seats"),0,12,5,key="eu_seats")
+            accident=c.selectbox(field("accident"),["Not stated","Yes","No"],
+                                 key="eu_accident",format_func=lambda v:"—" if v=="Not stated" else option_label(v))
         submitted=st.form_submit_button("🇪🇺 "+tr("calculate"),
                    type="primary",use_container_width=True,disabled=schema is None)
     vehicle={
@@ -237,8 +261,8 @@ def _edit_vehicle(schema):
                     "clock":{"status":"built_in_recent_market","factor":1.0},
                     "market":"Europe","engine":"HOFM3 Tail-MAE · October 2026 evidence",
                 }
-                st.success("HOFM3 valuation calculated. No second date adjustment; "
-                           "advertised ASK, not a completed sale.")
+                st.success("HOFM3 valuation calculated. No second date adjustment; advertised ASK, not a completed sale."
+                           if locale() in ("en-GB","en-US") else "✅ "+field("quote")+" · "+story("disclaimer"))
             except (ValueError,EuropeanModelUnavailable,RuntimeError) as exc:
                 st.error("Valuation unavailable: "+str(exc))
     return vehicle
@@ -250,16 +274,17 @@ def _receipt(bundle):
         quote=None
         st.info("European neural model upgraded. Recalculate to refresh your receipt.")
     if not quote:
-        st.info("Your European asking-price receipt will appear here after valuation.")
+        st.info("Your European asking-price receipt will appear here after valuation."
+                if locale() in ("en-GB","en-US") else "€ "+field("quote")+" · "+story("form_intro"))
         return None
-    st.markdown('<div class="eu-result"><small>EUROPEAN ADVERTISED ASK · EUR</small>'
+    st.markdown('<div class="eu-result"><small>'+escape(field("quote"))+' · EUR</small>'
                 '<strong>'+escape(money(quote["price_eur"]))+'</strong>'
                 '<p>HOFM3 · Tail-MAE · October 2026 observed ASK</p>'
                 '</div>',unsafe_allow_html=True)
-    st.caption("Trained on observed October 4–15, 2026 asking prices "
-               "(reference October 13). **No additional Eurostat factor** "
-               "is applied. This is not a verified November 2026 "
-               "market price or completed sale; mileage is your input.")
+    if locale() in ("en-GB","en-US"):
+        st.caption("Trained on observed October 4–15, 2026 asking prices (reference October 13). **No additional Eurostat factor** is applied. This is not a verified November 2026 market price or completed sale; mileage is your input.")
+    else:
+        st.caption("HOFM3 · 4–15.10.2026 · "+story("disclaimer"))
     pilot=lookup_pulse(read_pulse(),quote["vehicle"].get("seller_country"),
                        quote["vehicle"].get("make"),quote["vehicle"].get("model"))
     if pilot:
@@ -278,8 +303,8 @@ def _receipt(bundle):
                        ". **Not applied** to your price. A two-month comparison "
                        "is not a validated make/model price index, and cannot be "
                        "extrapolated into future months.")
-    st.caption("An advertised asking-price estimate, not evidence of a completed sale "
-               "or a customs, insurance, taxation or financing decision.")
+    st.caption("An advertised asking-price estimate, not evidence of a completed sale or a customs, insurance, taxation or financing decision."
+               if locale() in ("en-GB","en-US") else story("disclaimer"))
     test=bundle[2]["overall_champion"]["test_once"] if bundle else {}
     if test:
         a,b,c=st.columns(3)
@@ -348,6 +373,14 @@ def _comparables(table,vehicle):
 
 def _how_it_works():
     """A compact, responsive graphic designed for ordinary car owners."""
+    if locale() not in ("en-GB", "en-US"):
+        st.markdown('<div class="eu-steps"><div class="eu-step"><b>① '+
+                    story_html("form_intro")+'</b></div><div class="eu-arrow">›</div>'+
+                    '<div class="eu-step"><b>② '+story_html("eu_pitch")+
+                    '</b></div><div class="eu-arrow">›</div>'+
+                    '<div class="eu-step"><b>③ '+story_html("submit_tip")+
+                    '</b></div></div>',unsafe_allow_html=True)
+        return
     st.markdown("""<div class="eu-steps" aria-label="How the European ASK valuation works">
        <div class="eu-step"><b>① Tell us about the car</b><span>Model, age,
          kilometres, power, country and optional equipment</span></div>
@@ -366,26 +399,25 @@ def _valuation_page(bundle,error):
     st.markdown("### 🧮 "+tr("calculate"))
     _how_it_works()
     if bundle is None:
-        st.warning("The rank-1 model is undergoing reproducibility and package verification. "
-                   "The calculator is gated; no fabricated or substitute prices will be shown.")
+        st.warning("The rank-1 model is undergoing reproducibility and package verification. The calculator is gated; no fabricated or substitute prices will be shown."
+                   if locale() in ("en-GB","en-US") else "⚠️ "+story("science_notice"))
         st.caption(error or "Trained weights and vocabulary must be published together.")
     vehicle=_edit_vehicle(bundle[1] if bundle else None)
     quote=_receipt(bundle)
-    with st.expander("📚 Comparable European adverts · inspect the evidence",expanded=True):
+    with st.expander("📚 "+field("compare"),expanded=locale() in ("en-GB","en-US")):
         _comparables(_market_table(),quote["vehicle"] if quote else vehicle)
     _feedback(quote)
 
 def _feedback(quote):
     if quote is None:
         return
-    st.markdown("### ⭐ Was this asking-price estimate useful?")
+    st.markdown("### ⭐ "+field("feedback_title"))
     with st.form("eu_feedback_form"):
-        rating=st.radio("Rate the estimate",[
-             "1 · Catastrophic","2 · Poor","3 · Good","4 · Excellent"
-        ],index=None,horizontal=True)
-        consent=st.checkbox("I agree to submit this rating and broad car facts, "
-                            "without my description, VIN, address or contact details.")
-        submit=st.form_submit_button("Send European feedback")
+        rating=st.radio(field("feedback_title"),["1","2","3","4"],
+            index=None,horizontal=True,
+            format_func=lambda v: {"1":"1 💥","2":"2 😬","3":"3 👍","4":"4 🏆"}[v])
+        consent=st.checkbox(field("feedback_consent"))
+        submit=st.form_submit_button(field("feedback_submit"))
     if submit:
         if not consent or rating is None:
             st.warning("Please choose a rating and explicitly agree before submitting.")
@@ -1038,6 +1070,9 @@ def render():
                  format_func=localized_panel,
                  key="eu_workspace_selector_v2",
                  help="Choose any European research panel. Your previous ASK receipt persists.")
+    if tab!="🚗 Price my car" and locale() not in ("en-GB","en-US"):
+        st.info(story("science_notice"))
+        # This notice does not interrupt access to any research panel.
     if tab=="🚗 Price my car":
         _valuation_page(bundle,error)
     elif tab=="🔎 Listing Inspector":
@@ -1069,7 +1104,14 @@ def render():
     elif tab=="🚦 Pick your garage":
         _garage_choices()
     st.divider()
-    st.caption("🇩🇪 Independently built in Hamburg · No registration · No ads · "
-        "Asking prices only · [Open-source code](https://github.com/botsandbolts/Pricing) · "
-        "[Dataset and attribution]("+DATASET+") · "
-        "[Privacy policy](?legal=privacy) · [Imprint](?legal=imprint)")
+    if locale() in ("en-GB","en-US"):
+        st.caption("🇩🇪 Independently built in Hamburg · No registration · No ads · "
+            "Asking prices only · [Open-source code](https://github.com/botsandbolts/Pricing) · "
+            "[Dataset and attribution]("+DATASET+") · "
+            "[Privacy policy](?legal=privacy) · [Imprint](?legal=imprint)")
+    else:
+        st.caption("🇩🇪 Made in Germany · "+story("independent")+" · "+
+            "[ⓘ](?legal=imprint) · [🛡️](?legal=privacy) · "+
+            "["+story("source")+"](https://github.com/botsandbolts/Pricing) · "+
+            "[📊]("+DATASET+")")
+        st.caption(story("science_notice"))

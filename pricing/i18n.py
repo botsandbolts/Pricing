@@ -346,9 +346,10 @@ def render_language_selector() -> str:
     if st.session_state.get("cps_locale_select") != current:
         st.session_state["cps_locale_select"] = current
     _, right = st.columns([2.4, 1], gap="small")
+    from pricing.i18n_story import story
     with right:
         st.selectbox(
-            "🌐 Language / Sprache / Langue",
+            "🌐 "+story("picker"),
             tuple(LOCALES),
             key="cps_locale_select",
             format_func=lambda code: LOCALES[code],

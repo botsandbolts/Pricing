@@ -14,7 +14,10 @@ from html import escape
 import numpy as np
 import pandas as pd
 import streamlit as st
-from pricing.i18n import tr
+from pricing.i18n import tr, locale
+from pricing.i18n_story import story
+from pricing.i18n_fields import field
+from pricing.i18n_enums import option_label
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.granite_ask_live import available as granite_available, load as load_granite_ask
 from pricing.bge_overnight_ask_live import available as bge_overnight_available, load as load_bge_overnight
@@ -102,30 +105,29 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
                     "### 🚗 02 / "+tr("form") if compact else
                     "#### 01 / "+tr("form"))
         if compact:
-            st.caption("No VIN upload, no special instructions and no degree in "
-                       "automotive engineering required. The description is optional "
-                       "for Bid but useful for Ask.")
+            st.caption("No VIN upload, no special instructions and no degree in automotive engineering required. The description is optional for Bid but useful for Ask."
+                       if locale() in ("en-GB","en-US") else story("form_intro"))
         a,b,c=st.columns(3)
-        year=a.number_input("Model year",1900,2021,2015,key=prefix+"_year",persist_state="session")
+        year=a.number_input(field("model_year"),1900,2021,2015,key=prefix+"_year",persist_state="session")
         make=b.text_input(tr("make"),"Toyota",key=prefix+"_make",persist_state="session")
         model=c.text_input(tr("model")+" / trim","Corolla",key=prefix+"_model",persist_state="session")
         a,b,c=st.columns(3)
-        miles=a.number_input("Mileage (miles)",0,2000000,95000,
+        miles=a.number_input(field("miles"),0,2000000,95000,
                              step=1000,key=prefix+"_mileage",persist_state="session")
-        state=b.text_input("US state code","ca",max_chars=2,
+        state=b.text_input(field("state"),"ca",max_chars=2,
                            key=prefix+"_state",persist_state="session")
-        body=c.selectbox("Body style",[
+        body=c.selectbox(field("body"),[
               "sedan","suv","truck","pickup","hatchback","coupe",
               "wagon","van","convertible","other","unknown"],
-              key=prefix+"_body",persist_state="session")
+              key=prefix+"_body",persist_state="session",format_func=option_label)
         if compact:
-            st.caption("Three useful facts; everything else is recorded as "
-                       "'unknown', not guessed.")
+            st.caption("Three useful facts; everything else is recorded as 'unknown', not guessed."
+                       if locale() in ("en-GB","en-US") else field("form_help"))
             a,b,d=st.columns(3)
-            condition=a.selectbox("Condition",[
+            condition=a.selectbox(field("condition"),[
                 "unknown","good","excellent","fair","like new","new","salvage"],
-                key=prefix+"_condition",persist_state="session")
-            title=b.selectbox("Title status",[
+                key=prefix+"_condition",persist_state="session",format_func=option_label)
+            title=b.selectbox(field("title"),[
                 "unknown","clean","rebuilt","salvage","lien","missing","parts only"],
                 key=prefix+"_title",persist_state="session")
             transmission=d.selectbox(tr("transmission"),[
@@ -136,28 +138,28 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             cylinders=st.session_state.get(prefix+"_cylinders","unknown")
             paint=st.session_state.get(prefix+"_paint","unknown")
         else:
-            with st.expander("Optional condition, engine and ownership facts"):
+            with st.expander(field("optional")):
                 a,b,d=st.columns(3)
                 condition=a.selectbox("Condition",[
                     "good","excellent","fair","like new","new","salvage","unknown"],
-                    key=prefix+"_condition",persist_state="session")
+                    key=prefix+"_condition",persist_state="session",format_func=option_label)
                 fuel=b.selectbox(tr("fuel"),[
                     "gas","diesel","hybrid","electric","other","unknown"],
-                    key=prefix+"_fuel",persist_state="session")
+                    key=prefix+"_fuel",persist_state="session",format_func=option_label)
                 transmission=d.selectbox("Transmission",[
                     "automatic","manual","other","unknown"],
-                    key=prefix+"_transmission",persist_state="session")
+                    key=prefix+"_transmission",persist_state="session",format_func=option_label)
                 a,b,d=st.columns(3)
-                drive=a.selectbox("Drivetrain",[
+                drive=a.selectbox(field("drive"),[
                     "fwd","rwd","4wd","unknown"],key=prefix+"_drive",persist_state="session")
-                title=b.selectbox("Title",[
+                title=b.selectbox(field("title"),[
                     "clean","rebuilt","salvage","lien","missing","parts only","unknown"],
                     key=prefix+"_title",persist_state="session")
                 cylinders=d.selectbox("Cylinders",[
                     "4 cylinders","6 cylinders","8 cylinders",
                     "3 cylinders","5 cylinders","unknown"],
                     key=prefix+"_cylinders",persist_state="session")
-                paint=a.selectbox("Paint",[
+                paint=a.selectbox(field("color"),[
                     "silver","white","black","grey","blue","red","green",
                     "brown","other","unknown"],key=prefix+"_paint",persist_state="session")
         fields={"year":int(year),"manufacturer":make,"model":model,
@@ -181,10 +183,10 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             fields["auction_grade"]=grade
             notes=""
         else:
-            st.markdown("### ✍ 03 / What does the advert say?" if compact
-                        else "#### 02 / The car's entire story")
-            notes=st.text_area("Seller's description",
-                "Well maintained. Clean title. New tires.",
+            st.markdown("### ✍ 03 / "+("What does the advert say?" if locale() in ("en-GB","en-US") else field("description")) if compact
+                        else "#### 02 / "+("The car's entire story" if locale() in ("en-GB","en-US") else field("description")))
+            notes=st.text_area(field("description"),
+                "Well maintained. Clean title. New tires." if locale() in ("en-GB","en-US") else "",
                 max_chars=8000,height=125 if compact else 140,
                 key=prefix+"_description",persist_state="session",
                 help="The original BGE text encoder interprets the advert. "
@@ -193,16 +195,17 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             st.markdown("### 🧠 04 / Pick your AI engine · one click, one valuation")
             left,right=st.columns(2)
             with left:
-                st.markdown("**🇬🇧 English precision · BGE DeepCross**")
-                st.caption("Our accuracy-first English model. Cleaned historical-validation CVaR95 $"+f"{english_cvar:,.2f}"+".")
-                english_go=st.form_submit_button("🇬🇧 Evaluate in English",
+                st.markdown("**🇬🇧 BGE DeepCross**")
+                st.caption("Our accuracy-first English model. Cleaned historical-validation CVaR95 $"+f"{english_cvar:,.2f}"+"."
+                           if locale() in ("en-GB","en-US") else "BGE · CVaR95 $"+f"{english_cvar:,.2f}"+". "+story("science_notice"))
+                english_go=st.form_submit_button("🇬🇧 Evaluate in English" if locale() in ("en-GB","en-US") else "🇬🇧 BGE · "+story("us_cta"),
                     key=prefix+"_calculate_english",type="primary",
                     disabled=not english_ready,use_container_width=True)
             with right:
-                st.markdown("**🌍 International · Granite R2 97M**")
-                st.caption("INT8 ONNX · 200+ pretrained languages, 52 enhanced. "
-                           "Cleaned historical-validation CVaR95 $9,392.76.")
-                multilingual_go=st.form_submit_button("🌍 Evaluate in my language",
+                st.markdown("**🌍 Granite R2 97M**")
+                st.caption("INT8 ONNX · 200+ pretrained languages, 52 enhanced. Cleaned historical-validation CVaR95 $9,392.76."
+                           if locale() in ("en-GB","en-US") else "INT8 ONNX · Granite R2 97M · CVaR95 $9,392.76. "+story("science_notice"))
+                multilingual_go=st.form_submit_button("🌍 Evaluate in my language" if locale() in ("en-GB","en-US") else "🌍 Granite · "+story("us_cta"),
                     key=prefix+"_calculate_multilingual",type="primary",
                     disabled=not international_ready,use_container_width=True)
             submitted="bge" if english_go else "granite" if multilingual_go else False
@@ -493,7 +496,9 @@ models used on our main price calculator.</p>
     # One canonical pricing page; the homepage CTA changes only the hash.
     market_guide()
     from pricing.ray_lemon75_ask_ui import render as render_lemon75_launch
-    if not (granite_available(root) and bge_overnight_available(root)):
+    if locale() not in ("en-GB","en-US"):
+        st.caption(story("us_pitch"))
+    elif not (granite_available(root) and bge_overnight_available(root)):
         render_lemon75_launch(root)
     else:
         st.markdown("### 🏁 9 NOV INTERNATIONAL EDITION · Two verified AI engines")
@@ -501,7 +506,7 @@ models used on our main price calculator.</p>
                    "🌍 200+ language reach · IBM Granite R2 97M INT8 ONNX. "
                    "Two buttons, one honest pricing laboratory. Both are retrospective "
                    "historical estimates, not evidence of any specific vehicle's actual sale.")
-    if main:
+    if main and locale() in ("en-GB","en-US"):
         # Visibility is intentional: Captum itself still runs ONLY on a user
         # click after pricing. A pre-price guide prevents the key feature
         # disappearing beyond the fold for mobile and first-time visitors.
@@ -521,22 +526,22 @@ panel directly under your price results. The AI explains itself
 only when you ask. No model circus required. 🎪🚗
 </div></section>
 """,unsafe_allow_html=True)
+    if main and locale() not in ("en-GB","en-US"):
+        st.caption("🔬 "+story("submit_tip"))
     # Real anchor target for the homepage's gold call-to-action.
     # Placed directly above the editable pricing form, not on a dead route.
     if main:
         st.markdown('<div id="studio-calculator" tabindex="-1"></div>',
                     unsafe_allow_html=True)
     examples=load_examples()
-    st.markdown("### 🚗 01 / Start with an example—or your own car")
+    st.markdown("### 🚗 01 / "+("Start with an example—or your own car" if locale() in ("en-GB","en-US") else story("form_intro")))
     if examples:
         st.selectbox(
-            f"Search {len(examples):,} real, price-redacted car adverts",
+            (f"Search {len(examples):,} real, price-redacted car adverts" if locale() in ("en-GB","en-US") else field("compare")),
             range(len(examples)+1),key="experimental_example",persist_state="session",
-            format_func=lambda i:"Write my own listing" if i==0 else examples[i-1]["label"],
+            format_func=lambda i:("Write my own listing" if locale() in ("en-GB","en-US") else story("form_intro")) if i==0 else examples[i-1]["label"],
             on_change=_apply_example)
-        st.caption("Historical, price-redacted car adverts (CC BY 4.0). "
-                   "Choose an example to populate the form, or enter your own car. "
-                   "Picking a car does not automatically submit a valuation.")
+        st.caption("Historical, price-redacted car adverts (CC BY 4.0). Choose an example to populate the form, or enter your own car. Picking a car does not automatically submit a valuation." if locale() in ("en-GB","en-US") else story("form_intro"))
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
     lemon75_ask=lemon75_ask_available(root)
@@ -559,7 +564,7 @@ only when you ask. No model circus required. 🎪🚗
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
-    with st.expander("🔨 Historical wholesale auction reference · advanced",expanded=False):
+    with st.expander("🔨 Historical wholesale auction reference · advanced" if locale() in ("en-GB","en-US") else field("optional"),expanded=False):
         auction=st.date_input("Original auction date (2014–2015)",
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
             max_value=pd.Timestamp("2015-12-31").date(),key="experiment_joint_auction")
@@ -682,10 +687,10 @@ only when you ask. No model circus required. 🎪🚗
         st.session_state["experimental_combined_receipt"]=results
         _valuation_probe("receipt_saved")
         if "ask" in results or "bid" in results:
-            st.success("✅ Calculation complete. Your prices are below.")
+            st.success("✅ Calculation complete. Your prices are below." if locale() in ("en-GB","en-US") else field("quote"))
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
-        st.markdown("### 💵 Your car · estimated prices")
+        st.markdown("### 💵 "+("Your car · estimated prices" if locale() in ("en-GB","en-US") else field("quote")))
         prices={};adjusted={}
         columns=st.columns(2)
         for col,side,label in zip(columns,("ask","bid"),("Seller asking","Wholesale auction")):
@@ -723,7 +728,7 @@ only when you ask. No model circus required. 🎪🚗
                       _usd(prices["ask"]-prices["bid"]))
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
         if main and prices.get("ask") and saved.get("request_id"):
-            st.markdown("### ⭐ Your verdict: was our AI valuation accurate?")
+            st.markdown("### ⭐ "+("Your verdict: was our AI valuation accurate?" if locale() in ("en-GB","en-US") else field("feedback_title")))
             st.caption("The price detective needs human witnesses too. "
                        "Please compare the estimate with what you know about your car.")
             key=str(saved["request_id"])
@@ -736,12 +741,10 @@ only when you ask. No model circus required. 🎪🚗
                         format_func=lambda n:{1:"1 · Catastrophic 💥",2:"2 · Poor 😬",
                             3:"3 · Good 👍",4:"4 · Excellent 🏆"}[n],
                         key="rating_"+key)
-                    permission=st.checkbox("I agree to save my rating, "
-                        "basic car details and both price estimates. "
-                        "No seller story, IP address, VIN or contact details.",
+                    permission=st.checkbox(("I agree to save my rating, basic car details and both price estimates. No seller story, IP address, VIN or contact details." if locale() in ("en-GB","en-US") else field("feedback_consent")),
                         key="feedback_permission_"+key)
                     submitted=st.form_submit_button(
-                        "📮 Send accuracy feedback",type="primary")
+                        "📮 "+("Send accuracy feedback" if locale() in ("en-GB","en-US") else field("feedback_submit")),type="primary")
                 if submitted:
                     from pricing.analytics import record_accuracy_feedback
                     if score is None:

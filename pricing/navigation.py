@@ -1,6 +1,7 @@
 """Single landing-page navigation, including callback and shared-link routing."""
 import streamlit as st
-from pricing.i18n import tr, localized_panel
+from pricing.i18n import tr, localized_panel, locale
+from pricing.i18n_story import story, story_html
 PAGES=['🚗 Price my car','🔎 Listing Inspector','🚦 Pick your garage','↔ Two-market garage','📅 Value over time','🧠 The science','📊 Evaluation','🧪 Model lab','🕵️ Deal Detective','🧹 Outlier lab','🏪 Merchant lens']
 def prepare_navigation_state():
     pending=st.session_state.pop('_navigate_to',None)
@@ -21,7 +22,12 @@ def prepare_navigation_state():
 def render_navigation():
     prepare_navigation_state()
     st.markdown('<div id="studio-workspace" tabindex="-1"></div>',unsafe_allow_html=True)
-    st.markdown('<div class="garage-nav-heading"><strong>Choose a panel</strong><span>Tap a panel to open it.</span></div>',unsafe_allow_html=True)
+    if locale() in ("en-GB","en-US"):
+        st.markdown('<div class="garage-nav-heading"><strong>Choose a panel</strong><span>Tap a panel to open it.</span></div>',unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="garage-nav-heading"><strong>'+story_html("us_cta")+
+                    '</strong><span>'+story_html("submit_tip")+'</span></div>',
+                    unsafe_allow_html=True)
     page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed',persist_state='session',
                  format_func=localized_panel) or PAGES[0]
     st.session_state['studio_tabs']=page
@@ -34,6 +40,9 @@ def render_navigation():
            '📅 Value over time':'Take the long view · Explore how the same car’s price scenario changes.',
            '🧠 The science':'Under the bonnet · Methods, assumptions and what the models can tell you.',
            '🏪 Merchant lens':'Dealer-level context and merchant comparisons.'}
-    st.markdown('<div class="garage-route-note">'+escape(notes.get(page,'The curious corner · Explore the models, evidence and historical comparisons.'))+'</div>',unsafe_allow_html=True)
+    if locale() in ("en-GB","en-US"):
+        st.markdown('<div class="garage-route-note">'+escape(notes.get(page,'The curious corner · Explore the models, evidence and historical comparisons.'))+'</div>',unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="garage-route-note">'+story_html("form_intro")+'</div>',unsafe_allow_html=True)
     return page
 
