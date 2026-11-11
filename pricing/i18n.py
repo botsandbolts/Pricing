@@ -206,9 +206,14 @@ if set(COUNTRY_CATALOGS) != set(LOCALES):
     raise ValueError("Country localization is incomplete")
 
 
-def localized_country(country_code: str) -> str:
+def localized_country_for(locale_code: str, country_code: str) -> str:
+    """Pure formatter: pins the locale for Streamlit widget serialization."""
     key = str(country_code).strip().lower()
-    return COUNTRY_CATALOGS[locale()].get(key, country_code)
+    return COUNTRY_CATALOGS.get(locale_code, COUNTRY_CATALOGS["en-GB"]).get(key, country_code)
+
+
+def localized_country(country_code: str) -> str:
+    return localized_country_for(locale(), country_code)
 
 
 # Navigation labels are translated at display time; underlying route IDs remain
@@ -273,12 +278,16 @@ _PANEL_ROUTE_KEYS = {
 }
 
 
-def localized_panel(route: str) -> str:
-    """Translate only a displayed route label. Never translate routing keys."""
+def localized_panel_for(locale_code: str, route: str) -> str:
+    """Pure formatter: preserve stable widget labels across reruns."""
     key = _PANEL_ROUTE_KEYS.get(route)
     if not key:
         return route
-    return route.split(" ", 1)[0] + " " + PANEL_CATALOGS[locale()][key]
+    return route.split(" ", 1)[0] + " " + PANEL_CATALOGS.get(locale_code,PANEL_CATALOGS["en-GB"])[key]
+
+
+def localized_panel(route: str) -> str:
+    return localized_panel_for(locale(),route)
 
 
 # This script runs in the same origin as the Streamlit page, not a sandboxed
