@@ -2,6 +2,8 @@
 from html import escape
 from pathlib import Path
 import streamlit as st
+from pricing.i18n import locale
+from pricing.i18n_story import a11y
 
 
 def install():
@@ -11,14 +13,14 @@ def install():
     if st.session_state.get('a11y_high_contrast'):
         css+='\n'+(Path(__file__).resolve().parents[1]/'assets/high-contrast.css').read_text()
     st.markdown('<style>'+css+'</style>',unsafe_allow_html=True)
-    st.markdown('<a class="garage-skip-link" href="#studio-workspace">Skip to panels and tools</a>',unsafe_allow_html=True)
+    st.markdown('<a class="garage-skip-link" href="#studio-workspace">'+escape(a11y("skip"))+'</a>',unsafe_allow_html=True)
 
 
 def reading_options():
-    with st.expander('Reading options',expanded=False):
-        st.checkbox('Larger text',key='a11y_larger_text',persist_state='session')
-        st.checkbox('Higher contrast',key='a11y_high_contrast',persist_state='session')
-        st.caption('These settings apply throughout this session. You can also use browser zoom. Tab moves between controls; arrow keys move within a rating or panel group; Enter or Space activates buttons.')
+    with st.expander(a11y("reading"),expanded=False):
+        st.checkbox(a11y("larger"),key='a11y_larger_text',persist_state='session')
+        st.checkbox(a11y("contrast"),key='a11y_high_contrast',persist_state='session')
+        st.caption("These settings apply throughout this session. You can also use browser zoom. Tab moves between controls; arrow keys move within a rating or panel group; Enter or Space activates buttons." if locale() in ("en-GB","en-US") else a11y("help"))
 
 
 def announce(message):
