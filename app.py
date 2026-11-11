@@ -105,9 +105,12 @@ render_hero()
 # The Bid announcement sits above the older release bulletin on the calculator
 # only; neither the hero CTA nor the calculator's one-tap anchor is modified.
 if st.session_state.get('landing_studio_workspace') == '🚗 Price my car':
-    if locale() in ("en-GB","en-US"):
-        from pricing.bid_launch_announcement import banner_html as _bid_launch_banner
-        st.markdown(_bid_launch_banner(), unsafe_allow_html=True)
+    # Run the verified U.S. bid banner in the selected language (all 36).
+    # The banner itself fails closed if the released weights are not present.
+    from pricing.bid_launch_announcement import banner_html as _bid_launch_banner
+    _banner = _bid_launch_banner()
+    if _banner:
+        st.markdown(_banner, unsafe_allow_html=True)
 if locale() in ("en-GB","en-US"):
     st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
 else:
