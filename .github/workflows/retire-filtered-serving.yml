@@ -1,0 +1,85 @@
+name: Retire legacy price-filtered serving and promotion · full-cohort only
+on:
+  push:
+    branches: [experiment/us-ask-granite-int8-full-ray-4h-20261111]
+    paths: ['.github/workflows/retire-filtered-serving.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  audit-and-promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Compile active calculator, metric docs and 36-locale Bid launch
+        run: |
+          python -m compileall -q app.py \
+            pricing/neural_experimental_ui.py \
+            pricing/cvar95_experiment_science.py \
+            pricing/bid_launch_announcement.py
+          python - <<'PY'
+          from pathlib import Path
+          import ast
+          files=('app.py','pricing/neural_experimental_ui.py',
+                 'pricing/cvar95_experiment_science.py',
+                 'pricing/bid_launch_announcement.py')
+          for name in files:
+              code=Path(name).read_text()
+              ast.parse(code)
+              assert 'lemon' not in code.lower(), name+' still includes a retired filter'
+          ui=Path('pricing/neural_experimental_ui.py').read_text()
+          assert 'bid_ready=resmlp_bid_ready or ray_bid_ready' in ui
+          assert 'english_ready=ask_champion or ask_available(root)' in ui
+          assert 'international_ready=False' in ui, 'Retire old filtered multilingual checkpoint'
+          assert 'load_resmlp_bid(root) if resmlp_bid_ready' in ui
+          print('RETIRED_LEGACY_UI_STATIC_CONTRACTS_PASS',files,flush=True)
+          PY
+      - name: Promote active UI only, preserving immutable research archives and new training workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES=(
+            app.py
+            pricing/neural_experimental_ui.py
+            pricing/cvar95_experiment_science.py
+            pricing/bid_launch_announcement.py
+          )
+          ORIGIN="$RUNNER_TEMP/retired-ui-release"
+          mkdir -p "$ORIGIN/pricing"
+          for name in "${{FILES[@]}}"; do cp "$name" "$ORIGIN/$name"; done
+          BASE_SHA="$(git rev-parse HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for try in 1 2 3; do
+            git fetch origin main
+            UPSTREAM="$(git rev-parse origin/main)"
+            MERGE_BASE="$(git merge-base "$BASE_SHA" "$UPSTREAM")"
+            CONFLICTS="$(git diff --name-only "$MERGE_BASE" "$UPSTREAM" -- "${{FILES[@]}}")"
+            if [[ -n "$CONFLICTS" ]]; then
+              printf 'Active UI changed on main; refusing to replace concurrent edits:\n%s\n' "$CONFLICTS"
+              exit 1
+            fi
+            git reset --hard "$UPSTREAM"
+            for name in "${{FILES[@]}}"; do cp "$ORIGIN/$name" "$name"; done
+            git add "${{FILES[@]}}"
+            if git diff --cached --quiet; then
+              echo "Identical audited UI already on main"
+              exit 0
+            fi
+            git commit -m "Retire outcome-filtered model choices and research claims from active UI"
+            if git push origin HEAD:main; then
+              echo "FILTERED_SERVING_UI_RETIRED_MAIN_COMMIT $(git rev-parse HEAD)"
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
