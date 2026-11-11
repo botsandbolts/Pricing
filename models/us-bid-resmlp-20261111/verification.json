@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "source_workflow_run": 42998336606,
+  "original_validation_rows": 82380,
+  "validation_prediction_parity_passed": true,
+  "validation_sampled_rows": 128,
+  "validation_sample_max_abs_usd": 0.010481382425496122,
+  "training_numeric_feature_parity_passed": true,
+  "no_test_scoring": true,
+  "serving_schema": "8_num_10_cat",
+  "production_modified": false
+}
