@@ -1,4 +1,4 @@
-"""European HOFM3 release regression tests: exact schema and safe inference."""
+"""European overnight ResMLP release regression tests: exact schema and safe inference."""
 from __future__ import annotations
 
 import json
@@ -13,7 +13,7 @@ from pricing.europe_model import (CATEGORICAL, FEATURES, FEATURE_TYPES, NUMERIC,
     batch_estimate, explain)
 
 ROOT=Path(__file__).resolve().parents[1]
-MODEL=ROOT/"models"/"europe-hofm3"
+MODEL=ROOT/"models"/"europe-resmlp-overnight"
 
 
 def fixture_schema():
@@ -65,7 +65,7 @@ def test_core_us_routes_are_unchanged():
 def test_neural_provenance_fails_closed_without_weights(tmp_path):
     with pytest.raises(EuropeanModelUnavailable):
         load_bundle(tmp_path)
-    assert estimate.__module__=="pricing.europe_hofm3"
+    assert estimate.__module__=="pricing.europe_resmlp_overnight"
 
 
 def test_verified_release_with_real_weights():
@@ -73,9 +73,12 @@ def test_verified_release_with_real_weights():
         pytest.skip("Production weights are downloaded in release workflow")
     model,schema,comp=load_bundle()
     top=comp["overall_champion"]
-    assert top["origin"]=="eu-nov26-neural-13"
-    assert top["architecture"]=="hofm3"
-    assert top["loss"]=="tail_mae_eur"
+    assert top["origin"]=="eu-overnight-20261111-wave1-0"
+    assert top["architecture"]=="resmlp"
+    assert top["loss"]=="weighted_tail_huber"
+    assert top["neural_epoch"]==76
+    assert comp["compared_models"]==30
+    assert comp["all_trial_count"]==971
     assert comp["test_rows"]==192046
     assert top["test_once"]["cvar95_absolute_eur"]<22000
     assert top["test_once"]["mae_eur"]<3200
@@ -83,7 +86,7 @@ def test_verified_release_with_real_weights():
     assert set(schema["category_vocabulary"]["seller_country"])==set("de fr nl be at es it pl".split())
     assert schema["automatic_eurostat_adjustment"] is False
     assert schema["source_training_target"]=="original_price_eur"
-    assert schema["source_run_id"]==42873011193
+    assert schema["source_run_id"]==42892216866
     assert (MODEL/"release_manifest.json").is_file()
     options=schema["category_vocabulary"]
     car=vehicle()
@@ -93,8 +96,8 @@ def test_verified_release_with_real_weights():
     one=estimate(car,bundle=(model,schema,comp))
     two=batch_estimate([car,car],bundle=(model,schema,comp))
     assert 100<=one<=1000000 and np.isfinite(one)
-    # PyTorch float32 matrix kernels may differ by a few cents between batch sizes.
-    assert np.allclose(two,[one,one],rtol=0,atol=0.05)
+    # GEMM kernels differ slightly by batch size under float32. Cent-level tolerance.
+    assert np.allclose(two,[one,one],rtol=0,atol=0.08)
     scenarios=explain(car,bundle=(model,schema,comp))
     assert scenarios and all(np.isfinite(change) for _,change in scenarios)
     assert len(scenarios)>=2
@@ -106,6 +109,8 @@ def test_europe_calculator_never_reapplies_eurostat():
     assert "eurostat_adjusted_quote(" not in form
     assert "adjusted_quote(" not in form
     assert '"status":"built_in_recent_market"' in form
+    assert 'ResMLP Weighted Tail-Huber · October 2026 evidence' in source
+    assert 'HOFM3 Tail-MAE · October 2026 evidence' not in form
     assert 'COUNTRY_OPTIONS' in form
     assert "eu_country_v2" in form
     assert "st.date_input(" not in form

@@ -1,0 +1,30 @@
+{
+  "verified": true,
+  "source_run_id": 42892216866,
+  "checkpoint_sha256": "cbefb8795a1a7c0d1b62f4a42312e560cde384cca0833c18a459d2bb5d5387b7",
+  "observed_ask_rows": 1920996,
+  "training_rows": 1536801,
+  "validation_rows": 192149,
+  "test_rows": 192046,
+  "iso2_countries": [
+    "at",
+    "be",
+    "de",
+    "es",
+    "fr",
+    "it",
+    "nl",
+    "pl"
+  ],
+  "exact_saved_train_feature_and_label_rows": 1536801,
+  "input_and_forward_parity_samples": 30,
+  "snapshot_date": "2026-10-13",
+  "market_aggregates": 23952,
+  "validation_cvar95_eur": 20345.063082146306,
+  "validation_mae_eur": 2896.445401380864,
+  "validation_rmse_eur": 10913.4916648826,
+  "sealed_test_cvar95_eur": 19699.840779838494,
+  "sealed_test_mae_eur": 2874.7831181488177,
+  "sealed_test_rmse_eur": 8283.470994260117,
+  "no_synthetic_time_adjustment": true
+}

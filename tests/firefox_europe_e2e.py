@@ -44,16 +44,19 @@ def navigate_europe_panel(page,label):
         print("EU_NAV_DOM",picker.evaluate("(n)=>n.outerHTML.slice(0,5000)"),flush=True)
         control=picker
     control.click(timeout=10000)
-    option=page.get_by_role("option",name=label,exact=True)
-    if option.count():
-        option.first.click(timeout=10000)
-        return
-    text=page.get_by_text(label,exact=True)
-    if text.count():
-        text.last.click(timeout=10000)
-        return
-    print("EU_NAV_DOM",picker.evaluate("(n)=>n.outerHTML.slice(0,5000)"),flush=True)
-    raise AssertionError("Navigation option not found after opening: "+label)
+    # The displayed labels are translated, but the order and route IDs are
+    # stable. Select the canonical option index rather than relying on emoji
+    # and UK/US spelling ("indices" versus "indexes", "garage" vs "dealership").
+    nav_ids=(
+        "🚗 Price my car","🔎 Listing Inspector","📉 Value over time",
+        "📈 Price Indices","📊 Evaluation","🧪 Model lab","🔬 The science",
+        "🕵️ Deal Detective","🧹 Outlier lab","🌍 Market intelligence",
+        "🏪 Merchant lens","🚦 Pick your garage",
+    )
+    index=nav_ids.index(label)
+    options=page.get_by_role("option")
+    expect(options).to_have_count(len(nav_ids),timeout=10000)
+    options.nth(index).click(timeout=10000)
 
 def test_device(browser,device,width,height):
     page=browser.new_page(viewport={"width":width,"height":height},
@@ -65,42 +68,40 @@ def test_device(browser,device,width,height):
     # HTML hero as literal source text / an empty code block.
     international=page.locator(".cps-globe h1")
     expect(international).to_be_visible(timeout=120000)
-    expect(international).to_have_text("Two continents. One garage. Zero crystal balls.")
+    expect(international).to_have_text("Two continents. One garage.")
     assert '<section class="cps-globe"' not in page.locator("body").inner_text()
-    # Production banner must be visible ABOVE the European market hero, never on US.
-    banner=page.locator(".st-key-eu_parody_banner")
-    expect(banner).to_be_visible(timeout=120000)
-    artwork=banner.locator("img").first
-    expect(artwork).to_be_visible(timeout=30000)
-    alt=artwork.get_attribute("alt") or ""
-    for term in ("NICHT", "wirksufendeinaito", "WKDA", "Autohero", "AUTO1"):
-        assert term in alt, f"Missing requested accessible text: {term}"
-    page.wait_for_function("""() => {
-        const img=document.querySelector(".st-key-eu_parody_banner img");
-        return img && img.complete;
-    }""",timeout=30000)
-    loaded=artwork.evaluate("(img) => ({w:img.naturalWidth,h:img.naturalHeight,src:img.currentSrc})")
-    assert loaded["w"]>500 and loaded["h"]>100, f"Banner asset did not render: {loaded}"
-    banner_y=banner.bounding_box()["y"]
-    hero_y=page.locator(".eu-hero").bounding_box()["y"]
-    assert banner_y<hero_y, "European satire must be above European hero"
+    # The satirical advertising banner is German-only by design. English
+    # browser sessions must not display the German parody or its legal copy.
+    assert page.locator(".st-key-eu_parody_banner").count()==0, \
+        "German-only parody is leaking into the English European calculator"
     expect(page.get_by_text("From Hamburg to Rome.",exact=False)).to_be_visible(timeout=120000)
-    expect(page.get_by_text("European Asking Price Lab",exact=False)).to_be_visible(timeout=90000)
+    expect(page.get_by_text("Tell us about your car",exact=False)).to_be_visible(timeout=90000)
     expect(page.locator(".eu-hero")).to_contain_text("European")
     expect(page.locator(".eu-steps .eu-step")).to_have_count(3,timeout=90000)
-    assert page.get_by_role("button",name=re.compile("Calculate European asking price")).count()==1
-    expect(page.get_by_text("Country · eight supported markets")).to_be_visible(timeout=90000)
+    assert page.get_by_role("button",name=re.compile("Calculate asking price")).count()==1
+    expect(page.get_by_role("combobox",name="Country · 8")).to_be_visible(timeout=90000)
+    # Verify the browser-visible country selector has precisely the eight
+    # canonical trained markets, not legacy aliases or unsupported Switzerland.
+    country=page.get_by_role("combobox",name="Country · 8")
+    country.click(timeout=15000)
+    options=page.get_by_role("option")
+    expect(options).to_have_count(8,timeout=15000)
+    country_names=set(options.all_inner_texts())
+    assert country_names=={"Germany","France","Netherlands","Belgium",
+                           "Austria","Spain","Italy","Poland"},country_names
+    options.first.click(timeout=15000)
     diagnose(page,device+"-landing")
     model=page.get_by_role("textbox",name="Model",exact=True)
     if model.count():
         model.fill("golf")
-    button=page.get_by_role("button",name=re.compile("Calculate European asking price"))
+    button=page.get_by_role("button",name=re.compile("Calculate asking price"))
     assert button.is_enabled(), "Release is not model-ready"
     button.click(timeout=30000)
     expect(page.locator(".eu-result strong")).to_be_visible(timeout=180000)
     content=page.locator(".eu-result strong").inner_text()
     assert "€" in content and len(content)>2
     expect(page.locator(".eu-result")).to_contain_text("ASK")
+    expect(page.locator(".eu-result")).to_contain_text("ResMLP")
     explain=page.get_by_role("button",name=re.compile("What moves this price"))
     expect(explain).to_be_enabled()
     explain.click(timeout=30000)
@@ -109,10 +110,10 @@ def test_device(browser,device,width,height):
     expect(bars).to_have_count(4,timeout=90000)
     widths=page.locator(".eu-impact-graph .eu-impact-bar").evaluate_all(
         "(els) => els.map(el => el.getBoundingClientRect().width)")
-    assert any(w>4 for w in widths), "HOFM3 price-impact graphics are empty"
+    assert any(w>4 for w in widths), "ResMLP price-impact graphics are empty"
     assert page.locator('[data-testid="stException"]').count()==0
     diagnose(page,device+"-valuation")
-    # Exercise European panels with the HOFM3 recent-market receipt in memory.
+    # Exercise European panels with the ResMLP recent-market receipt in memory.
     # One broken panel must not hide failures in the rest of the application.
     expected={
         "🔎 Listing Inspector":"Listing Inspector",

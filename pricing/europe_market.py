@@ -25,7 +25,7 @@ from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
 from pricing.europe_price_clock import adjusted_quote, read_index, level_at, month_number, month_label
 from pricing.europe_eurostat import (eurostat_level_at, read_eurostat)
-from pricing.europe_hofm3 import SUPPORTED_COUNTRIES, ROOT as HOFM3_ROOT
+from pricing.europe_resmlp_overnight import SUPPORTED_COUNTRIES, ROOT as RESMLP_ROOT
 from pricing.europe_model_pulse import read_pulse,lookup_pulse
 from pricing.europe_bayesian_state_space import model_scenario_series
 
@@ -157,7 +157,7 @@ def _bundle():
 
 @st.cache_data(show_spinner=False,ttl=7200)
 def _market_table():
-    file=HOFM3_ROOT/"market_stats.csv.gz"
+    file=RESMLP_ROOT/"market_stats.csv.gz"
     if not file.is_file():file=ROOT/"market_stats.csv.gz"
     if not file.is_file():
         return pd.DataFrame()
@@ -183,7 +183,7 @@ def _edit_vehicle(schema):
     else:
         st.caption(field("form_help")+" · km · €")
     market_reference=("📅 **October 2026 observed market reference** · The selected "
-            "HOFM3 was trained on asking prices verified 4–15 October 2026 "
+            "ResMLP was trained on asking prices verified 4–15 October 2026 "
             "(median 13 October). The separately generated November-indexed "
             "column was **not** its training target. No additional Eurostat "
             "adjustment is applied. Monthly market trends remain in the "
@@ -191,7 +191,7 @@ def _edit_vehicle(schema):
     if locale() in ("en-GB","en-US"):
         st.info(market_reference)
     else:
-        st.caption("📅 HOFM3 · 4–15.10.2026 · "+story("science_notice"))
+        st.caption("📅 ResMLP · 4–15.10.2026 · "+story("science_notice"))
         with st.expander("🔬 "+story("science_notice")):
             st.info(market_reference)
     with st.form("eu_ask_form",clear_on_submit=False):
@@ -262,9 +262,9 @@ def _edit_vehicle(schema):
                     "vehicle":vehicle,"price_eur":price,"base_price_eur":price,
                     "snapshot":snapshot,"selected_date":snapshot,
                     "clock":{"status":"built_in_recent_market","factor":1.0},
-                    "market":"Europe","engine":"HOFM3 Tail-MAE · October 2026 evidence",
+                    "market":"Europe","engine":"ResMLP Weighted Tail-Huber · October 2026 evidence",
                 }
-                st.success("HOFM3 valuation calculated. No second date adjustment; advertised ASK, not a completed sale."
+                st.success("ResMLP valuation calculated. No second date adjustment; advertised ASK, not a completed sale."
                            if locale() in ("en-GB","en-US") else "✅ "+field("quote")+" · "+story("disclaimer"))
             except (ValueError,EuropeanModelUnavailable,RuntimeError) as exc:
                 st.error("Valuation unavailable: "+str(exc))
@@ -272,7 +272,7 @@ def _edit_vehicle(schema):
 
 def _receipt(bundle):
     quote=st.session_state.get("eu_receipt")
-    if quote and quote.get("engine")!="HOFM3 Tail-MAE · October 2026 evidence":
+    if quote and quote.get("engine")!="ResMLP Weighted Tail-Huber · October 2026 evidence":
         st.session_state.pop("eu_receipt",None)
         quote=None
         st.info("European neural model upgraded. Recalculate to refresh your receipt.")
@@ -282,12 +282,12 @@ def _receipt(bundle):
         return None
     st.markdown('<div class="eu-result"><small>'+escape(field("quote"))+' · EUR</small>'
                 '<strong>'+escape(money(quote["price_eur"]))+'</strong>'
-                '<p>HOFM3 · Tail-MAE · October 2026 observed ASK</p>'
+                '<p>ResMLP · Weighted Tail-Huber · October 2026 observed ASK</p>'
                 '</div>',unsafe_allow_html=True)
     if locale() in ("en-GB","en-US"):
         st.caption("Trained on observed October 4–15, 2026 asking prices (reference October 13). **No additional Eurostat factor** is applied. This is not a verified November 2026 market price or completed sale; mileage is your input.")
     else:
-        st.caption("HOFM3 · 4–15.10.2026 · "+story("disclaimer"))
+        st.caption("ResMLP · 4–15.10.2026 · "+story("disclaimer"))
     pilot=lookup_pulse(read_pulse(),quote["vehicle"].get("seller_country"),
                        quote["vehicle"].get("make"),quote["vehicle"].get("model"))
     if pilot:
@@ -495,7 +495,7 @@ def _forensic(quote):
                 "This is not a confidence interval or fraud classifier.")
     report={"market":"European advertised ASK","valuation_eur":model,
             "listing_ask_eur":observed,"difference_eur":diff,
-            "model":"HOFM3 Tail-MAE · fresh European ASK CVaR95 winner",
+            "model":"ResMLP Weighted Tail-Huber · overnight CVaR95 finalist",
             "vehicle":{k:v for k,v in quote["vehicle"].items()
                        if k not in ("seller_city","version")},
             "limitations":"Not a sale price, validated personal interval, customs ruling, or fraud finding"}
@@ -525,7 +525,7 @@ def _evaluation(bundle):
         # Both held-out groups were computed on exactly the same frozen dataset.
         if old["counts"]["test"]==comp["test_rows"] and old["counts"]["validation"]==comp["validation_rows"]:
             chart=pd.DataFrame({
-                "New HOFM3":[champion["validation"]["cvar95_absolute_eur"],
+                "New ResMLP":[champion["validation"]["cvar95_absolute_eur"],
                               champion["test_once"]["cvar95_absolute_eur"]],
                 "Previous XGBoost":[previous["validation"]["cvar95_absolute_eur"],
                                     previous["test_once"]["cvar95_absolute_eur"]],
@@ -535,9 +535,9 @@ def _evaluation(bundle):
             bars=[]
             for name in chart.index:
                 bars.append('<div class="eu-benchmark-group"><b>'+escape(str(name))+'</b>')
-                for label in ("New HOFM3","Previous XGBoost"):
+                for label in ("New ResMLP","Previous XGBoost"):
                     value=float(chart.loc[name,label])
-                    tone="eu-impact-up" if label=="New HOFM3" else "eu-impact-reference"
+                    tone="eu-impact-up" if label=="New ResMLP" else "eu-impact-reference"
                     width=100.*value/max_error
                     bars.append('<div class="eu-benchmark-row"><span>'+escape(label)+'</span>'
                         '<div class="eu-impact-track"><div class="eu-impact-bar '+tone+
@@ -551,6 +551,14 @@ def _evaluation(bundle):
             old_error=previous["test_once"]["cvar95_absolute_eur"]
             st.success(f"The new neural engine reduced worst-5% average test errors by "
                        f"{(old_error-new)/old_error*100:.1f}% versus the previous XGBoost model.")
+    deployed_reference=comp.get("deployed_hofm3_validation_reference") or {}
+    if deployed_reference.get("cvar95_absolute_eur") is not None:
+        new_cvar=float(champion["validation"]["cvar95_absolute_eur"])
+        old_cvar=float(deployed_reference["cvar95_absolute_eur"])
+        st.caption(f"Compared with the previous HOFM3 on exactly the same validation "
+                   f"cohort: ResMLP CVaR95 €{new_cvar:,.0f}; HOFM3 €{old_cvar:,.0f}. "
+                   "ResMLP is being served by explicit release choice; its slightly "
+                   "higher validation CVaR95 is disclosed, not hidden.")
     st.caption("CVaR95 is the mean absolute error in the worst 5% of examples. "
                "The candidate was selected on validation; the test was scored once.")
     st.warning("Scores differ by model, market and car type. They do not promise "
@@ -562,8 +570,9 @@ def _evaluation(bundle):
 
 def _model_lab(bundle):
     st.markdown("### 🧪 Ray Tune model lab · five neural architectures")
-    st.caption("One November-2026 refresh: 15 Ray workers, five architectures and "
-               "30 loss functions. Rankings use CVaR95 on genuine recent asking prices.")
+    st.caption("Overnight 11 November 2026: 30 worker-level winners from "
+               "971 valid trials, five neural families, 30 training losses "
+               "and epoch budgets up to 150. CVaR95 ranks validation quality.")
     if bundle is None:
         st.info("Model research details unlock when verified weights are available.")
         return
@@ -589,15 +598,15 @@ def _science(bundle):
     _how_it_works()
     st.markdown("""**Why a neural network?** A used car's features interact. An extra
     20,000 km may mean something quite different for a young electric hatchback
-    and an older high-performance saloon. HOFM3 learns these combinations
+    and an older high-performance saloon. ResMLP learns these combinations
     from real European listing patterns, rather than assuming a fixed deduction.
 
-    **What is HOFM3?** Higher-Order Factorization Machines combine embeddings,
-    pairwise and third-order interactions with a residual network. This
-    winner has two residual blocks and 32-dimensional embeddings.
+    **What is ResMLP?** A Residual Multilayer Perceptron combines category
+    embeddings and normalized numeric features. Three residual blocks,
+    256 hidden units and 16-dimensional embeddings model interactions.
 
     **Why focus on the worst cases?** Big mistakes can be expensive even when
-    the average estimate looks good. The Tail-MAE objective and validation
+    the average estimate looks good. The Weighted Tail-Huber objective and validation
     CVaR95 selection favour models with smaller extreme euro mistakes.
 
     **What did we train on?** Approximately two million European car ads.
@@ -614,7 +623,7 @@ def _science(bundle):
         ") · CC BY-NC-SA 4.0. Car Price Studio software is separately MIT-licensed.")
     if bundle:
         winner=bundle[2]["overall_champion"]
-        st.info(f"Selected: HOFM3 with Tail-MAE; sealed-test MAE "
+        st.info(f"Selected: ResMLP with Weighted Tail-Huber; sealed-test MAE "
                 f"{money(winner['test_once']['mae_eur'])}; worst-5% average "
                 f"error {money(winner['test_once']['cvar95_absolute_eur'])}.")
 
