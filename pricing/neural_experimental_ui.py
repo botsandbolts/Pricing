@@ -506,7 +506,7 @@ models used on our main price calculator.</p>
                    "🌍 200+ language reach · IBM Granite R2 97M INT8 ONNX. "
                    "Two buttons, one honest pricing laboratory. Both are retrospective "
                    "historical estimates, not evidence of any specific vehicle's actual sale.")
-    if main:
+    if main and locale() in ("en-GB","en-US"):
         # Visibility is intentional: Captum itself still runs ONLY on a user
         # click after pricing. A pre-price guide prevents the key feature
         # disappearing beyond the fold for mobile and first-time visitors.
@@ -526,6 +526,8 @@ panel directly under your price results. The AI explains itself
 only when you ask. No model circus required. 🎪🚗
 </div></section>
 """,unsafe_allow_html=True)
+    if main and locale() not in ("en-GB","en-US"):
+        st.caption("🔬 "+story("submit_tip"))
     # Real anchor target for the homepage's gold call-to-action.
     # Placed directly above the editable pricing form, not on a dead route.
     if main:
@@ -539,9 +541,7 @@ only when you ask. No model circus required. 🎪🚗
             range(len(examples)+1),key="experimental_example",persist_state="session",
             format_func=lambda i:("Write my own listing" if locale() in ("en-GB","en-US") else story("form_intro")) if i==0 else examples[i-1]["label"],
             on_change=_apply_example)
-        st.caption("Historical, price-redacted car adverts (CC BY 4.0). "
-                   "Choose an example to populate the form, or enter your own car. "
-                   "Picking a car does not automatically submit a valuation.")
+        st.caption("Historical, price-redacted car adverts (CC BY 4.0). Choose an example to populate the form, or enter your own car. Picking a car does not automatically submit a valuation." if locale() in ("en-GB","en-US") else story("form_intro"))
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
     lemon75_ask=lemon75_ask_available(root)
@@ -564,7 +564,7 @@ only when you ask. No model circus required. 🎪🚗
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
-    with st.expander("🔨 Historical wholesale auction reference · advanced",expanded=False):
+    with st.expander("🔨 Historical wholesale auction reference · advanced" if locale() in ("en-GB","en-US") else field("optional"),expanded=False):
         auction=st.date_input("Original auction date (2014–2015)",
             pd.Timestamp("2015-01-15").date(),min_value=pd.Timestamp("2014-01-01").date(),
             max_value=pd.Timestamp("2015-12-31").date(),key="experiment_joint_auction")
