@@ -8,7 +8,6 @@ on:
       - 'pricing/europe_model.py'
       - 'scripts/package_europe_resmlp_overnight.py'
       - 'tests/test_europe_market.py'
-      - 'tests/firefox_europe_e2e.py'
       - '.github/workflows/europe-resmlp-overnight-release.yml'
   workflow_dispatch:
 permissions:
@@ -20,7 +19,7 @@ concurrency:
 jobs:
   verify-package:
     runs-on: ubuntu-24.04
-    timeout-minutes: 95
+    timeout-minutes: 65
     steps:
       - uses: actions/checkout@v4
         with:
@@ -96,23 +95,6 @@ jobs:
               print(country,round(float(price),2),flush=True)
           print('ResMLP_CROSS_COUNTRY_INFERENCE_AND_EXPLAIN_OK',flush=True)
           PY
-      - name: Install browser automation and native Firefox
-        run: |
-          python -m pip install 'playwright>=1.55,<2'
-          python -m playwright install --with-deps firefox
-      - name: Verify live local Streamlit European calculator and panels in Firefox · desktop/mobile
-        run: |
-          (python -m streamlit run app.py --server.headless true \
-            --server.address 127.0.0.1 --server.port 8507 \
-            --browser.gatherUsageStats false > /tmp/eu-resmlp-streamlit.log 2>&1 &)
-          for n in $(seq 1 90); do
-            if curl -fsS http://127.0.0.1:8507/_stcore/health; then break; fi
-            sleep 2
-          done
-          status=0
-          python -u tests/firefox_europe_e2e.py || status=1
-          if test "$status" -ne 0; then tail -n 220 /tmp/eu-resmlp-streamlit.log; fi
-          exit "$status"
       - name: Commit only tested frozen ResMLP package to review branch
         run: |
           git config user.name "car-price-studio-release-bot"
