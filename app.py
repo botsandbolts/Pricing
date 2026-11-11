@@ -13,7 +13,8 @@ MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
 # Language is presentation-only and always available, including on legal routes.
-from pricing.i18n import render_language_selector
+from pricing.i18n import render_language_selector, locale
+from pricing.i18n_story import story, story_html
 render_language_selector()
 # Repair hash-only CTA scrolling in Streamlit Cloud's overflow container.
 from pricing.ux_navigation_bridge import install as _install_calculator_scroll
@@ -104,9 +105,15 @@ render_hero()
 # The Bid announcement sits above the older release bulletin on the calculator
 # only; neither the hero CTA nor the calculator's one-tap anchor is modified.
 if st.session_state.get('landing_studio_workspace') == '🚗 Price my car':
-    from pricing.bid_launch_announcement import banner_html as _bid_launch_banner
-    st.markdown(_bid_launch_banner(), unsafe_allow_html=True)
-st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
+    if locale() in ("en-GB","en-US"):
+        from pricing.bid_launch_announcement import banner_html as _bid_launch_banner
+        st.markdown(_bid_launch_banner(), unsafe_allow_html=True)
+if locale() in ("en-GB","en-US"):
+    st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
+else:
+    st.markdown('<section class="garage-science-note" role="note"><strong>🇪🇺 '+
+                story_html("eu_hero")+'</strong><p>'+story_html("disclaimer")+
+                '</p><p>'+story_html("independent")+'</p></section>',unsafe_allow_html=True)
 _workspace=render_navigation()
 # Mount consent and first-party telemetry on early-return workspaces as well.
 if _workspace in ('🏪 Merchant lens','🚦 Pick your garage','🔎 Listing Inspector'):
