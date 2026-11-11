@@ -14,9 +14,9 @@
   "filtered_validation_uses_observed_reference_residuals": true,
   "filtered_validation": {
     "rows": 23751.0,
-    "CVaR95_absolute_USD": 8959.618603433422,
-    "MAE_USD": 1825.1853767238583,
-    "RMSE_USD": 2895.6034221842783
+    "CVaR95_absolute_USD": 8959.618612064656,
+    "MAE_USD": 1825.1853595216633,
+    "RMSE_USD": 2895.6036351809685
   },
   "original_test_scored": false,
   "native_head_for_explanations": true,
