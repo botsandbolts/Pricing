@@ -71,115 +71,72 @@ def _number(n):
 
 
 def model_kpis(root,market):
-    """Live matched receipt: filtered Lemon Ask validation or legacy test."""
-    from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
-    if market=="ask":
-        clean=lemon_manifest(root)
-        if clean:
-            return clean["filtered_validation"]
-    from pricing.overnight_bohb_live import available as bohb_available,FOLDERS
-    if bohb_available(root,market):
-        m=json.loads((Path(root)/FOLDERS[market]/"manifest.json").read_text())
-        return m["historical_test"]
-    selected=all_validation(root,market)
-    if market=="bid" and selected:
-        choice=selected.get("chosen_blend",{})
-        if (choice.get("model"),choice.get("neural_weight"),
-            choice.get("xgb_lemon_weight"))==("deepfm16_full",.75,.25):
-            v=choice.get("original_test",{})
-            if v.get("CVaR95_absolute_USD",0)>0:
-                return v
-    if market=="ask" and selected:
-        choice=selected.get("CVaR95_selection",{})
-        if (choice.get("model")=="bge-256" and
-            choice.get("test_status")=="scored_after_validation_selection"):
-            v=choice.get("original_test") or {}
-            if v.get("CVaR95_absolute_USD",0)>0:
-                return v
-    # An older test-score champion must never silently substitute for the
-    # independently CVaR-selected checkpoint when that selection is missing.
+    """Only eligible original, unfiltered historical validation cohorts.
+
+    Never present a retrospectively outcome-selected subset's performance
+    as prospective full-original-population validation accuracy.
+    """
+    root=Path(root)
+    if market=="bid":
+        from pricing.us_bid_resmlp_live import available
+        if available(root):
+            m=json.loads((root/"models/us-bid-resmlp-20261111/manifest.json").read_text())
+            return m["original_validation"]
+        from pricing.ray_bid_winner_live import available as ray_available
+        if ray_available(root):
+            m=json.loads((root/"models/ray-bid-9am-winner/manifest.json").read_text())
+            return m["original_validation"]
+    elif market=="ask":
+        # Full original chronological validation, not an outcome-filtered set.
+        from pricing.neural_champion_live import ask_available
+        if ask_available(root):
+            m=json.loads((root/"models/neural-experimental-ask-cvar95/manifest.json").read_text())
+            evidence=m.get("historical_validation",{})
+            if evidence.get("rows")==31668:
+                return evidence
+    else:
+        raise ValueError("Unknown historical car price market")
     return None
 
 
 def render(root):
     import streamlit as st
-    st.markdown("### 🛡️ Why CVaR95? The expensive end of being wrong")
-    st.write("A car valuation isn't only about being right **on average**. "
-             r"A rare \$20,000 miss can be a much more memorable business meeting "
-             r"than twenty \$200 misses. Nobody wants an unexpectedly collectible lemon.")
-    st.latex(r"\mathrm{CVaR}_{95}(|e|)=\operatorname{mean}\left(\mathrm{largest\ 5\%}\ \left|\widehat{P}_i-P_i\right|\right)")
-    st.caption("The input is absolute model error in historical US dollars. "
-               "It is **not** a 95% prediction interval, worst-case bound, "
-               "a guarantee, or an estimate of dealer profit-and-loss.")
-
-    a,b,c=st.columns(3)
-    a.metric("CVaR95 · PRIMARY","Worst 5% mean")
-    b.metric("RMSE · secondary","Big errors squared")
-    c.metric("MAE · secondary","Average $ miss")
-    st.markdown("**For the garage / dealership**")
-    st.write("CVaR95 asks: *When our prediction is among the five percent most "
-             "wrong, how much are we wrong by on average?* "
-             "This supports inventory risk screening, escalation rules, "
-             "human appraisals and comparing models that occasionally make "
-             "very costly mistakes.")
-    st.markdown("**For the scientist**")
-    st.write("We calculate the empirical expected shortfall of **absolute USD "
-             "residuals** by averaging the largest ceil(0.05 × N) observations. "
-             "Original chronological or VIN-disjoint validation determines "
-             "selection; the untouched test estimates generalization. "
-             "We report the VaR95 threshold, RMSE and MAE alongside CVaR95.")
-    st.warning("High-priced cars, mislabeled records, inflation, market shifts "
-               "and outliers can dominate the tail. CVaR95 of **absolute price "
-               "error** is not automatically the real dollar loss when a dealer "
-               "buys, sells or finances a vehicle. Business decisions should "
-               "also check overpricing versus underpricing and vehicle segments.")
+    st.markdown("### 🛡️ CVaR95 · the expensive end of being wrong")
+    st.write("Most estimates are close; the costly mistakes are the ones "
+             "that can change a decision. CVaR95 measures the mean absolute "
+             "dollar error in the worst five percent of held-out cars.")
+    st.latex(r"\mathrm{CVaR}_{95}(|e|)=\operatorname{mean}(\text{largest }5\%\text{ of }|\widehat P-P|)")
+    st.caption("This is an empirical historical validation diagnostic, "
+               "not an uncertainty interval, purchase offer, or guarantee.")
     st.markdown("**Research foundations**")
     for author,title,journal,url,meaning in PAPERS:
         st.markdown("- **["+author+" · "+title+"]("+url+")** — "+journal+". "+meaning)
-    st.markdown("**The regulatory parallel (not a claim of regulatory compliance)**")
-    st.write("The Basel Committee's market-risk framework uses expected "
-             "shortfall because tail outcomes matter. Our pricing-error "
-             "application borrows the statistical idea, not its capital rules.")
-    st.markdown("[Basel Committee, Minimum capital requirements for market risk (2019)](https://www.bis.org/publications/201901-standards-minimum-capital-requirements-market-risk)")
-    st.divider()
-    st.markdown("#### 🧪 What was actually evaluated?")
-    d=evidence(root)
-    if not d:
-        st.info("The verified original CVaR95 archive is not installed.")
-        return
+    st.markdown("#### ✅ Original, unfiltered validation comparisons")
     a,b=st.columns(2)
     ask=model_kpis(root,"ask")
     bid=model_kpis(root,"bid")
     with a:
+        st.markdown("**✍ Seller Ask · 2021 advertised prices**")
         if ask:
-            from pricing.ray_lemon75_ask_live import manifest as lemon_manifest
-            clean=lemon_manifest(root)
-            label="2021 asking · Lemon75 VALIDATION" if clean else "Earlier Ask TEST"
-            st.metric(label,_number(ask["CVaR95_absolute_USD"]))
-            st.caption(
-                "23,751 outcome-filtered historical validation listings; "
-                "conditional, optimistic for new vehicles."
-                if clean else
-                "Older original historical test, not a clean Lemon75 audit.")
+            st.metric("CVaR95",_number(ask["CVaR95_absolute_USD"]))
+            st.caption(f'Original {ask["rows"]:,} validation listings, '
+                       'all included. Price head uses the recorded year, '
+                       'odometer, categories and frozen text embeddings.')
+            st.caption("MAE "+_number(ask["MAE_USD"])+
+                       " · RMSE "+_number(ask["RMSE_USD"]))
+        else:
+            st.info("No independently matched whole-cohort Ask validation "
+                    "receipt is currently installed.")
     with b:
-        if bid:st.metric("2015 wholesale · CVaR-selected DeepFM16 blend",_number(bid["CVaR95_absolute_USD"]))
-        st.caption("83,603 completed historical auctions, 2015-indexed USD.")
-    st.caption("Cross-market CVaR values are not comparable because vehicle prices, "
-               "targets, dates and cohorts differ. Previously selected models "
-               "were chosen on MAE/RMSE, not the new CVaR95 objective.")
-    candidates={k:all_validation(root,k) for k in ("bid","ask")}
-    if any(candidates.values()):
-        st.markdown("#### Overnight validation-CVaR model audit")
-        for market,report in candidates.items():
-            if not report:continue
-            if market=="bid":
-                champ=report["chosen_standalone"];blend=report["chosen_blend"]
-                st.write("**Wholesale:** "+champ["model"]+" selected by validation "
-                    "CVaR95; best validation blend: "+blend["model"]+
-                    " (neural/FM weight "+str(blend["neural_weight"])+").")
-            else:
-                choice=report["CVaR95_selection"]
-                st.write("**Asking:** "+choice["model"]+
-                    " selected by validation CVaR95 ("+choice["test_status"]+").")
-        st.caption("These are validation-based research decisions, not automatic "
-                   "authorization to swap or deploy unverified serving weights.")
+        st.markdown("**🔨 Wholesale Bid · 2014–15 completed auctions**")
+        if bid:
+            st.metric("CVaR95",_number(bid["CVaR95_absolute_USD"]))
+            st.caption(f'Original {bid["rows"]:,} validation auctions, '
+                       '2015-indexed USD; different label and cohort from Ask.')
+            st.caption("MAE "+_number(bid["MAE_USD"])+
+                       " · RMSE "+_number(bid["RMSE_USD"]))
+        else:
+            st.info("No independently matched original Bid validation receipt.")
+    st.warning("The two targets are not directly comparable: asking ads are "
+               "not completed sales, and an historical auction-price model "
+               "does not verify the value of a car in November 2026.")
