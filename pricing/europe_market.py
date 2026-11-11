@@ -1075,15 +1075,14 @@ def render():
     if tab=="🚗 Price my car":
         _valuation_page(bundle,error)
     else:
-        from contextlib import nullcontext
         if locale() not in ("en-GB","en-US"):
             localized_science_intro(tab)
-        # Original equations, tables and research tools stay intact, but
-        # are presented as opt-in English detail to avoid a mixed-language
-        # first screen. Widgets are never renamed or translated in storage.
-        english_detail = (st.expander("📚 "+legal_copy("show_technical"),expanded=False)
-                          if locale() not in ("en-GB","en-US") else nullcontext())
-        with english_detail:
+        # Streamlit disallows nested expanders. A normal checkbox exposes the
+        # original technical panel, leaving its own expanders fully operable.
+        show_original = (locale() in ("en-GB","en-US") or
+            st.checkbox("📚 "+legal_copy("show_technical"),
+                        value=False,key="cps_eu_research_english_"+tab))
+        if show_original:
             if tab=="🔎 Listing Inspector":
                 _inspector(bundle)
             elif tab=="📉 Value over time":
