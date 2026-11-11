@@ -11,7 +11,7 @@ import streamlit as st
 MODEL_ID = "sentence-transformers/all-MiniLM-L6-v2"
 MAX_CHARACTERS = 8000
 
-st.set_page_config(page_title='Car Price Studio · Less haggle. More signal.',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
+st.set_page_config(page_title='Car Price Studio',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
 # Language is presentation-only and always available, including on legal routes.
 from pricing.i18n import render_language_selector, locale
 from pricing.i18n_story import story, story_html
