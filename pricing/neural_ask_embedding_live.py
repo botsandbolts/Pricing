@@ -121,7 +121,7 @@ class BGEDeepCrossAsk:
             self.encoder_backend="native-pytorch"
         self.encoder.max_seq_length=256
         self.encoder.eval()
-        if self.encoder.get_sentence_embedding_dimension()!=384:
+        if self.encoder.get_embedding_dimension()!=384:
             raise ValueError("Pinned BGE encoder output dimension has changed")
 
     def prepare_text(self,description):
