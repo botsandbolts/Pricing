@@ -1,6 +1,7 @@
 """Presentation-only design system for Car Price Studio. No prediction logic."""
 from html import escape
-from pricing.i18n import editorial_voice
+from pricing.i18n import editorial_voice, locale
+from pricing.i18n_story import story, story_html
 import json
 from pathlib import Path
 import streamlit as st
@@ -38,6 +39,31 @@ def landing_banner_html():
     from pricing.garage_art import hero_svg
     art=hero_svg()
     local_headline, local_invitation = editorial_voice()
+    if locale() not in ("en-GB", "en-US"):
+        return f"""
+<section class="garage-home-hero" aria-labelledby="garage-home-title">
+  <div class="garage-home-copy">
+    <div class="garage-home-kicker">🇩🇪 Made in Germany · 🇪🇺 CAR PRICE STUDIO</div>
+    <h1 id="garage-home-title">{story_html('us_hero')}</h1>
+    <p class="garage-home-lead">{story_html('us_pitch')}</p>
+    <p class="garage-home-lead"><strong>{escape(local_headline)}</strong> {escape(local_invitation)}</p>
+    <div class="garage-home-actions">
+      <a class="garage-home-cta" href="#studio-calculator" target="_self"
+         aria-label="{story_html('us_cta')}">🚗 {story_html('us_cta')} →</a>
+      <a class="garage-home-source" href="https://github.com/botsandbolts/Pricing"
+         target="_blank" rel="noopener noreferrer">{story_html('source')} ↗</a>
+    </div>
+    <div class="garage-home-assurances">
+      <span>✓ {story_html('independent')}</span>
+    </div>
+  </div>
+  <div class="garage-home-art">{art}</div>
+</section>
+<div class="garage-home-trust" role="note">
+  <span class="garage-home-trust-icon" aria-hidden="true">🛡️</span>
+  <span>{story_html('trust')} <a href="?legal=privacy">ⓘ</a></span>
+</div>
+"""
     return f"""
 <section class="garage-home-hero" aria-labelledby="garage-home-title">
   <div class="garage-home-copy">
@@ -95,7 +121,8 @@ def landing_banner_html():
 
 def render_hero():
     from pricing.garage_art import car_svg
-    st.markdown('<div class="garage-nav"><a class="garage-brand" href="#studio-workspace" aria-label="Car Price Studio · skip to workspace"><span class="garage-mark" aria-hidden="true">'+car_svg()+'</span><span class="garage-wordmark"><strong>car price studio</strong><small>A little car love. A lot of curiosity.</small></span></a>'+origin_badge()+'</div>',unsafe_allow_html=True)
+    tagline = "A little car love. A lot of curiosity." if locale() in ("en-GB","en-US") else story_html("us_hero" if st.query_params.get("market")!="eu" else "eu_hero")
+    st.markdown('<div class="garage-nav"><a class="garage-brand" href="#studio-workspace" aria-label="Car Price Studio"><span class="garage-mark" aria-hidden="true">'+car_svg()+'</span><span class="garage-wordmark"><strong>car price studio</strong><small>'+tagline+'</small></span></a>'+origin_badge()+'</div>',unsafe_allow_html=True)
     from pricing.accessibility import reading_options
     reading_options()
     if show_landing_banner():
@@ -115,6 +142,12 @@ def journey_steps(steps):
 
 
 def market_guide():
+    if locale() not in ("en-GB", "en-US"):
+        st.markdown('<div class="garage-market-guide"><article><strong>🏷️ '+story_html("us_name")+
+                    '</strong><p>'+story_html("us_desc")+'</p></article><article><strong>🔨 '+
+                    story_html("eu_name")+'</strong><p>'+story_html("us_pitch")+
+                    '</p></article></div>',unsafe_allow_html=True)
+        return
     st.markdown('''<div class="garage-market-guide"><article><strong>🏷 Seller asking price</strong><p>The price a seller might advertise, before negotiation. Not a completed retail sale.</p></article><article><strong>🔨 Wholesale auction</strong><p>A comparable car’s estimated wholesale sale value. Not a live bid or dealer offer.</p></article></div>''',unsafe_allow_html=True)
 
 
@@ -142,6 +175,15 @@ def sidebar_receipt(root):
 
 
 def footer():
+    if locale() not in ("en-GB", "en-US"):
+        st.markdown('<footer class="garage-footer"><span><strong>Car Price Studio.</strong> '+
+                    story_html("disclaimer")+'</span><nav class="garage-legal-links">'+
+                    '<a href="?legal=imprint">ⓘ</a><span aria-hidden="true"> · </span>'+
+                    '<a href="?legal=privacy">🛡️</a><span aria-hidden="true"> · </span>'+
+                    '<a href="https://github.com/botsandbolts/Pricing">'+story_html("source")+'</a></nav>'+
+                    origin_badge()+'</footer>',unsafe_allow_html=True)
+        st.caption(story("science_notice"))
+        return
     with st.expander('Accessibility & browser test report'):
         from pricing.accessibility_report import render as render_accessibility_report
         render_accessibility_report()
