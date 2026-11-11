@@ -1,4 +1,4 @@
-"""Human-reviewed core route-copy dictionaries: no live translation service.
+"""Locally authored core route-copy dictionaries: no live translation service.
 
 Locale-aware text for the international gateway and pricing entrypoints.
 Every language has an explicit translation; missing translation is an error in
