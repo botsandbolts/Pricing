@@ -47,10 +47,15 @@ def navigate_europe_panel(page,label):
     # The displayed labels are translated, but the order and route IDs are
     # stable. Select the canonical option index rather than relying on emoji
     # and UK/US spelling ("indices" versus "indexes", "garage" vs "dealership").
-    from pricing.europe_market import NAV
-    index=NAV.index(label)
+    nav_ids=(
+        "🚗 Price my car","🔎 Listing Inspector","📉 Value over time",
+        "📈 Price Indices","📊 Evaluation","🧪 Model lab","🔬 The science",
+        "🕵️ Deal Detective","🧹 Outlier lab","🌍 Market intelligence",
+        "🏪 Merchant lens","🚦 Pick your garage",
+    )
+    index=nav_ids.index(label)
     options=page.get_by_role("option")
-    expect(options).to_have_count(len(NAV),timeout=10000)
+    expect(options).to_have_count(len(nav_ids),timeout=10000)
     options.nth(index).click(timeout=10000)
 
 def test_device(browser,device,width,height):
