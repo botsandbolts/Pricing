@@ -4,6 +4,7 @@ on:
     branches:
       - feature/eu-multilingual-ui-20261110
       - feature/localize-science-privacy-legal-20261111
+      - feature/international-high-priority-languages-20261111
     paths:
       - "pricing/i18n*.py"
       - "pricing/legal_pages.py"
@@ -53,10 +54,10 @@ jobs:
           python -m playwright install --with-deps firefox chromium
       - name: Compile all modified production UI modules
         run: |
-          python -m py_compile app.py pricing/i18n.py pricing/i18n_science_legal.py pricing/i18n_research.py pricing/i18n_consent.py pricing/legal_pages.py pricing/analytics.py pricing/international_gateway.py pricing/europe_market.py pricing/navigation.py pricing/neural_experimental_ui.py pricing/studio_design.py
+          python -m py_compile app.py pricing/i18n.py pricing/i18n_science_legal.py pricing/i18n_research.py pricing/i18n_consent.py pricing/legal_pages.py pricing/analytics.py pricing/international_gateway.py pricing/europe_market.py pricing/navigation.py pricing/neural_experimental_ui.py pricing/studio_design.py pricing/i18n_extra_core.py pricing/i18n_extra_vehicle.py pricing/i18n_extra_research.py
           node --input-type=module --check < pricing/consent/notice.js
       - name: Check 24 EU languages, English dialects, and catalog coverage
-        run: python -m pytest -q tests/test_i18n_locales.py tests/test_i18n_science_legal.py tests/test_i18n_legal_pages_app.py
+        run: python -m pytest -q tests/test_i18n_locales.py tests/test_i18n_science_legal.py tests/test_i18n_legal_pages_app.py tests/test_i18n_international.py tests/test_i18n_international_app.py
       - name: Test first-visit browser selection and persistence with Firefox and Chromium
         run: |
           python -m streamlit run tests/i18n_smoke_app.py --server.headless true --server.port 8776 --server.address 127.0.0.1 > /tmp/i18n-streamlit.log 2>&1 &
