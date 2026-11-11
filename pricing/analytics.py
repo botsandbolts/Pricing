@@ -479,6 +479,8 @@ def _render_privacy_impl():
     import streamlit as st
     from pathlib import Path
     import streamlit.components.v2 as components
+    from pricing.i18n_consent import modal_labels
+    from pricing.i18n_science_legal import copy as legal_copy
     folder = Path(__file__).parent / 'consent'
     component = components.component('pricing_consent', html=(folder/'notice.html').read_text(),
         js=(folder/'notice.js').read_text(), css=(folder/'notice.css').read_text())
@@ -495,7 +497,19 @@ def _render_privacy_impl():
         'geo_mode': _setting('ANALYTICS_GEO_MODE', 'geojs'),
         'backend_status': st.session_state.get('_analytics_status', 'pending'),
         'controller': _setting('ANALYTICS_CONTROLLER_NAME', 'Car Price Studio operator'),
-        'contact': _setting('ANALYTICS_CONTROLLER_CONTACT', 'Contact the studio operator')},
+        'contact': _setting('ANALYTICS_CONTROLLER_CONTACT', 'Contact the studio operator'),
+        'labels': {**modal_labels(),
+            'welcome': legal_copy('welcome'),
+            'service': legal_copy('service'),
+            'consent': legal_copy('consent'),
+            'retention': legal_copy('retention'),
+            'sharing': legal_copy('sharing'),
+            'rights': legal_copy('rights'),
+            'reference': legal_copy('reference'),
+            'original': legal_copy('original'),
+            'operator': legal_copy('operator'),
+            'contact_copy': legal_copy('contact'),
+        }},
         on_consent_change=lambda: None, on_check_connection_change=lambda: None)
     consent = result.consent
     st.session_state['_analytics_consent'] = consent if valid_consent(consent) and enabled else None
