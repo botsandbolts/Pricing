@@ -1084,34 +1084,34 @@ def render():
         english_detail = (st.expander("📚 "+legal_copy("show_technical"),expanded=False)
                           if locale() not in ("en-GB","en-US") else nullcontext())
         with english_detail:
-        if tab=="🔎 Listing Inspector":
-            _inspector(bundle)
-        elif tab=="📉 Value over time":
-            _timeline(bundle)
-        elif tab=="📈 Price Indices":
-            _price_indices()
-        elif tab=="📊 Evaluation":
-            _evaluation(bundle)
-        elif tab=="🧪 Model lab":
-            _model_lab(bundle)
-        elif tab=="🔬 The science":
-            _science(bundle)
-        elif tab=="🕵️ Deal Detective":
-            st.markdown("### 🕵️ Deal Detective · evidence before allegations")
-            q=st.session_state.get("eu_receipt")
-            if q:_forensic(q)
-            else:st.info("First value a European listing to unlock the anomaly check.")
-        elif tab=="🧹 Outlier lab":
-            st.markdown("### 🧹 Outlier Lab")
-            st.info("Suspected unusual observations are not confirmed errors or duplicates. "
-                    "This edition uses the untouched input population and does not remove rows.")
-            _market_intelligence()
-        elif tab=="🌍 Market intelligence":
-            _market_intelligence()
-        elif tab=="🏪 Merchant lens":
-            _merchant_lens()
-        elif tab=="🚦 Pick your garage":
-            _garage_choices()
+            if tab=="🔎 Listing Inspector":
+                _inspector(bundle)
+            elif tab=="📉 Value over time":
+                _timeline(bundle)
+            elif tab=="📈 Price Indices":
+                _price_indices()
+            elif tab=="📊 Evaluation":
+                _evaluation(bundle)
+            elif tab=="🧪 Model lab":
+                _model_lab(bundle)
+            elif tab=="🔬 The science":
+                _science(bundle)
+            elif tab=="🕵️ Deal Detective":
+                st.markdown("### 🕵️ Deal Detective · evidence before allegations")
+                q=st.session_state.get("eu_receipt")
+                if q:_forensic(q)
+                else:st.info("First value a European listing to unlock the anomaly check.")
+            elif tab=="🧹 Outlier lab":
+                st.markdown("### 🧹 Outlier Lab")
+                st.info("Suspected unusual observations are not confirmed errors or duplicates. "
+                        "This edition uses the untouched input population and does not remove rows.")
+                _market_intelligence()
+            elif tab=="🌍 Market intelligence":
+                _market_intelligence()
+            elif tab=="🏪 Merchant lens":
+                _merchant_lens()
+            elif tab=="🚦 Pick your garage":
+                _garage_choices()
     st.divider()
     if locale() in ("en-GB","en-US"):
         st.caption("🇩🇪 Independently built in Hamburg · No registration · No ads · "
