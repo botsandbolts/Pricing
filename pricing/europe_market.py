@@ -17,6 +17,8 @@ from pricing.i18n import tr, editorial_voice, localized_panel, format_eur, local
 from pricing.i18n_story import story, story_html
 from pricing.i18n_fields import field
 from pricing.i18n_enums import option_label
+from pricing.i18n_research import localized_science_intro
+from pricing.i18n_science_legal import copy as legal_copy
 
 from pricing.europe_model import (ROOT,EuropeanModelUnavailable,load_bundle,
     available,estimate,batch_estimate,explain)
@@ -1070,39 +1072,46 @@ def render():
                  format_func=localized_panel,
                  key="eu_workspace_selector_v2",
                  help="Choose any European research panel. Your previous ASK receipt persists.")
-    if tab!="🚗 Price my car" and locale() not in ("en-GB","en-US"):
-        st.info(story("science_notice"))
-        # This notice does not interrupt access to any research panel.
     if tab=="🚗 Price my car":
         _valuation_page(bundle,error)
-    elif tab=="🔎 Listing Inspector":
-        _inspector(bundle)
-    elif tab=="📉 Value over time":
-        _timeline(bundle)
-    elif tab=="📈 Price Indices":
-        _price_indices()
-    elif tab=="📊 Evaluation":
-        _evaluation(bundle)
-    elif tab=="🧪 Model lab":
-        _model_lab(bundle)
-    elif tab=="🔬 The science":
-        _science(bundle)
-    elif tab=="🕵️ Deal Detective":
-        st.markdown("### 🕵️ Deal Detective · evidence before allegations")
-        q=st.session_state.get("eu_receipt")
-        if q:_forensic(q)
-        else:st.info("First value a European listing to unlock the anomaly check.")
-    elif tab=="🧹 Outlier lab":
-        st.markdown("### 🧹 Outlier Lab")
-        st.info("Suspected unusual observations are not confirmed errors or duplicates. "
-                "This edition uses the untouched input population and does not remove rows.")
-        _market_intelligence()
-    elif tab=="🌍 Market intelligence":
-        _market_intelligence()
-    elif tab=="🏪 Merchant lens":
-        _merchant_lens()
-    elif tab=="🚦 Pick your garage":
-        _garage_choices()
+    else:
+        from contextlib import nullcontext
+        if locale() not in ("en-GB","en-US"):
+            localized_science_intro(tab)
+        # Original equations, tables and research tools stay intact, but
+        # are presented as opt-in English detail to avoid a mixed-language
+        # first screen. Widgets are never renamed or translated in storage.
+        english_detail = (st.expander("📚 "+legal_copy("show_technical"),expanded=False)
+                          if locale() not in ("en-GB","en-US") else nullcontext())
+        with english_detail:
+        if tab=="🔎 Listing Inspector":
+            _inspector(bundle)
+        elif tab=="📉 Value over time":
+            _timeline(bundle)
+        elif tab=="📈 Price Indices":
+            _price_indices()
+        elif tab=="📊 Evaluation":
+            _evaluation(bundle)
+        elif tab=="🧪 Model lab":
+            _model_lab(bundle)
+        elif tab=="🔬 The science":
+            _science(bundle)
+        elif tab=="🕵️ Deal Detective":
+            st.markdown("### 🕵️ Deal Detective · evidence before allegations")
+            q=st.session_state.get("eu_receipt")
+            if q:_forensic(q)
+            else:st.info("First value a European listing to unlock the anomaly check.")
+        elif tab=="🧹 Outlier lab":
+            st.markdown("### 🧹 Outlier Lab")
+            st.info("Suspected unusual observations are not confirmed errors or duplicates. "
+                    "This edition uses the untouched input population and does not remove rows.")
+            _market_intelligence()
+        elif tab=="🌍 Market intelligence":
+            _market_intelligence()
+        elif tab=="🏪 Merchant lens":
+            _merchant_lens()
+        elif tab=="🚦 Pick your garage":
+            _garage_choices()
     st.divider()
     if locale() in ("en-GB","en-US"):
         st.caption("🇩🇪 Independently built in Hamburg · No registration · No ads · "
