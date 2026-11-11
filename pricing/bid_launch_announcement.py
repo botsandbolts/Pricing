@@ -64,4 +64,5 @@ def _new_resmlp_banner():
 
 def banner_html():
     """Only promote live release messaging after the verified model is installed."""
-    return _new_resmlp_banner() or ""
+    from pricing.granite_aft_banner import banner_html as granite_banner
+    return granite_banner() or _new_resmlp_banner() or ""
