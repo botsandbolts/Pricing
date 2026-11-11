@@ -12,8 +12,10 @@ def expect_text(page, value):
     page.get_by_text(value, exact=False).first.wait_for(timeout=TIMEOUT)
 
 def select_language(page, label):
-    # Streamlit 1.66: first combobox is the top-of-page language selector.
-    page.get_by_role("combobox").first.click()
+    # Long language menus virtualize options: type a search query first.
+    picker = page.get_by_role("combobox").first
+    picker.click()
+    picker.fill(label.split(" ", 1)[-1])
     page.get_by_text(label, exact=True).last.click()
 
 def smoke(engine):
