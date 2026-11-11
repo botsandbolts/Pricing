@@ -537,37 +537,6 @@ only when you ask. No model circus required. 🎪🚗
             st.metric("Asking minus wholesale · indicative market gap",
                       _usd(prices["ask"]-prices["bid"]))
             st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
-        if main and prices.get("ask") and saved.get("request_id"):
-            st.markdown("### ⭐ "+("Your verdict: was our AI valuation accurate?" if locale() in ("en-GB","en-US") else field("feedback_title")))
-            st.caption("The price detective needs human witnesses too. "
-                       "Please compare the estimate with what you know about your car.")
-            key=str(saved["request_id"])
-            if st.session_state.get("_feedback_saved_"+key):
-                st.success("🙏 Your feedback is saved. Thank you for helping us improve!")
-            else:
-                with st.form("accuracy_feedback_"+key):
-                    score=st.radio("Rate this quote", [1,2,3,4],
-                        index=None,horizontal=True,
-                        format_func=lambda n:{1:"1 · Catastrophic 💥",2:"2 · Poor 😬",
-                            3:"3 · Good 👍",4:"4 · Excellent 🏆"}[n],
-                        key="rating_"+key)
-                    permission=st.checkbox(("I agree to save my rating, basic car details and both price estimates. No seller story, IP address, VIN or contact details." if locale() in ("en-GB","en-US") else field("feedback_consent")),
-                        key="feedback_permission_"+key)
-                    submitted=st.form_submit_button(
-                        "📮 "+("Send accuracy feedback" if locale() in ("en-GB","en-US") else field("feedback_submit")),type="primary")
-                if submitted:
-                    from pricing.analytics import record_accuracy_feedback
-                    if score is None:
-                        st.warning("Please choose one rating from 1 to 4.")
-                    elif not permission:
-                        st.warning("Please agree to saving this feedback first.")
-                    elif record_accuracy_feedback(
-                        key,"granite",int(score),
-                        saved["fields"],prices,saved["date"],explicit_consent=True):
-                        st.session_state["_feedback_saved_"+key]=True
-                        st.success("✅ Thank you! Feedback saved to our private database.")
-                    else:
-                        st.error("Feedback was not saved; your car valuation is unaffected.")
         if main:
             # High-visibility explanation directly after prices. Preserve
             # lazy Captum imports and unchanged native cached checkpoints.
@@ -607,6 +576,37 @@ only when you ask. No model circus required. 🎪🚗
                         adjusted.get(chosen_side),saved.get("bid_analogue"))
 
 
+        if main and prices.get("ask") and saved.get("request_id"):
+            st.markdown("### ⭐ "+("Your verdict: was our AI valuation accurate?" if locale() in ("en-GB","en-US") else field("feedback_title")))
+            st.caption("The price detective needs human witnesses too. "
+                       "Please compare the estimate with what you know about your car.")
+            key=str(saved["request_id"])
+            if st.session_state.get("_feedback_saved_"+key):
+                st.success("🙏 Your feedback is saved. Thank you for helping us improve!")
+            else:
+                with st.form("accuracy_feedback_"+key):
+                    score=st.radio("Rate this quote", [1,2,3,4],
+                        index=None,horizontal=True,
+                        format_func=lambda n:{1:"1 · Catastrophic 💥",2:"2 · Poor 😬",
+                            3:"3 · Good 👍",4:"4 · Excellent 🏆"}[n],
+                        key="rating_"+key)
+                    permission=st.checkbox(("I agree to save my rating, basic car details and both price estimates. No seller story, IP address, VIN or contact details." if locale() in ("en-GB","en-US") else field("feedback_consent")),
+                        key="feedback_permission_"+key)
+                    submitted=st.form_submit_button(
+                        "📮 "+("Send accuracy feedback" if locale() in ("en-GB","en-US") else field("feedback_submit")),type="primary")
+                if submitted:
+                    from pricing.analytics import record_accuracy_feedback
+                    if score is None:
+                        st.warning("Please choose one rating from 1 to 4.")
+                    elif not permission:
+                        st.warning("Please agree to saving this feedback first.")
+                    elif record_accuracy_feedback(
+                        key,"granite",int(score),
+                        saved["fields"],prices,saved["date"],explicit_consent=True):
+                        st.session_state["_feedback_saved_"+key]=True
+                        st.success("✅ Thank you! Feedback saved to our private database.")
+                    else:
+                        st.error("Feedback was not saved; your car valuation is unaffected.")
         if "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
                 alt=st.text_area("Alternative advertisement",value=saved["notes"],key="experimental_reword",max_chars=8000)
