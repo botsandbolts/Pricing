@@ -1,0 +1,95 @@
+name: U.S. ResMLP Bid · production checkpoint, 36 locales and public health
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pricing/us_bid_resmlp_live.py
+      - pricing/bid_launch_i18n.py
+      - pricing/bid_launch_announcement.py
+      - pricing/neural_experimental_ui.py
+      - models/us-bid-resmlp-20261111/**
+      - .github/workflows/us-bid-postdeploy-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: CPU PyTorch
+        run: python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+      - name: Numerical verification
+        run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'joblib>=1.4,<2'
+      - name: Load the EXACT release, predict real-shaped inputs and render 36 banner variants
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,types,sys
+          from pathlib import Path
+          import numpy as np
+          import torch
+          fake=types.ModuleType('streamlit')
+          fake.session_state={'cps_locale':'en-US'}
+          sys.modules['streamlit']=fake
+          from pricing.us_bid_resmlp_live import USBidResMLP,available
+          from pricing.i18n import LOCALES
+          from pricing.bid_launch_i18n import COPY
+          from pricing.bid_launch_announcement import banner_html
+          assert len(COPY)==len(LOCALES)==36
+          root=Path('.')
+          assert available(root), 'New production checkpoint failed digest/provenance gate'
+          model=USBidResMLP(root)
+          vehicle={
+            'year':2011,'odometer':95000,'auction_date':'2015-01-15',
+            'auction_grade':3,'manufacturer':'toyota','model':'corolla',
+            'type':'sedan','transmission':'automatic','state':'ca',
+            'fuel':'unknown','drive':'unknown','title_status':'unknown',
+            'cylinders':'unknown','paint_color':'silver'}
+          prediction=model.predict(vehicle)
+          assert np.isfinite(prediction['price']) and prediction['price']>100
+          assert prediction['model'].startswith('U.S. Bid ResMLP')
+          failures=[]
+          for lang,copy in COPY.items():
+              fake.session_state['cps_locale']=lang
+              html=banner_html()
+              if copy['title'] not in html or '8,719 USD' not in html:
+                  failures.append(lang)
+          assert not failures, 'Translations/banner not connected '+str(failures)
+          assert prediction['live_2026_validated'] is False
+          print('POSTDEPLOY_US_BID_PASS',json.dumps({
+            'checkpoint_ready':True,
+            'test_bid_prediction_usd':round(prediction['price'],2),
+            'verified_locales':len(COPY),
+            'model':prediction['model']}),flush=True)
+          PY
+
+  public-health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Verify published Streamlit process health
+        run: |
+          set -euo pipefail
+          url='https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/~/+/_stcore/health'
+          for i in $(seq 1 8); do
+            response="$(curl --silent --show-error --max-time 18 -L "$url" || true)"
+            if [[ "$response" == "ok" ]]; then
+              echo 'PUBLIC_STREAMLIT_HEALTH_OK'
+              exit 0
+            fi
+            sleep 8
+          done
+          echo 'Public Streamlit process did not confirm health.'
+          exit 1
