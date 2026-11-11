@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from scripts.ray_bid_9am import EXPECTED
+EXPECTED = {"train": 384198, "validation": 82380, "test": 83603}
 from scripts.neural_bid_prepare import sha_ids
 
 EXTRA = (
@@ -139,23 +139,30 @@ def prepare(source: Path, output: Path):
     print("US_BID_MILEAGE_PREPARED", json.dumps(audit), flush=True)
 
 def smoke():
+    n = 12000
+    indexes = np.arange(n)
+    make_model = np.where(indexes % 2 == 0, "Focus", "Fiesta")
+    age = 5
+    odometer = np.where(indexes % 2 == 0, 50000., 150000.)
     frame = pd.DataFrame({
-        "row_id": list("abcdef"),
-        "year": [2010]*6,
-        "date": ["2015-01-01"]*6,
-        "odometer": [25000,50000,70000,80000,50000,100000],
-        "manufacturer": ["Ford","Ford","Ford","BMW","Ford","BMW"],
-        "model": ["Focus","Focus","Focus","3","Focus","3"],
-        "observed_price": [100,100,100,100,100,100],
+        "row_id": indexes.astype(str), "year": np.full(n, 2010),
+        "date": ["2015-01-01"] * n,
+        "odometer": odometer, "manufacturer": ["Ford"] * n,
+        "model": make_model, "observed_price": np.full(n, 5000.),
     })
-    # Smoke trains on tiny data by temporarily validating lower minimum.
-    from unittest.mock import patch
-    with patch("numpy.median", wraps=np.median):
-        pass
-    # Direct code-level audit verifies label-free inputs and train-only grouping.
-    assert "observed_price" not in add_model_mileage.__code__.co_names
-    assert "2026" not in EXTRA[0]
-    assert len(EXTRA) == 3
+    phase = np.where(indexes < 10500, "train", "validation")
+    existing = np.zeros((n, 5), dtype=np.float32)
+    original, audit = add_model_mileage(frame, phase, existing)
+    assert original.shape == (n, 8)
+    assert audit["training_only_model_mileage_profiles"]
+    assert original[0, 5] != original[1, 5], "Model-specific mileage was ignored"
+    changed = frame.copy()
+    changed.loc[phase == "validation", "odometer"] = 800000.
+    changed["observed_price"] *= 5
+    repeated, audit2 = add_model_mileage(changed, phase, existing)
+    np.testing.assert_array_equal(original[phase == "train"],
+                                  repeated[phase == "train"])
+    assert audit["overall_train_median_annual_miles"] == audit2["overall_train_median_annual_miles"]
     print("US_BID_MILEAGE_SMOKE_OK", flush=True)
 
 if __name__ == "__main__":
