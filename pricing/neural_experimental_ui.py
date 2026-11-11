@@ -14,10 +14,11 @@ from html import escape
 import numpy as np
 import pandas as pd
 import streamlit as st
+from functools import partial
 from pricing.i18n import tr, locale
 from pricing.i18n_story import story
 from pricing.i18n_fields import field
-from pricing.i18n_enums import option_label
+from pricing.i18n_enums import option_label, option_label_for
 from pricing.neural_ask_embedding_live import available as ask_available
 from pricing.granite_ask_live import available as granite_available, load as load_granite_ask
 from pricing.bge_overnight_ask_live import available as bge_overnight_available, load as load_bge_overnight
@@ -119,7 +120,7 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
         body=c.selectbox(field("body"),[
               "sedan","suv","truck","pickup","hatchback","coupe",
               "wagon","van","convertible","other","unknown"],
-              key=prefix+"_body",persist_state="session",format_func=option_label)
+              key=prefix+"_body",persist_state="session",format_func=partial(option_label_for,locale()))
         if compact:
             st.caption("Three useful facts; everything else is recorded as 'unknown', not guessed."
                        if locale() in ("en-GB","en-US") else field("form_help"))
