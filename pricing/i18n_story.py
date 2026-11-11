@@ -50,3 +50,39 @@ def story(key: str) -> str:
 
 def story_html(key: str) -> str:
     return escape(story(key))
+
+A11Y_KEYS=("reading","larger","contrast","skip","help")
+A11Y_ROWS=r"""en-GB|Reading options|Larger text|Higher contrast|Skip to tools|Use these reading options or your browser zoom.
+en-US|Reading options|Larger text|Higher contrast|Skip to tools|Use these options or your browser zoom.
+nl|Leesinstellingen|Grotere tekst|Meer contrast|Naar de hulpmiddelen|Je kunt ook inzoomen met je browser.
+fr|Options de lecture|Texte plus grand|Contraste renforcé|Accéder aux outils|Vous pouvez aussi zoomer dans votre navigateur.
+de|Leseoptionen|Größere Schrift|Höherer Kontrast|Zu den Werkzeugen|Sie können auch die Zoomfunktion des Browsers nutzen.
+es|Opciones de lectura|Texto más grande|Mayor contraste|Ir a las herramientas|También puedes ampliar la página desde el navegador.
+it|Opzioni di lettura|Testo più grande|Contrasto elevato|Vai agli strumenti|Puoi anche ingrandire la pagina nel browser.
+pl|Ułatwienia czytania|Większy tekst|Większy kontrast|Przejdź do narzędzi|Możesz też powiększyć stronę w przeglądarce.
+pt|Opções de leitura|Texto maior|Contraste elevado|Ir para as ferramentas|Também podes ampliar a página no navegador.
+bg|Опции за четене|По-голям текст|По-силен контраст|Към инструментите|Можете да увеличите страницата и от браузъра.
+hr|Opcije čitanja|Veći tekst|Jači kontrast|Prijeđi na alate|Stranicu možete povećati i u pregledniku.
+cs|Možnosti čtení|Větší text|Vyšší kontrast|Přejít k nástrojům|Stránku můžete zvětšit i v prohlížeči.
+da|Læseindstillinger|Større tekst|Højere kontrast|Gå til værktøjer|Du kan også zoome med browseren.
+et|Lugemisvalikud|Suurem tekst|Suurem kontrastsus|Liigu tööriistadeni|Võid kasutada ka brauseri suumi.
+fi|Lukuasetukset|Suurempi teksti|Parempi kontrasti|Siirry työkaluihin|Voit myös suurentaa sivua selaimessa.
+el|Επιλογές ανάγνωσης|Μεγαλύτερο κείμενο|Υψηλότερη αντίθεση|Μετάβαση στα εργαλεία|Μπορείτε επίσης να μεγεθύνετε τη σελίδα από το πρόγραμμα περιήγησης.
+hu|Olvasási beállítások|Nagyobb szöveg|Nagyobb kontraszt|Ugrás az eszközökhöz|A böngészőben is nagyíthatja az oldalt.
+ga|Roghanna léitheoireachta|Téacs níos mó|Codarsnacht níos airde|Téigh chuig na huirlisí|Is féidir súmáil leis an mbrabhsálaí freisin.
+lv|Lasīšanas iestatījumi|Lielāks teksts|Lielāks kontrasts|Doties uz rīkiem|Varat arī tuvināt lapu pārlūkā.
+lt|Skaitymo nustatymai|Didesnis tekstas|Didesnis kontrastas|Pereiti prie įrankių|Puslapį taip pat galite padidinti naršyklėje.
+mt|Għażliet tal-qari|Test akbar|Kuntrast ogħla|Mur għall-għodod|Tista' tkabbar il-paġna mill-browser ukoll.
+ro|Opțiuni de citire|Text mai mare|Contrast mai puternic|Mergi la instrumente|Poți mări pagina și din browser.
+sk|Možnosti čítania|Väčší text|Vyšší kontrast|Prejsť k nástrojom|Stránku môžete zväčšiť aj v prehliadači.
+sl|Nastavitve branja|Večje besedilo|Večji kontrast|Pojdi na orodja|Stran lahko povečate tudi v brskalniku.
+sv|Läsinställningar|Större text|Högre kontrast|Gå till verktygen|Du kan även zooma i webbläsaren."""
+A11Y={}
+for line in A11Y_ROWS.splitlines():
+    code,*values=line.split("|")
+    if len(values)!=len(A11Y_KEYS) or not all(values):
+        raise ValueError("Incomplete accessibility locale: "+code)
+    A11Y[code]=dict(zip(A11Y_KEYS,values))
+
+def a11y(key):
+    return A11Y[locale()][key]
