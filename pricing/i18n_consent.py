@@ -1,5 +1,6 @@
 """Consent-modal presentation labels, independent of analytics state/persistence."""
 from pricing.i18n import locale, LOCALES
+from pricing.i18n_extra_research import CONSENT as EXTRA_CONSENT
 KEYS=["open","accept","reject","close","city","city_note","details","check","off","status","visitor"]
 ROWS=r"""en-GB|Privacy & cookies|Accept analytics|Reject analytics|Close|Correct your city (optional)|You can correct the approximate city. GPS is not requested.|What happens if I agree?|Check data connection|Optional analytics are off; pricing still works.|Data collection status|Analytics visitor code
 en-US|Privacy & cookies|Accept analytics|Reject analytics|Close|Correct your city (optional)|You can correct the approximate city. We don't ask for GPS.|What happens if I agree?|Check data connection|Optional analytics are off; pricing still works.|Data collection status|Analytics visitor code
@@ -32,6 +33,7 @@ for row in ROWS.splitlines():
     if len(values)!=len(KEYS) or any(not value.strip() for value in values):
         raise ValueError("Missing modal translation: "+code)
     LABELS[code]=dict(zip(KEYS,values))
+LABELS.update(EXTRA_CONSENT)
 if set(LABELS)!=set(LOCALES):
     raise ValueError("Incomplete consent modal languages")
 
