@@ -27,6 +27,7 @@ from pricing.ray_lemon75_ask_live import (
 )
 from pricing.neural_bid_blend_live import available as bid_available
 from pricing.ray_bid_winner_live import available as ray_bid_available, load as load_ray_bid
+from pricing.us_bid_resmlp_live import available as resmlp_bid_available, load as load_resmlp_bid
 from pricing.overnight_bohb_live import (
     available as bohb_available,
     load_ask as load_bohb_ask,
@@ -549,6 +550,7 @@ only when you ask. No model circus required. 🎪🚗
     lemon75_ask=lemon75_ask_available(root)
     ask_bohb=bohb_available(root,"ask")
     bid_bohb=bohb_available(root,"bid")
+    resmlp_bid_ready=resmlp_bid_available(root)
     ray_bid_ready=ray_bid_available(root)
     ask_champion=champion_ask_available(root)
     bid_champion=champion_bid_available(root)
@@ -556,7 +558,7 @@ only when you ask. No model circus required. 🎪🚗
     english_ready=bge_overnight or lemon75_ask or ask_bohb or ask_champion or ask_available(root)
     international_ready=granite_available(root)
     ask_ready=english_ready or international_ready
-    bid_ready=ray_bid_ready or bid_bohb or bid_champion or bid_available(root)
+    bid_ready=resmlp_bid_ready or ray_bid_ready or bid_bohb or bid_champion or bid_available(root)
     valuation_date,allow_analogue=clock_controls(
         prefix="main" if main else "experimental",prominent=main)
     # These historical models and their original data are never retrained by changing the date.
@@ -663,8 +665,10 @@ only when you ask. No model circus required. 🎪🚗
                 phase="load_checkpoint"
                 started=time.monotonic()
                 _valuation_probe("bid_checkpoint_start")
-                with st.spinner("🔨 Running the verified "+("non-Lemon Ray DeepFM" if ray_bid_ready else "DeepFM + Lemon XGBoost")+" Bid model…"):
-                    model=(load_ray_bid(root) if ray_bid_ready else
+                with st.spinner("🔨 Running the verified "+("ResMLP · Huber USD" if resmlp_bid_ready else
+                        "non-Lemon Ray DeepFM" if ray_bid_ready else "DeepFM + Lemon XGBoost")+" Bid model…"):
+                    model=(load_resmlp_bid(root) if resmlp_bid_ready else
+                           load_ray_bid(root) if ray_bid_ready else
                            load_bohb_bid(root) if bid_bohb else
                            load_champion_bid(root) if bid_champion else bid_load(root))
                     _valuation_probe("bid_checkpoint_complete",started)
@@ -860,7 +864,19 @@ only when you ask. No model circus required. 🎪🚗
             if not ask_ready:st.warning("Asking model has not passed deployment parity; estimate disabled.")
         with b:
             st.markdown("**🔨 Wholesale auction · verified production model**")
-            if ray_bid_ready:
+            if resmlp_bid_ready:
+                meta=json.loads((root/"models/us-bid-resmlp-20261111/manifest.json").read_text())
+                stats=meta["original_validation"]
+                st.caption(
+                    "🚀 LIVE 11 NOV 2026 · U.S. wholesale ResMLP + Huber USD. "
+                    "New model-specific annual mileage features learned from original "
+                    "training auctions only. No Lemon removal and no blend. "
+                    "ORIGINAL historical validation, {:,} auctions: "
+                    "CVaR95 ${:,.0f} · MAE ${:,.0f} · RMSE ${:,.0f}. "
+                    "2015-indexed dollars—not proof of 2026 market accuracy."
+                    .format(stats["rows"],stats["CVaR95_absolute_USD"],
+                            stats["MAE_USD"],stats["RMSE_USD"]))
+            elif ray_bid_ready:
                 meta=json.loads((root/"models/ray-bid-9am-winner/manifest.json").read_text())
                 st.caption(("🚀 LIVE 9 NOV 2026 · non-Lemon DeepFM16, CVaR95-weighted Huber. "
                            "Original full wholesale TRAIN cohort; NO Lemon exclusions, "
