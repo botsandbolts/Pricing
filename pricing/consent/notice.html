@@ -4,15 +4,15 @@
   <p id="status"></p>
   <div id="consent-info">
     <p id="summary">Can we learn how people use this site? We use this to fix bugs and improve the tools. We may count visits and guess your city. You can say no. The car price tool still works.</p>
-    <p class="short-note">Before you decide, <a href="https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/?legal=privacy" target="_blank" rel="noopener noreferrer">read our full Privacy Policy in plain English</a>.</p>
-    <p class="short-note">Turso stores the private records for 90 days. <span id="geo-short"></span></p>
-    <p class="short-note"><label for="city-correction">City correction (optional, if our estimate is wrong)</label>
+    <p class="short-note"><span id="privacy-before">Before you decide, </span><a id="privacy-original-link" href="https://pricing-5a4k2zenhw2nte9xpshxs3.streamlit.app/?legal=privacy" target="_blank" rel="noopener noreferrer">read our full Privacy Policy in plain English</a>.</p>
+    <p class="short-note"><span id="privacy-retention">Turso stores the private records for 90 days.</span> <span id="geo-short"></span></p>
+    <p class="short-note"><label for="city-correction" id="privacy-city-label">City correction (optional, if our estimate is wrong)</label>
       <input id="city-correction" type="text" maxlength="80" autocomplete="off" placeholder="e.g. Hamburg" />
-      <small>Your own city entry overrides the approximate IP-based city. We do not request GPS.</small></p>
+      <small id="privacy-city-help">Your own city entry overrides the approximate IP-based city. We do not request GPS.</small></p>
     <p id="delivery" role="status"></p><p id="google-status" role="status"></p>
     <button id="check-connection" type="button" hidden>Check collection connection</button>
     <details id="privacy-details">
-      <summary>What does yes mean?</summary>
+      <summary id="privacy-details-label">What does yes mean? (English technical details)</summary>
       <p>We keep a cookie with your choice for up to 90 days.</p>
       <p><strong>Turso</strong> may save a random code, car facts, price results, rough location, and site use. It also saves basic error reports. We do not save your full car story, raw IP address, or GPS location in Turso tracking data.</p>
       <p><strong>GeoJS</strong> may guess your city from your IP address. It sees your IP when it does this. You can fix the city here.</p>
