@@ -15,7 +15,7 @@ def test_dutch_legal_route_keeps_reference_and_local_copy(kind,expected):
     at.query_params["lang"]="nl"
     at.run()
     assert not at.exception
-    visible="\n".join(str(x.value) for x in at.markdown)
+    visible="\n".join(str(x.value) for x in [*at.markdown, *at.caption])
     assert expected in visible
     assert "amitsteinberg74@gmail.com" in visible
     assert "volledige Engelse" in visible
@@ -28,7 +28,7 @@ def test_polish_privacy_notice_is_explained_before_english_original():
     at.query_params["lang"]="pl"
     at.run()
     assert not at.exception
-    visible="\n".join(str(x.value) for x in at.markdown)
+    visible="\n".join(str(x.value) for x in [*at.markdown, *at.caption])
     assert "Prywatność i pliki cookie" in visible
     assert "90 dni" in visible
     assert "Turso" in visible
