@@ -157,7 +157,7 @@ def format_eur(amount: float) -> str:
     lang = locale()
     if lang in ("en-GB", "en-US", "ga", "mt"):
         return "€" + number
-    if lang in ("de", "nl", "es", "it", "pt", "sl", "el", "tr", "ca", "sr-Latn", "sr-Cyrl", "bs", "mk"):
+    if lang in ("de", "nl", "es", "it", "pt", "sl", "el", "tr", "ca", "is", "sr-Latn", "sr-Cyrl", "bs", "mk"):
         return number.replace(",", ".") + " €"
     # French and most Central/Northern/Eastern European publication styles.
     return number.replace(",", "\u202f") + " €"
