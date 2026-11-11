@@ -1077,9 +1077,12 @@ def render():
     else:
         if locale() not in ("en-GB","en-US"):
             localized_science_intro(tab)
-        # Streamlit disallows nested expanders. A normal checkbox exposes the
-        # original technical panel, leaving its own expanders fully operable.
-        show_original = (locale() in ("en-GB","en-US") or
+        # Keep interactive inspector, dealership and market tools accessible
+        # in every locale. Gate only long-form scientific technical annexes.
+        technical_panel = tab in (
+            "📈 Price Indices","📊 Evaluation","🧪 Model lab",
+            "🔬 The science","🧹 Outlier lab")
+        show_original = (locale() in ("en-GB","en-US") or not technical_panel or
             st.checkbox("📚 "+legal_copy("show_technical"),
                         value=False,key="cps_eu_research_english_"+tab))
         if show_original:
