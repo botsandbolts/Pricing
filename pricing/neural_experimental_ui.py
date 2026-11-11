@@ -109,7 +109,9 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             st.caption("No VIN upload, no special instructions and no degree in automotive engineering required. The description is optional for Bid but useful for Ask."
                        if locale() in ("en-GB","en-US") else story("form_intro"))
         a,b,c=st.columns(3)
-        year=a.number_input(field("model_year"),1900,2021,2015,key=prefix+"_year",persist_state="session")
+        year=a.number_input(field("model_year"),1900,2021,
+                            2015 if prefix+"_year" not in st.session_state else None,
+                            key=prefix+"_year",persist_state="session")
         make=b.text_input(tr("make"),"Toyota",key=prefix+"_make",persist_state="session")
         model=c.text_input(tr("model")+" / trim","Corolla",key=prefix+"_model",persist_state="session")
         a,b,c=st.columns(3)
@@ -395,10 +397,9 @@ def _explanation(root):
 
 
 def _apply_example():
-    from pricing.description_examples import load_examples
-    n=st.session_state.get("experimental_example",0)
-    if not n:return
-    e=load_examples()[n-1]
+    from pricing.description_examples import load_examples, selected_example
+    e=selected_example(load_examples(),st.session_state.get("experimental_example",0))
+    if e is None:return
     keys={"year":"year","manufacturer":"make","model":"model","odometer":"mileage",
           "state":"state","type":"body","condition":"condition","fuel":"fuel",
           "transmission":"transmission","drive":"drive","title_status":"title",
