@@ -225,7 +225,7 @@ def render(result, adjusted_receipt=None, bid_analogue=None):
     chart = pd.DataFrame(result["groups"]).set_index("feature")
     st.bar_chart(chart, horizontal=True, height=230)
     with st.expander("🔬 Individual neural input contributions"):
-        st.dataframe(pd.DataFrame(result["numeric"]), hide_index=True, use_container_width=True)
+        st.dataframe(pd.DataFrame(result["numeric"]), hide_index=True, width="stretch")
         st.caption("The description combines wording statistics and the full "
                    "384-dimensional Granite embedding. No unsupported individual-word "
                    "importance claim is made.")
@@ -234,7 +234,7 @@ def render(result, adjusted_receipt=None, bid_analogue=None):
         st.dataframe(pd.DataFrame(result["category_sensitivity"]).rename(columns={
             "feature": "Car detail", "value": "Current value",
             "historical_difference_usd": "Historical price difference (USD)",
-        }), hide_index=True, use_container_width=True)
+        }), hide_index=True, width="stretch")
         st.caption("Each difference reruns the SAME neural model with just one "
                    "categorical detail marked unknown. These what-if differences "
                    "are not additive attributions and are not buyer behavior.")
