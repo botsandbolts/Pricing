@@ -269,7 +269,7 @@ def _edit_vehicle(schema):
 
 def _receipt(bundle):
     quote=st.session_state.get("eu_receipt")
-    if quote and quote.get("engine")!="HOFM3 Tail-MAE · October 2026 evidence":
+    if quote and quote.get("engine")!="ResMLP Weighted Tail-Huber · October 2026 evidence":
         st.session_state.pop("eu_receipt",None)
         quote=None
         st.info("European neural model upgraded. Recalculate to refresh your receipt.")
@@ -284,7 +284,7 @@ def _receipt(bundle):
     if locale() in ("en-GB","en-US"):
         st.caption("Trained on observed October 4–15, 2026 asking prices (reference October 13). **No additional Eurostat factor** is applied. This is not a verified November 2026 market price or completed sale; mileage is your input.")
     else:
-        st.caption("HOFM3 · 4–15.10.2026 · "+story("disclaimer"))
+        st.caption("ResMLP · 4–15.10.2026 · "+story("disclaimer"))
     pilot=lookup_pulse(read_pulse(),quote["vehicle"].get("seller_country"),
                        quote["vehicle"].get("make"),quote["vehicle"].get("model"))
     if pilot:
@@ -532,9 +532,9 @@ def _evaluation(bundle):
             bars=[]
             for name in chart.index:
                 bars.append('<div class="eu-benchmark-group"><b>'+escape(str(name))+'</b>')
-                for label in ("New HOFM3","Previous XGBoost"):
+                for label in ("New ResMLP","Previous XGBoost"):
                     value=float(chart.loc[name,label])
-                    tone="eu-impact-up" if label=="New HOFM3" else "eu-impact-reference"
+                    tone="eu-impact-up" if label=="New ResMLP" else "eu-impact-reference"
                     width=100.*value/max_error
                     bars.append('<div class="eu-benchmark-row"><span>'+escape(label)+'</span>'
                         '<div class="eu-impact-track"><div class="eu-impact-bar '+tone+
@@ -548,6 +548,14 @@ def _evaluation(bundle):
             old_error=previous["test_once"]["cvar95_absolute_eur"]
             st.success(f"The new neural engine reduced worst-5% average test errors by "
                        f"{(old_error-new)/old_error*100:.1f}% versus the previous XGBoost model.")
+    deployed_reference=comp.get("deployed_hofm3_validation_reference") or {}
+    if deployed_reference.get("cvar95_absolute_eur") is not None:
+        new_cvar=float(champion["validation"]["cvar95_absolute_eur"])
+        old_cvar=float(deployed_reference["cvar95_absolute_eur"])
+        st.caption(f"Compared with the previous HOFM3 on exactly the same validation "
+                   f"cohort: ResMLP CVaR95 €{new_cvar:,.0f}; HOFM3 €{old_cvar:,.0f}. "
+                   "ResMLP is being served by explicit release choice; its slightly "
+                   "higher validation CVaR95 is disclosed, not hidden.")
     st.caption("CVaR95 is the mean absolute error in the worst 5% of examples. "
                "The candidate was selected on validation; the test was scored once.")
     st.warning("Scores differ by model, market and car type. They do not promise "
@@ -559,8 +567,9 @@ def _evaluation(bundle):
 
 def _model_lab(bundle):
     st.markdown("### 🧪 Ray Tune model lab · five neural architectures")
-    st.caption("One November-2026 refresh: 15 Ray workers, five architectures and "
-               "30 loss functions. Rankings use CVaR95 on genuine recent asking prices.")
+    st.caption("Overnight 11 November 2026: 30 worker-level winners from "
+               "971 valid trials, five neural families, 30 training losses "
+               "and epoch budgets up to 150. CVaR95 ranks validation quality.")
     if bundle is None:
         st.info("Model research details unlock when verified weights are available.")
         return
