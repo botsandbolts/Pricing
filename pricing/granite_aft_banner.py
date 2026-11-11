@@ -1,7 +1,7 @@
-"""Accessible, 36-language release banner for sole Granite Ask and current Bid.
+"""Accessible, 36-language release banner for verified Granite Ask and Bid.
 
-Explains interval censoring as a data/likelihood concept, not a false claim
-that the active Bid ResMLP uses interval-censored AFT.
+Explain the actual AFT Ask objective and separate Huber Bid objective accurately.
+Interval censoring is a capability of AFT, not an asserted property of these rows.
 """
 from html import escape
 from pathlib import Path
@@ -59,7 +59,7 @@ def banner_html(root=None):
    background:#06192B50;border-radius:0 11px 11px 0;
    padding:12px 15px;margin:11px 0 16px;">
   <strong style="display:block;color:#FFE2A2;font-size:.97rem;margin-bottom:5px">
-  🔬 {bid_title}</strong>
+  🧠 {bid_title}</strong>
   <span style="display:block;color:#E5F2F8;font-size:.91rem;line-height:1.57">
    {bid_text}
   </span>
