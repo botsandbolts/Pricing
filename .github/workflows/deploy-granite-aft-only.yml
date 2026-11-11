@@ -1,0 +1,146 @@
+name: Deploy Granite AFT-only Ask with 36 languages
+on:
+  push:
+    branches: [experiment/granite-aft-only-36-languages-20261111]
+    paths: ['.github/workflows/deploy-granite-aft-only.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: granite-aft-only-20261111
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Retrieve exact architecture from four-hour experiment
+        run: |
+          git fetch origin experiment/us-ask-granite-int8-full-ray-4h-20261111
+          for f in scripts/granite_ask_full_features.py scripts/granite_ask_full_ray_4h.py; do
+            git show FETCH_HEAD:"$f" > "$f"
+          done
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install --index-url https://download.pytorch.org/whl/cpu 'torch>=2.4,<3'
+      - run: python -m pip install 'numpy>=1.26,<2' 'pandas>=2.1,<3' 'pyarrow==19.0.1' 'scipy>=1.11,<2' 'scikit-learn>=1.4,<2' 'joblib>=1.4,<2'
+      - name: Validate syntax, sole-Ask routing, complete 36-language coverage
+        run: |
+          python -m compileall -q app.py pricing/neural_experimental_ui.py pricing/granite_aft_ask_live.py pricing/granite_aft_i18n.py pricing/granite_aft_banner.py pricing/bid_launch_announcement.py scripts/granite_ask_full_ray_4h.py scripts/granite_ask_full_features.py scripts/build_granite_aft_release.py
+          python - <<'PY'
+          import sys,types
+          from pathlib import Path
+          sys.modules['streamlit']=types.ModuleType('streamlit')
+          from pricing.i18n import LOCALES
+          from pricing.granite_aft_i18n import COPY
+          assert len(COPY)==len(LOCALES)==36 and set(COPY)==set(LOCALES)
+          ui=Path('pricing/neural_experimental_ui.py').read_text()
+          assert 'granite_aft_available(root)' in ui
+          assert 'model=load_granite_aft(root)' in ui
+          assert 'load_granite_aft(root).predict(' in ui
+          assert 'bge' not in ui.lower()
+          assert 'lemon' not in ui.lower()
+          print('GRANITE_ONLY_36_LANGUAGE_UI_CHECK_PASSED',flush=True)
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: neural-ask-frozen-features
+          run-id: 42224932982
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/original
+      - uses: actions/download-artifact@v4
+        with:
+          name: granite-ask-full-2021-model-mileage-features
+          run-id: 43034629386
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/features
+      - uses: actions/download-artifact@v4
+        with:
+          name: granite-97m-r2-int8-onnx-ask-embeddings
+          run-id: 42518049406
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/granite-int8
+      - uses: actions/download-artifact@v4
+        with:
+          name: granite-ask-int8-full-4h-shard-0
+          run-id: 43034629386
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/aft
+      - name: Release candidate · verify 128 real validation predictions and 128 raw-field transformations
+        run: |
+          python -u -m scripts.build_granite_aft_release \
+            --source "$RUNNER_TEMP/original/features.npz" \
+            --features "$RUNNER_TEMP/features/features.npz" \
+            --embedding "$RUNNER_TEMP/granite-int8" \
+            --winner "$RUNNER_TEMP/aft/winner-aft" \
+            --output "$RUNNER_TEMP/release/models/us-ask-granite-aft-20261111" \
+            --root .
+      - name: Promote verified weights, 36-locale banner and Granite-only UI to latest main
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE="$RUNNER_TEMP/publish"
+          mkdir -p "$SOURCE/models/us-ask-granite-aft-20261111"
+          cp -a "$RUNNER_TEMP/release/models/us-ask-granite-aft-20261111/." "$SOURCE/models/us-ask-granite-aft-20261111/"
+          FILES=(
+            pricing/granite_aft_ask_live.py
+            pricing/granite_aft_i18n.py
+            pricing/granite_aft_banner.py
+            pricing/bid_launch_announcement.py
+            pricing/neural_experimental_ui.py
+            pricing/cvar95_experiment_science.py
+            pricing/studio_design.py
+            scripts/granite_ask_full_features.py
+            scripts/granite_ask_full_ray_4h.py
+            scripts/build_granite_aft_release.py
+          )
+          for file in "${FILES[@]}"; do
+            mkdir -p "$SOURCE/$(dirname "$file")"
+            cp "$file" "$SOURCE/$file"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BASE="$(git rev-parse HEAD)"
+          for attempt in 1 2 3; do
+            git fetch origin main
+            REMOTE="$(git rev-parse origin/main)"
+            ANCESTOR="$(git merge-base "$BASE" "$REMOTE")"
+            CHANGES="$(git diff --name-only "$ANCESTOR" "$REMOTE" -- "${FILES[@]}" models/us-ask-granite-aft-20261111)"
+            if [[ -n "$CHANGES" ]]; then
+              echo "Concurrent production changes, refusing overwrite: $CHANGES" >&2
+              exit 1
+            fi
+            git reset --hard "$REMOTE"
+            cp -a "$SOURCE/." .
+            git add "${FILES[@]}" models/us-ask-granite-aft-20261111
+            if git diff --cached --quiet; then
+              echo "Identical audited release already installed"
+              exit 0
+            fi
+            git commit -m "Deploy Granite QInt8 DCNv2 AFT as sole US Ask with 36-language scientific banner"
+            if git push origin HEAD:main; then
+              echo "GRANITE_AFT_ONLY_DEPLOYED $(git rev-parse HEAD)"
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Post-promotion release receipts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          root=Path('models/us-ask-granite-aft-20261111')
+          assert json.loads((root/'verification.json').read_text())['status']=='passed'
+          assert json.loads((root/'manifest.json').read_text())['validation']['rows']==31668
+          assert (root/'weights.pt').stat().st_size>1000000
+          print('GRANITE_AFT_SOLE_PRODUCTION_RELEASE_SUCCESS',flush=True)
+          PY
