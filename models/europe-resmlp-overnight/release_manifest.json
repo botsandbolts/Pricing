@@ -1,0 +1,19 @@
+{
+  "model": "ResMLP Weighted Tail-Huber",
+  "source_run_id": 42892216866,
+  "source_artifact_id": 13827450754,
+  "source_trial": "eu-overnight-20261111-wave1-0",
+  "best_epoch": 76,
+  "configured_epochs": 80,
+  "overnight_validation_cvar95_eur": 20345.063082146306,
+  "deployed_hofm3_reference_cvar95_eur": 20334.596809202983,
+  "checkpoint_sha256": "cbefb8795a1a7c0d1b62f4a42312e560cde384cca0833c18a459d2bb5d5387b7",
+  "schema_training_sha256": "31737673739584dc3a9debd8531e1c2e99eaeac24b4abeb269f695b07be172f1",
+  "schema_validation_sha256": "2a4b7f2e64e060b1ea01fedfe58bc151e90a2223fe03b517d6eacdbb94fa3ad8",
+  "sealed_test_sha256": "732db40bbcaf037d10c4c31769a8bd8fc819834bef69d6c94b732f2b3863ba28",
+  "release_status": "verified exact observed-ASK overnight ResMLP checkpoint",
+  "market": "Europe ASK only",
+  "source_dates": "2026-10-13",
+  "automatic_eurostat_adjustment": false,
+  "published_by": "verified artifact packaging; never retrain"
+}
