@@ -64,7 +64,7 @@ def _main_two_market_release_v20():
     # report modules after today's focused CTA layout release, even if
     # Streamlit preserved v16 resource cache through hot redeployment.
     import importlib,sys
-    for name in ('pricing.accessibility','pricing.garage_art','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.ray_lemon75_ask_ui','pricing.cvar95_experiment_science','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
+    for name in ('pricing.accessibility','pricing.garage_art','pricing.studio_design','pricing.navigation','pricing.forest_form','pricing.taste_garage_ui','pricing.current_tools','pricing.hierarchy_sparse_live','pricing.hierarchy_sparse_studio','pricing.neural_experimental_ui','pricing.cvar95_experiment_science','pricing.neural_champion_live','pricing.same_car_markets','pricing.dealer_positioning_ui'):
         module=sys.modules.get(name)
         if module is not None:importlib.reload(module)
     return True
