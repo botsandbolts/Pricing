@@ -248,6 +248,8 @@ def _apply_example():
             v=str(v).lower().strip()
             if v not in options[key]:v="unknown"
         if key=="state":v=str(v).lower()[:2]
+        if key=="year":v=max(1900,min(2021,int(v)))
+        if key=="mileage":v=max(0,min(2000000,int(float(v))))
         st.session_state["granite_ask_"+key]=v
     st.session_state["granite_ask_description"]=e.get("text","")[:8000]
     st.session_state.pop("experimental_combined_receipt",None)
@@ -400,6 +402,19 @@ only when you ask. No model circus required. 🎪🚗
         international_ready=ask_ready)
     choice="granite"
     chosen_ready=ask_ready
+    request_signature=json.dumps({
+        "fields":fields,"notes":notes,"date":str(valuation_date),
+        "auction":str(auction),"grade":grade,
+        "allow_analogue":bool(allow_analogue),"choice":choice
+    },sort_keys=True,separators=(",",":"),default=str)
+    pending=st.session_state.get("experimental_combined_receipt")
+    # If a widget/browser rerun interrupted the first click, finish the same
+    # request automatically, without asking the visitor to tap Granite again.
+    if (not go and pending and
+        pending.get("_request_signature")==request_signature and
+        (("ask" not in pending and "ask_error" not in pending) or
+         (bid_ready and "bid" not in pending and "bid_error" not in pending))):
+        go="granite"
 
     # The public date picker can predate a particular model year. Reject before
     # expensive Granite inference, and do not retain a stale previous receipt.
@@ -426,11 +441,6 @@ only when you ask. No model circus required. 🎪🚗
         # Granite evaluation is still running. Identify *one* exact submitted
         # request, reuse a successful Ask checkpoint, and avoid double billing,
         # duplicate database rows and redundant ONNX inference.
-        request_signature=json.dumps({
-            "fields":fields,"notes":notes,"date":str(valuation_date),
-            "auction":str(auction),"grade":grade,
-            "allow_analogue":bool(allow_analogue),"choice":choice
-        },sort_keys=True,separators=(",",":"),default=str)
         previous=st.session_state.get("experimental_combined_receipt")
         same_request=bool(previous and
             previous.get("_request_signature")==request_signature)
@@ -459,7 +469,7 @@ only when you ask. No model circus required. 🎪🚗
                      "The form remains available; try again after the app recovers.")
             results["ask_error"]="Pricing runtime initialization failed."
             results["bid_error"]="Pricing runtime initialization failed."
-            ask_ready=bid_ready=False
+            ask_ready=bid_ready=chosen_ready=False
         if chosen_ready and "ask" not in results:
             results.pop("ask_error",None)
             phase="load_checkpoint"
@@ -531,8 +541,11 @@ only when you ask. No model circus required. 🎪🚗
         progress_notice.empty()
         st.session_state["experimental_combined_receipt"]=results
         _valuation_probe("receipt_saved")
-        if "ask" in results or "bid" in results:
-            st.success("✅ Calculation complete. Your prices are below." if locale() in ("en-GB","en-US") else field("quote"))
+        if "ask" in results and "bid" in results:
+            st.success("✅ Both prices are ready below." if locale() in ("en-GB","en-US") else field("quote"))
+        elif "ask" in results or "bid" in results:
+            st.warning("One market is unavailable; the successful valuation is preserved. "
+                       "The other estimate will never be replaced by invented values.")
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
         st.markdown("### 💵 "+("Your car · estimated prices" if locale() in ("en-GB","en-US") else field("quote")))
