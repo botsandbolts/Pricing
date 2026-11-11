@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "source_run_id": 43034629386,
+  "original_validation_prediction_parity_passed": true,
+  "sampled_original_validation_predictions": 128,
+  "validation_prediction_max_abs_usd": 0.078125,
+  "live_feature_parity_passed": true,
+  "live_feature_parity_rows": 128,
+  "original_test_not_scored": true,
+  "known_training_label_year": 2021,
+  "encoder_provenance_sha_verified": true,
+  "no_competing_ask_backend": true
+}

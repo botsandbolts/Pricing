@@ -1,6 +1,6 @@
 """Experimental model workshop: two independent parity-gated neural engines.
 
-Ask: description -> pinned BGE embedding -> entire DeepCross/AFT price model.
+Ask: sole IBM Granite 97M QInt8 ONNX + DCNv2 AFT.
 Bid: verified full historical auction cohort, ResMLP and Huber USD.
 Research models are never substituted by the primary calculator's predictions.
 """
@@ -19,28 +19,17 @@ from pricing.i18n import tr, locale
 from pricing.i18n_story import story
 from pricing.i18n_fields import field
 from pricing.i18n_enums import option_label, option_label_for
-from pricing.neural_ask_embedding_live import available as ask_available
-from pricing.granite_ask_live import available as granite_available, load as load_granite_ask
-from pricing.bge_overnight_ask_live import available as bge_overnight_available, load as load_bge_overnight
-from pricing.neural_bid_blend_live import available as bid_available
+from pricing.granite_aft_ask_live import available as granite_aft_available, load as load_granite_aft
+from pricing.granite_aft_i18n import copy as granite_copy
+
 from pricing.ray_bid_winner_live import available as ray_bid_available, load as load_ray_bid
 from pricing.us_bid_resmlp_live import available as resmlp_bid_available, load as load_resmlp_bid
-from pricing.overnight_bohb_live import (
-    available as bohb_available,
-    load_ask as load_bohb_ask,
-    load_bid as load_bohb_bid,
-)
-from pricing.neural_champion_live import (
-    ask_available as champion_ask_available,
-    bid_available as champion_bid_available,
-    load_ask as load_champion_ask,
-    load_bid as load_champion_bid,
-)
+
 
 def _valuation_probe(stage, started=None):
     """Server-only evaluation checkpoint; never record vehicle text or VINs.
 
-    The latest production log ended after BGE initialized without an exception.
+    The latest production log ended after Granite initialized without an exception.
     These phase markers distinguish model-load, embedding and head failures,
     including an abrupt process termination where Python can't print a traceback.
     """
@@ -190,32 +179,22 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
                 "Well maintained. Clean title. New tires." if locale() in ("en-GB","en-US") else "",
                 max_chars=8000,height=125 if compact else 140,
                 key=prefix+"_description",persist_state="session",
-                help="The original BGE text encoder interprets the advert. "
-                     "A full neural network combines it with the vehicle facts.")
+                help=granite_copy(locale())["intro"])
         if two_models and not bid:
-            st.markdown("### 🧠 04 / Pick your AI engine · one click, one valuation")
-            left,right=st.columns(2)
-            with left:
-                st.markdown("**🇬🇧 BGE DeepCross**")
-                st.caption("Original full-cohort BGE price network. No target-based removals."
-                           if locale() in ("en-GB","en-US") else "BGE · "+story("science_notice"))
-                english_go=st.form_submit_button("🇬🇧 Evaluate in English" if locale() in ("en-GB","en-US") else "🇬🇧 BGE · "+story("us_cta"),
-                    key=prefix+"_calculate_english",type="primary",
-                    disabled=not english_ready,use_container_width=True)
-            with right:
-                st.markdown("**🌍 Granite R2 97M**")
-                st.caption("INT8 ONNX · IBM Granite R2 97M · complete-cohort search underway. Not yet deployed."
-                           if locale() in ("en-GB","en-US") else "IBM Granite R2 97M · INT8 ONNX · "+story("science_notice"))
-                multilingual_go=st.form_submit_button("🌍 Evaluate in my language" if locale() in ("en-GB","en-US") else "🌍 Granite · "+story("us_cta"),
-                    key=prefix+"_calculate_multilingual",type="primary",
-                    disabled=not international_ready,use_container_width=True)
-            submitted="bge" if english_go else "granite" if multilingual_go else False
+            st.markdown("### 🌍 04 / IBM Granite R2 97M · DCNv2 AFT")
+            st.caption(granite_copy(locale())["intro"])
+            clicked=st.form_submit_button("🌍 "+granite_copy(locale())["cta"],
+                key=prefix+"_calculate_granite",type="primary",
+                disabled=not ready,use_container_width=True)
+            submitted="granite" if clicked else False
         else:
-            submitted=st.form_submit_button(
-                "🚗 "+tr("calculate")+" + wholesale Bid" if compact else
-                "🚀 Run complete "+("wholesale" if bid else "asking-price neural")+" model",
+            clicked=st.form_submit_button(
+                "🚗 "+tr("calculate") if compact else
+                "🌍 "+granite_copy(locale())["cta"],
                 key=prefix+"_calculate_single_tap",
                 type="primary",disabled=not ready,use_container_width=True)
+            submitted="granite" if clicked else False
+
     return fields,notes,submitted
 
 def _price(label,price,subtitle):
@@ -227,85 +206,6 @@ def _price(label,price,subtitle):
                 unsafe_allow_html=True)
 
 
-def _ask(root):
-    st.markdown("### ✍️ Asking prices · BGE → DeepCross → AFT")
-    st.caption("No MiniLM Ridge, no text-only price head and no TF-IDF/SVD price scalar. "
-               "All 384 BGE embedding dimensions feed the learned neural projection.")
-    from pricing.cvar95_experiment_science import model_kpis
-    from pricing.cvar95_experiment_science import all_validation
-    kpi=model_kpis(root,"ask") if all_validation(root,"ask") else None
-    if kpi:
-        a,c,e=st.columns(3)
-        a.metric("🛡️ CVaR95 · PRIMARY", "$"+f"{kpi['CVaR95_absolute_USD']:,.0f}")
-        c.metric("RMSE · secondary","$"+f"{kpi['RMSE_USD']:,.0f}")
-        e.metric("MAE · secondary","$"+f"{kpi['MAE_USD']:,.0f}")
-        st.caption("Worst 5% average absolute error across 31,682 original 2021 Craigslist test listings. The CVaR result describes a previously validated model; a CVaR-first re-ranking is published separately.")
-    else:
-        st.info("No verified CVaR95 test archive is currently installed.")
-    ready=ask_available(root)
-    if not ready:
-        st.warning("Full BGE/DeepCross serving has not passed its original "
-                   "holdout-parity gate. No individual price will be fabricated.")
-        st.markdown("[Inspect verification workflow](https://github.com/botsandbolts/Pricing/actions/workflows/experimental-two-model-release.yml)")
-    fields,notes,go=_vehicle("bge_ask",ready=ready)
-    if go:
-        start=time.monotonic()
-        try:
-            from pricing.neural_ask_embedding_live import load
-            with st.spinner("Encoding the full description and running DeepCross/AFT…"):
-                model=load(root)
-                result=model.predict(notes,fields)
-            st.session_state["bge_complete_receipt"]={
-                "fields":fields,"notes":notes,"result":result,
-                "elapsed":time.monotonic()-start}
-        except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
-            st.session_state.pop("bge_complete_receipt",None)
-            st.error("Unable to verify the full asking prediction: "+str(exc))
-    saved=st.session_state.get("bge_complete_receipt") if ready else None
-    if saved:
-        st.markdown("#### 03 / Price from the entire neural network")
-        _price("Historical seller asking · May 2021 USD",
-               saved["result"]["price"],
-               "Not a completed sale, wholesale bid or current market appraisal")
-        st.caption("Entire BGE + DeepCross/AFT completed in "+
-                   f"{saved['elapsed']:.2f} seconds. Prices are historical anchors.")
-        with st.expander("✍ Rewrite the listing · compare two FULL network prices",expanded=True):
-            st.write("Vehicle details stay fixed. BGE re-embeds the new wording; "
-                     "the complete DeepCross/AFT network predicts the new price. "
-                     "This does **not** display any separate Ridge text-price estimate.")
-            alt=st.text_area("Alternative wording",value=saved["notes"],
-                             height=125,max_chars=8000,key="bge_whatif")
-            if st.button("Compare complete neural estimates",type="primary",key="bge_whatif_run"):
-                try:
-                    from pricing.neural_ask_embedding_live import load
-                    new=load(root).predict(alt,saved["fields"])["price"]
-                    original=saved["result"]["price"]
-                    a,b,c=st.columns(3)
-                    a.metric("Original full-network","$"+f"{original:,.0f}")
-                    b.metric("Rewritten full-network","$"+f"{new:,.0f}")
-                    c.metric("Difference","$"+f"{new-original:+,.0f}")
-                    st.caption("Model response to language, not causal proof that "
-                               "editing an advertisement changes a transaction.")
-                except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
-                    st.warning("Whole-model wording comparison unavailable: "+str(exc))
-        with st.expander("📉 Mileage sensitivity · full-network reruns"):
-            try:
-                from pricing.neural_ask_embedding_live import load
-                model=load(root);prepared=model.prepare_text(saved["notes"]);table=[]
-                for change in (-20000,-10000,0,10000,20000):
-                    variant={**saved["fields"],
-                             "odometer":max(0,saved["fields"]["odometer"]+change)}
-                    price=model.predict_prepared(variant,prepared)["price"]
-                    table.append({"Mileage":int(variant["odometer"]),"Asking USD":round(price)})
-                st.line_chart(pd.DataFrame(table).set_index("Mileage")["Asking USD"])
-            except (OSError,RuntimeError,ValueError,TypeError,KeyError) as exc:
-                st.info("Mileage comparison temporarily unavailable: "+str(exc))
-        public={"model":"BGE256 + entire DeepCross AFT",
-                "historical_price_usd":saved["result"]["price"],
-                "vehicle":saved["fields"],"description":"omitted for privacy"}
-        st.download_button("Download asking research receipt",
-               json.dumps(public,indent=2),file_name="bge-experimental-ask.json",
-               mime="application/json",key="bge_download")
 
 
 def _explanation(root):
@@ -340,8 +240,8 @@ def _apply_example():
             v=str(v).lower().strip()
             if v not in options[key]:v="unknown"
         if key=="state":v=str(v).lower()[:2]
-        st.session_state["bge_ask_"+key]=v
-    st.session_state["bge_ask_description"]=e.get("text","")[:8000]
+        st.session_state["granite_ask_"+key]=v
+    st.session_state["granite_ask_description"]=e.get("text","")[:8000]
     st.session_state.pop("experimental_combined_receipt",None)
 
 
@@ -408,7 +308,7 @@ def render(root,*,main=False):
 <h1>Two markets. One car.<br>Fewer pricing nightmares.</h1>
 <p>Seller asking and wholesale auction estimates from the same verified
 models used on our main price calculator.</p>
-<span class="exp-chip">✍ BGE + ResMLP / DeepCross</span>
+<span class="exp-chip">🌍 Granite QInt8 + DCNv2 AFT</span>
 <span class="exp-chip">🚘 ResMLP + robust Huber</span>
 <span class="exp-chip">🛡 CVaR95 · worst 5%</span>
 </section>""",unsafe_allow_html=True)
@@ -422,11 +322,9 @@ models used on our main price calculator.</p>
         st.caption(story("us_pitch"))
     else:
         st.markdown("### 🧰 Full-cohort car valuation laboratory")
-        st.caption("Our published Bid model uses the original unfiltered auction "
-                   "training population. IBM Granite 97M QInt8 ONNX is being "
-                   "trained on all original Ask training listings, with "
-                   "price-independent mileage statistics. It is not yet the "
-                   "production Ask model.")
+        st.caption("The only seller Ask engine is IBM Granite 97M INT8 ONNX "
+                   "+ DCNv2 AFT, verified on the original historical validation. "
+                   "Wholesale Bid uses ResMLP Huber on original auction sales.")
 
     if main and locale() in ("en-GB","en-US"):
         # Visibility is intentional: Captum itself still runs ONLY on a user
@@ -466,17 +364,13 @@ only when you ask. No model circus required. 🎪🚗
         st.caption("Historical, price-redacted car adverts (CC BY 4.0). Choose an example to populate the form, or enter your own car. Picking a car does not automatically submit a valuation." if locale() in ("en-GB","en-US") else story("form_intro"))
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
-    ask_bohb=False  # Historical archived candidate, not in active routing
-    bid_bohb=False  # Disable legacy blended bid serving
     resmlp_bid_ready=resmlp_bid_available(root)
     ray_bid_ready=ray_bid_available(root)
-    ask_champion=champion_ask_available(root)
-    bid_champion=False  # Only verified original full-cohort auction models
-    bge_overnight=False  # Retire older outcome-conditioned selection
-    english_ready=ask_champion or ask_available(root)
-    international_ready=False  # Retire older outcome-conditioned Granite head pending new full release
-    ask_ready=english_ready or international_ready
+    ask_ready=granite_aft_available(root)
     bid_ready=resmlp_bid_ready or ray_bid_ready
+    ask_champion=False
+    bid_champion=False
+
     valuation_date,allow_analogue=clock_controls(
         prefix="main" if main else "experimental",prominent=main)
     # These historical models and their original data are never retrained by changing the date.
@@ -493,14 +387,14 @@ only when you ask. No model circus required. 🎪🚗
         grade=st.selectbox("Historical pre-sale grade",["unknown","1","2","3","4","5"],index=3,key="experiment_joint_grade")
         st.caption("2016–2021 cars can use an optional *hypothetical five-year-old auction analogue*. It is not evidence of what that vehicle generation sold for in 2015.")
     fields,notes,go=_vehicle(
-        "bge_ask",ready=ask_ready or bid_ready,compact=main,
-        two_models=main,english_ready=english_ready,
-        international_ready=international_ready,
-        english_cvar=8740.063663572575 if bge_overnight else 8959.618399982903)
-    choice="granite" if go=="granite" and international_ready else "bge"
-    chosen_ready=international_ready if choice=="granite" else english_ready
+        "granite_ask",ready=ask_ready,compact=main,
+        two_models=main,english_ready=False,
+        international_ready=ask_ready)
+    choice="granite"
+    chosen_ready=ask_ready
+
     # The public date picker can predate a particular model year. Reject before
-    # expensive BGE inference, and do not retain a stale previous receipt.
+    # expensive Granite inference, and do not retain a stale previous receipt.
     if go:
         from marketbridge.time_engine import age_on
         age=age_on(fields["year"],valuation_date)
@@ -516,13 +410,13 @@ only when you ask. No model circus required. 🎪🚗
             st.session_state.pop("experimental_combined_receipt",None)
             go=False
     if go:
-        # Acknowledge the first tap immediately, before BGE initialization.
+        # Acknowledge the first tap immediately, before Granite initialization.
         progress_notice=st.empty()
         progress_notice.info("⏳ One click received. Calculating your Ask and Bid…")
         _valuation_probe("form_submitted")
         results={"fields":fields,"notes":notes,"date":str(valuation_date),
                  "ask_choice":choice,
-                 "ask_backend":"overnight" if choice=="bge" and bge_overnight else "legacy",
+                 "ask_backend":"granite_aft_only",
                  "request_id":str(uuid.uuid4())}
         try:
             _bound_native_cpu_threads()
@@ -540,26 +434,21 @@ only when you ask. No model circus required. 🎪🚗
             started=time.monotonic()
             _valuation_probe("ask_checkpoint_start")
             try:
-                from pricing.neural_ask_embedding_live import load as ask_load
-                with st.spinner("🧠 Loading verified "+("Granite INT8 multilingual" if choice=="granite" else "BGE English")+" Ask model…"):
-                    model=(load_granite_ask(root) if choice=="granite" else
-                           load_bge_overnight(root) if bge_overnight else
-                           load_bohb_ask(root) if ask_bohb else
-                           load_champion_ask(root) if ask_champion else ask_load(root))
+                with st.spinner("🌍 Loading verified Granite INT8 ONNX · DCNv2 AFT…"):
+                    model=load_granite_aft(root)
+
                     _valuation_probe("ask_checkpoint_complete",started)
                     phase="encode_description"
                     started=time.monotonic()
-                    _valuation_probe("ask_bge_encode_start")
-                    # Use the exact original BGE embedding for pricing and
-                    # optional Captum: never create a second encoder.
+                    _valuation_probe("ask_granite_encode_start")
+                    # Exactly one immutable Granite encoder, no other Ask backend.
                     prepared=model.prepare_text(notes)
-                    _valuation_probe("ask_bge_encode_complete",started)
+                    _valuation_probe("ask_granite_encode_complete",started)
                     phase="price_head"
                     started=time.monotonic()
                     _valuation_probe("ask_native_forward_start")
                     results["ask"]=model.predict_prepared(fields,prepared)
-                    if choice=="bge":
-                        results["ask_embedding"]=prepared["embedding"]
+                    results["ask_embedding"]=prepared["embedding"]
                     _valuation_probe("ask_native_forward_complete",started)
             except Exception as exc:
                 logging.getLogger("car_price_studio.valuation").exception(
@@ -632,7 +521,7 @@ only when you ask. No model circus required. 🎪🚗
                                           side,valuation_date,allow_analogue)
                     adjusted[side]=receipt;prices[side]=receipt["price"]
                     flavour=("🌍 Granite multilingual" if side=="ask" and saved.get("ask_choice")=="granite"
-                             else "🇬🇧 BGE English" if side=="ask" else "auction")
+                             else "🇬🇧 Granite English" if side=="ask" else "auction")
                     _price(label+" · "+flavour+" · "+str(valuation_date)+" scenario",
                         receipt["price"],
                         "Date-adjusted scenario, not an observed transaction or a guaranteed bid.")
@@ -640,7 +529,7 @@ only when you ask. No model circus required. 🎪🚗
                     from pricing.analytics import record_price
                     record_price(side,receipt["price"],saved["fields"],
                         model=result.get("model","unknown"),
-                        source="two-engine-"+saved.get("ask_choice","bge"),
+                        source="granite-aft-"+saved.get("ask_choice","granite"),
                         valuation_date=valuation_date,event_key=saved.get("request_id"))
                 except (OSError,ValueError,KeyError,TypeError) as exc:
                     st.warning("Cannot adjust "+label.lower()+" to this month: "+str(exc))
@@ -673,7 +562,7 @@ only when you ask. No model circus required. 🎪🚗
                     elif not permission:
                         st.warning("Please agree to saving this feedback first.")
                     elif record_accuracy_feedback(
-                        key,saved.get("ask_choice","bge"),int(score),
+                        key,"granite",int(score),
                         saved["fields"],prices,saved["date"],explicit_consent=True):
                         st.session_state["_feedback_saved_"+key]=True
                         st.success("✅ Thank you! Feedback saved to our private database.")
@@ -685,25 +574,15 @@ only when you ask. No model circus required. 🎪🚗
             st.markdown("### 🔍 04 / Why THAT price? · Your AI price detective")
             st.caption("Right here under your quote. Choose Ask or Bid and "
                        "click Explain; the first quote has zero Captum overhead.")
-            if saved.get("ask_choice")=="granite" or saved.get("ask_backend")=="overnight":
-                st.info("🧠 The new BOHB neural price head is serving this quote. "
-                        "Per-feature Captum attribution has not yet passed "
-                        "the release parity gate, so we won't invent an explanation.")
-            else:
-                from pricing.captum_price_lite import render as render_captum_lite
-                render_captum_lite(root,saved,adjusted=adjusted,
-                    ask_champion=ask_champion,bid_champion=bid_champion)
+            st.info("🧠 "+granite_copy(locale())["intro"])
+
         if "ask" in saved and ask_ready:
             with st.expander("✍ What-if? Rewrite the description · rerun the whole neural model"):
                 alt=st.text_area("Alternative advertisement",value=saved["notes"],key="experimental_reword",max_chars=8000)
                 if st.button("Recalculate complete neural asking model",key="experimental_reword_go"):
                     try:
-                        from pricing.neural_ask_embedding_live import load
-                        revised=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
-                                  else load_bge_overnight(root) if saved.get("ask_backend")=="overnight"
-                                 else load_bohb_ask(root) if ask_bohb
-                                 else load_champion_ask(root) if ask_champion
-                                 else load(root)).predict(alt,saved["fields"])["price"]
+                        revised=load_granite_aft(root).predict(alt,saved["fields"])["price"]
+
                         new=_adjust_price(transport,revised,saved["fields"],"ask",valuation_date,allow_analogue) if transport else None
                         st.metric("Rewritten historical asking",_usd(revised),delta=_usd(revised-saved["ask"]["price"]))
                         if new:st.metric("Rewritten date-adjusted asking",_usd(new["price"]))
@@ -715,11 +594,8 @@ only when you ask. No model circus required. 🎪🚗
                            "budget is not an all-you-can-eat buffet.")
                 if st.button("Draw mileage sensitivity",key="experimental_mileage_go"):
                     try:
-                        from pricing.neural_ask_embedding_live import load
-                        model=(load_granite_ask(root) if saved.get("ask_choice")=="granite"
-                                else load_bge_overnight(root) if saved.get("ask_backend")=="overnight"
-                                else load_bohb_ask(root) if ask_bohb
-                                else load_champion_ask(root) if ask_champion else load(root))
+                        model=load_granite_aft(root)
+
                         prepared=({"embedding":saved["ask_embedding"],"raw":saved["notes"]}
                                   if "ask_embedding" in saved else model.prepare_text(saved["notes"]))
                         rows=[]
@@ -750,14 +626,18 @@ only when you ask. No model circus required. 🎪🚗
     with st.expander("⚙️ Which engines priced this car? · verified model details",expanded=False):
         a,b=st.columns(2)
         with a:
-            st.markdown("**✍ Advertised Ask · original historical training**")
-            if ask_champion:
-                st.caption("Frozen BGE text embeddings and a fully trainable "
-                           "ResMLP head; original chronological listing cohort.")
+            st.markdown("**🌍 Sole Ask: Granite INT8 + DCNv2 AFT**")
+            if ask_ready:
+                from pricing.granite_aft_ask_live import manifest as granite_manifest
+                q=granite_manifest(root)["validation"]
+                st.caption(granite_copy(locale())["intro"])
+                st.caption("Original 2021 validation ({:,} listings): "
+                           "CVaR95 USD {:,.0f} · MAE USD {:,.0f} · RMSE USD {:,.0f}."
+                           .format(q["rows"],q["CVaR95_absolute_USD"],
+                                   q["MAE_USD"],q["RMSE_USD"]))
             else:
-                st.caption("Frozen BGE embeddings and the original DeepCross/AFT "
-                           "head, without outcome-conditioned row removal.")
-            if not ask_ready:st.warning("No release-verified original-cohort Ask model is installed.")
+                st.warning("Granite serving checkpoint unavailable; no Ask fallback.")
+
         with b:
             st.markdown("**🔨 Wholesale auction · complete original cohort**")
             if resmlp_bid_ready:
@@ -782,13 +662,11 @@ only when you ask. No model circus required. 🎪🚗
                "observed-price-dependent row exclusions in active serving. "
                "Historical research cannot prove 2026 market accuracy.")
     if saved and "ask" in saved:
-        st.info("A previous model's score is not substituted for this "
-                "checkpoint's validation. The complete-cohort Granite "
-                "release will publish its own CVaR95, MAE and RMSE after tuning.")
+        st.info(granite_copy(locale())["historical"])
+
     with st.expander("🧠 How the new neural models learn",expanded=False):
-        st.markdown("**Asking:** Frozen multilingual or English sentence "
-                    "embeddings enter a trainable price network with vehicle "
-                    "attributes and make/model mileage statistics.")
+        st.markdown("**Asking:** Frozen Granite multilingual QInt8 embeddings "
+                    "enter our sole DCNv2 AFT model with TRAIN-only mileage features.")
         st.markdown("**Bid:** The preferred ResMLP uses Huber-dollar loss "
                     "and train-only make/model annual mileage.")
         st.caption("CVaR95 is the worst-five-percent average absolute dollar "

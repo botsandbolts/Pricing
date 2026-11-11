@@ -171,7 +171,7 @@ def sidebar_receipt(root):
                 report=json.loads(file.read_text())
                 m=report.get('assessment',{}).get('original_unfiltered_test',{})
                 if m.get('mae_usd') is not None:st.metric(label+' · MAE',f"${m['mae_usd']:,.0f}",help=f"{m['rows']:,} original test cars. This benchmark has informed earlier model choices.")
-        st.caption('Residual-trimmed validation/test scores are optimistic. See Evaluation for the full cohorts and limitations.')
+        st.caption('Original full-cohort validation is reported in Evaluation. Historical test data were not used to choose the new model.')
 
 
 def footer():

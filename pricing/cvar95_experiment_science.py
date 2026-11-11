@@ -87,13 +87,10 @@ def model_kpis(root,market):
             m=json.loads((root/"models/ray-bid-9am-winner/manifest.json").read_text())
             return m["original_validation"]
     elif market=="ask":
-        # Full original chronological validation, not an outcome-filtered set.
-        from pricing.neural_champion_live import ask_available
-        if ask_available(root):
-            m=json.loads((root/"models/neural-experimental-ask-cvar95/manifest.json").read_text())
-            evidence=m.get("historical_validation",{})
-            if evidence.get("rows")==31668:
-                return evidence
+        from pricing.granite_aft_ask_live import manifest
+        m=manifest(root)
+        if m and m.get("validation",{}).get("rows")==31668:
+            return m["validation"]
     else:
         raise ValueError("Unknown historical car price market")
     return None
@@ -120,7 +117,7 @@ def render(root):
         if ask:
             st.metric("CVaR95",_number(ask["CVaR95_absolute_USD"]))
             st.caption(f'Original {ask["rows"]:,} validation listings, '
-                       'all included. Price head uses the recorded year, '
+                       'all included. Granite DCNv2 AFT uses the recorded year, '
                        'odometer, categories and frozen text embeddings.')
             st.caption("MAE "+_number(ask["MAE_USD"])+
                        " · RMSE "+_number(ask["RMSE_USD"]))
