@@ -17,6 +17,7 @@ from pricing.i18n import tr, editorial_voice, localized_panel, localized_panel_f
 from functools import partial
 from pricing.i18n_story import story, story_html
 from pricing.i18n_fields import field
+from pricing.i18n_price_short import short
 from pricing.i18n_enums import option_label, option_label_for
 from pricing.i18n_research import localized_science_intro
 from pricing.i18n_science_legal import copy as legal_copy
@@ -291,16 +292,15 @@ def _receipt(bundle):
                        ". **Not applied** to your price. A two-month comparison "
                        "is not a validated make/model price index, and cannot be "
                        "extrapolated into future months.")
-    st.caption("An advertised asking-price estimate, not evidence of a completed sale or a customs, insurance, taxation or financing decision."
-               if locale() in ("en-GB","en-US") else story("disclaimer"))
+    st.caption(story("disclaimer"))
     test=bundle[2]["overall_champion"]["test_once"] if bundle else {}
     if test:
         a,b,c=st.columns(3)
         a.metric("Sealed-test MAE",money(test["mae_eur"]))
         b.metric("Worst 5% · CVaR95",money(test["cvar95_absolute_eur"]))
         c.metric("Median absolute % error",f'{test["median_ape_pct"]:.2f}%')
-        st.caption("These are dataset-level errors, not a personal confidence interval.")
-    if st.button("🔍 What moves this price? · show real what-if graphics",
+        st.caption(story("science_notice"))
+    if st.button("🔍 "+short("explain"),
                  key="eu_explain_click",use_container_width=True):
         try:
             factors=explain(quote["vehicle"],bundle)
@@ -394,7 +394,7 @@ def _valuation_page(bundle,error):
         st.caption(error or "Trained weights and vocabulary must be published together.")
     vehicle=_edit_vehicle(bundle[1] if bundle else None)
     quote=_receipt(bundle)
-    with st.expander("📚 "+field("compare"),expanded=locale() in ("en-GB","en-US")):
+    with st.expander("📚 "+field("compare"),expanded=False):
         _comparables(_market_table(),quote["vehicle"] if quote else vehicle)
     _feedback(quote)
 
