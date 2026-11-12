@@ -11,3 +11,4 @@ font = "sans serif"
 # Restart the deployment after code updates instead of hot-reloading ML modules.
 fileWatcherType = "none"
 runOnSave = false
+# Deployment trigger: compact-i18n rollout 2026-11-12; functional settings unchanged.
