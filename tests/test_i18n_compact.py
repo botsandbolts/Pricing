@@ -3,7 +3,7 @@ import pytest
 from pricing.i18n import LOCALES, CATALOGS
 from pricing.i18n_price_short import COPY as PRICE, short
 from pricing.i18n_clock import COPY as CLOCK, clock_text
-from pricing.i18n_story import CATALOGS as STORY
+from pricing.i18n_story import STORIES as STORY
 
 
 def test_36_locale_short_copy_is_complete():
