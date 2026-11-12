@@ -76,31 +76,26 @@ def clock_controls(prefix='main', prominent=False):
         wrapper=st.expander('Valuation date & auction coverage',expanded=False)
     with wrapper:
         if prominent:
-            st.markdown('### 📅 Price it today—or travel back in time')
-            st.caption('Pick the day you want the pricing scenario to describe. '
-                       'The historical models remain the same; only the age and '
-                       'market-index adjustment changes. No flux capacitor required.')
-            mode=st.radio('Valuation date',[
-                'Today','Historical date','End of this month'],
-                horizontal=True,key=prefix+'_clock_mode_main')
-            if mode=='Historical date':
+            from pricing.i18n import localized_panel
+            from pricing.i18n_story import story
+            from pricing.i18n_clock import clock_text
+            mode=st.radio(localized_panel("📅 Value over time"),
+                          ("today","history","monthend"),
+                          format_func=clock_text,
+                          horizontal=True,key=prefix+'_clock_mode_main')
+            if mode=="history":
                 selected=st.date_input(
-                    'Historical valuation date (January 2014 to today)',
+                    localized_panel("📅 Value over time"),
                     min(day,date(2021,5,1)),min_value=date(2014,1,1),
                     max_value=day,key=prefix+'_historical_day')
-                st.caption('A reconstruction using historical model anchors and '
-                           'a market index—not an observed transaction on that day.')
-            elif mode=='End of this month':
+                st.caption(story("disclaimer"))
+            elif mode=="monthend":
                 selected=month_end(day)
             else:
                 selected=day
-            # Keep this inside the single compact date section: Streamlit does
-            # not permit nested expanders in every supported deployment.
             allow=st.checkbox(
-                'Allow a hypothetical auction analogue for 2016–2021 model years',
-                value=True,key=prefix+'_allow_analogue_v2',
-                help='Auction training ends in 2015. Newer cars use an age-matched '
-                     'older reference rather than evidence of their generation.')
+                clock_text("proxy"),value=True,key=prefix+'_allow_analogue_v2',
+                help=story("science_notice"))
         else:
             mode=st.radio('Price date',[
                 'Today · follows the calendar','Choose a date',
