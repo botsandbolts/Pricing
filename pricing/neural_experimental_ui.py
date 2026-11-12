@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from functools import partial
-from pricing.i18n import tr, locale
+from pricing.i18n import tr, locale, localized_panel
 from pricing.i18n_story import story
 from pricing.i18n_fields import field
 from pricing.i18n_enums import option_label, option_label_for
@@ -99,17 +99,13 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
     ):
         st.session_state.setdefault(prefix+"_"+name,default)
     with st.form(prefix+"_vehicle",clear_on_submit=False):
-        st.markdown("### 🚗 01 / "+tr("form") if focus else
-                    "### 🚗 02 / "+tr("form") if compact else
-                    "#### 01 / "+tr("form"))
-        if compact:
-            st.caption("No VIN upload, no special instructions and no degree in automotive engineering required. The description is optional for Bid but useful for Ask."
-                       if locale() in ("en-GB","en-US") else story("form_intro"))
+        st.markdown("### 🚗 "+tr("form") if compact or focus else
+                    "#### 🚗 "+tr("form"))
         a,b,c=st.columns(3)
         year=a.number_input(field("model_year"),min_value=1900,max_value=2021,
                             key=prefix+"_year",persist_state="session")
         make=b.text_input(tr("make"),key=prefix+"_make",persist_state="session")
-        model=c.text_input(tr("model")+" / trim",key=prefix+"_model",persist_state="session")
+        model=c.text_input(tr("model")+" / "+field("trim"),key=prefix+"_model",persist_state="session")
         a,b,c=st.columns(3)
         miles=a.number_input(field("miles"),min_value=0,max_value=2000000,
                              step=1000,key=prefix+"_mileage",persist_state="session")
@@ -120,18 +116,16 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
               "wagon","van","convertible","other","unknown"],
               key=prefix+"_body",persist_state="session",format_func=partial(option_label_for,locale()))
         if compact:
-            st.caption("Three useful facts; everything else is recorded as 'unknown', not guessed."
-                       if locale() in ("en-GB","en-US") else field("form_help"))
             a,b,d=st.columns(3)
             condition=a.selectbox(field("condition"),[
                 "unknown","good","excellent","fair","like new","new","salvage"],
                 key=prefix+"_condition",persist_state="session",format_func=option_label)
             title=b.selectbox(field("title"),[
                 "unknown","clean","rebuilt","salvage","lien","missing","parts only"],
-                key=prefix+"_title",persist_state="session")
+                key=prefix+"_title",persist_state="session",format_func=option_label)
             transmission=d.selectbox(tr("transmission"),[
                 "unknown","automatic","manual","other"],
-                key=prefix+"_transmission",persist_state="session")
+                key=prefix+"_transmission",persist_state="session",format_func=option_label)
             fuel=st.session_state.get(prefix+"_fuel","unknown")
             drive=st.session_state.get(prefix+"_drive","unknown")
             cylinders=st.session_state.get(prefix+"_cylinders","unknown")
@@ -182,15 +176,11 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             fields["auction_grade"]=grade
             notes=""
         else:
-            st.markdown("### ✍ 03 / "+("What does the advert say?" if locale() in ("en-GB","en-US") else field("description")) if compact
-                        else "#### 02 / "+("The car's entire story" if locale() in ("en-GB","en-US") else field("description")))
             notes=st.text_area(field("description"),
                 max_chars=8000,height=125 if compact else 140,
                 key=prefix+"_description",persist_state="session",
                 help=granite_copy(locale())["intro"])
         if two_models and not bid:
-            st.markdown("### 🌍 04 / IBM Granite R2 97M · DCNv2 AFT")
-            st.caption(granite_copy(locale())["intro"])
             clicked=st.form_submit_button("🌍 "+granite_copy(locale())["cta"],
                 key=prefix+"_calculate_granite",type="primary",
                 disabled=not ready,width="stretch")
@@ -327,37 +317,15 @@ models used on our main price calculator.</p>
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
     # One canonical pricing page; the homepage CTA changes only the hash.
-    market_guide()
-    if locale() not in ("en-GB","en-US"):
-        st.caption(story("us_pitch"))
+    if main:
+        # Full research detail is available without pushing the calculator below
+        # several promotional blocks. Its copy exists in all 36 site locales.
+        with st.expander("🔬 "+localized_panel("🧠 The science"), expanded=False):
+            st.caption(story("us_pitch"))
+            st.caption(granite_copy(locale())["intro"])
+            st.caption(story("science_notice"))
     else:
-        st.markdown("### 🧰 Full-cohort car valuation laboratory")
-        st.caption("The only seller Ask engine is IBM Granite 97M INT8 ONNX "
-                   "+ DCNv2 AFT, verified on the original historical validation. "
-                   "Wholesale Bid uses ResMLP Huber on original auction sales.")
-
-    if main and locale() in ("en-GB","en-US"):
-        # Visibility is intentional: Captum itself still runs ONLY on a user
-        # click after pricing. A pre-price guide prevents the key feature
-        # disappearing beyond the fold for mobile and first-time visitors.
-        st.markdown("""
-<section aria-label="Where to find the price explanation"
-style="border:1px solid #6daea8;border-left:5px solid #168775;
-border-radius:14px;padding:12px 15px;margin:10px 0 14px;
-background:rgba(34,150,132,.07)">
-<div style="font-size:1.03rem;font-weight:800;margin-bottom:5px">
-🔬 Why THAT price? · Your AI explanation is included
-</div>
-<div style="font-size:.91rem;line-height:1.5">
-<strong>1.</strong> Enter your car.
-<strong>2.</strong> Tap <strong>Calculate seller Ask + wholesale Bid</strong>.
-<strong>3.</strong> Find the open <strong>Why THAT price?</strong>
-panel directly under your price results. The AI explains itself
-only when you ask. No model circus required. 🎪🚗
-</div></section>
-""",unsafe_allow_html=True)
-    if main and locale() not in ("en-GB","en-US"):
-        st.caption("🔬 "+story("submit_tip"))
+        market_guide()
     # Real anchor target for the homepage's gold call-to-action.
     # Placed directly above the editable pricing form, not on a dead route.
     if main:
@@ -366,12 +334,12 @@ only when you ask. No model circus required. 🎪🚗
     examples=load_examples()
     st.markdown("### 🚗 01 / "+("Start with an example—or your own car" if locale() in ("en-GB","en-US") else story("form_intro")))
     if examples:
-        st.selectbox(
-            (f"Search {len(examples):,} real, price-redacted car adverts" if locale() in ("en-GB","en-US") else field("compare")),
-            range(len(examples)+1),key="experimental_example",persist_state="session",
-            format_func=lambda i:("Write my own listing" if locale() in ("en-GB","en-US") else story("form_intro")) if i==0 else examples[i-1]["label"],
-            on_change=_apply_example)
-        st.caption("Historical, price-redacted car adverts (CC BY 4.0). Choose an example to populate the form, or enter your own car. Picking a car does not automatically submit a valuation." if locale() in ("en-GB","en-US") else story("form_intro"))
+        with st.expander("🚘 "+field("compare"), expanded=False):
+            st.selectbox(
+                field("compare"),range(len(examples)+1),
+                key="experimental_example",persist_state="session",
+                format_func=lambda i:story("form_intro") if i==0 else examples[i-1]["label"],
+                on_change=_apply_example)
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
     resmlp_bid_ready=resmlp_bid_available(root)
