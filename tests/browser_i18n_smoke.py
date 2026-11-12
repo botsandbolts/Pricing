@@ -24,13 +24,13 @@ def smoke(engine):
         polish = browser.new_context(locale="pl-PL", viewport={"width": 1280, "height": 900})
         page = polish.new_page()
         page.goto(BASE, wait_until="domcontentloaded")
-        expect_text(page, "Szwagier zna cenę.")
+        expect_text(page, "Dwa kontynenty. Jeden garaż.")
         expect_text(page, "Smoke language: pl")
         expect_text(page, "Stany Zjednoczone")
         expect_text(page, "Amerykańskie ceny ofertowe")
         assert not page.get_by_text("American seller Ask",exact=False).count()
         select_language(page, "🇪🇸 Español")
-        expect_text(page, "Tu cuñado pone el precio.")
+        expect_text(page, "Dos continentes. Un garaje.")
         expect_text(page, "Smoke language: es")
         expect_text(page, "Estados Unidos")
         expect_text(page, "Precios anunciados en EE. UU.")
@@ -97,17 +97,48 @@ def smoke(engine):
         expect_text(p, "Smoke language: uk")
         persist.close()
 
+        # Requested Chromium/Firefox regression matrix: four actual browser
+        # locales, production market cards, production hero, CTA, and form.
+        for code, browser_lang, title, translated_make in [
+            ("en-GB", "en-GB", "Two continents. One garage.", "Make"),
+            ("de", "de-DE", "Zwei Kontinente. Eine Garage.", "Marke"),
+            ("fr", "fr-FR", "Deux continents. Un garage.", "Marque"),
+            ("ru", "ru-RU", "Два континента. Один гараж.", "Марка"),
+        ]:
+            ctx=browser.new_context(locale=browser_lang,
+                viewport={"width": 390, "height": 844})
+            journey=ctx.new_page()
+            journey.goto(BASE,wait_until="domcontentloaded")
+            expect_text(journey,"Smoke language: "+code)
+            expect_text(journey,title)
+            journey.get_by_role("textbox",name=translated_make).fill("Toyota")
+            journey.get_by_role("button",name="🇪🇺 "+(
+                "Open the European Studio" if code=="en-GB" else
+                "Europa-Studio öffnen" if code=="de" else
+                "Ouvrir le studio européen" if code=="fr" else
+                "Открыть европейскую студию"
+            )).click()
+            expect_text(journey, "Smoke market: eu")
+            assert journey.locator(".garage-home-quick").count() == 1
+            assert journey.locator(".cps-quick-market").count() == 1
+            # The rendered source strings must remain in the selected language.
+            if code != "en-GB":
+                assert journey.get_by_text("Two continents. One garage.", exact=True).count() == 0
+                assert journey.get_by_text("Price my car — let's roll", exact=False).count() == 0
+            journey.screenshot(path=f"/tmp/i18n_{engine.name}_{code}_mobile.png", full_page=True)
+            ctx.close()
+
         american = browser.new_context(locale="en-US")
         us = american.new_page()
         us.goto(BASE, wait_until="domcontentloaded")
-        expect_text(us, "Your buddy knows the market.")
+        expect_text(us, "Your ride. Our numbers.")
         expect_text(us, "Smoke language: en-US")
         american.close()
 
         british = browser.new_context(locale="en-GB")
         uk = british.new_page()
         uk.goto(BASE, wait_until="domcontentloaded")
-        expect_text(uk, "Your mate has a theory.")
+        expect_text(uk, "Your car. Our data.")
         expect_text(uk, "Smoke language: en-GB")
         british.close()
     finally:
