@@ -18,6 +18,7 @@ from functools import partial
 from pricing.i18n import tr, locale, localized_panel
 from pricing.i18n_story import story
 from pricing.i18n_fields import field
+from pricing.i18n_price_short import short
 from pricing.i18n_enums import option_label, option_label_for
 from pricing.granite_aft_ask_live import available as granite_aft_available, load as load_granite_aft
 from pricing.granite_aft_i18n import copy as granite_copy
@@ -524,7 +525,7 @@ models used on our main price calculator.</p>
         st.markdown("### 💵 "+("Your car · estimated prices" if locale() in ("en-GB","en-US") else field("quote")))
         prices={};adjusted={}
         columns=st.columns(2)
-        for col,side,label in zip(columns,("ask","bid"),("Seller asking","Wholesale auction")):
+        for col,side,label in zip(columns,("ask","bid"),(short("ask"),short("bid"))):
             with col:
                 result=saved.get(side)
                 if result is None:
@@ -555,25 +556,22 @@ models used on our main price calculator.</p>
                 except (OSError,ValueError,KeyError,TypeError) as exc:
                     st.warning("Cannot adjust "+label.lower()+" to this month: "+str(exc))
         if len(prices)==2:
-            st.metric("Asking minus wholesale · indicative market gap",
-                      _usd(prices["ask"]-prices["bid"]))
-            st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
+            st.metric(short("gap"),_usd(prices["ask"]-prices["bid"]))
+            st.caption(story("disclaimer"))
         if main:
             # High-visibility explanation directly after prices. Preserve
             # lazy Captum imports and unchanged native cached checkpoints.
-            st.markdown("### 🔍 04 / Why THAT price? · Your AI price detective")
-            st.caption("Right here under your quote. Choose Ask or Bid and "
-                       "click Explain; the first quote has zero Captum overhead.")
+            st.markdown("### 🔍 "+short("why"))
+            st.caption(story("submit_tip"))
             with st.expander("🧠 About the neural engine",expanded=False):
                 st.caption(granite_copy(locale())["intro"])
             available_to_explain=[side for side in ("ask","bid") if side in saved]
             if available_to_explain:
-                labels={"ask":"🪧 Seller Ask","bid":"🔨 Wholesale Bid"}
+                labels={"ask":"🪧 "+short("ask"),"bid":"🔨 "+short("bid")}
                 chosen_side=st.radio(
-                    "Which neural estimate should we explain?",
-                    available_to_explain,format_func=lambda s:labels[s],
+                    short("why"),available_to_explain,format_func=lambda s:labels[s],
                     horizontal=True,key="experimental_explain_market")
-                if st.button("🔍 Explain this price · show real AI feature contributions",
+                if st.button("🔍 "+short("explain"),
                              type="primary",width="stretch",
                              key="experimental_explain_go"):
                     try:
@@ -600,17 +598,15 @@ models used on our main price calculator.</p>
 
         if main and prices.get("ask") and saved.get("request_id"):
             st.markdown("### ⭐ "+("Your verdict: was our AI valuation accurate?" if locale() in ("en-GB","en-US") else field("feedback_title")))
-            st.caption("The price detective needs human witnesses too. "
-                       "Please compare the estimate with what you know about your car.")
+            st.caption(story("submit_tip"))
             key=str(saved["request_id"])
             if st.session_state.get("_feedback_saved_"+key):
                 st.success("🙏 Your feedback is saved. Thank you for helping us improve!")
             else:
                 with st.form("accuracy_feedback_"+key):
-                    score=st.radio("Rate this quote", [1,2,3,4],
+                    score=st.radio(field("feedback_title"), [1,2,3,4],
                         index=None,horizontal=True,
-                        format_func=lambda n:{1:"1 · Catastrophic 💥",2:"2 · Poor 😬",
-                            3:"3 · Good 👍",4:"4 · Excellent 🏆"}[n],
+                        format_func=lambda n:f"{n} / 4",
                         key="rating_"+key)
                     permission=st.checkbox(("I agree to save my rating, basic car details and both price estimates. No seller story, IP address, VIN or contact details." if locale() in ("en-GB","en-US") else field("feedback_consent")),
                         key="feedback_permission_"+key)
@@ -669,14 +665,11 @@ models used on our main price calculator.</p>
             json.dumps(report,indent=2,default=str),file_name="experimental-bid-ask.json",
             mime="application/json",key="experimental_both_download")
     if main:
-        st.markdown("### 🚙 The car doesn't read spreadsheets. Luckily, we do.")
-        st.caption("Two separate historical targets, one transparent car studio. "
-                   "The asking price isn't a completed retail sale, and the auction "
-                   "estimate isn't a dealer offer. Date scenarios aren't transactions.")
+        st.caption(story("disclaimer"))
     else:
         st.markdown("### 🧰 Other tools in Car Price Studio")
         st.caption("More comparison tools are available from the Studio panels.")
-    with st.expander("⚙️ Which engines priced this car? · verified model details",expanded=False):
+    with st.expander("⚙️ "+short("engine"),expanded=False):
         a,b=st.columns(2)
         with a:
             st.markdown("**🌍 Sole Ask: Granite INT8 + DCNv2 AFT**")
@@ -708,16 +701,17 @@ models used on our main price calculator.</p>
         st.caption("Ask estimates advertised prices; Bid estimates completed "
                    "2014–15 wholesale sale amounts. Neither is a live purchase offer.")
 
-    st.markdown("### 🧪 Research notes: matched historical populations")
-    st.caption("Ask: 2021 Craigslist advertised prices, full original "
-               "training and validation. Bid: 2014–15 completed wholesale "
-               "auctions, full original training and validation. No "
-               "observed-price-dependent row exclusions in active serving. "
-               "Historical research cannot prove 2026 market accuracy.")
-    if saved and "ask" in saved:
-        st.info(granite_copy(locale())["historical"])
+    if not main:
+        st.markdown("### 🧪 Research notes: matched historical populations")
+        st.caption("Ask: 2021 Craigslist advertised prices, full original "
+                   "training and validation. Bid: 2014–15 completed wholesale "
+                   "auctions, full original training and validation. No "
+                   "observed-price-dependent row exclusions in active serving. "
+                   "Historical research cannot prove 2026 market accuracy.")
+        if saved and "ask" in saved:
+            st.info(granite_copy(locale())["historical"])
 
-    with st.expander("🧠 How the new neural models learn",expanded=False):
+    with st.expander("🧠 "+short("engine"),expanded=False):
         st.markdown("**Asking:** Frozen Granite multilingual QInt8 embeddings "
                     "enter our sole DCNv2 AFT model with TRAIN-only mileage features.")
         st.markdown("**Bid:** The preferred ResMLP uses Huber-dollar loss "
@@ -725,5 +719,5 @@ models used on our main price calculator.</p>
         st.caption("CVaR95 is the worst-five-percent average absolute dollar "
                    "error. It is not a legal valuation or a guarantee.")
 
-    with st.expander("🛡️ Why CVaR95? The business case and the original scientific evidence"):
+    with st.expander("🛡️ "+localized_panel("📊 Evaluation")):
         _explanation(root)
