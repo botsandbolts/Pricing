@@ -6,35 +6,7 @@ Existing American routes remain the default and retain their original IDs.
 from __future__ import annotations
 import streamlit as st
 from html import escape
-from pricing.i18n import tr, editorial_voice
-from pricing.i18n_story import story, story_html
-
-MARKETS={"us":"🇺🇸 United States","eu":"🇪🇺 Europe"}
-
-def _resolve():
-    request=str(st.query_params.get("market") or "").lower()
-    if request in MARKETS:
-        st.session_state["cps_market"]=request
-        return request
-    stored=st.session_state.get("cps_market")
-    return stored if stored in MARKETS else "us"
-
-def _choose(choice):
-    if choice not in MARKETS:
-        raise ValueError("Unknown market")
-    st.session_state["cps_market"]=choice
-    st.query_params["market"]=choice
-    st.rerun()
-
-"""One studio, two explicit markets. The gateway is locale-aware.
-
-No browser geolocation, language-based redirection or tracking cookie.
-Existing American routes remain the default and retain their original IDs.
-"""
-from __future__ import annotations
-import streamlit as st
-from html import escape
-from pricing.i18n import tr, editorial_voice
+from pricing.i18n import tr
 from pricing.i18n_story import story, story_html
 
 MARKETS={"us":"🇺🇸 United States","eu":"🇪🇺 Europe"}
