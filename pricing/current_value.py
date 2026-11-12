@@ -69,7 +69,9 @@ def clock_controls(prefix='main', prominent=False):
     from datetime import date
     day=today()
     if prominent:
-        wrapper=st.container(border=True)
+        from pricing.i18n import localized_panel
+        wrapper=st.expander("📅 "+localized_panel("📅 Value over time"),
+                            expanded=False)
     else:
         wrapper=st.expander('Valuation date & auction coverage',expanded=False)
     with wrapper:
@@ -92,12 +94,13 @@ def clock_controls(prefix='main', prominent=False):
                 selected=month_end(day)
             else:
                 selected=day
-            with st.expander('Auction generation assumptions · optional'):
-                allow=st.checkbox(
-                    'Allow a hypothetical auction analogue for 2016–2021 model years',
-                    value=True,key=prefix+'_allow_analogue_v2',
-                    help='Auction training ends in 2015. Newer cars use an age-matched '
-                         'older reference rather than evidence of their generation.')
+            # Keep this inside the single compact date section: Streamlit does
+            # not permit nested expanders in every supported deployment.
+            allow=st.checkbox(
+                'Allow a hypothetical auction analogue for 2016–2021 model years',
+                value=True,key=prefix+'_allow_analogue_v2',
+                help='Auction training ends in 2015. Newer cars use an age-matched '
+                     'older reference rather than evidence of their generation.')
         else:
             mode=st.radio('Price date',[
                 'Today · follows the calendar','Choose a date',
@@ -115,13 +118,17 @@ def clock_controls(prefix='main', prominent=False):
                 value=True,key=prefix+'_allow_analogue_v2',
                 help='Auction training ends at model year 2015. This cannot '
                      'recover the unobserved newer generation.')
-    st.markdown(f'**Valuation date: {selected:%d %b %Y}** · '+
-                ('Historical reconstruction, not an actual sale.' if selected<day else
-                 'Month-end scenario using an index nowcast.' if selected>day else
-                 'Today, automatically updated on refresh.'))
-    st.caption('Enter mileage and condition as they were **on that date**. '
-               'Vehicle ageing and market movement are modeled separately; '
-               'no extra miles are silently added.')
+    if prominent:
+        from pricing.i18n_story import story
+        st.caption("📅 "+selected.isoformat()+" · "+story("disclaimer"))
+    else:
+        st.markdown(f'**Valuation date: {selected:%d %b %Y}** · '+
+                    ('Historical reconstruction, not an actual sale.' if selected<day else
+                     'Month-end scenario using an index nowcast.' if selected>day else
+                     'Today, automatically updated on refresh.'))
+        st.caption('Enter mileage and condition as they were **on that date**. '
+                   'Vehicle ageing and market movement are modeled separately; '
+                   'no extra miles are silently added.')
     return selected,allow
 
 
