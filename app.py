@@ -13,7 +13,7 @@ MAX_CHARACTERS = 8000
 
 st.set_page_config(page_title='Car Price Studio',page_icon=str(Path(__file__).parent/'assets/pricing-icon.png'),layout='wide',initial_sidebar_state='collapsed')
 # Language is presentation-only and always available, including on legal routes.
-from pricing.i18n import render_language_selector, locale
+from pricing.i18n import render_language_selector, locale, localized_panel
 from pricing.i18n_story import story, story_html
 render_language_selector()
 # Repair hash-only CTA scrolling in Streamlit Cloud's overflow container.
@@ -72,51 +72,20 @@ _main_two_market_release_v22()
 
 from pricing.studio_design import install_style,render_hero,section,empty_receipt,sidebar_receipt,footer
 install_style()
-# Keep the release bulletin in the document while prioritizing the useful CTA above it.
-_RELEASE_ANNOUNCEMENT_HTML = """
-<section role="status" aria-label="Car Price Studio model upgrade announcement"
-  style="background:linear-gradient(120deg,#152c40,#1a564f);color:#f8fcfa;
-         border:1px solid #cfbc75;border-radius:16px;padding:16px 19px;
-         margin:5px 0 16px;box-shadow:0 6px 18px #13253222">
-  <div style="font-size:.78rem;font-weight:850;letter-spacing:.1em;color:#ffdfa0">
-    🏁 CAR PRICE STUDIO · LIVE RESEARCH TOOLS · BUILT IN GERMANY 🇩🇪
-  </div>
-  <div style="font-size:clamp(1.12rem,2.5vw,1.45rem);font-weight:850;margin:6px 0">
-    Less haggle. More signal. The pricing engines are open.
-  </div>
-  <p style="font-size:.92rem;line-height:1.55;margin:0 0 7px;color:#e4f2f0">
-    🇺🇸 American seller <b>Ask</b> and historical wholesale <b>Bid</b> research;
-    🇪🇺 European advertised <b>Ask</b> in euros. Choose a market above, enter
-    your car once and inspect the evidence. No registration, ads or sales pitch.
-  </p>
-  <p style="font-size:.83rem;line-height:1.45;margin:0;color:#dbe8e5">
-    These are model-based research estimates, not purchase offers, actual
-    transaction prices or official valuations. Availability and validation
-    details appear alongside each engine. <b>Your car, your call.</b>
-  </p>
-</section>
-"""
+# Model release evidence stays available on demand, not above the calculator.
 # In-page hash navigation never removes this bulletin or changes workspaces.
 from pricing.navigation import prepare_navigation_state,render_navigation
 # Put the customer's first action ahead of the long release bulletin on mobile.
 # Both branded banners remain mounted; the gold CTA scrolls to the same form.
 prepare_navigation_state()
 render_hero()
-# The Bid announcement sits above the older release bulletin on the calculator
-# only; neither the hero CTA nor the calculator's one-tap anchor is modified.
+# Verified release data are optional; the estimate form is the primary action.
 if st.session_state.get('landing_studio_workspace') == '🚗 Price my car':
-    # Run the verified U.S. bid banner in the selected language (all 36).
-    # The banner itself fails closed if the released weights are not present.
     from pricing.bid_launch_announcement import banner_html as _bid_launch_banner
     _banner = _bid_launch_banner()
     if _banner:
-        st.markdown(_banner, unsafe_allow_html=True)
-if locale() in ("en-GB","en-US"):
-    st.markdown(_RELEASE_ANNOUNCEMENT_HTML, unsafe_allow_html=True)
-else:
-    st.markdown('<section class="garage-science-note" role="note"><strong>🇪🇺 '+
-                story_html("eu_hero")+'</strong><p>'+story_html("disclaimer")+
-                '</p><p>'+story_html("independent")+'</p></section>',unsafe_allow_html=True)
+        with st.expander(localized_panel("🧪 Model lab"), expanded=False):
+            st.markdown(_banner, unsafe_allow_html=True)
 _workspace=render_navigation()
 # Scientific research keeps its exact measured values and canonical model code.
 # A local-language guide is shown first. Original English technical documents
