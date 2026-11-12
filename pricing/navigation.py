@@ -23,27 +23,18 @@ def prepare_navigation_state():
 def render_navigation():
     prepare_navigation_state()
     st.markdown('<div id="studio-workspace" tabindex="-1"></div>',unsafe_allow_html=True)
-    if locale() in ("en-GB","en-US"):
-        st.markdown('<div class="garage-nav-heading"><strong>Choose a panel</strong><span>Tap a panel to open it.</span></div>',unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="garage-nav-heading"><strong>'+story_html("us_cta")+
-                    '</strong><span>'+story_html("submit_tip")+'</span></div>',
-                    unsafe_allow_html=True)
-    page=st.pills('Studio panels',PAGES,selection_mode='single',key='landing_studio_workspace',label_visibility='collapsed',persist_state='session',
-                 format_func=partial(localized_panel_for,locale())) or PAGES[0]
+    page=st.session_state.get("landing_studio_workspace",PAGES[0])
+    # Keep the canonical panel keys and all research routes, but collapse the
+    # eleven-page menu on the ordinary pricing journey.
+    with st.expander("🧭 "+localized_panel("🧪 Model lab")+
+                     " · "+localized_panel("📊 Evaluation"),
+                     expanded=page!=PAGES[0]):
+        page=st.pills("Studio panels",PAGES,selection_mode='single',
+                      key='landing_studio_workspace',
+                      label_visibility='collapsed',persist_state='session',
+                      format_func=partial(localized_panel_for,locale())) or PAGES[0]
     st.session_state['studio_tabs']=page
     from pricing.accessibility import announce
-    announce('Current panel: '+page)
-    from html import escape
-    notes={'🚗 Price my car':'Two markets · seller Ask + wholesale Bid, with historical-date controls.',
-           '🔎 Listing Inspector':'Look a little closer · Compare vehicles and explore the evidence.',
-           '🚦 Pick your garage':'A little car chemistry · Rate real representatives, then discover your shortlist.',
-           '📅 Value over time':'Take the long view · Explore how the same car’s price scenario changes.',
-           '🧠 The science':'Under the bonnet · Methods, assumptions and what the models can tell you.',
-           '🏪 Merchant lens':'Dealer-level context and merchant comparisons.'}
-    if locale() in ("en-GB","en-US"):
-        st.markdown('<div class="garage-route-note">'+escape(notes.get(page,'The curious corner · Explore the models, evidence and historical comparisons.'))+'</div>',unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="garage-route-note">'+story_html("form_intro")+'</div>',unsafe_allow_html=True)
+    announce(localized_panel(page))
     return page
 

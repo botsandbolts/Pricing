@@ -35,93 +35,29 @@ def show_landing_banner():
 
 
 def landing_banner_html():
-    """Self-contained local SVG and semantic anchor. Nothing external loads."""
-    from pricing.garage_art import hero_svg
-    art=hero_svg()
-    local_headline, local_invitation = editorial_voice()
-    if locale() not in ("en-GB", "en-US"):
-        return f"""
-<section class="garage-home-hero" aria-labelledby="garage-home-title">
-  <div class="garage-home-copy">
-    <div class="garage-home-kicker">🇩🇪 Made in Germany · 🇪🇺 CAR PRICE STUDIO</div>
-    <h1 id="garage-home-title">{story_html('us_hero')}</h1>
-    <p class="garage-home-lead">{story_html('us_pitch')}</p>
-    <p class="garage-home-lead"><strong>{escape(local_headline)}</strong> {escape(local_invitation)}</p>
-    <div class="garage-home-actions">
-      <a class="garage-home-cta" href="#studio-calculator" target="_self"
-         aria-label="{story_html('us_cta')}">🚗 {story_html('us_cta')} →</a>
-      <a class="garage-home-source" href="https://github.com/botsandbolts/Pricing"
-         target="_blank" rel="noopener noreferrer">{story_html('source')} ↗</a>
-    </div>
-    <div class="garage-home-assurances">
-      <span>✓ {story_html('independent')}</span>
-    </div>
-  </div>
-  <div class="garage-home-art">{art}</div>
-</section>
-<div class="garage-home-trust" role="note">
-  <span class="garage-home-trust-icon" aria-hidden="true">🛡️</span>
-  <span>{story_html('trust')} <a href="?legal=privacy">ⓘ</a></span>
-</div>
-"""
+    """One short, fully localized call to action; no ad-like hero stack."""
     return f"""
-<section class="garage-home-hero" aria-labelledby="garage-home-title">
-  <div class="garage-home-copy">
-    <div class="garage-home-kicker"><span class="garage-flag" role="img" aria-label="German flag"></span>
-      MADE IN GERMANY <span aria-hidden="true">✦</span> BUILT FOR AMERICA'S DRIVEWAYS</div>
-    <h1 id="garage-home-title">“I KNOW WHAT I'VE GOT.”<span>Excellent. Let's ask the data.</span></h1>
-    <p class="garage-home-lead">Texas pickup? California coupe? Craigslist classic
-      with a mysterious rattle? Meet two <strong>historical U.S. price perspectives</strong>:
-      seller <strong>Ask</strong> and wholesale <strong>Bid</strong>.
-      Zero crystal balls. Your mechanic gets the last word.</p>
-    <p class="garage-home-lead"><strong>{escape(local_headline)}</strong><br>{escape(local_invitation)}</p>
-    <div class="garage-home-actions">
-      <a class="garage-home-cta" href="#studio-calculator" target="_self"
-         aria-label="Go to the car pricing calculator">🚗 Price my car — let's roll <span aria-hidden="true">→</span></a>
-      <a class="garage-home-source" href="https://github.com/botsandbolts/Pricing"
-         target="_blank" rel="noopener noreferrer">Explore the open-source code ↗</a>
-    </div>
-    <div class="garage-home-assurances" aria-label="What makes Car Price Studio different">
-      <span>✓ No registration</span><span>✓ No ads or paywall</span>
-      <span>✓ Independent project</span><span>✓ Free &amp; MIT open source</span>
-    </div>
-  </div>
-  <div class="garage-home-art">
-    <div class="garage-home-art-note">THE GARAGE LAB <span aria-hidden="true">❤</span> NOT A DEALERSHIP</div>
-    {art}
-    <div class="garage-home-sticker">No sales pitch.<br><strong>Just price research.</strong></div>
-  </div>
+<section class="garage-home-quick" aria-labelledby="garage-home-title"
+ style="border:1px solid #a8c6bd;border-radius:15px;padding:12px 16px;
+ margin:4px 0 9px;background:linear-gradient(115deg,#f4fbf8,#ecf6f0)">
+ <h1 id="garage-home-title" style="font-size:clamp(1.18rem,2.5vw,1.65rem);
+ color:#173d40;line-height:1.2;margin:0 0 3px">{story_html('us_hero')}</h1>
+ <p style="font-size:.91rem;color:#294b50;line-height:1.4;margin:0 0 9px">
+ {story_html('us_pitch')}</p>
+ <a class="garage-home-cta" href="#studio-calculator" target="_self"
+ aria-label="{story_html('us_cta')}"
+ style="display:inline-block;padding:9px 15px;border-radius:10px">🚗 {story_html('us_cta')} →</a>
+ <a href="https://github.com/botsandbolts/Pricing" target="_blank"
+ rel="noopener noreferrer" style="margin-left:12px;color:#20665c;font-size:.86rem">
+ {story_html('source')} ↗</a>
+ <span style="display:block;font-size:.77rem;margin-top:6px;color:#46625a">
+ {story_html('independent')}</span>
 </section>
-<div class="garage-home-trust" role="note">
-  <span class="garage-home-trust-icon" aria-hidden="true">🛡️</span>
-  <span><strong>Privacy isn't an optional extra.</strong> No account required. Optional diagnostics and
-  Google Analytics require consent; refusing won't stop you pricing a car.
-  GDPR applies to this Hamburg-based independent project.</span>
-</div>
-<details class="garage-home-privacy">
-  <summary>Privacy in plain English · What happens to my details?</summary>
-  <div class="garage-home-privacy-body">
-    <p>Your vehicle details and optional description are processed to produce your estimate.
-    Please don't include names, addresses, phone numbers or other personal identifiers in a description.</p>
-    <p>Only if you accept optional analytics do the tools record selected vehicle characteristics,
-    estimated prices, and coarse usage/technical diagnostics in Turso (90-day retention);
-    Google Analytics also processes usage signals under its own terms.
-    No advertising tracking is enabled. Rejecting analytics doesn't disable the calculator.
-    Server hosting providers may keep their own operational logs.
-    You can change your choice in <strong>Privacy &amp; cookies</strong>, or read
-    <a href="?legal=privacy">the full Privacy Policy</a>.</p>
-    <p>This operator is based in Hamburg, Germany. The applicable GDPR supervisory framework
-    includes <a href="https://datenschutz-hamburg.de/" target="_blank" rel="noopener noreferrer">
-    the Hamburg Commissioner for Data Protection and Freedom of Information</a>.
-    Regulatory oversight is not an endorsement, audit, or certification of this website.</p>
-  </div>
-</details>
 """
-
 
 def render_hero():
     from pricing.garage_art import car_svg
-    tagline = "A little car love. A lot of curiosity." if locale() in ("en-GB","en-US") else story_html("us_hero" if st.query_params.get("market")!="eu" else "eu_hero")
+    tagline = story_html("us_hero" if st.query_params.get("market")!="eu" else "eu_hero")
     st.markdown('<div class="garage-nav"><a class="garage-brand" href="#studio-workspace" aria-label="Car Price Studio"><span class="garage-mark" aria-hidden="true">'+car_svg()+'</span><span class="garage-wordmark"><strong>car price studio</strong><small>'+tagline+'</small></span></a>'+origin_badge()+'</div>',unsafe_allow_html=True)
     from pricing.accessibility import reading_options
     reading_options()
@@ -142,13 +78,8 @@ def journey_steps(steps):
 
 
 def market_guide():
-    if locale() not in ("en-GB", "en-US"):
-        st.markdown('<div class="garage-market-guide"><article><strong>🏷️ '+story_html("us_name")+
-                    '</strong><p>'+story_html("us_desc")+'</p></article><article><strong>🔨 '+
-                    story_html("eu_name")+'</strong><p>'+story_html("us_pitch")+
-                    '</p></article></div>',unsafe_allow_html=True)
-        return
-    st.markdown('''<div class="garage-market-guide"><article><strong>🏷 Seller asking price</strong><p>The price a seller might advertise, before negotiation. Not a completed retail sale.</p></article><article><strong>🔨 Wholesale auction</strong><p>A comparable car’s estimated wholesale sale value. Not a live bid or dealer offer.</p></article></div>''',unsafe_allow_html=True)
+    """Avoid confusing the U.S. wholesale auction with the European market."""
+    st.caption(story("us_pitch"))
 
 
 def section(kicker,title):

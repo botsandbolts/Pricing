@@ -23,10 +23,9 @@ def test_current_pricing_panel_has_single_form_and_safe_legacy_redirect(studio):
     assert not at.exception
     assert at.get('pills')[0].value=='🚗 Price my car'
     assert any(x.label=='Make' for x in at.text_input)
-    # Current US release has two separate language-specific form submits.
+    # The 2026 release uses exactly one multilingual Granite submit.
     labels={b.label for b in at.get('form_submit_button')}
-    assert '🇬🇧 Evaluate in English' in labels
-    assert '🌍 Evaluate in my language' in labels
+    assert labels == {'🌍 Calculate with Granite'}
     assert len([x for x in at.text_area if x.label=="Seller's description"])==1
     at.session_state['_navigate_to']='🧬 Experimental models'
     at.run()
@@ -65,14 +64,14 @@ def test_vehicle_and_description_survive_navigation(studio):
     at=studio
     for field in at.text_input:
         if field.label=='Make':field.set_value('Ford')
-        if field.label=='Model / trim':field.set_value('Focus')
+        if field.label.startswith('Model / '):field.set_value('Focus')
     next(field for field in at.text_area if field.label=="Seller's description").set_value(
         'Service history and new tires.')
     # Streamlit forms send pending input values only with the submit action.
     # This simultaneously verifies one-click submission and session persistence.
     submissions=[b for b in at.get('form_submit_button')
-                 if b.label in ('🇬🇧 Evaluate in English','🌍 Evaluate in my language')]
-    assert len(submissions)==2
+                 if b.label=='🌍 Calculate with Granite']
+    assert len(submissions)==1
     enabled=[b for b in submissions if not b.disabled]
     if not enabled:
         pytest.skip('Neither US engine is bundled in this CI checkout')
@@ -83,7 +82,7 @@ def test_vehicle_and_description_survive_navigation(studio):
     at.get('pills')[0].set_value('🚗 Price my car').run()
     assert not at.exception
     assert next(x.value for x in at.text_input if x.label=='Make')=='Ford'
-    assert next(x.value for x in at.text_input if x.label=='Model / trim')=='Focus'
+    assert next(x.value for x in at.text_input if x.label.startswith('Model / '))=='Focus'
     assert next(x.value for x in at.text_area if x.label=="Seller's description")==(
         'Service history and new tires.')
 

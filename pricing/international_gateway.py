@@ -6,7 +6,7 @@ Existing American routes remain the default and retain their original IDs.
 from __future__ import annotations
 import streamlit as st
 from html import escape
-from pricing.i18n import tr, editorial_voice
+from pricing.i18n import tr
 from pricing.i18n_story import story, story_html
 
 MARKETS={"us":"🇺🇸 United States","eu":"🇪🇺 Europe"}
@@ -27,51 +27,37 @@ def _choose(choice):
     st.rerun()
 
 def render_market_gateway():
-    """Prominent two-market landing without breaking old US shared links."""
+    """Compact, keyboard-accessible market choice in all 36 site locales."""
     selected=_resolve()
     st.markdown("""<style>
-    .cps-globe{background:linear-gradient(125deg,#11273d,#204a55 65%,#355b56);
-       color:#fff;border:1px solid #83afa8;border-radius:22px;
-       box-shadow:0 14px 36px #13253525;padding:clamp(15px,3vw,28px);margin:3px 0 14px}
-    .cps-globe strong,.cps-globe h1{color:#fff!important}
-    .cps-globe .pre{font-size:.75rem;letter-spacing:.16em;font-weight:900;
-       color:#d6dfab;margin:0 0 6px}
-    .cps-globe h1{font-size:clamp(1.4rem,3vw,2.4rem);line-height:1.15;margin:0 0 6px}
-    .cps-globe p{color:#e2ebef;margin:0;font-size:.93rem;line-height:1.5}
-    .cps-market-card{border:1px solid #aebdbf;border-radius:12px;
-       padding:13px 15px;margin:4px 0 8px;background:rgba(55,92,95,.045);
-       min-height:89px}
-    .cps-market-card b{font-size:1.08rem}
-    .cps-market-card small{display:block;color:#61727b;line-height:1.4;margin-top:5px}
+    .cps-quick-market{padding:10px 13px;margin:0 0 6px;border-radius:12px;
+       background:#102b39;color:#fff}
+    .cps-quick-market h2{color:#fff!important;font-size:1.1rem;margin:0 0 3px}
+    .cps-quick-market p{margin:0;color:#e6f1ef;font-size:.87rem}
+    .cps-quick-market-card{border-left:3px solid #267d6c;padding:3px 8px;
+       margin:0 0 3px;min-height:0}
+    .cps-quick-market-card small{display:block;line-height:1.34;
+       color:inherit;font-size:.81rem}
     </style>""",unsafe_allow_html=True)
-    # The top-level HTML block must START at column zero. When indented
-    # beneath a CSS block, Markdown treats <section> as a literal code block.
-    landing_html=f"""<section class="cps-globe" aria-label="{story_html('edition')}">
-    <div class="pre">CAR PRICE STUDIO · {story_html('edition')}</div>
-    <h1>{escape(tr('market_title'))}</h1>
-    <p>{escape(tr('market_intro'))}</p>
-    </section>"""
-    st.markdown(landing_html,unsafe_allow_html=True)
-    headline, invitation = editorial_voice()
-    st.markdown('<div class="cps-market-card" role="note"><b>'+escape(headline)+'</b>'
-                '<small>'+escape(invitation)+'</small></div>',
+    st.markdown('<section class="cps-quick-market" role="region" aria-label="'+
+                story_html("edition")+'"><h2>'+escape(tr("market_title"))+
+                '</h2><p>'+escape(tr("market_intro"))+'</p></section>',
                 unsafe_allow_html=True)
-    left,right=st.columns(2,gap="medium")
+    left,right=st.columns(2,gap="small")
     with left:
-        st.markdown('<div class="cps-market-card"><b>🇺🇸 '+story_html("us_name")+'</b>'
-                    '<small>'+story_html("us_desc")+'</small></div>',
-                    unsafe_allow_html=True)
+        st.markdown('<div class="cps-quick-market-card"><strong>🇺🇸 '+
+                    story_html("us_name")+'</strong><small>'+
+                    story_html("us_desc")+'</small></div>',unsafe_allow_html=True)
         if st.button("🇺🇸 "+("✓ " if selected=="us" else "")+tr("open_us"),
                      key="cps_market_us",use_container_width=True,
                      type="primary" if selected=="us" else "secondary"):
             _choose("us")
     with right:
-        st.markdown('<div class="cps-market-card"><b>🇪🇺 '+story_html("eu_name")+'</b>'
-                    '<small>'+story_html("eu_desc")+'</small></div>',
-                    unsafe_allow_html=True)
+        st.markdown('<div class="cps-quick-market-card"><strong>🇪🇺 '+
+                    story_html("eu_name")+'</strong><small>'+
+                    story_html("eu_desc")+'</small></div>',unsafe_allow_html=True)
         if st.button("🇪🇺 "+("✓ " if selected=="eu" else "")+tr("open_eu"),
                      key="cps_market_eu",use_container_width=True,
                      type="primary" if selected=="eu" else "secondary"):
             _choose("eu")
-    st.caption(story("disclaimer"))
     return selected

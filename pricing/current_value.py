@@ -69,35 +69,33 @@ def clock_controls(prefix='main', prominent=False):
     from datetime import date
     day=today()
     if prominent:
-        wrapper=st.container(border=True)
+        from pricing.i18n import localized_panel
+        wrapper=st.expander("📅 "+localized_panel("📅 Value over time"),
+                            expanded=False)
     else:
         wrapper=st.expander('Valuation date & auction coverage',expanded=False)
     with wrapper:
         if prominent:
-            st.markdown('### 📅 Price it today—or travel back in time')
-            st.caption('Pick the day you want the pricing scenario to describe. '
-                       'The historical models remain the same; only the age and '
-                       'market-index adjustment changes. No flux capacitor required.')
-            mode=st.radio('Valuation date',[
-                'Today','Historical date','End of this month'],
-                horizontal=True,key=prefix+'_clock_mode_main')
-            if mode=='Historical date':
+            from pricing.i18n import localized_panel
+            from pricing.i18n_story import story
+            from pricing.i18n_clock import clock_text
+            mode=st.radio(localized_panel("📅 Value over time"),
+                          ("today","history","monthend"),
+                          format_func=clock_text,
+                          horizontal=True,key=prefix+'_clock_mode_main')
+            if mode=="history":
                 selected=st.date_input(
-                    'Historical valuation date (January 2014 to today)',
+                    localized_panel("📅 Value over time"),
                     min(day,date(2021,5,1)),min_value=date(2014,1,1),
                     max_value=day,key=prefix+'_historical_day')
-                st.caption('A reconstruction using historical model anchors and '
-                           'a market index—not an observed transaction on that day.')
-            elif mode=='End of this month':
+                st.caption(story("disclaimer"))
+            elif mode=="monthend":
                 selected=month_end(day)
             else:
                 selected=day
-            with st.expander('Auction generation assumptions · optional'):
-                allow=st.checkbox(
-                    'Allow a hypothetical auction analogue for 2016–2021 model years',
-                    value=True,key=prefix+'_allow_analogue_v2',
-                    help='Auction training ends in 2015. Newer cars use an age-matched '
-                         'older reference rather than evidence of their generation.')
+            allow=st.checkbox(
+                clock_text("proxy"),value=True,key=prefix+'_allow_analogue_v2',
+                help=story("science_notice"))
         else:
             mode=st.radio('Price date',[
                 'Today · follows the calendar','Choose a date',
@@ -115,13 +113,17 @@ def clock_controls(prefix='main', prominent=False):
                 value=True,key=prefix+'_allow_analogue_v2',
                 help='Auction training ends at model year 2015. This cannot '
                      'recover the unobserved newer generation.')
-    st.markdown(f'**Valuation date: {selected:%d %b %Y}** · '+
-                ('Historical reconstruction, not an actual sale.' if selected<day else
-                 'Month-end scenario using an index nowcast.' if selected>day else
-                 'Today, automatically updated on refresh.'))
-    st.caption('Enter mileage and condition as they were **on that date**. '
-               'Vehicle ageing and market movement are modeled separately; '
-               'no extra miles are silently added.')
+    if prominent:
+        from pricing.i18n_story import story
+        st.caption("📅 "+selected.isoformat()+" · "+story("disclaimer"))
+    else:
+        st.markdown(f'**Valuation date: {selected:%d %b %Y}** · '+
+                    ('Historical reconstruction, not an actual sale.' if selected<day else
+                     'Month-end scenario using an index nowcast.' if selected>day else
+                     'Today, automatically updated on refresh.'))
+        st.caption('Enter mileage and condition as they were **on that date**. '
+                   'Vehicle ageing and market movement are modeled separately; '
+                   'no extra miles are silently added.')
     return selected,allow
 
 

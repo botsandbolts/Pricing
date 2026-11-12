@@ -15,9 +15,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from functools import partial
-from pricing.i18n import tr, locale
+from pricing.i18n import tr, locale, localized_panel
 from pricing.i18n_story import story
 from pricing.i18n_fields import field
+from pricing.i18n_price_short import short
 from pricing.i18n_enums import option_label, option_label_for
 from pricing.granite_aft_ask_live import available as granite_aft_available, load as load_granite_aft
 from pricing.granite_aft_i18n import copy as granite_copy
@@ -99,17 +100,13 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
     ):
         st.session_state.setdefault(prefix+"_"+name,default)
     with st.form(prefix+"_vehicle",clear_on_submit=False):
-        st.markdown("### 🚗 01 / "+tr("form") if focus else
-                    "### 🚗 02 / "+tr("form") if compact else
-                    "#### 01 / "+tr("form"))
-        if compact:
-            st.caption("No VIN upload, no special instructions and no degree in automotive engineering required. The description is optional for Bid but useful for Ask."
-                       if locale() in ("en-GB","en-US") else story("form_intro"))
+        st.markdown("### 🚗 "+tr("form") if compact or focus else
+                    "#### 🚗 "+tr("form"))
         a,b,c=st.columns(3)
         year=a.number_input(field("model_year"),min_value=1900,max_value=2021,
                             key=prefix+"_year",persist_state="session")
         make=b.text_input(tr("make"),key=prefix+"_make",persist_state="session")
-        model=c.text_input(tr("model")+" / trim",key=prefix+"_model",persist_state="session")
+        model=c.text_input(tr("model")+" / "+field("trim"),key=prefix+"_model",persist_state="session")
         a,b,c=st.columns(3)
         miles=a.number_input(field("miles"),min_value=0,max_value=2000000,
                              step=1000,key=prefix+"_mileage",persist_state="session")
@@ -120,18 +117,16 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
               "wagon","van","convertible","other","unknown"],
               key=prefix+"_body",persist_state="session",format_func=partial(option_label_for,locale()))
         if compact:
-            st.caption("Three useful facts; everything else is recorded as 'unknown', not guessed."
-                       if locale() in ("en-GB","en-US") else field("form_help"))
             a,b,d=st.columns(3)
             condition=a.selectbox(field("condition"),[
                 "unknown","good","excellent","fair","like new","new","salvage"],
                 key=prefix+"_condition",persist_state="session",format_func=option_label)
             title=b.selectbox(field("title"),[
                 "unknown","clean","rebuilt","salvage","lien","missing","parts only"],
-                key=prefix+"_title",persist_state="session")
+                key=prefix+"_title",persist_state="session",format_func=option_label)
             transmission=d.selectbox(tr("transmission"),[
                 "unknown","automatic","manual","other"],
-                key=prefix+"_transmission",persist_state="session")
+                key=prefix+"_transmission",persist_state="session",format_func=option_label)
             fuel=st.session_state.get(prefix+"_fuel","unknown")
             drive=st.session_state.get(prefix+"_drive","unknown")
             cylinders=st.session_state.get(prefix+"_cylinders","unknown")
@@ -182,15 +177,11 @@ def _vehicle(prefix,bid=False,ready=False,compact=False,focus=False,*,
             fields["auction_grade"]=grade
             notes=""
         else:
-            st.markdown("### ✍ 03 / "+("What does the advert say?" if locale() in ("en-GB","en-US") else field("description")) if compact
-                        else "#### 02 / "+("The car's entire story" if locale() in ("en-GB","en-US") else field("description")))
             notes=st.text_area(field("description"),
                 max_chars=8000,height=125 if compact else 140,
                 key=prefix+"_description",persist_state="session",
                 help=granite_copy(locale())["intro"])
         if two_models and not bid:
-            st.markdown("### 🌍 04 / IBM Granite R2 97M · DCNv2 AFT")
-            st.caption(granite_copy(locale())["intro"])
             clicked=st.form_submit_button("🌍 "+granite_copy(locale())["cta"],
                 key=prefix+"_calculate_granite",type="primary",
                 disabled=not ready,width="stretch")
@@ -327,37 +318,15 @@ models used on our main price calculator.</p>
     from pricing.current_value import current_transport,clock_controls,render_market_clock,render_adjustment,render_time_evidence
     from pricing.cvar95_experiment_science import model_kpis,all_validation
     # One canonical pricing page; the homepage CTA changes only the hash.
-    market_guide()
-    if locale() not in ("en-GB","en-US"):
-        st.caption(story("us_pitch"))
+    if main:
+        # Full research detail is available without pushing the calculator below
+        # several promotional blocks. Its copy exists in all 36 site locales.
+        with st.expander("🔬 "+localized_panel("🧠 The science"), expanded=False):
+            st.caption(story("us_pitch"))
+            st.caption(granite_copy(locale())["intro"])
+            st.caption(story("science_notice"))
     else:
-        st.markdown("### 🧰 Full-cohort car valuation laboratory")
-        st.caption("The only seller Ask engine is IBM Granite 97M INT8 ONNX "
-                   "+ DCNv2 AFT, verified on the original historical validation. "
-                   "Wholesale Bid uses ResMLP Huber on original auction sales.")
-
-    if main and locale() in ("en-GB","en-US"):
-        # Visibility is intentional: Captum itself still runs ONLY on a user
-        # click after pricing. A pre-price guide prevents the key feature
-        # disappearing beyond the fold for mobile and first-time visitors.
-        st.markdown("""
-<section aria-label="Where to find the price explanation"
-style="border:1px solid #6daea8;border-left:5px solid #168775;
-border-radius:14px;padding:12px 15px;margin:10px 0 14px;
-background:rgba(34,150,132,.07)">
-<div style="font-size:1.03rem;font-weight:800;margin-bottom:5px">
-🔬 Why THAT price? · Your AI explanation is included
-</div>
-<div style="font-size:.91rem;line-height:1.5">
-<strong>1.</strong> Enter your car.
-<strong>2.</strong> Tap <strong>Calculate seller Ask + wholesale Bid</strong>.
-<strong>3.</strong> Find the open <strong>Why THAT price?</strong>
-panel directly under your price results. The AI explains itself
-only when you ask. No model circus required. 🎪🚗
-</div></section>
-""",unsafe_allow_html=True)
-    if main and locale() not in ("en-GB","en-US"):
-        st.caption("🔬 "+story("submit_tip"))
+        market_guide()
     # Real anchor target for the homepage's gold call-to-action.
     # Placed directly above the editable pricing form, not on a dead route.
     if main:
@@ -366,12 +335,12 @@ only when you ask. No model circus required. 🎪🚗
     examples=load_examples()
     st.markdown("### 🚗 01 / "+("Start with an example—or your own car" if locale() in ("en-GB","en-US") else story("form_intro")))
     if examples:
-        st.selectbox(
-            (f"Search {len(examples):,} real, price-redacted car adverts" if locale() in ("en-GB","en-US") else field("compare")),
-            range(len(examples)+1),key="experimental_example",persist_state="session",
-            format_func=lambda i:("Write my own listing" if locale() in ("en-GB","en-US") else story("form_intro")) if i==0 else examples[i-1]["label"],
-            on_change=_apply_example)
-        st.caption("Historical, price-redacted car adverts (CC BY 4.0). Choose an example to populate the form, or enter your own car. Picking a car does not automatically submit a valuation." if locale() in ("en-GB","en-US") else story("form_intro"))
+        with st.expander("🚘 "+field("compare"), expanded=False):
+            st.selectbox(
+                field("compare"),range(len(examples)+1),
+                key="experimental_example",persist_state="session",
+                format_func=lambda i:story("form_intro") if i==0 else examples[i-1]["label"],
+                on_change=_apply_example)
     # Cheap, read-only availability checks before the focused form. The
     # default page preserves the same research/model introduction ordering.
     resmlp_bid_ready=resmlp_bid_available(root)
@@ -386,7 +355,8 @@ only when you ask. No model circus required. 🎪🚗
     # These historical models and their original data are never retrained by changing the date.
     try:
         transport,error=current_transport(root)
-        render_market_clock(transport,valuation_date,error)
+        if not main:
+            render_market_clock(transport,valuation_date,error)
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
@@ -548,10 +518,14 @@ only when you ask. No model circus required. 🎪🚗
                        "The other estimate will never be replaced by invented values.")
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
+        if main and transport is not None:
+            with st.expander("📅 "+localized_panel("📅 Value over time"),
+                             expanded=False):
+                render_market_clock(transport,valuation_date,error)
         st.markdown("### 💵 "+("Your car · estimated prices" if locale() in ("en-GB","en-US") else field("quote")))
         prices={};adjusted={}
         columns=st.columns(2)
-        for col,side,label in zip(columns,("ask","bid"),("Seller asking","Wholesale auction")):
+        for col,side,label in zip(columns,("ask","bid"),(short("ask"),short("bid"))):
             with col:
                 result=saved.get(side)
                 if result is None:
@@ -582,25 +556,22 @@ only when you ask. No model circus required. 🎪🚗
                 except (OSError,ValueError,KeyError,TypeError) as exc:
                     st.warning("Cannot adjust "+label.lower()+" to this month: "+str(exc))
         if len(prices)==2:
-            st.metric("Asking minus wholesale · indicative market gap",
-                      _usd(prices["ask"]-prices["bid"]))
-            st.caption("These are independent targets, not a guaranteed dealer profit or a matched-car trading spread.")
+            st.metric(short("gap"),_usd(prices["ask"]-prices["bid"]))
+            st.caption(story("disclaimer"))
         if main:
             # High-visibility explanation directly after prices. Preserve
             # lazy Captum imports and unchanged native cached checkpoints.
-            st.markdown("### 🔍 04 / Why THAT price? · Your AI price detective")
-            st.caption("Right here under your quote. Choose Ask or Bid and "
-                       "click Explain; the first quote has zero Captum overhead.")
+            st.markdown("### 🔍 "+short("why"))
+            st.caption(story("submit_tip"))
             with st.expander("🧠 About the neural engine",expanded=False):
                 st.caption(granite_copy(locale())["intro"])
             available_to_explain=[side for side in ("ask","bid") if side in saved]
             if available_to_explain:
-                labels={"ask":"🪧 Seller Ask","bid":"🔨 Wholesale Bid"}
+                labels={"ask":"🪧 "+short("ask"),"bid":"🔨 "+short("bid")}
                 chosen_side=st.radio(
-                    "Which neural estimate should we explain?",
-                    available_to_explain,format_func=lambda s:labels[s],
+                    short("why"),available_to_explain,format_func=lambda s:labels[s],
                     horizontal=True,key="experimental_explain_market")
-                if st.button("🔍 Explain this price · show real AI feature contributions",
+                if st.button("🔍 "+short("explain"),
                              type="primary",width="stretch",
                              key="experimental_explain_go"):
                     try:
@@ -627,17 +598,15 @@ only when you ask. No model circus required. 🎪🚗
 
         if main and prices.get("ask") and saved.get("request_id"):
             st.markdown("### ⭐ "+("Your verdict: was our AI valuation accurate?" if locale() in ("en-GB","en-US") else field("feedback_title")))
-            st.caption("The price detective needs human witnesses too. "
-                       "Please compare the estimate with what you know about your car.")
+            st.caption(story("submit_tip"))
             key=str(saved["request_id"])
             if st.session_state.get("_feedback_saved_"+key):
                 st.success("🙏 Your feedback is saved. Thank you for helping us improve!")
             else:
                 with st.form("accuracy_feedback_"+key):
-                    score=st.radio("Rate this quote", [1,2,3,4],
+                    score=st.radio(field("feedback_title"), [1,2,3,4],
                         index=None,horizontal=True,
-                        format_func=lambda n:{1:"1 · Catastrophic 💥",2:"2 · Poor 😬",
-                            3:"3 · Good 👍",4:"4 · Excellent 🏆"}[n],
+                        format_func=lambda n:f"{n} / 4",
                         key="rating_"+key)
                     permission=st.checkbox(("I agree to save my rating, basic car details and both price estimates. No seller story, IP address, VIN or contact details." if locale() in ("en-GB","en-US") else field("feedback_consent")),
                         key="feedback_permission_"+key)
@@ -696,14 +665,11 @@ only when you ask. No model circus required. 🎪🚗
             json.dumps(report,indent=2,default=str),file_name="experimental-bid-ask.json",
             mime="application/json",key="experimental_both_download")
     if main:
-        st.markdown("### 🚙 The car doesn't read spreadsheets. Luckily, we do.")
-        st.caption("Two separate historical targets, one transparent car studio. "
-                   "The asking price isn't a completed retail sale, and the auction "
-                   "estimate isn't a dealer offer. Date scenarios aren't transactions.")
+        st.caption(story("disclaimer"))
     else:
         st.markdown("### 🧰 Other tools in Car Price Studio")
         st.caption("More comparison tools are available from the Studio panels.")
-    with st.expander("⚙️ Which engines priced this car? · verified model details",expanded=False):
+    with st.expander("⚙️ "+short("engine"),expanded=False):
         a,b=st.columns(2)
         with a:
             st.markdown("**🌍 Sole Ask: Granite INT8 + DCNv2 AFT**")
@@ -735,16 +701,17 @@ only when you ask. No model circus required. 🎪🚗
         st.caption("Ask estimates advertised prices; Bid estimates completed "
                    "2014–15 wholesale sale amounts. Neither is a live purchase offer.")
 
-    st.markdown("### 🧪 Research notes: matched historical populations")
-    st.caption("Ask: 2021 Craigslist advertised prices, full original "
-               "training and validation. Bid: 2014–15 completed wholesale "
-               "auctions, full original training and validation. No "
-               "observed-price-dependent row exclusions in active serving. "
-               "Historical research cannot prove 2026 market accuracy.")
-    if saved and "ask" in saved:
-        st.info(granite_copy(locale())["historical"])
+    if not main:
+        st.markdown("### 🧪 Research notes: matched historical populations")
+        st.caption("Ask: 2021 Craigslist advertised prices, full original "
+                   "training and validation. Bid: 2014–15 completed wholesale "
+                   "auctions, full original training and validation. No "
+                   "observed-price-dependent row exclusions in active serving. "
+                   "Historical research cannot prove 2026 market accuracy.")
+        if saved and "ask" in saved:
+            st.info(granite_copy(locale())["historical"])
 
-    with st.expander("🧠 How the new neural models learn",expanded=False):
+    with st.expander("🧠 "+short("engine"),expanded=False):
         st.markdown("**Asking:** Frozen Granite multilingual QInt8 embeddings "
                     "enter our sole DCNv2 AFT model with TRAIN-only mileage features.")
         st.markdown("**Bid:** The preferred ResMLP uses Huber-dollar loss "
@@ -752,5 +719,5 @@ only when you ask. No model circus required. 🎪🚗
         st.caption("CVaR95 is the worst-five-percent average absolute dollar "
                    "error. It is not a legal valuation or a guarantee.")
 
-    with st.expander("🛡️ Why CVaR95? The business case and the original scientific evidence"):
+    with st.expander("🛡️ "+localized_panel("📊 Evaluation")):
         _explanation(root)
