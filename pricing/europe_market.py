@@ -122,32 +122,19 @@ def _parody_banner():
                    "und nicht mit WKDA, Autohero oder AUTO1 verbunden.")
 
 def _header():
-    _parody_banner()
-    local_headline, local_invitation = editorial_voice()
-    if locale() not in ("en-GB", "en-US"):
-        st.markdown(f"""<section class="eu-hero" aria-label="{story_html('eu_name')}">
-          <div class="eu-kicker">🇪🇺 CAR PRICE STUDIO · {story_html('edition')}</div>
-          <h1>{story_html('eu_hero')}</h1>
-          <p>{story_html('eu_pitch')}</p>
-          <p><strong>{escape(local_headline)}</strong> {escape(local_invitation)}</p>
-          <div class="eu-tags"><span>🇩🇪 Made in Germany</span>
-          <span>📊 {story_html('independent')}</span></div></section>""",
-          unsafe_allow_html=True)
-        st.caption(story("science_notice"))
-        return
-    st.markdown("### "+escape(local_headline))
-    st.caption(local_invitation)
-    st.caption("🌐 "+tr("market_intro"))
-    st.markdown("""<section class="eu-hero" aria-label="European automotive price studio">
-      <div class="eu-kicker">🇪🇺 CAR PRICE STUDIO · EUROPEAN EDITION</div>
-      <h1>From Hamburg to Rome. Same love of cars.<br>Less guessing. More evidence.</h1>
-      <p>Research-backed used-car <b>asking-price estimates</b> for supported European
-         markets. No fictional auction bids. No registration. No advertising.
-         Our European model is evaluated against held-out asking prices; market-time adjustment is a separate, transparent research layer.</p>
-      <div class="eu-tags"><span>🇩🇪 Built independently in Germany</span>
-        <span>€ Advertised Ask, not sale price</span><span>📊 Real what-if estimates</span>
-        <span>🛡️ Worst-error risk measured</span></div></section>""",
-        unsafe_allow_html=True)
+    """One compact, translated header. The original German parody is optional."""
+    if locale() == "de":
+        with st.expander("🎭 Wir kaufen dein Auto nicht – wir schätzen es",
+                         expanded=False):
+            _parody_banner()
+    st.markdown(f"""<section class="eu-hero" aria-label="{story_html('eu_name')}"
+      style="padding:12px 17px;margin:5px 0 8px">
+      <div class="eu-kicker">🇪🇺 CAR PRICE STUDIO</div>
+      <h1 style="font-size:clamp(1.2rem,2.8vw,1.7rem);margin:3px 0">
+        {story_html('eu_hero')}</h1>
+      <p style="margin:0">{story_html('eu_pitch')}</p>
+      </section>""",unsafe_allow_html=True)
+
 
 def _bundle():
     try:
@@ -182,18 +169,16 @@ def _edit_vehicle(schema):
         st.caption("European conventions: km, horsepower, registration year and euro asking prices. Unknown specifications stay unknown.")
     else:
         st.caption(field("form_help")+" · km · €")
-    market_reference=("📅 **October 2026 observed market reference** · The selected "
-            "ResMLP was trained on asking prices verified 4–15 October 2026 "
-            "(median 13 October). The separately generated November-indexed "
-            "column was **not** its training target. No additional Eurostat "
-            "adjustment is applied. Monthly market trends remain in the "
-            "research panel.")
-    if locale() in ("en-GB","en-US"):
-        st.info(market_reference)
-    else:
-        st.caption("📅 ResMLP · 4–15.10.2026 · "+story("science_notice"))
-        with st.expander("🔬 "+story("science_notice")):
-            st.info(market_reference)
+    # Month-specific claims are grounded in the released manifest.
+    # Research detail is opt-in; do not make the visitor scroll past it.
+    with st.expander("🔬 "+localized_panel("🔬 The science"), expanded=False):
+        if locale() in ("en-GB","en-US"):
+            st.caption("ResMLP · advertised asking prices observed 4–15 October 2026 "
+                       "(reference 13 October). No automatic November or Eurostat "
+                       "adjustment; this is not a completed sale.")
+        else:
+            st.caption("ResMLP · ASK · 04–15.10.2026 · "+
+                       story("disclaimer"))
     with st.form("eu_ask_form",clear_on_submit=False):
         a,b,c=st.columns(3)
         country=a.selectbox(tr("country")+" · 8",COUNTRY_OPTIONS,
@@ -400,7 +385,9 @@ def _how_it_works():
 
 def _valuation_page(bundle,error):
     st.markdown("### 🧮 "+tr("calculate"))
-    _how_it_works()
+    with st.expander("🔬 "+localized_panel("🔬 The science"),
+                     expanded=False):
+        _how_it_works()
     if bundle is None:
         st.warning("The rank-1 model is undergoing reproducibility and package verification. The calculator is gated; no fabricated or substitute prices will be shown."
                    if locale() in ("en-GB","en-US") else "⚠️ "+story("science_notice"))
