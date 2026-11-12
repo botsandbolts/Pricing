@@ -354,7 +354,8 @@ models used on our main price calculator.</p>
     # These historical models and their original data are never retrained by changing the date.
     try:
         transport,error=current_transport(root)
-        render_market_clock(transport,valuation_date,error)
+        if not main:
+            render_market_clock(transport,valuation_date,error)
     except (OSError,ValueError,KeyError) as exc:
         transport=None
         st.warning("This month's market transport cannot be loaded: "+str(exc))
@@ -516,6 +517,10 @@ models used on our main price calculator.</p>
                        "The other estimate will never be replaced by invented values.")
     saved=st.session_state.get("experimental_combined_receipt")
     if saved:
+        if main and transport is not None:
+            with st.expander("📅 "+localized_panel("📅 Value over time"),
+                             expanded=False):
+                render_market_clock(transport,valuation_date,error)
         st.markdown("### 💵 "+("Your car · estimated prices" if locale() in ("en-GB","en-US") else field("quote")))
         prices={};adjusted={}
         columns=st.columns(2)
